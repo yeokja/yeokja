@@ -21,9 +21,8 @@
 #
 # rebuild: 지문이 바뀐 프로젝트·타깃만, 각각 필요한 툴체인만 설치해 빌드합니다
 #   (PyPy는 Python 2.7+Sphinx, theBeamBook은 Ruby+Asciidoctor, Lean 서적은 elan
-#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML). self-hosted 러너는 잡을 한 번에
-#   하나씩 처리하므로, 건너뛴 잡 하나당 컨테이너 기동·체크아웃·산출물 전송 등
-#   1분 안팎의 고정 비용이 통째로 사라집니다.
+#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML). 잡은 GitHub-hosted 러너에서
+#   병렬로 돕니다.
 #
 # stage: 마지막으로 스테이징한 Pages 트리를 캐시에서 복원하고(캐시가 없을 때만
 #   배포된 사이트를 wget으로 미러링), 새 산출물을 그 위에 덮어쓴 뒤 트리를 다시
@@ -42,8 +41,8 @@
 # 다시 빌드하려면 workflow_dispatch의 force_rebuild를 켭니다.
 name: Deploy Pages
 
-# 신뢰할 수 있는 main push와 수동 실행만 ARC self-hosted runner에서 처리합니다.
-# pull_request 검증은 pr.yml의 GitHub-hosted runner에서 별도로 실행합니다.
+# main push와 수동 실행에서만 배포합니다. pull_request 검증은 pr.yml에서 따로
+# 합니다.
 on:
   push:
     branches: [main]
@@ -65,8 +64,7 @@ concurrency:
 
 jobs:
   plan:
-    runs-on: yeokja
-    container: mcr.microsoft.com/devcontainers/universal:6.1-noble
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       site_key: ${{ steps.site.outputs.cache-matched-key }}
@@ -151,8 +149,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.matrix != '[]'
     continue-on-error: ${{ matrix.project != 'devguide' }}
-    runs-on: yeokja
-    container: mcr.microsoft.com/devcontainers/universal:6.1-noble
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -305,8 +302,7 @@ jobs:
     needs: [plan, rebuild]
     # rebuild는 다시 빌드할 것이 없으면 통째로 건너뛰므로 skipped도 정상입니다.
     if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.rebuild.result == 'success' || needs.rebuild.result == 'skipped') }}
-    runs-on: yeokja
-    container: mcr.microsoft.com/devcontainers/universal:6.1-noble
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -322,15 +318,28 @@ jobs:
           path: _site
           key: ${{ needs.plan.outputs.site_key }}
 
+      # 미러링 주소와 경로 깊이를 알기 위해 미러링보다 먼저 둡니다. 저장소를
+      # 다른 계정으로 옮기거나 커스텀 도메인을 붙여도 여기서 나오는 base_url과
+      # base_path가 그에 맞게 바뀝니다.
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      # 사이트가 https://<host>/<base_path>/ 아래에 있으면 wget이 만드는 경로에서
+      # base_path의 디렉터리 수만큼 잘라내야 _site가 사이트 루트가 됩니다.
+      # 커스텀 도메인처럼 base_path가 비어 있으면 자를 것이 없습니다.
       - name: Mirror the currently deployed Pages tree
         if: steps.site.outputs.cache-hit != 'true'
         run: |
           rm -rf _site
           mkdir -p _site
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget --mirror --no-host-directories --cut-dirs=1 --no-parent \
-            --directory-prefix=_site https://moreal.github.io/yeokja/ || true
+          base_url='${{ steps.pages.outputs.base_url }}'
+          base_path='${{ steps.pages.outputs.base_path }}'
+          depth=$(printf '%s' "$base_path" | tr -cd '/' | wc -c | tr -d ' ')
+          wget --mirror --no-host-directories --cut-dirs="$depth" --no-parent \
+            --directory-prefix=_site "${base_url%/}/" || true
           test -s _site/index.html
 
       - name: Download built sites
@@ -360,11 +369,6 @@ jobs:
           path: _site
           key: pages-site-${{ hashFiles('_site/**') }}
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -372,8 +376,7 @@ jobs:
 
   deploy:
     needs: stage
-    runs-on: yeokja
-    container: mcr.microsoft.com/devcontainers/universal:6.1-noble
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
