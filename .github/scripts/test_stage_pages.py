@@ -17,9 +17,11 @@ class StagePagesTests(unittest.TestCase):
         self.artifacts = self.root / "artifacts"
         self.site = self.root / "site"
         self.landing = self.root / "landing"
+        self.fingerprints = self.root / "fingerprints"
         self.artifacts.mkdir()
         self.site.mkdir()
         self.landing.mkdir()
+        self.fingerprints.mkdir()
         self.write(self.site / "index.html", "published root")
         self.write(self.landing / "index.html", "new root")
         self.write(self.landing / "favicon.svg", "new favicon")
@@ -48,20 +50,23 @@ class StagePagesTests(unittest.TestCase):
             "chisel pdf",
         )
 
-    def run_stage(self) -> subprocess.CompletedProcess[str]:
+    def add_fingerprint(self, artifact: str, value: str) -> None:
+        self.write(self.fingerprints / artifact, value + "\n")
+
+    def run_stage(
+        self, with_fingerprints: bool = False
+    ) -> subprocess.CompletedProcess[str]:
         self.assertTrue(STAGE_SCRIPT.is_file(), f"missing script: {STAGE_SCRIPT}")
-        return subprocess.run(
-            [
-                "bash",
-                str(STAGE_SCRIPT),
-                str(self.artifacts),
-                str(self.site),
-                str(self.landing),
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        command = [
+            "bash",
+            str(STAGE_SCRIPT),
+            str(self.artifacts),
+            str(self.site),
+            str(self.landing),
+        ]
+        if with_fingerprints:
+            command.append(str(self.fingerprints))
+        return subprocess.run(command, check=False, capture_output=True, text=True)
 
     def test_missing_published_baseline_index_fails(self) -> None:
         (self.site / "index.html").unlink()
@@ -72,19 +77,101 @@ class StagePagesTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("published Pages baseline is missing index.html", result.stderr)
 
-    def test_missing_devguide_artifact_fails(self) -> None:
+    def test_missing_devguide_in_staged_tree_fails(self) -> None:
         result = self.run_stage()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("required devguide artifact is missing index.html", result.stderr)
+        self.assertIn(
+            "required devguide site is missing from the staged tree", result.stderr
+        )
 
-    def test_missing_chisel_book_artifact_fails(self) -> None:
+    def test_missing_chisel_book_in_staged_tree_fails(self) -> None:
         self.add_site_artifact("dist-devguide", "devguide")
 
         result = self.run_stage()
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("required chisel-book artifact is missing PDF", result.stderr)
+        self.assertIn(
+            "required chisel-book PDF is missing from the staged tree", result.stderr
+        )
+
+    def test_required_files_preserved_from_published_tree_suffice(self) -> None:
+        # plan 잡이 빌드를 건너뛰면 산출물은 없지만 보존된 트리에 이미 있습니다.
+        self.write(self.site / "devguide" / "index.html", "published devguide")
+        self.write(
+            self.site / "chisel-book" / "Digital-Design-with-Chisel-ko.pdf",
+            "published pdf",
+        )
+
+        result = self.run_stage()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            (self.site / "devguide" / "index.html").read_text(encoding="utf-8"),
+            "published devguide",
+        )
+
+    def test_fingerprints_recorded_only_for_overlaid_artifacts(self) -> None:
+        self.add_required_artifacts()
+        self.add_site_artifact("dist-mil", "new mil")
+        self.write(
+            self.artifacts / "dist-napkin-pdf" / "Napkin-ko.pdf", "new pdf"
+        )
+        self.add_site_artifact("dist-pypy", "new pypy")
+        self.add_site_artifact("dist-pypy", "new rpython", "rpython-site")
+        for artifact in (
+            "dist-devguide",
+            "dist-chisel-book-pdf",
+            "dist-mil",
+            "dist-napkin-pdf",
+            "dist-pypy",
+            "dist-tpil",
+        ):
+            self.add_fingerprint(artifact, f"fp-{artifact}")
+        recorded = self.site / "build-fingerprints"
+        self.write(recorded / "dist-tpil", "old-tpil\n")
+        self.write(recorded / "dist-mil", "old-mil\n")
+
+        result = self.run_stage(with_fingerprints=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for artifact in (
+            "dist-devguide",
+            "dist-chisel-book-pdf",
+            "dist-mil",
+            "dist-napkin-pdf",
+            "dist-pypy",
+        ):
+            self.assertEqual(
+                (recorded / artifact).read_text(encoding="utf-8"),
+                f"fp-{artifact}\n",
+                artifact,
+            )
+        # tpil had no artifact: its previously recorded fingerprint stays.
+        self.assertEqual(
+            (recorded / "dist-tpil").read_text(encoding="utf-8"), "old-tpil\n"
+        )
+        self.assertFalse((recorded / "dist-peps").exists())
+
+    def test_overlay_without_fingerprint_warns_and_records_nothing(self) -> None:
+        self.add_required_artifacts()
+        self.add_fingerprint("dist-devguide", "fp-devguide")
+
+        result = self.run_stage(with_fingerprints=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("no fingerprint for dist-chisel-book-pdf", result.stderr)
+        recorded = self.site / "build-fingerprints"
+        self.assertTrue((recorded / "dist-devguide").is_file())
+        self.assertFalse((recorded / "dist-chisel-book-pdf").exists())
+
+    def test_without_fingerprints_dir_nothing_is_recorded(self) -> None:
+        self.add_required_artifacts()
+
+        result = self.run_stage()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.site / "build-fingerprints").exists())
 
     def test_missing_legacy_artifact_preserves_published_tree(self) -> None:
         self.write(self.site / "mil" / "old.html", "published")

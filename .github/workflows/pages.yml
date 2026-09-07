@@ -7,26 +7,39 @@
 # assemble은 ko/가 없으면 에러 없이 "빈 오버레이"로 취급해 영어 원본만 있는
 # 사이트를 조용히 만들어 버리기 때문입니다.
 #
-# 프로젝트마다 필요한 툴체인이 달라서(PyPy는 Python 2.7+Sphinx, theBeamBook은
-# Ruby+Asciidoctor, Lean 서적은 elan 또는 Python+Sphinx, Napkin은 Nix+LaTeXML)
-# 프로젝트별로 잡을 나눠 병렬로
-# 돌리고, Napkin의 HTML·EPUB·PDF도 각각 별도 잡에서 병렬로 빌드합니다. 각 잡은 자기
-# 프로젝트와 타깃에 필요한 툴체인만 설치합니다. pypy-eu-reports는
-# state/가 통째로 gitignore(라이선스 미확정, README 참조)라 커밋된 상태가 없고
-# [build.html] 타깃도 없어 CI에서 할 일이 없으므로 matrix에서 뺍니다.
+# 잡 구성:
 #
-# 새 배포 프로젝트나 타깃을 추가하면 아래 rebuild 잡의 matrix.include와 stage 잡의
-# 스테이징 스텝에 각각 항목을 추가해야 합니다.
+#   plan ─▶ rebuild (matrix) ─▶ stage ─▶ deploy
 #
-# 번역 재구성(항상 실행) 다음에 dist 캐시 게이트가 있습니다: 커밋된 state/에서
-# 재구성한 ko/를 포함해 빌드 산출물을 좌우하는 입력 전체를
-# .github/scripts/build-fingerprint.sh로 지문 내고, 이전 실행과 지문이 같으면
-# 캐시에서 dist를 복원해 툴체인 설치와 빌드 명령을 건너뜁니다. 파서 crate가
-# 바뀌어도 그 파서가 만드는 ko/ 내용이 그대로면 지문도 그대로입니다 — 판단
-# 기준은 결과물이지 파서 버전이 아닙니다. rust-forge는 빌드 중
-# static.rust-lang.org에서 최신 릴리스 채널 정보를 받아오므로 입력이 같아도
-# 결과가 날마다 달라질 수 있어, matrix에 rebuild_daily를 둬 하루에 한 번은
-# 지문에 날짜를 섞어 캐시를 무효화합니다.
+# plan: yeokja CLI를 준비하고(Rust 소스가 그대로면 캐시된 바이너리를 그대로
+#   씀), 모든 프로젝트의 ko/를 재구성한 뒤, 프로젝트·타깃마다
+#   .github/scripts/build-fingerprint.sh로 빌드 입력의 지문을 냅니다. 마지막으로
+#   스테이징된 Pages 트리(캐시)에 기록된 지문과 같으면 그 트리에 이미 같은
+#   산출물이 있으므로 빌드를 건너뛰고, 다른 것만 rebuild 매트릭스로 내보냅니다.
+#   파서 crate가 바뀌어도 그 파서가 만드는 ko/ 내용이 그대로면 지문도 그대로입니다
+#   — 판단 기준은 결과물이지 파서 버전이 아닙니다.
+#
+# rebuild: 지문이 바뀐 프로젝트·타깃만, 각각 필요한 툴체인만 설치해 빌드합니다
+#   (PyPy는 Python 2.7+Sphinx, theBeamBook은 Ruby+Asciidoctor, Lean 서적은 elan
+#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML). self-hosted 러너는 잡을 한 번에
+#   하나씩 처리하므로, 건너뛴 잡 하나당 컨테이너 기동·체크아웃·산출물 전송 등
+#   1분 안팎의 고정 비용이 통째로 사라집니다.
+#
+# stage: 마지막으로 스테이징한 Pages 트리를 캐시에서 복원하고(캐시가 없을 때만
+#   배포된 사이트를 wget으로 미러링), 새 산출물을 그 위에 덮어쓴 뒤 트리를 다시
+#   캐시합니다. 덮어쓴 산출물의 지문은 트리 안의 build-fingerprints/에 함께
+#   기록되어 트리와 함께 캐시·배포되므로 둘이 어긋나지 않습니다.
+#
+# rust-forge는 빌드 중 static.rust-lang.org에서 최신 릴리스 채널 정보를
+# 받아오므로 입력이 같아도 결과가 날마다 달라질 수 있어, rebuild_daily로 하루에
+# 한 번은 지문에 날짜를 섞어 다시 빌드합니다. pypy-eu-reports는 state/가 통째로
+# gitignore(라이선스 미확정, README 참조)라 커밋된 상태가 없고 [build.html]
+# 타깃도 없어 CI에서 할 일이 없으므로 목록에서 뺍니다.
+#
+# 새 배포 프로젝트나 타깃을 추가하면 .github/pages-projects.json과 stage 잡이
+# 부르는 .github/scripts/stage-pages.sh에 각각 항목을 추가해야 합니다. 새
+# 툴체인이 필요하면 아래 rebuild 잡에 설치 스텝도 추가합니다. 전체를 강제로
+# 다시 빌드하려면 workflow_dispatch의 force_rebuild를 켭니다.
 name: Deploy Pages
 
 # 신뢰할 수 있는 main push와 수동 실행만 ARC self-hosted runner에서 처리합니다.
@@ -35,6 +48,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 지문 게이트를 무시하고 모든 프로젝트를 다시 빌드합니다
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -46,20 +64,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-cli:
+  plan:
     runs-on: yeokja
     container: mcr.microsoft.com/devcontainers/universal:6.1-noble
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      site_key: ${{ steps.site.outputs.cache-matched-key }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Rust 소스와 Cargo.lock이 그대로면 바이너리도 그대로이므로, 툴체인 설치와
+      # 빌드를 통째로 건너뜁니다.
+      - name: Restore the yeokja binary
+        id: cli
+        uses: actions/cache@v4
+        with:
+          path: target/release/yeokja
+          key: yeokja-cli-${{ runner.os }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'crates/**') }}
+
       - name: Install Rust
+        if: steps.cli.outputs.cache-hit != 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo
+        if: steps.cli.outputs.cache-hit != 'true'
         uses: Swatinem/rust-cache@v2
 
       - name: Build yeokja
+        if: steps.cli.outputs.cache-hit != 'true'
         run: cargo build --release -p yeokja-cli
 
       - name: Upload yeokja binary
@@ -69,83 +102,66 @@ jobs:
           path: target/release/yeokja
           retention-days: 1
 
+      # 지문은 upstream HEAD와 재구성된 ko/ 내용을 읽으므로 모든 프로젝트의
+      # upstream이 필요합니다. 히스토리는 필요 없으니 얕게 받습니다.
+      - name: Fetch every project's submodule
+        run: git submodule update --init --depth 1 --jobs 4
+
+      - name: Rebuild translated sources from committed state
+        run: |
+          for p in $(jq -r '.[].project' .github/pages-projects.json | sort -u); do
+            echo "::group::$p"
+            .github/scripts/rebuild-translations.sh "$p"
+            echo "::endgroup::"
+          done
+
+      # 마지막으로 스테이징된 트리를 복원해 기록된 지문을 읽습니다. 캐시가
+      # 없으면(첫 실행, 만료) 기록도 없으니 모두 다시 빌드합니다. stage 잡은
+      # 여기서 찾은 것과 정확히 같은 캐시 항목을 복원해, 판단의 근거가 된
+      # 트리 위에 산출물을 덮어씁니다.
+      - name: Restore the last staged Pages tree
+        id: site
+        uses: actions/cache/restore@v4
+        with:
+          path: _site
+          key: pages-site-${{ github.run_id }}
+          restore-keys: pages-site-
+
+      - name: Plan which projects to rebuild
+        id: plan
+        run: |
+          args=(.github/pages-projects.json _site/build-fingerprints plan-fingerprints)
+          if [ "${{ inputs.force_rebuild }}" = "true" ]; then
+            args+=(--force)
+          fi
+          matrix=$(.github/scripts/plan-rebuilds.sh "${args[@]}")
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "$matrix" | jq .
+
+      # 이번 실행에서 계산한 지문 전부. stage 잡은 실제로 덮어쓴 산출물의
+      # 지문만 이 중에서 골라 트리에 기록합니다.
+      - name: Upload build fingerprints
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan-fingerprints
+          path: plan-fingerprints
+          retention-days: 1
+
   rebuild:
-    needs: build-cli
+    needs: plan
+    if: needs.plan.outputs.matrix != '[]'
     continue-on-error: ${{ matrix.project != 'devguide' }}
     runs-on: yeokja
     container: mcr.microsoft.com/devcontainers/universal:6.1-noble
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - project: devguide
-            target: html
-            toolchain: python3-devguide
-            unshallow: true
-            artifact: dist-devguide
-            artifact_path: projects/devguide/dist
-          - project: pypy
-            target: html
-            toolchain: python2
-            artifact: dist-pypy
-            artifact_path: projects/pypy/dist
-          - project: thebeambook
-            target: html
-            toolchain: ruby
-            unshallow: true
-            artifact: dist-thebeambook
-            artifact_path: projects/thebeambook/dist
-          - project: fp-lean
-            target: html
-            toolchain: lean
-            artifact: dist-fp-lean
-            artifact_path: projects/fp-lean/dist
-          - project: tpil
-            target: html
-            toolchain: lean
-            artifact: dist-tpil
-            artifact_path: projects/tpil/dist
-          - project: mil
-            target: html
-            toolchain: python3-mil
-            artifact: dist-mil
-            artifact_path: projects/mil/dist
-          - project: peps
-            target: html
-            toolchain: python3-peps
-            artifact: dist-peps
-            artifact_path: projects/peps/dist
-          - project: napkin
-            target: html
-            toolchain: nix
-            artifact: dist-napkin-html
-            artifact_path: projects/napkin/dist
-          - project: napkin
-            target: epub
-            toolchain: nix
-            artifact: dist-napkin-epub
-            artifact_path: projects/napkin/output/epub
-          - project: napkin
-            target: pdf
-            toolchain: nix
-            artifact: dist-napkin-pdf
-            artifact_path: projects/napkin/output/pdf
-          - project: rust-forge
-            target: html
-            toolchain: rust-forge
-            artifact: dist-rust-forge
-            artifact_path: projects/rust-forge/dist
-            rebuild_daily: true
-          - project: chisel-book
-            target: pdf
-            toolchain: latex-chisel
-            artifact: dist-chisel-book-pdf
-            artifact_path: projects/chisel-book/output/pdf
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 이 잡이 다루는 프로젝트의 submodule만 받습니다 — 다른 두 프로젝트의
+      # 이 잡이 다루는 프로젝트의 submodule만 받습니다 — 다른 프로젝트의
       # upstream(수백 MB)까지 받을 이유가 없습니다.
       - name: Fetch this project's submodule
         run: git submodule update --init --depth 1 projects/${{ matrix.project }}/upstream
@@ -165,94 +181,51 @@ jobs:
       - name: Make yeokja executable
         run: chmod +x target/release/yeokja
 
-      # 번역 재구성은 순수 Rust 작업이라 툴체인이 필요 없으므로, 툴체인 설치
-      # 이전에 끝내 둡니다 — 그래야 바로 다음 지문 게이트가 툴체인 설치 비용까지
-      # 절약합니다.
       - name: Rebuild translated sources from committed state
-        if: matrix.project != 'devguide' && matrix.project != 'peps'
-        run: |
-          cd projects/${{ matrix.project }}
-          for s in $(find state -name '*.yeokja.json'); do
-            src="${s#state/}"; src="${src%.yeokja.json}"
-            ../../target/release/yeokja translate "$src"
-            ../../target/release/yeokja status --check "$src"
-          done
-
-      - name: Rebuild and verify the Python devguide
-        if: matrix.project == 'devguide'
-        run: |
-          cd projects/devguide
-          ../../target/release/yeokja translate upstream
-          ../../target/release/yeokja status --check upstream
-
-      # PEP는 루트 문서와 appendices를 여러 source 규칙으로 다룹니다. 프로젝트
-      # 전체를 한 번에 확인해야 새 PEP가 state 없이 빠지는 경우도 배포를 막습니다.
-      - name: Rebuild and verify all translated PEP sources
-        if: matrix.project == 'peps'
-        run: |
-          cd projects/${{ matrix.project }}
-          ../../target/release/yeokja translate upstream/peps
-          ../../target/release/yeokja status --check upstream/peps
-
-      - name: Compute build fingerprint
-        id: fingerprint
-        shell: bash
-        run: |
-          args=(projects/${{ matrix.project }} ${{ matrix.target }})
-          if [ "${{ matrix.rebuild_daily == true }}" = "true" ]; then
-            args+=(--daily)
-          fi
-          echo "value=$(.github/scripts/build-fingerprint.sh "${args[@]}")" >> "$GITHUB_OUTPUT"
-
-      - name: Restore cached dist
-        id: cache
-        uses: actions/cache/restore@v4
-        with:
-          key: dist-${{ matrix.project }}-${{ matrix.target }}-${{ steps.fingerprint.outputs.value }}
-          path: ${{ matrix.artifact_path }}
+        run: .github/scripts/rebuild-translations.sh ${{ matrix.project }}
 
       # PyPy 문서의 conf.py는 py2 문법인 pypy.config를 임포트하므로 공식
       # 환경(.readthedocs.yaml)과 같은 Python 2.7이 필요합니다.
       - name: Install Python 2.7 for the PyPy docs
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'python2'
+        if: matrix.toolchain == 'python2'
         uses: actions/setup-python@v5
         with:
           python-version: 'pypy2.7'
 
       - name: Install the PyPy docs Sphinx toolchain
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'python2'
+        if: matrix.toolchain == 'python2'
         run: pip install 'sphinx<2' 'docutils==0.11' 'sphinx-issues==1.2.0' 'sphinx_rtd_theme<1' py sphinx-affiliates
 
       - name: Install Python 3
-        if: steps.cache.outputs.cache-hit != 'true' && (matrix.toolchain == 'python3-devguide' || matrix.toolchain == 'python3-mil' || matrix.toolchain == 'python3-peps')
+        if: matrix.toolchain == 'python3-devguide' || matrix.toolchain == 'python3-mil' || matrix.toolchain == 'python3-peps'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install uv for the Python devguide
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'python3-devguide'
+        if: matrix.toolchain == 'python3-devguide'
         uses: astral-sh/setup-uv@v10.0.1
 
       - name: Install the Mathematics in Lean Sphinx toolchain
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'python3-mil'
+        if: matrix.toolchain == 'python3-mil'
         run: pip install -r projects/${{ matrix.project }}/upstream/scripts/requirements.txt
 
       - name: Install the PEPs Sphinx toolchain
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'python3-peps'
+        if: matrix.toolchain == 'python3-peps'
         run: pip install -r projects/${{ matrix.project }}/upstream/requirements.txt
 
       - name: Install Ruby
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'ruby'
+        if: matrix.toolchain == 'ruby'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
 
       - name: Install the Asciidoctor toolchain
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'ruby'
+        if: matrix.toolchain == 'ruby'
         run: gem install asciidoctor asciidoctor-diagram rouge
 
       - name: Install XeLaTeX for the Chisel book
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'latex-chisel'
+        if: matrix.toolchain == 'latex-chisel'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -261,7 +234,7 @@ jobs:
             texlive-latex-extra texlive-xetex
 
       - name: Install Nix for the Napkin build
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'nix'
+        if: matrix.toolchain == 'nix'
         uses: cachix/install-nix-action@v31
 
       # Sphinx의 graphviz 확장과 asciidoctor-diagram 둘 다 다이어그램을
@@ -275,13 +248,13 @@ jobs:
       # fonts-noto-cjk를 같이 깔아야 fontconfig가 Sans-Serif 요청을 한글이
       # 있는 폰트로 대체합니다.
       - name: Install Graphviz
-        if: steps.cache.outputs.cache-hit != 'true' && (matrix.toolchain == 'python2' || matrix.toolchain == 'ruby')
+        if: matrix.toolchain == 'python2' || matrix.toolchain == 'ruby'
         run: sudo apt-get update && sudo apt-get install -y graphviz fonts-noto-cjk
 
       # FP in Lean은 빌드 중 Python 출력을 책에 포함하므로 upstream CI와 같은
       # 버전을 사용합니다. 같은 Lean 잡인 TPiL에도 일관된 Python을 제공합니다.
       - name: Install Python for the Lean books
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'lean'
+        if: matrix.toolchain == 'lean'
         uses: actions/setup-python@v5
         with:
           python-version: '3.10.4'
@@ -292,18 +265,18 @@ jobs:
       # 채널 테이블을 채우려면 static.rust-lang.org에서 최신 stable/beta/nightly
       # 정보를 가져와야 하므로(RUN_BLACKSMITH=1) 네트워크 접근이 필요합니다.
       - name: Install Rust for rust-forge's blacksmith preprocessor
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'rust-forge'
+        if: matrix.toolchain == 'rust-forge'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install mdbook for rust-forge
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'rust-forge'
+        if: matrix.toolchain == 'rust-forge'
         run: |
           MDBOOK_VERSION=0.5.4
           curl -sSL "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar -xz
           echo "$PWD" >> "$GITHUB_PATH"
 
       - name: Install elan for the Lean books
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'lean'
+        if: matrix.toolchain == 'lean'
         run: |
           curl -O --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh
           chmod u+x elan-init.sh
@@ -311,23 +284,15 @@ jobs:
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: Install the Lean book toolchains
-        if: steps.cache.outputs.cache-hit != 'true' && matrix.toolchain == 'lean'
+        if: matrix.toolchain == 'lean'
         run: |
           (cd projects/${{ matrix.project }}/upstream/examples && lean --version)
           (cd projects/${{ matrix.project }}/upstream/book && lean --version)
 
       - name: Build ${{ matrix.target }}
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cd projects/${{ matrix.project }}
           ../../target/release/yeokja build ${{ matrix.target }}
-
-      - name: Save dist to cache
-        if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          key: dist-${{ matrix.project }}-${{ matrix.target }}-${{ steps.fingerprint.outputs.value }}
-          path: ${{ matrix.artifact_path }}
 
       - name: Upload build output
         uses: actions/upload-artifact@v4
@@ -337,15 +302,30 @@ jobs:
           retention-days: 1
 
   stage:
-    needs: rebuild
+    needs: [plan, rebuild]
+    # rebuild는 다시 빌드할 것이 없으면 통째로 건너뛰므로 skipped도 정상입니다.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.rebuild.result == 'success' || needs.rebuild.result == 'skipped') }}
     runs-on: yeokja
     container: mcr.microsoft.com/devcontainers/universal:6.1-noble
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Preserve the currently deployed Pages tree
+      # plan 잡이 지문을 비교한 바로 그 트리를 복원합니다. 캐시 항목이 그 사이
+      # 사라졌으면 배포된 사이트를 미러링하는 예전 방식으로 돌아갑니다(몇 분
+      # 걸리지만 첫 실행이나 캐시 만료 때만 일어납니다).
+      - name: Restore the last staged Pages tree
+        id: site
+        if: needs.plan.outputs.site_key != ''
+        uses: actions/cache/restore@v4
+        with:
+          path: _site
+          key: ${{ needs.plan.outputs.site_key }}
+
+      - name: Mirror the currently deployed Pages tree
+        if: steps.site.outputs.cache-hit != 'true'
         run: |
+          rm -rf _site
           mkdir -p _site
           sudo apt-get update
           sudo apt-get install -y wget
@@ -354,13 +334,31 @@ jobs:
           test -s _site/index.html
 
       - name: Download built sites
+        if: needs.rebuild.result == 'success'
         uses: actions/download-artifact@v4
         with:
           pattern: dist-*
           path: artifacts
 
+      - name: Download build fingerprints
+        uses: actions/download-artifact@v4
+        with:
+          name: plan-fingerprints
+          path: artifacts/plan-fingerprints
+
       - name: Stage the Pages tree
-        run: .github/scripts/stage-pages.sh artifacts _site site
+        run: |
+          mkdir -p artifacts
+          .github/scripts/stage-pages.sh artifacts _site site artifacts/plan-fingerprints
+
+      # 내용이 같은 트리는 같은 키로 접혀 캐시 항목이 늘지 않습니다. 트리
+      # 안의 build-fingerprints/도 해시에 들어가므로 지문 기록과 트리는 언제나
+      # 한 항목으로 묶입니다.
+      - name: Save the staged Pages tree
+        uses: actions/cache/save@v4
+        with:
+          path: _site
+          key: pages-site-${{ hashFiles('_site/**') }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
