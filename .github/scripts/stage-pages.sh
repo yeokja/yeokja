@@ -50,21 +50,24 @@ overlay_pypy() {
 overlay_download() {
   artifact_name=$1
   file_name=$2
+  destination_name=${3:-napkin}
   source_path="$artifacts_dir/$artifact_name/$file_name"
 
   if [ ! -f "$source_path" ]; then
-    warn_preserved "napkin/$file_name" "$artifact_name"
+    warn_preserved "$destination_name/$file_name" "$artifact_name"
     return
   fi
 
-  mkdir -p "$site_dir/napkin"
-  cp "$source_path" "$site_dir/napkin/$file_name"
+  mkdir -p "$site_dir/$destination_name"
+  cp "$source_path" "$site_dir/$destination_name/$file_name"
 }
 
 test -s "$site_dir/index.html" || \
   fail "published Pages baseline is missing index.html"
 test -s "$artifacts_dir/dist-devguide/site/index.html" || \
   fail "required devguide artifact is missing index.html"
+test -s "$artifacts_dir/dist-chisel-book-pdf/Digital-Design-with-Chisel-ko.pdf" || \
+  fail "required chisel-book artifact is missing PDF"
 test -s "$landing_dir/index.html" || fail "landing page is missing index.html"
 test -s "$landing_dir/favicon.svg" || fail "landing page is missing favicon.svg"
 
@@ -77,6 +80,7 @@ overlay_site "dist-peps" "site" "peps"
 overlay_site "dist-napkin-html" "site" "napkin"
 overlay_download "dist-napkin-pdf" "Napkin-ko.pdf"
 overlay_download "dist-napkin-epub" "Napkin-ko.epub"
+overlay_download "dist-chisel-book-pdf" "Digital-Design-with-Chisel-ko.pdf" "chisel-book"
 overlay_site "dist-devguide" "site" "devguide"
 overlay_site "dist-rust-forge" "site" "rust-forge"
 

@@ -17,6 +17,26 @@ base = "upstream"
 path = "ko"
 require_base = true
 
+[[derive.step]]
+kind = "patch"
+file = "patches/korean-font.patch"
+
+[build.pdf]
+command = '''
+set -e
+python3 "$YEOKJA_ROOT/scripts/extract-code.py" .
+make -C figures
+xelatex -interaction=nonstopmode -halt-on-error chisel-book.tex
+xelatex -interaction=nonstopmode -halt-on-error chisel-book.tex
+bibtex chisel-book
+makeindex chisel-book
+xelatex -interaction=nonstopmode -halt-on-error chisel-book.tex
+xelatex -interaction=nonstopmode -halt-on-error chisel-book.tex
+cp chisel-book.pdf Digital-Design-with-Chisel-ko.pdf
+'''
+outputs = ["Digital-Design-with-Chisel-ko.pdf"]
+dist = "output/pdf"
+
 [provider]
 type = "claude_code"
 model = "claude-sonnet-5"
@@ -29,4 +49,3 @@ max_retries = 3
 [translation]
 concurrency = 8
 batch_segments = 24
-

@@ -39,8 +39,14 @@ class StagePagesTests(unittest.TestCase):
             self.artifacts / artifact / source_directory / "index.html", contents
         )
 
-    def add_devguide(self) -> None:
+    def add_required_artifacts(self) -> None:
         self.add_site_artifact("dist-devguide", "devguide")
+        self.write(
+            self.artifacts
+            / "dist-chisel-book-pdf"
+            / "Digital-Design-with-Chisel-ko.pdf",
+            "chisel pdf",
+        )
 
     def run_stage(self) -> subprocess.CompletedProcess[str]:
         self.assertTrue(STAGE_SCRIPT.is_file(), f"missing script: {STAGE_SCRIPT}")
@@ -59,7 +65,7 @@ class StagePagesTests(unittest.TestCase):
 
     def test_missing_published_baseline_index_fails(self) -> None:
         (self.site / "index.html").unlink()
-        self.add_devguide()
+        self.add_required_artifacts()
 
         result = self.run_stage()
 
@@ -72,9 +78,17 @@ class StagePagesTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("required devguide artifact is missing index.html", result.stderr)
 
+    def test_missing_chisel_book_artifact_fails(self) -> None:
+        self.add_site_artifact("dist-devguide", "devguide")
+
+        result = self.run_stage()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required chisel-book artifact is missing PDF", result.stderr)
+
     def test_missing_legacy_artifact_preserves_published_tree(self) -> None:
         self.write(self.site / "mil" / "old.html", "published")
-        self.add_devguide()
+        self.add_required_artifacts()
 
         result = self.run_stage()
 
@@ -87,7 +101,7 @@ class StagePagesTests(unittest.TestCase):
     def test_successful_artifact_replaces_old_subtree(self) -> None:
         self.write(self.site / "mil" / "old.html", "old")
         self.add_site_artifact("dist-mil", "new")
-        self.add_devguide()
+        self.add_required_artifacts()
 
         result = self.run_stage()
 
@@ -101,7 +115,7 @@ class StagePagesTests(unittest.TestCase):
     def test_rust_forge_artifact_replaces_old_subtree(self) -> None:
         self.write(self.site / "rust-forge" / "old.html", "old")
         self.add_site_artifact("dist-rust-forge", "new")
-        self.add_devguide()
+        self.add_required_artifacts()
 
         result = self.run_stage()
 
@@ -117,7 +131,7 @@ class StagePagesTests(unittest.TestCase):
         self.write(self.site / "rpython" / "old.html", "old rpython")
         self.add_site_artifact("dist-pypy", "new pypy")
         self.add_site_artifact("dist-pypy", "new rpython", "rpython-site")
-        self.add_devguide()
+        self.add_required_artifacts()
 
         result = self.run_stage()
 
@@ -142,7 +156,7 @@ class StagePagesTests(unittest.TestCase):
         self.write(
             self.artifacts / "dist-napkin-epub" / "Napkin-ko.epub", "new epub"
         )
-        self.add_devguide()
+        self.add_required_artifacts()
 
         result = self.run_stage()
 
@@ -161,10 +175,35 @@ class StagePagesTests(unittest.TestCase):
             "new epub",
         )
 
+    def test_chisel_book_artifact_refreshes_pdf_download(self) -> None:
+        self.add_required_artifacts()
+        self.write(
+            self.site / "chisel-book" / "Digital-Design-with-Chisel-ko.pdf",
+            "old pdf",
+        )
+        self.write(
+            self.artifacts
+            / "dist-chisel-book-pdf"
+            / "Digital-Design-with-Chisel-ko.pdf",
+            "new pdf",
+        )
+
+        result = self.run_stage()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            (
+                self.site
+                / "chisel-book"
+                / "Digital-Design-with-Chisel-ko.pdf"
+            ).read_text(encoding="utf-8"),
+            "new pdf",
+        )
+
     def test_required_devguide_and_landing_files_are_refreshed(self) -> None:
         self.write(self.site / "devguide" / "old.html", "old devguide")
         self.write(self.site / "favicon.svg", "old favicon")
-        self.add_devguide()
+        self.add_required_artifacts()
 
         result = self.run_stage()
 
