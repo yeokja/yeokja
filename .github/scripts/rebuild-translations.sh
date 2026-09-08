@@ -28,7 +28,7 @@ fi
 cd "$project_dir"
 
 case "$project" in
-  devguide)
+  devguide|learn-fpga)
     "$yeokja" translate upstream
     "$yeokja" status --check upstream
     ;;
