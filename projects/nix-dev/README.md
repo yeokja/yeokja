@@ -54,6 +54,12 @@ python3 -m unittest discover -s projects/nix-dev/scripts -p 'test_*.py'
 - **실파일 source/**: 조립 트리는 심링크 묶음이라 myst가 문서 링크를 실제
   경로로 풀면 srcdir 바깥이 되어 링크가 깨집니다. 빌드 스크립트가 `source/`만
   관통 복사해 실파일로 만든 뒤 Sphinx를 돌립니다.
+- **용어집의 한국어 용어**: `reference/glossary.md`의 용어 줄은 `{term}` 참조가
+  깨지지 않도록 번역하지 않고, `patches/glossary-korean-terms.patch`가 조립
+  트리에서 각 정의에 한국어 용어 줄(Nix 언어, Nix 표현식, Nix 파일)을
+  덧붙입니다. Sphinx glossary는 정의 하나에 용어를 여러 줄 둘 수 있습니다.
+  패치는 번역된 정의문을 문맥으로 삼으므로 그 번역이 바뀌면 `ko/`의 파일로
+  `diff -u`를 다시 떠야 합니다.
 - **검색**: `npx -y pagefind@1`로 색인을 만들어 `site/pagefind/`에 둡니다.
   색인 생성이 실패하면 빌드도 실패합니다.
 
