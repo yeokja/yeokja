@@ -21,8 +21,8 @@
 #
 # rebuild: 지문이 바뀐 프로젝트·타깃만, 각각 필요한 툴체인만 설치해 빌드합니다
 #   (PyPy는 Python 2.7+Sphinx, theBeamBook은 Ruby+Asciidoctor, Lean 서적은 elan
-#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML). 잡은 GitHub-hosted 러너에서
-#   병렬로 돕니다.
+#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML, Zero to Nix는 Node+Astro). 잡은
+#   GitHub-hosted 러너에서 병렬로 돕니다.
 #
 # stage: 마지막으로 스테이징한 Pages 트리를 캐시에서 복원하고(캐시가 없을 때만
 #   배포된 사이트를 wget으로 미러링), 새 산출물을 그 위에 덮어쓴 뒤 트리를 다시
@@ -291,6 +291,16 @@ jobs:
           MDBOOK_VERSION=0.5.4
           curl -sSL "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar -xz
           echo "$PWD" >> "$GITHUB_PATH"
+
+      # Zero to Nix는 Astro 사이트라 Node가 필요합니다. upstream의 lockfile을
+      # 키로 npm 캐시를 유지해 `npm ci`가 매번 레지스트리를 다 받지 않게 합니다.
+      - name: Install Node for the Zero to Nix Astro build
+        if: matrix.toolchain == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: projects/${{ matrix.project }}/upstream/package-lock.json
 
       - name: Install elan for the Lean books
         if: matrix.toolchain == 'lean'

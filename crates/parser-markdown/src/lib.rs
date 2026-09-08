@@ -1,8 +1,23 @@
+mod mdx;
+
+pub use mdx::MdxParser;
+
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use std::collections::VecDeque;
 use std::ops::Range;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_utils::{make_segments, normalize_inline_text, splice_reconstruct};
+
+/// A block a flavour found on its own, outside what pulldown-cmark sees.
+///
+/// Emitted in document order among the Markdown blocks. A translatable
+/// `block_type` offers `range` as the block's span; any other keeps the bytes
+/// verbatim.
+pub(crate) struct Extra {
+    pub(crate) range: Range<usize>,
+    pub(crate) block_type: BlockType,
+}
 
 /// Span-based Markdown parser.
 ///
@@ -27,7 +42,14 @@ enum Frame {
 }
 
 struct ParseState<'a> {
+    /// The text blocks are cut from. Offsets from the parsed text index into
+    /// it, so a flavour may parse a shadow of the source as long as the two
+    /// have the same length.
     source: &'a str,
+    /// Whether MDX conventions apply (custom heading ids).
+    mdx: bool,
+    /// Flavour-found blocks not yet emitted, in document order.
+    extras: VecDeque<Extra>,
     sections: Vec<Section>,
     section_idx: usize,
     block_idx: usize,
@@ -38,6 +60,53 @@ struct ParseState<'a> {
 impl ParseState<'_> {
     fn in_opaque(&self) -> bool {
         self.stack.contains(&Frame::Opaque)
+    }
+
+    /// Emit every pending extra that starts before `offset`, so it lands
+    /// among the Markdown blocks in document order.
+    fn emit_extras_before(&mut self, offset: usize) {
+        while self.extras.front().is_some_and(|extra| extra.range.start < offset) {
+            let extra = self.extras.pop_front().unwrap();
+            self.push_extra(extra);
+        }
+    }
+
+    fn push_extra(&mut self, extra: Extra) {
+        if !extra.block_type.is_translatable() {
+            self.push_opaque_block(extra.block_type, extra.range);
+            return;
+        }
+        let raw = &self.source[extra.range.clone()];
+        let normalized = normalize_inline_text(raw);
+        let segments = make_segments(&normalized, extra.block_type, self.section_idx, self.block_idx);
+        self.push_block(Block {
+            block_type: extra.block_type,
+            segments,
+            raw_content: raw.to_string(),
+            heading_level: None,
+            span: Some(extra.range),
+            translatable: true,
+            role: BlockRole::None,
+        });
+    }
+
+    /// Shrink a heading run so an MDX custom id (`\{#id}` or `{#id}`) stays
+    /// outside the span, verbatim after the translated title.
+    fn strip_heading_id(&self, span: Range<usize>) -> Range<usize> {
+        let raw = &self.source[span.clone()];
+        let trimmed = raw.trim_end();
+        let Some(open) = trimmed.strip_suffix('}').and_then(|s| s.rfind('{')) else {
+            return span;
+        };
+        let inner = &trimmed[open + 1..trimmed.len() - 1];
+        if !inner.starts_with('#') || inner.len() < 2 || inner.contains(char::is_whitespace) {
+            return span;
+        }
+        let mut cut = open;
+        if trimmed[..cut].ends_with('\\') {
+            cut -= 1;
+        }
+        span.start..span.start + raw[..cut].trim_end().len()
     }
 
     fn current_block_type(&self) -> (BlockType, Option<u8>) {
@@ -68,7 +137,10 @@ impl ParseState<'_> {
 
     /// Close the current inline run and emit it as a translatable block.
     fn flush_run(&mut self) {
-        let Some(span) = self.run.take() else { return };
+        let Some(mut span) = self.run.take() else { return };
+        if self.mdx && matches!(self.stack.last(), Some(Frame::Heading(_))) {
+            span = self.strip_heading_id(span);
+        }
         let raw = &self.source[span.clone()];
         if raw.trim().is_empty() {
             return;
@@ -135,127 +207,141 @@ impl DocumentParser for MarkdownParser {
     }
 
     fn parse(&self, source: &str) -> Document {
-        let mut options = Options::empty();
-        options.insert(Options::ENABLE_TABLES);
-        options.insert(Options::ENABLE_TASKLISTS);
-        options.insert(Options::ENABLE_FOOTNOTES);
-        options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
-
-        let mut state = ParseState {
-            source,
-            sections: vec![Section { blocks: Vec::new() }],
-            section_idx: 0,
-            block_idx: 0,
-            stack: Vec::new(),
-            run: None,
-        };
-
-        for (event, range) in Parser::new_ext(source, options).into_offset_iter() {
-            match event {
-                Event::Start(tag) => match tag {
-                    Tag::Heading { level, .. } => {
-                        state.flush_run();
-                        state.maybe_start_section(level);
-                        state.stack.push(Frame::Heading(heading_level_num(level)));
-                    }
-                    Tag::Paragraph => {
-                        state.flush_run();
-                        state.stack.push(Frame::Paragraph);
-                    }
-                    Tag::Item => {
-                        state.flush_run();
-                        state.stack.push(Frame::Item);
-                    }
-                    Tag::BlockQuote(_) => {
-                        state.flush_run();
-                        state.stack.push(Frame::BlockQuote);
-                    }
-                    Tag::TableCell => {
-                        state.flush_run();
-                        state.stack.push(Frame::TableCell);
-                    }
-                    Tag::CodeBlock(_) | Tag::MetadataBlock(_) | Tag::HtmlBlock => {
-                        state.flush_run();
-                        state.stack.push(Frame::Opaque);
-                    }
-                    Tag::List(_) | Tag::Table(_) | Tag::TableHead | Tag::TableRow
-                    | Tag::FootnoteDefinition(_) => {
-                        state.flush_run();
-                    }
-                    // Inline containers: their full range (including markers) is
-                    // part of the surrounding run.
-                    Tag::Emphasis | Tag::Strong | Tag::Strikethrough
-                    | Tag::Link { .. } | Tag::Image { .. } => {
-                        state.extend_run(range);
-                    }
-                    _ => {}
-                },
-                Event::End(tag_end) => match tag_end {
-                    TagEnd::Heading(_)
-                    | TagEnd::Paragraph
-                    | TagEnd::Item
-                    | TagEnd::BlockQuote(_)
-                    | TagEnd::TableCell => {
-                        state.flush_run();
-                        state.stack.pop();
-                    }
-                    TagEnd::CodeBlock => {
-                        state.stack.pop();
-                        state.push_opaque_block(BlockType::CodeBlock, range);
-                    }
-                    TagEnd::MetadataBlock(_) => {
-                        state.stack.pop();
-                        state.push_opaque_block(BlockType::HtmlBlock, range);
-                    }
-                    TagEnd::HtmlBlock => {
-                        state.stack.pop();
-                        state.push_opaque_block(BlockType::HtmlBlock, range);
-                    }
-                    _ => {}
-                },
-                Event::Text(_)
-                | Event::Code(_)
-                | Event::InlineMath(_)
-                | Event::DisplayMath(_)
-                | Event::InlineHtml(_)
-                | Event::FootnoteReference(_) => {
-                    state.extend_run(range);
-                }
-                // Soft breaks only extend an already-started run; they never start one.
-                Event::SoftBreak => {
-                    if state.run.is_some() {
-                        state.extend_run(range);
-                    }
-                }
-                // A hard break (trailing spaces or backslash) is semantic: end the
-                // run so the break bytes stay outside spans and survive splicing.
-                Event::HardBreak => {
-                    state.flush_run();
-                }
-                Event::Rule => {
-                    state.flush_run();
-                    state.push_opaque_block(BlockType::ThematicBreak, range);
-                }
-                Event::Html(_) => {
-                    // Block-level HTML outside an HtmlBlock tag (rare); keep verbatim.
-                    state.flush_run();
-                }
-                Event::TaskListMarker(_) => {}
-            }
-        }
-        state.flush_run();
-
-        let mut sections = state.sections;
-        sections.retain(|s| !s.blocks.is_empty());
-
-        Document {
-            sections,
-            source: source.to_string(),
-        }
+        parse_with(source, source, false, Vec::new())
     }
 
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
         splice_reconstruct(document, translations)
+    }
+}
+
+/// Run the Markdown event loop over `parsed`, cutting block text from
+/// `source`, which must have the same length (a flavour blanks the regions
+/// it handles itself and lists them as `extras`).
+pub(crate) fn parse_with(parsed: &str, source: &str, mdx: bool, extras: Vec<Extra>) -> Document {
+    debug_assert_eq!(parsed.len(), source.len());
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_TASKLISTS);
+    options.insert(Options::ENABLE_FOOTNOTES);
+    options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
+
+    let mut state = ParseState {
+        source,
+        mdx,
+        extras: extras.into(),
+        sections: vec![Section { blocks: Vec::new() }],
+        section_idx: 0,
+        block_idx: 0,
+        stack: Vec::new(),
+        run: None,
+    };
+
+    for (event, range) in Parser::new_ext(parsed, options).into_offset_iter() {
+        // Extras sit in regions Markdown sees as blank, so none starts inside
+        // a run: emitting them at the next event keeps document order.
+        state.emit_extras_before(range.start);
+        match event {
+            Event::Start(tag) => match tag {
+                Tag::Heading { level, .. } => {
+                    state.flush_run();
+                    state.maybe_start_section(level);
+                    state.stack.push(Frame::Heading(heading_level_num(level)));
+                }
+                Tag::Paragraph => {
+                    state.flush_run();
+                    state.stack.push(Frame::Paragraph);
+                }
+                Tag::Item => {
+                    state.flush_run();
+                    state.stack.push(Frame::Item);
+                }
+                Tag::BlockQuote(_) => {
+                    state.flush_run();
+                    state.stack.push(Frame::BlockQuote);
+                }
+                Tag::TableCell => {
+                    state.flush_run();
+                    state.stack.push(Frame::TableCell);
+                }
+                Tag::CodeBlock(_) | Tag::MetadataBlock(_) | Tag::HtmlBlock => {
+                    state.flush_run();
+                    state.stack.push(Frame::Opaque);
+                }
+                Tag::List(_) | Tag::Table(_) | Tag::TableHead | Tag::TableRow
+                | Tag::FootnoteDefinition(_) => {
+                    state.flush_run();
+                }
+                // Inline containers: their full range (including markers) is
+                // part of the surrounding run.
+                Tag::Emphasis | Tag::Strong | Tag::Strikethrough
+                | Tag::Link { .. } | Tag::Image { .. } => {
+                    state.extend_run(range);
+                }
+                _ => {}
+            },
+            Event::End(tag_end) => match tag_end {
+                TagEnd::Heading(_)
+                | TagEnd::Paragraph
+                | TagEnd::Item
+                | TagEnd::BlockQuote(_)
+                | TagEnd::TableCell => {
+                    state.flush_run();
+                    state.stack.pop();
+                }
+                TagEnd::CodeBlock => {
+                    state.stack.pop();
+                    state.push_opaque_block(BlockType::CodeBlock, range);
+                }
+                TagEnd::MetadataBlock(_) => {
+                    state.stack.pop();
+                    state.push_opaque_block(BlockType::HtmlBlock, range);
+                }
+                TagEnd::HtmlBlock => {
+                    state.stack.pop();
+                    state.push_opaque_block(BlockType::HtmlBlock, range);
+                }
+                _ => {}
+            },
+            Event::Text(_)
+            | Event::Code(_)
+            | Event::InlineMath(_)
+            | Event::DisplayMath(_)
+            | Event::InlineHtml(_)
+            | Event::FootnoteReference(_) => {
+                state.extend_run(range);
+            }
+            // Soft breaks only extend an already-started run; they never start one.
+            Event::SoftBreak => {
+                if state.run.is_some() {
+                    state.extend_run(range);
+                }
+            }
+            // A hard break (trailing spaces or backslash) is semantic: end the
+            // run so the break bytes stay outside spans and survive splicing.
+            Event::HardBreak => {
+                state.flush_run();
+            }
+            Event::Rule => {
+                state.flush_run();
+                state.push_opaque_block(BlockType::ThematicBreak, range);
+            }
+            Event::Html(_) => {
+                // Block-level HTML outside an HtmlBlock tag (rare); keep verbatim.
+                state.flush_run();
+            }
+            Event::TaskListMarker(_) => {}
+        }
+    }
+    state.flush_run();
+    state.emit_extras_before(usize::MAX);
+
+    let mut sections = state.sections;
+    sections.retain(|s| !s.blocks.is_empty());
+
+    Document {
+        sections,
+        source: source.to_string(),
     }
 }
 

@@ -1,0 +1,57 @@
+[project]
+source_lang="en"
+target_lang="ko"
+glossary="glossary.toml"
+state_dir="state"
+[[sources]]
+path="upstream/src/content"
+pattern="**/*.mdx"
+parser="mdx"
+output="ko/src/content/{path}"
+[provider]
+type="claude_code"
+model="claude-sonnet-5"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+# 사이트 chrome(내비게이션, 푸터, 안내문)의 한국어화, 하위 경로 배포용 Astro
+# 설정, 이 미러가 운영하지 않는 PostHog·쿠키 배너·뉴스레터·피드백 위젯 제거.
+# MDX 본문은 건드리지 않습니다 — 그것은 yeokja의 몫입니다.
+[[derive.step]]
+kind = "patch"
+file = "patches/korean-localization.patch"
+
+# Astro 사이트를 빌드합니다. 조립된 트리는 upstream을 가리키는 심링크 묶음이라
+# Vite가 모듈을 실제 경로로 풀면 패치된 컴포넌트 대신 upstream 원본을 import하게
+# 되므로, 심링크를 관통 복사한 사본에서 빌드하고 결과만 트리로 가져옵니다.
+# `astro check`는 건너뛰고(타입 검사는 배포와 무관), 빌드 뒤 루트 절대 링크에
+# /zero-to-nix 접두사를 붙입니다(scripts/rewrite-base.mjs 참조).
+[build.html]
+command = '''
+set -e
+tree=$PWD
+build_dir=$(mktemp -d)
+trap 'rm -rf "$build_dir"' EXIT
+cp -RL . "$build_dir/tree"
+cd "$build_dir/tree"
+npm ci --no-audit --no-fund
+npx astro build
+node "$YEOKJA_ROOT/scripts/rewrite-base.mjs" site /zero-to-nix
+rm -rf "$tree/site"
+cp -R site "$tree/site"
+'''
+outputs = ["site"]
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32

@@ -40,6 +40,7 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
         // source rule is missing. With no manifest this parser reports a hard,
         // actionable error from `parse_checked`.
         Some("lean") => Box::new(yeokja_parser_verso::VersoParser::new(file_path, "")),
+        Some("mdx") => Box::new(yeokja_parser_markdown::MdxParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
@@ -51,6 +52,7 @@ fn parser_by_name(
 ) -> Box<dyn DocumentParser> {
     match name {
         "asciidoc" => Box::new(yeokja_parser_asciidoc::AsciidocParser),
+        "mdx" => Box::new(yeokja_parser_markdown::MdxParser),
         "rst" => Box::new(yeokja_parser_rst::RstParser),
         "pep" => Box::new(yeokja_parser_rst::PepParser),
         "pep_plaintext" => Box::new(yeokja_parser_rst::PepPlaintextParser),
@@ -241,6 +243,44 @@ model = "gpt-4o"
         let parser = select_parser(Path::new("docs/guide.md"), &config);
         let doc = parser.parse("# Title");
         assert_eq!(doc.sections[0].blocks[0].heading_level, Some(1));
+    }
+
+    #[test]
+    fn mdx_parser_by_name_and_by_extension_offers_jsx_children() {
+        let source = "<Admonition title=\"Note\">\nBody.\n</Admonition>\n";
+        let config = ProjectConfig::from_toml(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "src"
+pattern = "**/*.mdx"
+parser = "mdx"
+output = "ko/{path}"
+
+[provider]
+type = "openai_compatible"
+model = "gpt-4o"
+"#,
+        )
+        .unwrap();
+        let parser = select_parser(Path::new("src/page.mdx"), &config);
+        let sources: Vec<String> = parser
+            .parse(source)
+            .translatable_segments()
+            .iter()
+            .map(|seg| seg.source.clone())
+            .collect();
+        assert_eq!(sources, ["Note", "Body."]);
+
+        let config = config_with_source("book/", "markdown");
+        let parser = select_parser(Path::new("docs/page.mdx"), &config);
+        assert_eq!(parser.parse(source).translatable_segments().len(), 2);
+        // A plain .md keeps the strict Markdown reading of raw HTML blocks.
+        let parser = select_parser(Path::new("docs/page.md"), &config);
+        assert!(parser.parse(source).translatable_segments().is_empty());
     }
 
     #[test]

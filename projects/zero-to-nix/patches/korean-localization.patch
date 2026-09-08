@@ -1,0 +1,1166 @@
+diff --git a/astro.config.mjs b/astro.config.mjs
+index 081ba2c..e840baf 100644
+--- a/astro.config.mjs
++++ b/astro.config.mjs
+@@ -44,7 +44,10 @@ export default defineConfig({
+     open: true,
+     port: 3000,
+   },
+-  site: "https://zero-to-nix.com",
++  // 한국어판은 yeokja.moreal.dev의 하위 경로에 배포됩니다.
++  site: "https://yeokja.moreal.dev",
++  base: "/zero-to-nix",
++  outDir: "./site",
+   vite: {
+     plugins: [tailwindcss()],
+   },
+diff --git a/public/robots.txt b/public/robots.txt
+index ea943b6..4b7a418 100644
+--- a/public/robots.txt
++++ b/public/robots.txt
+@@ -2,4 +2,4 @@ User-agent: *
+ Content-Signal: search=yes, ai-input=yes, ai-train=yes
+ Allow: /
+ 
+-Sitemap: https://zero-to-nix.com/sitemap-index.xml
++Sitemap: https://yeokja.moreal.dev/zero-to-nix/sitemap-index.xml
+diff --git a/src/components/Breadcrumb.astro b/src/components/Breadcrumb.astro
+index fb9584d..2034bca 100644
+--- a/src/components/Breadcrumb.astro
++++ b/src/components/Breadcrumb.astro
+@@ -34,7 +34,7 @@ const { breadcrumb, order, total } = Astro.props;
+     total && order && (
+       <div>
+         <span class="text-sm md:text-base lg:text-lg">
+-          Guide <strong>{order}</strong> of <strong>{total}</strong>
++          가이드 <strong>{order}</strong> / <strong>{total}</strong>
+         </span>
+       </div>
+     )
+diff --git a/src/components/CookieConsent.astro b/src/components/CookieConsent.astro
+deleted file mode 100644
+index 5c868b9..0000000
+--- a/src/components/CookieConsent.astro
++++ /dev/null
+@@ -1,42 +0,0 @@
+----
+-import Link from "./Link.astro";
+----
+-
+-<div
+-  x-cloak
+-  x-data="{ show: false }"
+-  x-show="show"
+-  x-init="show = !(posthog.has_opted_out_capturing() || posthog.has_opted_in_capturing())"
+-  class="fixed bottom-6 left-6 z-50 print:hidden"
+->
+-  <div class="bg-soft-gray dark:text-dark max-w-[225px] shadow-lg">
+-    <p class="content m-0 px-6 py-4 text-[16px]">
+-      We use a single, first-party analytics cookie to focus our limited time
+-      and energy on the most important documentation. Check out our
+-      <Link
+-        href="https://determinate.systems/policies/privacy"
+-        class="underline"
+-        target="_blank"
+-      >
+-        privacy policy
+-      </Link>
+-      .
+-    </p>
+-    <div
+-      class="divide-x-1.5 divide-light-gray border-t-1.5 border-light-gray grid grid-cols-2"
+-    >
+-      <button
+-        class="hover:bg-green hover:text-dark py-2.5 font-bold"
+-        @click="posthog.opt_in_capturing(); show = false;"
+-      >
+-        Accept
+-      </button>
+-      <button
+-        class="hover:bg-red py-2.5 font-bold hover:text-white"
+-        @click="posthog.opt_out_capturing(); show = false;"
+-      >
+-        Decline
+-      </button>
+-    </div>
+-  </div>
+-</div>
+diff --git a/src/components/Drawer.astro b/src/components/Drawer.astro
+index 3cad275..0ee13dc 100644
+--- a/src/components/Drawer.astro
++++ b/src/components/Drawer.astro
+@@ -4,15 +4,15 @@ import Link from "./Link.astro";
+ 
+ const links: { text: string; href: string }[] = [
+   {
+-    text: "Quick start",
++    text: "빠른 시작",
+     href: "/start",
+   },
+   {
+-    text: "Concepts",
++    text: "개념",
+     href: "/concepts",
+   },
+   {
+-    text: "About",
++    text: "소개",
+     href: "/about",
+   },
+ ];
+@@ -42,7 +42,7 @@ const links: { text: string; href: string }[] = [
+         name="heroicons:x-mark"
+         class="dark:text-light-gray dark:hover:text-primary size-4"
+       />
+-      <span class="sr-only">Close menu</span>
++      <span class="sr-only">메뉴 닫기</span>
+     </button>
+   </div>
+ 
+diff --git a/src/components/ExternalSources.astro b/src/components/ExternalSources.astro
+index 6ade884..be69461 100644
+--- a/src/components/ExternalSources.astro
++++ b/src/components/ExternalSources.astro
+@@ -19,7 +19,7 @@ const { showTitle = false, links } = Astro.props;
+         class="hover:text-gray dark:hover:text-light-gray text-xl font-semibold md:text-2xl lg:text-3xl"
+         id="external-sources"
+       >
+-        <Link href="#external-sources">External sources</Link>
++        <Link href="#external-sources">외부 자료</Link>
+       </p>
+     )
+   }
+diff --git a/src/components/FeedbackBar.astro b/src/components/FeedbackBar.astro
+deleted file mode 100644
+index 066961a..0000000
+--- a/src/components/FeedbackBar.astro
++++ /dev/null
+@@ -1,53 +0,0 @@
+----
+-import Link from "./Link.astro";
+-import { Icon } from "astro-icon/components";
+-import PageSurvey from "./PageSurvey";
+-import { site } from "../site";
+-
+-const { githubUrl } = site;
+-
+-const filename = Astro.url.pathname;
+-const issueTitle = `Issue with page \`${filename}\``;
+-const issueBody = `...Replace me with your issue description...`;
+-const issueUrlParams = `title=${issueTitle}&body=${issueBody}`;
+-const issueUrl = `${githubUrl}/issues/new?${encodeURI(issueUrlParams)}`;
+-const editUrl = `${githubUrl}/edit/main/src/content${filename}.mdx`;
+----
+-
+-<div class="flex items-center justify-between print:hidden">
+-  <PageSurvey client:visible />
+-
+-  <div class="space-y-3 text-sm md:text-base lg:text-lg">
+-    <span class="flex items-center space-x-3">
+-      <Icon
+-        name="fa:edit"
+-        class="text-dark dark:text-light-gray size-3 md:size-4 lg:size-5"
+-      />
+-
+-      <Link
+-        href={editUrl}
+-        class="text-dark-gray hover:text-primary dark:text-light-gray dark:hover:text-primary tracking-tight"
+-        target="_blank"
+-        rel="noopener noreferrer"
+-      >
+-        Edit this page
+-      </Link>
+-    </span>
+-
+-    <span class="flex items-center space-x-3">
+-      <Icon
+-        name="fa:github"
+-        class="text-dark dark:text-light-gray size-3 md:size-4 lg:size-5"
+-      />
+-
+-      <Link
+-        href={issueUrl}
+-        class="text-dark-gray hover:text-primary dark:text-light-gray dark:hover:text-primary tracking-tight"
+-        target="_blank"
+-        rel="noopener noreferrer"
+-      >
+-        File an issue
+-      </Link>
+-    </span>
+-  </div>
+-</div>
+diff --git a/src/components/Footer.astro b/src/components/Footer.astro
+index 78c21b3..3df569a 100644
+--- a/src/components/Footer.astro
++++ b/src/components/Footer.astro
+@@ -7,10 +7,10 @@ const currentYear = new Date().getFullYear();
+ 
+ <footer>
+   <HorizontalContainer>
+-    <div class="pt-12 pb-16">
++    <div class="space-y-6 pt-12 pb-16">
+       <div class="flex items-center justify-between">
+         <div class="flex items-center gap-4">
+-          <strong>AI tools</strong>
++          <strong>AI 도구용</strong>
+           <ul class="flex items-center gap-2">
+             {
+               ["llms.txt", "llms-small.txt", "llms-full.txt"].map((file) => (
+@@ -40,6 +40,23 @@ const currentYear = new Date().getFullYear();
+           </p>
+         </div>
+       </div>
++
++      <p class="text-gray text-sm tracking-tight">
++        이 사이트는 Determinate Systems의 <Link
++          href="https://zero-to-nix.com"
++          class="duration-hover hover:text-primary dark:hover:text-orange underline"
++          >Zero to Nix</Link
++        >를 <Link
++          href="https://github.com/yeokja/yeokja"
++          class="duration-hover hover:text-primary dark:hover:text-orange underline"
++          >yeokja</Link
++        >로 기계 번역한 비공식 한국어판이며, Determinate Systems와 무관하게
++        운영됩니다. 원문과 번역문은 모두 <Link
++          href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.ko"
++          class="duration-hover hover:text-primary dark:hover:text-orange underline"
++          >CC BY-NC-SA 4.0</Link
++        >에 따라 이용할 수 있습니다.
++      </p>
+     </div>
+   </HorizontalContainer>
+ </footer>
+diff --git a/src/components/Head.astro b/src/components/Head.astro
+index 5e636cd..1b49251 100644
+--- a/src/components/Head.astro
++++ b/src/components/Head.astro
+@@ -1,7 +1,6 @@
+ ---
+ import { SEO } from "astro-seo";
+ import { site } from "../site";
+-import Posthog from "./Posthog.astro";
+ 
+ type Props = {
+   title?: string;
+@@ -17,7 +16,11 @@ const { title: siteTitle, description: siteDescription } = site;
+ 
+ const { title, description, tags } = Astro.props;
+ 
+-const image = `${root}favicon.png`;
++// 하위 경로 배포이므로 base를 포함한 절대 URL로 만듭니다.
++const image = new URL(
++  `${import.meta.env.BASE_URL}/favicon.png`.replace(/\/{2,}/g, "/"),
++  root,
++).toString();
+ ---
+ 
+ <script is:inline>
+@@ -37,8 +40,6 @@ const image = `${root}favicon.png`;
+   });
+ </script>
+ 
+-<Posthog />
+-
+ <meta http-equiv="x-ua-compatible" content="ie=edge" />
+ <meta
+   name="viewport"
+@@ -69,9 +70,3 @@ const image = `${root}favicon.png`;
+     card: "summary",
+   }}
+ />
+-
+-<link
+-  rel="stylesheet"
+-  type="text/css"
+-  href="//cdn-images.mailchimp.com/embedcode/classic-071822.css"
+-/>
+diff --git a/src/components/Hero.astro b/src/components/Hero.astro
+index f7dcdf5..0baed7a 100644
+--- a/src/components/Hero.astro
++++ b/src/components/Hero.astro
+@@ -83,9 +83,9 @@ const largeHero = heroSize === "lg";
+           <div class="flex items-center space-x-2 md:space-x-3 lg:space-x-4">
+             {/* }<IconFaSolidHammer class="size-3 text-orange md:size-4" /> */}
+             <p>
+-              This document is a work in progress. It's intended to provide a
+-              brief definition or overview and nothing more. We'll be iterating
+-              on this content heavily in the coming weeks and months.
++              이 문서는 아직 작성 중입니다. 지금은 간단한 정의나 개요만
++              제공하며, 앞으로 몇 주와 몇 달에 걸쳐 내용을 크게 보강할
++              예정입니다.
+             </p>
+           </div>
+         </div>
+diff --git a/src/components/Navbar.astro b/src/components/Navbar.astro
+index 2d47c76..9a6a763 100644
+--- a/src/components/Navbar.astro
++++ b/src/components/Navbar.astro
+@@ -45,7 +45,7 @@ const conceptPages = (await getConceptPagesAlphabetical()).map(
+         <span
+           class="flex items-center space-x-1.5 text-sm font-light md:text-base lg:text-lg"
+         >
+-          <span>from</span>
++          <span>제작</span>
+           <Link
+             href="https://determinate.systems"
+             class="duration-hover hover:text-primary dark:hover:text-light-blue font-semibold"
+@@ -73,10 +73,10 @@ const conceptPages = (await getConceptPagesAlphabetical()).map(
+       {/* Show only on md or above (invisible on mobile) */}
+       <ul class="hidden items-center gap-4 md:flex md:gap-5 lg:gap-6">
+         <li>
+-          <Dropdown text="Quick start" pages={startPages} ordered />
++          <Dropdown text="빠른 시작" pages={startPages} ordered />
+         </li>
+         <li>
+-          <Dropdown text="Concepts" pages={conceptPages} />
++          <Dropdown text="개념" pages={conceptPages} />
+         </li>
+ 
+         {
+diff --git a/src/components/PageSurvey.tsx b/src/components/PageSurvey.tsx
+deleted file mode 100644
+index 50a3260..0000000
+--- a/src/components/PageSurvey.tsx
++++ /dev/null
+@@ -1,108 +0,0 @@
+-import posthog from "posthog-js";
+-import { useState } from "react";
+-
+-type Reaction = "positive" | "negative";
+-type Step = "prompt" | "feedback" | "thankyou";
+-
+-const PageSurvey = () => {
+-  const [reaction, setReaction] = useState<Reaction>();
+-  const [feedback, setFeedback] = useState<string>();
+-  const [step, setStep] = useState<Step>("prompt");
+-
+-  const nextStep = () => {
+-    if (step === "prompt") {
+-      setStep("feedback");
+-    }
+-
+-    if (step === "feedback") {
+-      setStep("thankyou");
+-    }
+-  };
+-
+-  const submitResponse = (reaction: Reaction) => {
+-    setReaction(reaction);
+-    posthog.capture("page_review", { reaction });
+-    nextStep();
+-  };
+-
+-  const submitFeedback = () => {
+-    const trimmed = feedback?.trim();
+-
+-    posthog.capture("page_feedback", {
+-      reaction,
+-      feedback: trimmed,
+-    });
+-
+-    nextStep();
+-  };
+-
+-  return (
+-    <div className="space-y-4">
+-      {step === "prompt" && (
+-        <>
+-          <h3 className="text-lg font-semibold md:text-xl lg:text-2xl">
+-            Was this page helpful?
+-          </h3>
+-          <div className="flex items-center space-x-2">
+-            <button
+-              className="border-1.5 border-light-gray hover:border-primary hover:bg-pale dark:border-gray dark:hover:border-primary dark:hover:bg-darker-gray flex items-center justify-between space-x-3 rounded-lg px-3 py-2 text-sm font-semibold tracking-tight hover:shadow-sm md:text-base"
+-              onClick={() => submitResponse("positive")}
+-            >
+-              <span>Yes</span>
+-              <span>👍</span>
+-            </button>
+-
+-            <button
+-              className="border-1.5 border-light-gray hover:border-primary hover:bg-pale dark:border-gray dark:hover:border-primary dark:hover:bg-darker-gray flex items-center justify-between space-x-3 rounded-lg px-3 py-2 text-sm font-semibold tracking-tight hover:shadow-sm md:text-base"
+-              onClick={() => submitResponse("negative")}
+-            >
+-              <span>No</span>
+-              <span>👎</span>
+-            </button>
+-          </div>
+-        </>
+-      )}
+-
+-      {step === "feedback" && (
+-        <>
+-          <h3 className="text-lg font-semibold md:text-xl lg:text-2xl">
+-            {reaction === "positive"
+-              ? "What made this page great?"
+-              : "How can we improve?"}
+-          </h3>
+-
+-          <textarea
+-            className="border-1.5 border-soft-gray dark:border-gray dark:bg-dark w-full resize-none rounded-lg p-3 text-sm shadow-sm md:p-4 md:text-base lg:p-2.5"
+-            cols={25}
+-            rows={5}
+-            value={feedback}
+-            onChange={(e) => setFeedback(e.target.value)}
+-            placeholder={
+-              reaction === "positive"
+-                ? "Let us know what you found helpful"
+-                : "Let us know how we can do better"
+-            }
+-            autoFocus
+-          />
+-
+-          {feedback && (
+-            <button
+-              className="hoverName:text-pale bg-light-gray text-dark hover:bg-gray active:bg-rose dark:bg-gray dark:text-pale dark:hover:bg-dark-gray rounded-lg px-3 py-2 font-semibold hover:cursor-pointer"
+-              onClick={submitFeedback}
+-            >
+-              Send feedback
+-            </button>
+-          )}
+-        </>
+-      )}
+-
+-      {step === "thankyou" && (
+-        <h3 className="text-lg font-semibold md:text-xl lg:text-2xl">
+-          Thank you for sharing!
+-        </h3>
+-      )}
+-    </div>
+-  );
+-};
+-
+-export default PageSurvey;
+diff --git a/src/components/Posthog.astro b/src/components/Posthog.astro
+deleted file mode 100644
+index 8cef31d..0000000
+--- a/src/components/Posthog.astro
++++ /dev/null
+@@ -1,25 +0,0 @@
+-<script>
+-  import posthog from "posthog-js";
+-
+-  posthog.init('phc_qZk1aHPpXUq0ohRcTjFL5w8Tpo5Asht9UhFBjzruBFD', {
+-    api_host: 'https://alley-oop.determinate.systems',
+-    ui_host: 'https://us.posthog.com',
+-    defaults: '2026-01-30',
+-  });
+-
+-  window.posthog = posthog;
+-
+-  (() => {
+-    const newUrl = new URL(window.location.toString());
+-    const phid = newUrl.searchParams.get('phid');
+-
+-    if (phid) {
+-      if (window.posthog) {
+-        window.posthog.alias(phid)
+-      }
+-
+-      newUrl.searchParams.delete('phid');
+-      window.history.replaceState(window.history.state, '', newUrl);
+-    }
+-  })();
+-</script>
+diff --git a/src/components/QuickStart.astro b/src/components/QuickStart.astro
+index 455e54b..82f3907 100644
+--- a/src/components/QuickStart.astro
++++ b/src/components/QuickStart.astro
+@@ -9,11 +9,10 @@ import Link from "./Link.astro";
+ >
+   <div class="flex items-center justify-between gap-4 md:gap-6 lg:gap-8">
+     <p class="content text-dark md:text-lg lg:text-xl dark:text-white">
+-      We recommend starting with the
+-      <Link href="/start">Nix quick start</Link> and consulting concept docs primarily
+-      for clarification. Feel free to click
+-      <strong class="text-orange">x</strong> to the right to disable this notification
+-      on <em>all</em> concept docs.
++      먼저 <Link href="/start">Nix 빠른 시작</Link>부터 따라가고, 개념 문서는
++      주로 보충 설명이 필요할 때 참고하기를 권합니다. 오른쪽의
++      <strong class="text-orange">x</strong>를 누르면 <em>모든</em> 개념 문서에서
++      이 안내를 숨길 수 있습니다.
+     </p>
+ 
+     <button @click="quickStart = false">
+diff --git a/src/components/Related.astro b/src/components/Related.astro
+index 5ee9d4f..390ab0d 100644
+--- a/src/components/Related.astro
++++ b/src/components/Related.astro
+@@ -15,7 +15,7 @@ const { related } = Astro.props;
+     class="hover:text-gray dark:hover:text-light-gray text-xl font-semibold md:text-2xl lg:text-3xl"
+     id="related"
+   >
+-    <Link href="#related">Related</Link>
++    <Link href="#related">관련 문서</Link>
+   </p>
+ 
+   <Grid3>
+diff --git a/src/components/Signup.astro b/src/components/Signup.astro
+deleted file mode 100644
+index 3d5c311..0000000
+--- a/src/components/Signup.astro
++++ /dev/null
+@@ -1,25 +0,0 @@
+----
+-import SignupModal from "./SignupModal.astro";
+----
+-
+-<div x-cloak x-data="{ modal: false }">
+-  <div
+-    class="border-1.5 border-light-gray bg-pale dark:border-gray dark:bg-dark-gray rounded p-4 transition-colors duration-150 md:p-6 lg:p-8"
+-  >
+-    <div class="items-center justify-between space-y-4 md:flex md:space-y-0">
+-      <h1 class="text-lg leading-snug font-light md:text-xl lg:text-2xl">
+-        Stay up to date with what we're up to at{" "}
+-        <span class="font-semibold">Determinate Systems</span>
+-      </h1>
+-
+-      <button
+-        @click="modal = true"
+-        class="bg-primary hover:bg-light-gray hover:text-dark rounded px-3 py-1.5 text-xs font-bold text-white transition-colors duration-150 md:px-4 md:py-2 md:text-sm lg:text-base"
+-      >
+-        Subscribe
+-      </button>
+-    </div>
+-  </div>
+-
+-  <SignupModal />
+-</div>
+diff --git a/src/components/SignupModal.astro b/src/components/SignupModal.astro
+deleted file mode 100644
+index 1c1c870..0000000
+--- a/src/components/SignupModal.astro
++++ /dev/null
+@@ -1,114 +0,0 @@
+----
+-import { site } from "../site";
+-
+-const { mailingListTags } = site;
+----
+-
+-<divx
+-  x-cloak
+-  x-show="modal"
+-  x-transition:enter.duration.100ms
+-  class="text-dark dark:text-dark relative z-50"
+->
+-  <div class="fixed inset-0 bg-black/40" aria-hidden="true"></div>
+-
+-  <div class="fixed inset-0 flex items-center justify-center">
+-    <div
+-      class="bg-pale flex w-full max-w-sm flex-col space-y-6 rounded-lg px-6 py-4"
+-      @click.away="modal = false"
+-    >
+-      <div id="mc_embed_signup">
+-        <form
+-          action="https://systems.us21.list-manage.com/subscribe/post?u=219191dcbd71bd0a5da006aed&id=da3f9b6422&f_id=00a5e7e1f0"
+-          method="post"
+-          id="mc-embedded-subscribe-form"
+-          name="mc-embedded-subscribe-form"
+-          class="validate"
+-          target="_blank"
+-          novalidate
+-        >
+-          <div id="mc_embed_signup_scroll">
+-            <h2>
+-              Sign up for the
+-              <span class="text-primary">Determinate Systems</span> mailing list
+-            </h2>
+-            <div class="indicates-required">
+-              <span class="asterisk">*</span> indicates required
+-            </div>
+-            <div class="mc-field-group">
+-              <label for="mce-FNAME">First Name</label>
+-              <input
+-                type="text"
+-                value=""
+-                name="FNAME"
+-                class=""
+-                id="mce-FNAME"
+-              />
+-              <span id="mce-FNAME-HELPERTEXT" class="helper_text"></span>
+-            </div>
+-            <div class="mc-field-group">
+-              <label for="mce-LNAME">Last Name</label>
+-              <input
+-                type="text"
+-                value=""
+-                name="LNAME"
+-                class=""
+-                id="mce-LNAME"
+-              />
+-              <span id="mce-LNAME-HELPERTEXT" class="helper_text"></span>
+-            </div>
+-            <div class="mc-field-group">
+-              <label for="mce-EMAIL">
+-                Email Address <span class="asterisk">*</span>
+-              </label>
+-              <input
+-                type="email"
+-                value=""
+-                name="EMAIL"
+-                class="required email"
+-                id="mce-EMAIL"
+-                required
+-              />
+-              <span id="mce-EMAIL-HELPERTEXT" class="helper_text"></span>
+-            </div>
+-            <div hidden="true">
+-              <input type="hidden" name="tags" value={mailingListTags} />
+-            </div>
+-            <div id="mce-responses" class="clear">
+-              <div
+-                class="response"
+-                id="mce-error-response"
+-                style="display: none"
+-              >
+-              </div>
+-              <div
+-                class="response"
+-                id="mce-success-response"
+-                style="display: none"
+-              >
+-              </div>
+-            </div>
+-
+-            <div style="position: absolute; left: -5000px" aria-hidden="true">
+-              <input
+-                type="text"
+-                name="b_219191dcbd71bd0a5da006aed_da3f9b6422"
+-                tabindex="-1"
+-                value=""
+-              />
+-            </div>
+-            <div class="clear">
+-              <input
+-                type="submit"
+-                value="Subscribe"
+-                name="subscribe"
+-                id="mc-embedded-subscribe"
+-                class="button !bg-light-gray !text-dark hover:!bg-primary text-lg !font-bold hover:!text-white"
+-              />
+-            </div>
+-          </div>
+-        </form>
+-      </div>
+-    </div>
+-  </div>
+-</divx>
+diff --git a/src/components/Summary.astro b/src/components/Summary.astro
+index 0882e7e..9c42ac9 100644
+--- a/src/components/Summary.astro
++++ b/src/components/Summary.astro
+@@ -14,7 +14,7 @@ const { items } = Astro.props;
+   <div
+     class="flex flex-col flex-nowrap items-start space-y-2 px-3 py-2 md:flex-row md:space-y-0 md:space-x-6 md:px-4 md:py-3 lg:px-6 lg:py-4"
+   >
+-    <span class="font-bold md:text-lg lg:text-xl">In this guide</span>
++    <span class="font-bold md:text-lg lg:text-xl">이 가이드에서</span>
+     <span class="space-y-1.5">
+       {
+         items.map((item) => (
+diff --git a/src/components/mdx/Install.astro b/src/components/mdx/Install.astro
+index d4456f0..1f86402 100644
+--- a/src/components/mdx/Install.astro
++++ b/src/components/mdx/Install.astro
+@@ -36,63 +36,63 @@ import Link from "../Link.astro";
+     </nav>
+ 
+     <div x-show="$store.system.os === 'macos'" class="flex flex-col gap-4">
+-      <p>On macOS, we recommend using our package installer:</p>
++      <p>macOS에서는 패키지 설치 프로그램 사용을 권장합니다:</p>
+ 
+       <Link
+         href="https://install.determinate.systems/determinate-pkg/stable/Universal"
+       >
+         <Image
+           src={pkgImg}
+-          alt="Logo for graphical installer"
++          alt="그래픽 설치 프로그램 로고"
+           class="size-16 md:size-20 lg:size-24"
+           loading="eager"
+         />
+       </Link>
+ 
+-      <p>Or if you prefer the command line:</p>
++      <p>명령줄을 선호한다면 다음 명령을 사용합니다:</p>
+ 
+       <Code
+         code="curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+         lang="shell"
+-        title="One command to install Nix on macOS"
++        title="macOS에 Nix를 설치하는 명령 한 줄"
+       />
+     </div>
+ 
+     <div x-show="$store.system.os === 'linux'" class="flex flex-col gap-6">
+       <p>
+-        On Linux, we recommend installing using the <Link
++        Linux에서는 <Link
+           href="https://github.com/DeterminateSystems/nix-installer"
+           >Determinate Nix Installer</Link
+-        > CLI:
++        > CLI로 설치하기를 권장합니다:
+       </p>
+ 
+       <Code
+         code="curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+         lang="shell"
+-        title="One command to install Nix on Linux"
++        title="Linux에 Nix를 설치하는 명령 한 줄"
+       />
+     </div>
+ 
+     <div x-show="$store.system.os === 'windows'" class="flex flex-col gap-6">
+       <p>
+-        On Windows Subsystem for Linux, we recommend installing using the <Link
++        Windows Subsystem for Linux에서는 <Link
+           href="https://github.com/DeterminateSystems/nix-installer"
+           >Determinate Nix Installer</Link
+-        > CLI:
++        > CLI로 설치하기를 권장합니다:
+       </p>
+ 
+       <Code
+         code="curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+         lang="shell"
+-        title="One command to install Nix on Windows Subsystem for Linux"
++        title="Windows Subsystem for Linux에 Nix를 설치하는 명령 한 줄"
+       />
+     </div>
+ 
+     <p>
+-      Installation is also available via several <Link
++      여러 <Link
+         href="https://docs.determinate.systems/guides/mdm"
+-        >Mobile Device Management</Link
+-      > (MDM) platforms.
++        >모바일 기기 관리</Link
++      >(MDM) 플랫폼을 통해서도 설치할 수 있습니다.
+     </p>
+   </div>
+ </div>
+diff --git a/src/components/mdx/Languages.astro b/src/components/mdx/Languages.astro
+index b319390..e42826b 100644
+--- a/src/components/mdx/Languages.astro
++++ b/src/components/mdx/Languages.astro
+@@ -8,7 +8,7 @@ const { languages } = site;
+   class="not-prose border-1.5 border-soft-gray dark:border-gray inline-flex items-center space-x-6 rounded-lg py-2.5 pr-4 pl-6 text-base dark:bg-inherit"
+ >
+   <p class="text-base font-semibold tracking-tight md:text-lg lg:text-xl">
+-    Select your language
++    언어를 선택하세요
+   </p>
+ 
+   <div role="tablist" aria-orientation="horizontal">
+diff --git a/src/components/mdx/NixStorePath.astro b/src/components/mdx/NixStorePath.astro
+index 7edbba5..00a2631 100644
+--- a/src/components/mdx/NixStorePath.astro
++++ b/src/components/mdx/NixStorePath.astro
+@@ -25,7 +25,7 @@ const {
+             /nix/store/
+           </span>
+           {!valueOnly && <span class="font-sans text-xs tracking-tight md:text-sm lg:text-base">
+-            <strong>1.</strong> Nix store prefix
++            <strong>1.</strong> Nix 스토어 접두사
+           </span>}
+         </div>
+         <div class="flex flex-col md:space-y-1.5 lg:space-y-1.5">
+@@ -33,7 +33,7 @@ const {
+             {hash}
+           </span>
+           {!valueOnly && <span class="font-sans text-xs tracking-tight md:text-sm lg:text-base">
+-            <strong>2.</strong> Hash part
++            <strong>2.</strong> 해시 부분
+           </span>}
+ 
+         </div>
+@@ -41,7 +41,7 @@ const {
+         <div class="flex flex-col md:space-y-1.5 lg:space-y-1.5">
+           <span class="font-mono text-orange dark:text-rose">{pkg}</span>
+           {!valueOnly && <span class="font-sans text-xs tracking-tight md:text-sm lg:text-base">
+-            <strong>3.</strong> Package name
++            <strong>3.</strong> 패키지 이름
+           </span>}
+         </div>
+         {bin && <>
+@@ -49,7 +49,7 @@ const {
+             <div class="flex flex-col md:space-y-1.5 lg:space-y-1.5">
+             <span class="font-mono text-orange dark:text-rose">bin/{bin}</span>
+             <span class="font-sans text-xs tracking-tight md:text-sm lg:text-base">
+-              <strong>4.</strong> Program path
++              <strong>4.</strong> 프로그램 경로
+             </span>
+           </div>
+         </>}
+diff --git a/src/layouts/Layout.astro b/src/layouts/Layout.astro
+index 060383d..d0cbb1a 100644
+--- a/src/layouts/Layout.astro
++++ b/src/layouts/Layout.astro
+@@ -1,6 +1,5 @@
+ ---
+ import Banner from "../components/Banner.astro";
+-import CookieConsent from "../components/CookieConsent.astro";
+ import Footer from "../components/Footer.astro";
+ import Head from "../components/Head.astro";
+ import Navbar from "../components/Navbar.astro";
+@@ -18,6 +17,7 @@ const { title, description } = Astro.props;
+ ---
+ 
+ <html
++  lang="ko"
+   x-data={`{ quickStart: $persist(true), drawer: false, banner: $persist(true), language: $persist("${defaultLanguage}") }`}
+   class="h-screen"
+ >
+@@ -28,7 +28,6 @@ const { title, description } = Astro.props;
+     class="text-dark dark:bg-dark flex min-h-full flex-col bg-white font-sans antialiased dark:text-white"
+   >
+     <Banner />
+-    <CookieConsent />
+ 
+     <main class="flex-1">
+       <Navbar />
+diff --git a/src/pages/about.astro b/src/pages/about.astro
+index 3bc4659..acc6b96 100644
+--- a/src/pages/about.astro
++++ b/src/pages/about.astro
+@@ -1,11 +1,9 @@
+ ---
+ import { getEntry, render } from "astro:content";
+-import FeedbackBar from "../components/FeedbackBar.astro";
+ import Hero from "../components/Hero.astro";
+ import HorizontalContainer from "../components/HorizontalContainer.astro";
+ import Brief from "../components/mdx/Brief.astro";
+ import Prose from "../components/Prose.astro";
+-import Separator from "../components/Separator.astro";
+ import Layout from "../layouts/Layout.astro";
+ 
+ const page = await getEntry("plain", "about")!;
+@@ -24,11 +22,6 @@ const { Content } = await render(page);
+       <Prose>
+         <Content components={{ Brief }} />
+       </Prose>
+-
+-      <div class="mt-16 space-y-12">
+-        <Separator />
+-        <FeedbackBar />
+-      </div>
+     </div>
+   </HorizontalContainer>
+ </Layout>
+diff --git a/src/pages/concepts/[id].astro b/src/pages/concepts/[id].astro
+index 41d25b6..141293e 100644
+--- a/src/pages/concepts/[id].astro
++++ b/src/pages/concepts/[id].astro
+@@ -2,7 +2,6 @@
+ import { render } from "astro:content";
+ import type { GetStaticPaths } from "astro";
+ import ExternalSources from "../../components/ExternalSources.astro";
+-import FeedbackBar from "../../components/FeedbackBar.astro";
+ import Hero from "../../components/Hero.astro";
+ import HorizontalContainer from "../../components/HorizontalContainer.astro";
+ import A from "../../components/mdx/A.astro";
+@@ -14,7 +13,6 @@ import NixStorePath from "../../components/mdx/NixStorePath.astro";
+ import Prose from "../../components/Prose.astro";
+ import QuickStart from "../../components/QuickStart.astro";
+ import Related from "../../components/Related.astro";
+-import Separator from "../../components/Separator.astro";
+ import { getConceptPagesAlphabetical } from "../../content/collections";
+ import Layout from "../../layouts/Layout.astro";
+ import { conceptPagePath } from "../../lib/utils";
+@@ -46,7 +44,7 @@ const relatedConceptPages: { title: string; href: string }[] = (
+     <Hero
+       {title}
+       description={snippet}
+-      breadcrumb={{ back: { title: "Concepts", href: "/concepts" }, title }}
++      breadcrumb={{ back: { title: "개념", href: "/concepts" }, title }}
+     />
+ 
+     <QuickStart />
+@@ -78,11 +76,6 @@ const relatedConceptPages: { title: string; href: string }[] = (
+           <ExternalSources links={externalSources} showTitle />
+         )
+       }
+-
+-      <div class="mt-16 space-y-12">
+-        <Separator />
+-        <FeedbackBar />
+-      </div>
+     </div>
+   </HorizontalContainer>
+ </Layout>
+diff --git a/src/pages/concepts/index.astro b/src/pages/concepts/index.astro
+index 3bfec65..fcbfaa1 100644
+--- a/src/pages/concepts/index.astro
++++ b/src/pages/concepts/index.astro
+@@ -8,9 +8,9 @@ import { getConceptPagesAlphabetical } from "../../content/collections";
+ import Layout from "../../layouts/Layout.astro";
+ import { conceptPagePath } from "../../lib/utils";
+ 
+-const title = "Concepts";
+-const heroTitle = "Nix concepts";
+-const description = "The whys and the hows of Nix";
++const title = "개념";
++const heroTitle = "Nix 개념";
++const description = "Nix는 왜, 그리고 어떻게 동작하는가";
+ 
+ const conceptPages = await getConceptPagesAlphabetical();
+ ---
+diff --git a/src/pages/index.astro b/src/pages/index.astro
+index 8857eaa..7fcc964 100644
+--- a/src/pages/index.astro
++++ b/src/pages/index.astro
+@@ -7,7 +7,6 @@ import Layout from "../layouts/Layout.astro";
+ import { md } from "../lib/utils";
+ import { site } from "../site";
+ import NixTerms from "../components/NixTerms.astro";
+-import Signup from "../components/Signup.astro";
+ 
+ const { description, heroButtons } = site;
+ 
+@@ -67,7 +66,7 @@ const descriptionHtml = await md(description);
+           class="hover:text-gray dark:hover:text-light-gray text-2xl tracking-tight md:text-3xl lg:text-4xl"
+           id="features"
+         >
+-          <Link href="#features">What the Nix ecosystem offers</Link>
++          <Link href="#features">Nix 생태계가 제공하는 것</Link>
+         </h2>
+ 
+         <Features />
+@@ -77,15 +76,12 @@ const descriptionHtml = await md(description);
+           class="hover:text-gray dark:hover:text-light-gray text-2xl tracking-tight md:text-3xl lg:text-4xl"
+           id="key-terms"
+         >
+-          <Link href="#key-terms">Core Nix components</Link>
++          <Link href="#key-terms">Nix의 핵심 구성 요소</Link>
+         </h2>
+ 
+         <NixTerms />
+       </div>
+ 
+-      <div class="mt-12">
+-        <Signup />
+-      </div>
+     </section>
+   </HorizontalContainer>
+ </Layout>
+diff --git a/src/pages/start/[id].astro b/src/pages/start/[id].astro
+index 1c093f1..c10bc09 100644
+--- a/src/pages/start/[id].astro
++++ b/src/pages/start/[id].astro
+@@ -2,7 +2,6 @@
+ import { render } from "astro:content";
+ import type { GetStaticPaths } from "astro";
+ import ExternalSources from "../../components/ExternalSources.astro";
+-import FeedbackBar from "../../components/FeedbackBar.astro";
+ import Hero from "../../components/Hero.astro";
+ import HorizontalContainer from "../../components/HorizontalContainer.astro";
+ import Admonition from "../../components/mdx/Admonition.astro";
+@@ -17,7 +16,6 @@ import Platforms from "../../components/mdx/Platforms.astro";
+ import SpecificLanguage from "../../components/mdx/SpecificLanguage.astro";
+ import Pagination from "../../components/Pagination.astro";
+ import Prose from "../../components/Prose.astro";
+-import Separator from "../../components/Separator.astro";
+ import Summary from "../../components/Summary.astro";
+ import { getStartPagesByOrderParam } from "../../content/collections";
+ import Layout from "../../layouts/Layout.astro";
+@@ -42,7 +40,7 @@ const numQuickStartPages = (await getStartPagesByOrderParam()).length;
+   <HorizontalContainer>
+     <Hero
+       {title}
+-      breadcrumb={{ back: { title: "Quick start", href: "/start" }, title }}
++      breadcrumb={{ back: { title: "빠른 시작", href: "/start" }, title }}
+       size="normal"
+       total={numQuickStartPages}
+       {order}
+@@ -73,9 +71,6 @@ const numQuickStartPages = (await getStartPagesByOrderParam()).length;
+       <div class="mt-16 space-y-12">
+         <Pagination {order} />
+ 
+-        <Separator />
+-
+-        <FeedbackBar />
+       </div>
+     </div>
+   </HorizontalContainer>
+diff --git a/src/pages/start/index.astro b/src/pages/start/index.astro
+index 1d07f64..97437f5 100644
+--- a/src/pages/start/index.astro
++++ b/src/pages/start/index.astro
+@@ -7,10 +7,10 @@ import { getStartPagesByOrderParam } from "../../content/collections";
+ import Layout from "../../layouts/Layout.astro";
+ import { startPagePath } from "../../lib/utils";
+ 
+-const title = "Start";
+-const heroTitle = "Quick start";
++const title = "시작";
++const heroTitle = "빠른 시작";
+ const description =
+-  "Get a taste of Nix's power and learn key concepts along the way";
++  "Nix의 강력함을 맛보면서 핵심 개념을 함께 익힙니다";
+ 
+ const startPages = await getStartPagesByOrderParam();
+ ---
+diff --git a/src/site.ts b/src/site.ts
+index f2b3db7..2f6630e 100644
+--- a/src/site.ts
++++ b/src/site.ts
+@@ -63,31 +63,31 @@ type Site = {
+ export const site: Site = {
+   title: "Zero to Nix",
+   url: "https://zero-to-nix.com",
+-  description: "Your guide to learning Nix and flakes",
++  description: "Nix와 플레이크를 배우는 안내서",
+   platforms: [
+     {
+       title: "macOS",
+-      specs: "64-bit ARM and 64-bit AMD/Intel",
++      specs: "64비트 ARM 및 64비트 AMD/Intel",
+       icon: "fa:apple",
+     },
+     {
+       title: "Linux",
+-      specs: "64-bit ARM and 64-bit AMD/Intel",
++      specs: "64비트 ARM 및 64비트 AMD/Intel",
+       icon: "fa:linux",
+     },
+     {
+       title: "Windows Subsystem for Linux (WSL)",
+-      specs: "64-bit ARM and 64-bit AMD/Intel",
++      specs: "64비트 ARM 및 64비트 AMD/Intel",
+       icon: "fa:windows",
+       href: "https://learn.microsoft.com/windows/wsl",
+     },
+     {
+-      title: "Podman Linux containers",
++      title: "Podman Linux 컨테이너",
+       icon: "simple-icons:podman",
+       href: "https://podman.io",
+     },
+     {
+-      title: "Docker containers",
++      title: "Docker 컨테이너",
+       icon: "simple-icons:docker",
+       href: "https://docker.com",
+     },
+@@ -125,68 +125,68 @@ export const site: Site = {
+   languages: ["C++", "Go", "Haskell", "JavaScript", "Python", "Rust", "Scala"],
+   defaultLanguage: "JavaScript",
+   banner: {
+-    text: "Check out <strong><a target='_blank' class='banner-link' href='https://flakehub.com'>FlakeHub</a></strong>, the best place to discover and publish Nix flakes, brought to you by <strong><a target='_blank' class='banner-link' href='https://determinate.systems'>Determinate Systems</a></strong>.",
+-    generation: 2,
++    text: "이 사이트는 <strong><a target='_blank' class='banner-link' href='https://determinate.systems'>Determinate Systems</a></strong>의 <strong><a target='_blank' class='banner-link' href='https://zero-to-nix.com'>Zero to Nix</a></strong>를 yeokja로 기계 번역한 비공식 한국어판입니다. 정확한 내용은 원문을 확인하세요.",
++    generation: 3,
+   },
+-  navbarLinks: [{ text: "About", href: "/about" }],
++  navbarLinks: [{ text: "소개", href: "/about" }],
+   heroButtons: [
+-    { text: "Quick start", href: "/start/install", highlight: true },
+-    { text: "Concepts", href: "/concepts" },
+-    { text: "About", href: "/about" },
++    { text: "빠른 시작", href: "/start/install", highlight: true },
++    { text: "개념", href: "/concepts" },
++    { text: "소개", href: "/about" },
+   ],
+   features: [
+     {
+-      title: "Declarative, reproducible development environments",
++      title: "선언적이고 재현 가능한 개발 환경",
+       description:
+-        'No more "works on my machine." Create environments that work seamlessly and are easily sharable across platforms.',
++        '"내 컴퓨터에서는 되는데"는 이제 그만. 어디서나 매끄럽게 동작하고 플랫폼을 넘어 쉽게 공유할 수 있는 환경을 만듭니다.',
+       links: [
+         {
+-          text: "Explore a Nix development environment",
++          text: "Nix 개발 환경 살펴보기",
+           href: "/start/nix-develop",
+         },
+         {
+-          text: "Create a development environment",
++          text: "개발 환경 만들기",
+           href: "/start/nix-develop",
+         },
+         {
+-          text: "How Nix development environments work",
++          text: "Nix 개발 환경의 동작 원리",
+           href: "/concepts/dev-env",
+         },
+       ],
+     },
+     {
+-      title: "Declarative, reproducible package builds",
++      title: "선언적이고 재현 가능한 패키지 빌드",
+       description:
+-        "No more broken builds or mysterious installation processes. Nix builds packages from scratch every time.",
++        "깨지는 빌드도, 알 수 없는 설치 과정도 없습니다. Nix는 매번 패키지를 처음부터 빌드합니다.",
+       links: [
+         {
+-          text: "Build a Nix package",
++          text: "Nix 패키지 빌드하기",
+           href: "/start/nix-build",
+         },
+         {
+-          text: "How Nix packages work",
++          text: "Nix 패키지의 동작 원리",
+           href: "/concepts/packages",
+         },
+       ],
+     },
+     {
+-      title: "The largest package repository in existence",
++      title: "세계 최대 규모의 패키지 저장소",
+       description:
+-        "Nixpkgs offers well over 100,000 packages and continues to grow every day.",
++        "Nixpkgs는 100,000개가 훨씬 넘는 패키지를 제공하며 지금도 날마다 늘어나고 있습니다.",
+       links: [
+         {
+-          text: "How Nixpkgs works",
++          text: "Nixpkgs의 동작 원리",
+           href: "/concepts/nixpkgs",
+         },
+       ],
+     },
+     {
+-      title: "Declarative Linux systems",
++      title: "선언적인 Linux 시스템",
+       description:
+-        "NixOS is a unique Linux distribution that you can declaratively configure using the Nix language and Nix packages.",
++        "NixOS는 Nix 언어와 Nix 패키지로 선언적으로 구성할 수 있는 독특한 Linux 배포판입니다.",
+       links: [
+         {
+-          text: "How NixOS works",
++          text: "NixOS의 동작 원리",
+           href: "/concepts/nixos",
+         },
+       ],
+@@ -196,25 +196,25 @@ export const site: Site = {
+     {
+       title: "Nix",
+       description:
+-        "A build tool and package manager used to create declarative, reproducible software systems.",
++        "선언적이고 재현 가능한 소프트웨어 시스템을 만드는 데 쓰이는 빌드 도구이자 패키지 관리자입니다.",
+       href: "/concepts/nix",
+     },
+     {
+-      title: "Nix language",
++      title: "Nix 언어",
+       description:
+-        "A language for instructing Nix how to build packages, environments, and systems.",
++        "패키지, 환경, 시스템을 어떻게 빌드할지 Nix에 지시하는 언어입니다.",
+       href: "/concepts/nix-language",
+     },
+     {
+       title: "NixOS",
+       description:
+-        "A Linux distribution built on Nix with its core principles in mind.",
++        "Nix 위에 그 핵심 원칙을 따라 만들어진 Linux 배포판입니다.",
+       href: "/concepts/nixos",
+     },
+     {
+       title: "Nixpkgs",
+       description:
+-        "A vast collection of Nix packages, libraries, and helper functions.",
++        "Nix 패키지, 라이브러리, 보조 함수를 모아 둔 방대한 모음입니다.",
+       href: "/concepts/nixpkgs",
+     },
+   ],
