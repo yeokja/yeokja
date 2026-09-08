@@ -254,7 +254,7 @@ def prepare(build_tree: Path) -> None:
     conf = conf.replace('project = "PEPs"', 'project = "PEP 한국어 번역"')
     conf = conf.replace(
         'html_baseurl = "https://peps.python.org"',
-        'html_baseurl = "https://yeokja.github.io/yeokja/peps"',
+        'html_baseurl = "https://yeokja.moreal.dev/peps"',
     )
     extension_line = 'extensions.append("pep_korean_index")'
     if extension_line not in conf:

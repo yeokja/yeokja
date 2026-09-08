@@ -32,9 +32,9 @@ cargo build --manifest-path ../../Cargo.toml
 ```
 
 완성된 한국어판은 `output/pdf/Napkin-ko.pdf`에 생성됩니다.
-[GitHub Pages에서 PDF 내려받기](https://yeokja.github.io/yeokja/napkin/Napkin-ko.pdf)
+[GitHub Pages에서 PDF 내려받기](https://yeokja.moreal.dev/napkin/Napkin-ko.pdf)
 EPUB 3 전자책은 `output/epub/Napkin-ko.epub`에 생성되며,
-[GitHub Pages에서 EPUB 내려받기](https://yeokja.github.io/yeokja/napkin/Napkin-ko.epub)도
+[GitHub Pages에서 EPUB 내려받기](https://yeokja.moreal.dev/napkin/Napkin-ko.epub)도
 가능합니다. EPUB 빌드는 수식을 MathML로 변환하고 `epubcheck` 검증까지 마친 뒤
 산출물을 복사합니다.
 
