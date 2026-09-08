@@ -63,6 +63,7 @@ fn parser_by_name(
             file_path,
             parser_manifest.unwrap_or_default(),
         )),
+        "myst" => Box::new(yeokja_parser_markdown::MystParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
@@ -226,6 +227,25 @@ model = "gpt-4o"
                 .translatable_segments()[0]
                 .source,
             "Hello."
+        );
+    }
+
+    #[test]
+    fn source_config_selects_myst_parser() {
+        let config = config_with_source("source/", "myst");
+        let parser = select_parser(Path::new("source/index.md"), &config);
+        let doc = parser.parse(":::{note}\nA note.\n:::\n");
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].source, "A note.");
+
+        // The plain Markdown parser keeps reading the fence as prose.
+        let config = config_with_source("source/", "markdown");
+        let parser = select_parser(Path::new("source/index.md"), &config);
+        let doc = parser.parse(":::{note}\nA note.\n:::\n");
+        assert_eq!(
+            doc.translatable_segments()[0].source,
+            ":::{note} A note. :::"
         );
     }
 
