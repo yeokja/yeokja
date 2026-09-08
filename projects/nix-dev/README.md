@@ -38,10 +38,12 @@ python3 -m unittest discover -s projects/nix-dev/scripts -p 'test_*.py'
   `contributors` 확장과 `_templates/search.html`(Pagefind UI)은 그대로 씁니다.
 - **영어 앵커 유지**: nix.dev는 제목 텍스트에서 만든 슬러그(`#some-heading`)로
   문서끼리 링크합니다. `scripts/ko_slugs.py` 확장이 원문과 번역본의 제목을
-  자리별로 짝지어 번역된 제목에도 원문 슬러그를 부여하고, 그 슬러그를 섹션의
-  HTML id로 올립니다. 그래서 문서 간 링크, 페이지 안 목차, 외부에서 들어오는
-  깊은 링크가 모두 원문과 같은 앵커를 씁니다. 제목 수가 원문과 다른 문서는
-  경고를 내고 기본 슬러그로 돌아갑니다.
+  깊이에 관계없이 자리별로 짝지어, 번역된 제목에도 원문 슬러그를 부여하고
+  (h1–h3, 링크 해석용) 원문 제목의 docutils id를 섹션의 HTML id로 올립니다
+  (모든 깊이, upstream 빌드의 앵커와 동일). 그래서 문서 간 링크, 페이지 안
+  목차, 외부에서 들어오는 깊은 링크가 모두 원문과 같은 앵커를 쓰며, 빌드된
+  전 페이지의 섹션 id가 upstream 빌드와 일치합니다. 제목 수가 원문과 다른
+  문서는 경고를 내고 기본 슬러그로 돌아갑니다.
 - **버전 자리 표시자**: `source/reference/nix-manual.md`의 `@nix-latest@` 등은
   upstream이 Nix로 계산해 치환합니다. `scripts/nix-releases.py`가
   `upstream/nix/*.json`의 고정본에서 같은 값을 구합니다. Nixpkgs 각 릴리스에
