@@ -9,7 +9,9 @@ use std::collections::VecDeque;
 use std::ops::Range;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
-use yeokja_parser_utils::{make_segments, normalize_inline_text, splice_reconstruct};
+use yeokja_parser_utils::{
+    make_segments, normalize_inline_text, resolve_reference_links, splice_reconstruct,
+};
 
 /// A block a flavour found on its own, outside what pulldown-cmark sees.
 ///
@@ -213,7 +215,10 @@ impl DocumentParser for MarkdownParser {
     }
 
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
-        splice_reconstruct(document, translations)
+        // Shortcut and collapsed reference links name their definition by
+        // their text; rewrite them to the full form so they still resolve.
+        let translations = resolve_reference_links(document, translations);
+        splice_reconstruct(document, &translations)
     }
 }
 
@@ -584,6 +589,23 @@ mod tests {
         translations.insert(segments[1].id.clone(), "둘째 줄.".to_string());
         let output = parser.reconstruct(&doc, &translations);
         assert_eq!(output, "첫 줄.\\\n둘째 줄.\n");
+    }
+
+    #[test]
+    fn reference_links_keep_resolving_after_translation() {
+        let parser = MarkdownParser;
+        let source = "Flakes are [experimental] with a [standard structure].\n\n[Experimental]: https://a\n[standard structure]: https://b\n";
+        let doc = parser.parse(source);
+        let segments = doc.translatable_segments();
+        let mut translations = TranslationMap::new();
+        translations.insert(
+            segments[0].id.clone(),
+            "플레이크는 [실험적]이며 [표준 구조]를 가집니다.".to_string(),
+        );
+        assert_eq!(
+            parser.reconstruct(&doc, &translations),
+            "플레이크는 [실험적][experimental]이며 [표준 구조][standard structure]를 가집니다.\n\n[Experimental]: https://a\n[standard structure]: https://b\n"
+        );
     }
 
     #[test]

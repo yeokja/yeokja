@@ -37,7 +37,7 @@
 use std::ops::Range;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
-use yeokja_parser_utils::splice_reconstruct;
+use yeokja_parser_utils::{resolve_reference_links, splice_reconstruct};
 
 use crate::{Extra, parse_with};
 
@@ -671,7 +671,8 @@ impl DocumentParser for MystParser {
     }
 
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
-        splice_reconstruct(document, translations)
+        let translations = resolve_reference_links(document, translations);
+        splice_reconstruct(document, &translations)
     }
 }
 
@@ -936,6 +937,23 @@ mod tests {
         assert_eq!(
             out,
             "{ref}`Nix 설치 <install-nix>`를 하고 {term}`Nix language` 문서를 읽으세요.\n"
+        );
+    }
+
+    #[test]
+    fn reference_links_are_rewritten_to_full_form() {
+        let source = ":::{note}\nUse the [`nix` command][] on a [standard structure].\n:::\n\n[`nix` command]: https://a\n[standard structure]: https://b\n";
+        let doc = MystParser.parse(source);
+        assert_eq!(
+            sources(&doc),
+            ["Use the [`nix` command][] on a [standard structure]."]
+        );
+        let out = translate_all(source, |_| {
+            "[표준 구조]에서 [`nix` 명령][]을 쓰세요.".to_string()
+        });
+        assert_eq!(
+            out,
+            ":::{note}\n[표준 구조][`nix` command]에서 [`nix` 명령][standard structure]을 쓰세요.\n:::\n\n[`nix` command]: https://a\n[standard structure]: https://b\n"
         );
     }
 

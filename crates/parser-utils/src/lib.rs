@@ -1,5 +1,7 @@
+mod reflinks;
 mod sentence;
 
+pub use reflinks::{definition_labels, resolve_reference_links};
 pub use sentence::split_sentences;
 
 use yeokja_core::hash::content_hash;
@@ -7,7 +9,12 @@ use yeokja_core::model::*;
 use yeokja_core::parser::TranslationMap;
 
 /// Helper to create segments from text using sentence splitting.
-pub fn make_segments(text: &str, block_type: BlockType, section_idx: usize, block_idx: usize) -> Vec<Segment> {
+pub fn make_segments(
+    text: &str,
+    block_type: BlockType,
+    section_idx: usize,
+    block_idx: usize,
+) -> Vec<Segment> {
     split_sentences(text)
         .into_iter()
         .enumerate()
@@ -73,10 +80,7 @@ pub fn join_segments_with_translations(
 /// outside those spans — markers, delimiters, code, blank lines — is preserved
 /// byte-for-byte. Shared by all span-based parsers.
 pub fn splice_reconstruct(document: &Document, translations: &TranslationMap) -> String {
-    apply_splices(
-        &document.source,
-        collect_splices(document, translations),
-    )
+    apply_splices(&document.source, collect_splices(document, translations))
 }
 
 /// The replacement each translated block contributes, as `(span, text)`.
@@ -110,10 +114,7 @@ pub fn collect_splices(
 }
 
 /// Replace each span in `source`, keeping everything between them byte-for-byte.
-pub fn apply_splices(
-    source: &str,
-    mut splices: Vec<(std::ops::Range<usize>, String)>,
-) -> String {
+pub fn apply_splices(source: &str, mut splices: Vec<(std::ops::Range<usize>, String)>) -> String {
     splices.sort_by_key(|(range, _)| range.start);
 
     let mut output = String::with_capacity(source.len());
