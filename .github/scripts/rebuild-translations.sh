@@ -44,6 +44,13 @@ case "$project" in
     "$yeokja" translate upstream/peps
     "$yeokja" status --check upstream/peps
     ;;
+  nix-dev)
+    # nix.dev의 문서는 모두 upstream/source 아래의 MyST Markdown입니다. 디렉터리
+    # 전체를 확인해야 upstream이 새로 추가한 문서가 state 없이 빠지는 경우도
+    # 배포를 막습니다.
+    "$yeokja" translate upstream/source
+    "$yeokja" status --check upstream/source
+    ;;
   *)
     for s in $(find state -name '*.yeokja.json'); do
       src="${s#state/}"; src="${src%.yeokja.json}"

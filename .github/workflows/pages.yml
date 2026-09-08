@@ -21,7 +21,8 @@
 #
 # rebuild: 지문이 바뀐 프로젝트·타깃만, 각각 필요한 툴체인만 설치해 빌드합니다
 #   (PyPy는 Python 2.7+Sphinx, theBeamBook은 Ruby+Asciidoctor, Lean 서적은 elan
-#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML, Zero to Nix는 Node+Astro). 잡은
+#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML, Zero to Nix는 Node+Astro, nix.dev는
+#   Python 3+Sphinx와 Pagefind용 Node.js — 러너에 기본 설치됨). 잡은
 #   GitHub-hosted 러너에서 병렬로 돕니다.
 #
 # stage: 마지막으로 스테이징한 Pages 트리를 캐시에서 복원하고(캐시가 없을 때만
@@ -194,7 +195,7 @@ jobs:
         run: pip install 'sphinx<2' 'docutils==0.11' 'sphinx-issues==1.2.0' 'sphinx_rtd_theme<1' py sphinx-affiliates
 
       - name: Install Python 3
-        if: matrix.toolchain == 'python3-devguide' || matrix.toolchain == 'python3-mil' || matrix.toolchain == 'python3-peps'
+        if: matrix.toolchain == 'python3-devguide' || matrix.toolchain == 'python3-mil' || matrix.toolchain == 'python3-peps' || matrix.toolchain == 'python3-nix-dev'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -210,6 +211,12 @@ jobs:
       - name: Install the PEPs Sphinx toolchain
         if: matrix.toolchain == 'python3-peps'
         run: pip install -r projects/${{ matrix.project }}/upstream/requirements.txt
+
+      # 빌드 스크립트는 GITHUB_ACTIONS가 켜져 있으면 venv를 만들지 않고 여기서
+      # 설치한 툴체인을 씁니다. Pagefind는 러너의 Node.js로 npx가 받습니다.
+      - name: Install the nix.dev Sphinx toolchain
+        if: matrix.toolchain == 'python3-nix-dev'
+        run: pip install -r projects/${{ matrix.project }}/requirements.txt
 
       - name: Install Ruby
         if: matrix.toolchain == 'ruby'

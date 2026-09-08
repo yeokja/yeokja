@@ -1,0 +1,52 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# nix.dev의 본문은 Sphinx + myst-parser로 렌더링하는 MyST Markdown입니다.
+# 지시문(```{toctree}```, :::{note} 등)과 코드 블록은 myst 파서가 그대로 두고
+# 산문만 번역합니다. learning-journey/template.md는 upstream conf.py의
+# exclude_patterns에도 들어 있는 저자용 빈 서식이라 번역 대상에서 뺍니다.
+[[sources]]
+path = "upstream/source"
+pattern = "**/*.md"
+exclude = ["tutorials/learning-journey/template.md"]
+parser = "myst"
+output = "ko/source/{path}"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+# 사이트 chrome의 한국어화: conf.py는 upstream의 conf.py를 실행한 뒤 한국어판
+# 설정(언어, 기준 URL, 안내 배너, 영어 앵커 유지 확장)을 덧붙이고, 사이드바
+# 템플릿과 robots.txt는 하위 경로 배포와 번역본 안내에 맞게 바꿉니다.
+# 본문 Markdown은 건드리지 않습니다 — 그것은 yeokja의 몫입니다.
+[[derive.overlay]]
+path = "overrides"
+
+# Sphinx로 HTML을 만들고 Pagefind 검색 색인을 붙입니다. 자세한 절차와 설계는
+# scripts/build-site.sh와 README를 참고하세요.
+[build.html]
+command = '''
+set -e
+bash "$YEOKJA_ROOT/scripts/build-site.sh"
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-sonnet-5"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32

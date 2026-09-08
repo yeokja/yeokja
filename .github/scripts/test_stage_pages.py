@@ -227,6 +227,20 @@ class StagePagesTests(unittest.TestCase):
             "new",
         )
 
+    def test_nix_dev_artifact_replaces_old_subtree(self) -> None:
+        self.write(self.site / "nix-dev" / "old.html", "old")
+        self.add_site_artifact("dist-nix-dev", "new")
+        self.add_required_artifacts()
+
+        result = self.run_stage()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.site / "nix-dev" / "old.html").exists())
+        self.assertEqual(
+            (self.site / "nix-dev" / "index.html").read_text(encoding="utf-8"),
+            "new",
+        )
+
     def test_pypy_artifact_replaces_pypy_and_rpython_together(self) -> None:
         self.write(self.site / "pypy" / "old.html", "old pypy")
         self.write(self.site / "rpython" / "old.html", "old rpython")

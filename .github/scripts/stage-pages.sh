@@ -111,6 +111,7 @@ overlay_site "dist-devguide" "site" "devguide"
 overlay_site "dist-rust-forge" "site" "rust-forge"
 overlay_site "dist-learn-fpga" "site" "learn-fpga"
 overlay_site "dist-zero-to-nix" "site" "zero-to-nix"
+overlay_site "dist-nix-dev" "site" "nix-dev"
 
 cp "$landing_dir/index.html" "$site_dir/index.html"
 cp "$landing_dir/favicon.svg" "$site_dir/favicon.svg"
