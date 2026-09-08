@@ -574,7 +574,7 @@ def build_epub(
             "--metadata=title:무한히 큰 냅킨",
             "--metadata=author:Evan Chen",
             "--metadata=lang:ko",
-            "--metadata=identifier:https://moreal.github.io/yeokja/napkin/",
+            "--metadata=identifier:https://yeokja.github.io/yeokja/napkin/",
             "--metadata=source:https://github.com/vEnhance/napkin",
             "--metadata=rights:CC BY-SA 4.0; 비공식 한국어 번역본",
             f"--output={output}",

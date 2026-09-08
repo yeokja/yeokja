@@ -16,7 +16,7 @@ import tomllib
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SOURCE_ROOT = PROJECT_ROOT / "upstream" / "peps"
-MODIFIER = "moreal/yeokja 프로젝트"
+MODIFIER = "yeokja/yeokja 프로젝트"
 MODIFIED_ON = "2026-08-29"
 PEP_NAME = re.compile(r"pep-\d{4}\.rst\Z")
 ADORNMENTS = set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
@@ -254,7 +254,7 @@ def prepare(build_tree: Path) -> None:
     conf = conf.replace('project = "PEPs"', 'project = "PEP 한국어 번역"')
     conf = conf.replace(
         'html_baseurl = "https://peps.python.org"',
-        'html_baseurl = "https://moreal.github.io/yeokja/peps"',
+        'html_baseurl = "https://yeokja.github.io/yeokja/peps"',
     )
     extension_line = 'extensions.append("pep_korean_index")'
     if extension_line not in conf:
