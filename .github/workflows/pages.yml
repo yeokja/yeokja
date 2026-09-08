@@ -234,6 +234,26 @@ jobs:
         if: matrix.toolchain == 'nix'
         uses: cachix/install-nix-action@v31
 
+      # Napkin 빌드가 매번 cache.nixos.org에서 수천 개의 스토어 경로(scheme-full
+      # TeX Live 포함)를 받아 오던 것을 Actions 캐시로 대체합니다. html·epub은
+      # assets/의 플레이크를, pdf는 upstream의 플레이크를 쓰므로 스토어 캐시도
+      # nix_store 값으로 둘로 나눕니다 — 한 키를 같이 쓰면 먼저 저장된 쪽의
+      # 부분집합만 남아 다른 쪽은 매번 다시 받게 됩니다. 키는 flake.lock의
+      # 해시라 입력이 바뀔 때만 새 항목이 생기고, 그때 같은 접두사의 옛 항목은
+      # purge로 지워 저장소 캐시 한도(10 GB)를 아낍니다. `nix develop`은 GC
+      # 루트를 남기지 않아 저장 전 GC를 걸면 방금 받은 경로가 지워지므로
+      # gc-max-store-size는 두지 않습니다.
+      - name: Cache the Nix store for the Napkin build
+        if: matrix.toolchain == 'nix'
+        uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ matrix.nix_store }}-${{ hashFiles('projects/napkin/assets/flake.lock', 'projects/napkin/upstream/flake.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-${{ matrix.nix_store }}-
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-${{ matrix.nix_store }}-
+          purge-created: 0
+          purge-primary-key: never
+
       # Sphinx의 graphviz 확장과 asciidoctor-diagram 둘 다 다이어그램을
       # 렌더링하려면 dot 바이너리가 있어야 합니다. 없으면 빌드가 실패하는 대신
       # 경고만 남기고 다이어그램 원본 텍스트를 그대로 페이지에 삽입해버려서,
