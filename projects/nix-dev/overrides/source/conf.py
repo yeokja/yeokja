@@ -17,6 +17,13 @@ exec(compile(_upstream_conf.read_text(encoding="utf-8"), str(_upstream_conf), "e
 
 language = "ko"
 
+# 푸터의 "By %(author)s"가 ko 로케일에서 "으로 …"로 찍히므로 저자 문구를
+# 한국어 어순에 맞게 통째로 씁니다. 원문 저자 표기는 그대로 담습니다.
+author = (
+    '<a href="https://nixos.org/community/teams/documentation">Nix 문서 팀</a>과 '
+    "기여자들이 작성했습니다. 한국어판은 yeokja 기계 번역입니다"
+)
+
 # 사이트는 https://yeokja.moreal.dev/nix-dev/ 아래에 배포됩니다. sitemap.xml은
 # html_baseurl을 따르고(sitemap_url_scheme = "{link}"), 404 페이지의 자산
 # 경로는 notfound_urls_prefix를 따릅니다.

@@ -1,0 +1,1785 @@
+{
+  "version": 1,
+  "source_hash": 5487598201152683676,
+  "segments": [
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Packaging existing software with Nix",
+      "source_hash": 9682215561658401969,
+      "context_hash": 233201382108884502,
+      "translation": "Nix로 기존 소프트웨어 패키징하기",
+      "glossary_snapshot": {
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:15.639655Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "One of Nix's primary use-cases is in addressing common difficulties encountered with packaging software, such as specifying and obtaining dependencies.",
+      "source_hash": 13875302213684520397,
+      "context_hash": 1419931317416878667,
+      "translation": "Nix의 주요 사용 사례 중 하나는 의존성을 지정하고 가져오는 것과 같이 소프트웨어 패키징 시 흔히 겪는 어려움을 해결하는 것입니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix",
+        "dependencies": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:15.639656Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "In the long term, Nix alleviates such problems.",
+      "source_hash": 16709848372717303588,
+      "context_hash": 16102164404516719105,
+      "translation": "장기적으로 Nix는 이러한 문제를 완화해 줍니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:15.639656Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "But when *first* packaging existing software with Nix, it's common to encounter errors that seem inscrutable.",
+      "source_hash": 11083195542315047199,
+      "context_hash": 7277356978049484221,
+      "translation": "하지만 Nix로 기존 소프트웨어를 *처음* 패키징할 때는 이해하기 어려워 보이는 오류를 흔히 마주치게 됩니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:15.639657Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Introduction",
+      "source_hash": 17143975622463353612,
+      "context_hash": 2794266183536268629,
+      "translation": "소개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639657Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "In this tutorial, you'll create your first [Nix derivations](https://nix.dev/manual/nix/stable/language/derivations) to package C/C++ software.",
+      "source_hash": 2907307063402892297,
+      "context_hash": 11354946729005001966,
+      "translation": "이 튜토리얼에서는 C/C++ 소프트웨어를 패키징하기 위한 첫 [Nix derivation](https://nix.dev/manual/nix/stable/language/derivations)을 만들어 봅니다.",
+      "glossary_snapshot": {
+        "derivations": "derivation",
+        "Nix": "Nix",
+        "package": "패키지",
+        "tutorial": "튜토리얼"
+      },
+      "translated_at": "2026-09-08T15:19:15.639657Z",
+      "issues": [
+        "Term 'package' should be translated as '패키지' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "You'll take advantage of the [Nixpkgs Standard Environment](https://nixos.org/manual/nixpkgs/stable/#part-stdenv) (`stdenv`), which automates much of the work involved.",
+      "source_hash": 3396763462831206622,
+      "context_hash": 17684050037369781722,
+      "translation": "많은 작업을 자동화해 주는 [Nixpkgs 표준 환경](https://nixos.org/manual/nixpkgs/stable/#part-stdenv)(`stdenv`)을 활용합니다.",
+      "glossary_snapshot": {
+        "Nixpkgs": "Nixpkgs",
+        "standard environment": "표준 환경"
+      },
+      "translated_at": "2026-09-08T15:19:15.639657Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "What will you learn?",
+      "source_hash": 17969490779299187677,
+      "context_hash": 466291477298684272,
+      "translation": "무엇을 배우게 되나요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The tutorial begins with `hello`, an implementation of \"hello world\" which only requires dependencies already provided by `stdenv`.",
+      "source_hash": 12574798422253223090,
+      "context_hash": 9988637165585756293,
+      "translation": "이 튜토리얼은 `stdenv`가 이미 제공하는 의존성만 필요로 하는 \"hello world\"의 구현체인 `hello`로 시작합니다.",
+      "glossary_snapshot": {
+        "dependencies": "의존성",
+        "tutorial": "튜토리얼"
+      },
+      "translated_at": "2026-09-08T15:19:15.639658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "Next, you build more complex packages with their own dependencies, which leads to using additional derivation features.",
+      "source_hash": 7721348118695677357,
+      "context_hash": 17493880853149014777,
+      "translation": "이어서 자체 의존성을 가진 더 복잡한 패키지를 빌드하게 되며, 이를 통해 추가적인 derivation 기능을 사용하게 됩니다.",
+      "glossary_snapshot": {
+        "packages": "패키지",
+        "dependencies": "의존성",
+        "derivation": "derivation"
+      },
+      "translated_at": "2026-09-08T15:19:15.639658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "You'll encounter and address Nix error messages, build failures, and a host of other issues, developing your iterative debugging techniques along the way.",
+      "source_hash": 15491703229839835037,
+      "context_hash": 13534837005275315152,
+      "translation": "Nix 오류 메시지, 빌드 실패, 그 밖의 여러 문제를 마주하고 해결하면서 반복적인 디버깅 기법을 발전시켜 나가게 됩니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:15.639658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "What do you need?",
+      "source_hash": 4047784872726102973,
+      "context_hash": 9395305988869089401,
+      "translation": "무엇이 필요한가요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Familiarity with the Unix shell and plain text editors",
+      "source_hash": 904736901625797990,
+      "context_hash": 2305968686216755288,
+      "translation": "Unix 셸과 일반 텍스트 편집기에 대한 익숙함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639659Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "You should be confident with [reading the Nix language](reading-nix-language).",
+      "source_hash": 285381298900430125,
+      "context_hash": 1880331377105217917,
+      "translation": "[Nix 언어 읽기](reading-nix-language)에 자신 있어야 합니다.",
+      "glossary_snapshot": {
+        "Nix language": "Nix 언어",
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:15.639659Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "Feel free to go back and work through the tutorial first.",
+      "source_hash": 12214501733299871013,
+      "context_hash": 4132063193829753914,
+      "translation": "자신 없다면 언제든 돌아가서 해당 튜토리얼을 먼저 진행해 보십시오.",
+      "glossary_snapshot": {
+        "tutorial": "튜토리얼"
+      },
+      "translated_at": "2026-09-08T15:19:15.639659Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "How long does it take?",
+      "source_hash": 14387205900614819987,
+      "context_hash": 8108977635395097321,
+      "translation": "얼마나 걸리나요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639659Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Going through all the steps carefully will take around 60 minutes.",
+      "source_hash": 13496196453339886856,
+      "context_hash": 11227056104553698559,
+      "translation": "모든 단계를 꼼꼼히 진행하면 약 60분이 소요됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Your first package",
+      "source_hash": 17821697818893369942,
+      "context_hash": 884035325632788270,
+      "translation": "첫 번째 패키지",
+      "glossary_snapshot": {
+        "package": "패키지"
+      },
+      "translated_at": "2026-09-08T15:19:15.639659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "A _package_ is a loosely defined concept that refers to either a collection of files and other data, or a {term}`Nix expression` representing such a collection before it comes into being.",
+      "source_hash": 2985519547234075495,
+      "context_hash": 4901913377078625294,
+      "translation": "*패키지*는 느슨하게 정의된 개념으로, 파일 및 기타 데이터의 모음을 가리키거나, 또는 그러한 모음이 생성되기 전에 이를 나타내는 {term}`Nix 표현식 <Nix expression>`을 가리킵니다.",
+      "glossary_snapshot": {
+        "concept": "개념"
+      },
+      "translated_at": "2026-09-08T15:19:15.639660Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "Packages in Nixpkgs have a conventional structure, allowing them to be discovered in searches and composed in environments alongside other packages.",
+      "source_hash": 7117039082180519896,
+      "context_hash": 15000098396534350617,
+      "translation": "Nixpkgs의 패키지는 관례적인 구조를 가지고 있어서, 검색을 통해 발견되고 다른 패키지와 함께 환경 내에서 조합될 수 있습니다.",
+      "glossary_snapshot": {
+        "packages": "패키지",
+        "Nixpkgs": "Nixpkgs"
+      },
+      "translated_at": "2026-09-08T15:19:15.639660Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "For the purposes of this tutorial, a \"package\" is a Nix language function that will evaluate to a derivation.",
+      "source_hash": 6610866878791610887,
+      "context_hash": 15187850880693899825,
+      "translation": "이 튜토리얼에서는 \"패키지\"란 derivation으로 평가되는 Nix 언어 함수를 의미합니다.",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "function": "함수",
+        "tutorial": "튜토리얼",
+        "Nix": "Nix",
+        "Nix language": "Nix 언어",
+        "derivation": "derivation",
+        "evaluate": "평가"
+      },
+      "translated_at": "2026-09-08T15:19:15.639660Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "It will enable you or others to produce an artifact for practical use, as a consequence of having \"packaged existing software with Nix\".",
+      "source_hash": 8548145786166522236,
+      "context_hash": 10553580127831142766,
+      "translation": "이는 \"Nix로 기존 소프트웨어를 패키징\"한 결과로서, 사용자 본인 또는 다른 사람이 실제로 사용할 수 있는 산출물을 만들어낼 수 있게 해 줍니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:15.639661Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "To start, consider this skeleton derivation:",
+      "source_hash": 13844772922734996734,
+      "context_hash": 11374497652293062178,
+      "translation": "시작하기에 앞서 다음의 뼈대 derivation을 살펴봅시다.",
+      "glossary_snapshot": {
+        "derivation": "derivation"
+      },
+      "translated_at": "2026-09-08T15:19:15.639661Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "This is a function which takes an attribute set containing `stdenv`, and produces a derivation (which currently does nothing).",
+      "source_hash": 1839319532680777485,
+      "context_hash": 11680428060981266725,
+      "translation": "이것은 `stdenv`를 포함하는 속성 집합을 받아 derivation을 생성하는 함수입니다(현재는 아무 동작도 하지 않습니다).",
+      "glossary_snapshot": {
+        "derivation": "derivation",
+        "attribute": "속성",
+        "attribute set": "속성 집합",
+        "function": "함수"
+      },
+      "translated_at": "2026-09-08T15:19:15.639661Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "A package function",
+      "source_hash": 3331228986174985833,
+      "context_hash": 16435507939161172118,
+      "translation": "패키지 함수",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "function": "함수"
+      },
+      "translated_at": "2026-09-08T15:19:15.639661Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "GNU Hello is an implementation of the \"hello world\" program, with source code accessible [from the GNU Project's FTP server](https://ftp.gnu.org/gnu/hello/).",
+      "source_hash": 10316232762195721526,
+      "context_hash": 5430196464816169719,
+      "translation": "GNU Hello는 \"hello world\" 프로그램의 구현체로, 소스 코드는 [GNU 프로젝트의 FTP 서버](https://ftp.gnu.org/gnu/hello/)에서 받을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639661Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "To begin, add a `pname` attribute to the set passed to `mkDerivation`.",
+      "source_hash": 9161627489925743727,
+      "context_hash": 18071875896009042137,
+      "translation": "먼저 `mkDerivation`에 전달되는 집합에 `pname` 속성을 추가하십시오.",
+      "glossary_snapshot": {
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:15.639662Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "Every package needs a name and a version, and Nix will throw `error: derivation name missing` without one.",
+      "source_hash": 16950702592499785430,
+      "context_hash": 7025292814415523575,
+      "translation": "모든 패키지에는 이름과 버전이 필요하며, 이것이 없으면 Nix는 `error: derivation name missing` 오류를 발생시킵니다.",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:15.639662Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "Next, declare a dependency on the latest version of `hello`, and instruct Nix to use `fetchzip` to download the [source code archive](https://ftp.gnu.org/gnu/hello/hello-2.12.1.tar.gz).",
+      "source_hash": 10346516799761741062,
+      "context_hash": 15983869911806263575,
+      "translation": "다음으로 `hello`의 최신 버전에 대한 의존성을 선언하고, Nix가 `fetchzip`을 사용해 [소스 코드 아카이브](https://ftp.gnu.org/gnu/hello/hello-2.12.1.tar.gz)를 다운로드하도록 지시하십시오.",
+      "glossary_snapshot": {
+        "Nix": "Nix",
+        "dependency": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:15.639662Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "`fetchzip` can fetch [more archives](https://nixos.org/manual/nixpkgs/stable/#fetchurl) than just zip files!",
+      "source_hash": 13963470678574157867,
+      "context_hash": 6663718176106999127,
+      "translation": "`fetchzip`은 zip 파일뿐 아니라 [더 많은 종류의 아카이브](https://nixos.org/manual/nixpkgs/stable/#fetchurl)도 가져올 수 있습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:15.639662Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "The hash cannot be known until after the archive has been downloaded and unpacked.",
+      "source_hash": 507898138398488501,
+      "context_hash": 14026964676175810969,
+      "translation": "해시는 아카이브가 다운로드되고 압축이 해제된 후에야 알 수 있습니다.",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:11.094487Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:1",
+      "source": "Nix will complain if the hash supplied to `fetchzip` is incorrect.",
+      "source_hash": 417040789910725587,
+      "context_hash": 17671467577173541602,
+      "translation": "`fetchzip`에 제공된 해시가 올바르지 않으면 Nix가 오류를 발생시킵니다.",
+      "glossary_snapshot": {
+        "hash": "해시",
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:11.094489Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:2",
+      "source": "Set the `hash` attribute to an empty string and then use the resulting error message to determine the correct hash:",
+      "source_hash": 13352960316182520265,
+      "context_hash": 1253181807815498180,
+      "translation": "`hash` 속성을 빈 문자열로 설정한 다음, 그 결과로 나온 오류 메시지를 사용하여 올바른 해시를 확인하십시오:",
+      "glossary_snapshot": {
+        "hash": "해시",
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:11.094490Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "Save this file to `hello.nix` and run `nix-build` to observe your first build failure:",
+      "source_hash": 255741858951128466,
+      "context_hash": 9469062095697985558,
+      "translation": "이 파일을 `hello.nix`로 저장하고 `nix-build`를 실행하여 첫 번째 빌드 실패를 확인하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094490Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "Problem: the expression in `hello.nix` is a *function*, which only produces its intended output if it is passed the correct *arguments*.",
+      "source_hash": 11452371755741722436,
+      "context_hash": 15696522033217033799,
+      "translation": "문제: `hello.nix`의 표현식은 *함수*이며, 올바른 *인자*가 전달되어야만 의도한 출력을 만들어냅니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-09-08T15:19:11.094490Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Building with `nix-build`",
+      "source_hash": 4599300348008703913,
+      "context_hash": 4272331049081895376,
+      "translation": "`nix-build`로 빌드하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094491Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "`stdenv` is available from [`nixpkgs`](https://github.com/NixOS/nixpkgs/), which must be imported with another Nix expression to pass it as an argument to this derivation.",
+      "source_hash": 7494996661865758947,
+      "context_hash": 15992898936391501859,
+      "translation": "`stdenv`는 [`nixpkgs`](https://github.com/NixOS/nixpkgs/)에서 사용할 수 있으며, 이를 이 derivation의 인자로 전달하려면 다른 Nix 표현식으로 임포트해야 합니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix",
+        "derivation": "derivation",
+        "Nix expression": "Nix 표현식"
+      },
+      "translated_at": "2026-09-08T15:19:11.094491Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "The recommended way to do this is to create a `default.nix` file in the same directory as `hello.nix`, with the following contents:",
+      "source_hash": 3433491323932084435,
+      "context_hash": 4984725882712857307,
+      "translation": "이를 수행하는 권장 방법은 `hello.nix`와 같은 디렉터리에 다음 내용을 담은 `default.nix` 파일을 만드는 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094492Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:0",
+      "source": "This allows you to run `nix-build -A hello` to realize the derivation in `hello.nix`, similar to the current convention used in Nixpkgs.",
+      "source_hash": 6718910124195184884,
+      "context_hash": 18407611651944598625,
+      "translation": "이렇게 하면 `nix-build -A hello`를 실행하여 `hello.nix`의 derivation을 실현할 수 있으며, 이는 현재 Nixpkgs에서 사용되는 관례와 유사합니다.",
+      "glossary_snapshot": {
+        "derivation": "derivation",
+        "Nixpkgs": "Nixpkgs"
+      },
+      "translated_at": "2026-09-08T15:19:11.094492Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:28/seg:0",
+      "source": "`callPackage` automatically passes attributes from `pkgs` to the given function, if they match attributes required by that function's argument attribute set.",
+      "source_hash": 4285236023905008609,
+      "context_hash": 1734478372053121580,
+      "translation": "`callPackage`는 함수에 필요한 인자 속성 집합의 속성과 일치하는 경우, `pkgs`의 속성을 주어진 함수에 자동으로 전달합니다.",
+      "glossary_snapshot": {
+        "attributes": "속성",
+        "attribute set": "속성 집합",
+        "function": "함수",
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:11.094492Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:28/seg:1",
+      "source": "In this case, `callPackage` will supply `stdenv` and `fetchzip` to the function defined in `hello.nix`.",
+      "source_hash": 10678360143005072497,
+      "context_hash": 18251563482034697516,
+      "translation": "이 경우 `callPackage`는 `hello.nix`에 정의된 함수에 `stdenv`와 `fetchzip`을 제공합니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-09-08T15:19:11.094493Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:29/seg:0",
+      "source": "The tutorial [](./callpackage.md) goes into detail on how this works.",
+      "source_hash": 768491054390747011,
+      "context_hash": 18199725677062394543,
+      "translation": "[](./callpackage.md) 튜토리얼에서는 이것이 어떻게 동작하는지 자세히 다룹니다.",
+      "glossary_snapshot": {
+        "tutorial": "튜토리얼"
+      },
+      "translated_at": "2026-09-08T15:19:11.094494Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:31/seg:0",
+      "source": "Now run the `nix-build` command with the new argument:",
+      "source_hash": 7060245157297028765,
+      "context_hash": 5967792571283209690,
+      "translation": "이제 새 인자를 사용하여 `nix-build` 명령을 실행하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094494Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:33/seg:0",
+      "source": "Finding the file hash",
+      "source_hash": 16647713683257680422,
+      "context_hash": 9975849286142240958,
+      "translation": "파일 해시 찾기",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:11.094494Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:34/seg:0",
+      "source": "As expected, the incorrect file hash caused an error, and Nix helpfully provided the correct one.",
+      "source_hash": 6469490483560044844,
+      "context_hash": 16662129690398348061,
+      "translation": "예상대로, 잘못된 파일 해시로 인해 오류가 발생했으며, Nix는 친절하게도 올바른 해시를 제공했습니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix",
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:11.094494Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:34/seg:1",
+      "source": "In `hello.nix`, replace the empty string with the correct hash:",
+      "source_hash": 7732133370285626047,
+      "context_hash": 8949782443554040077,
+      "translation": "`hello.nix`에서 빈 문자열을 올바른 해시로 교체하십시오:",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:11.094495Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:36/seg:0",
+      "source": "Now run the previous command again:",
+      "source_hash": 54025796434801418,
+      "context_hash": 5044476832444094244,
+      "translation": "이제 이전 명령을 다시 실행하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094495Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:38/seg:0",
+      "source": "The derivation built successfully.",
+      "source_hash": 6582145320836649829,
+      "context_hash": 988276650298090237,
+      "translation": "derivation이 성공적으로 빌드되었습니다.",
+      "glossary_snapshot": {
+        "derivation": "derivation"
+      },
+      "translated_at": "2026-09-08T15:19:11.094495Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:39/seg:0",
+      "source": "The console output shows that `configure` was called, which produced a `Makefile` that was then used to build the project.",
+      "source_hash": 13026533381136126087,
+      "context_hash": 11440212304609140291,
+      "translation": "콘솔 출력을 보면 `configure`가 호출되어 `Makefile`이 생성되었고, 이것이 프로젝트를 빌드하는 데 사용되었음을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094496Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:39/seg:1",
+      "source": "It wasn't necessary to write any build instructions in this case because the `stdenv` build system is based on [GNU Autoconf](https://www.gnu.org/software/autoconf/), which automatically detected the structure of the project directory.",
+      "source_hash": 43792520598627229,
+      "context_hash": 1496626250754208570,
+      "translation": "`stdenv` 빌드 시스템은 [GNU Autoconf](https://www.gnu.org/software/autoconf/)를 기반으로 하며, 이것이 프로젝트 디렉터리의 구조를 자동으로 감지했기 때문에 이 경우 빌드 지침을 별도로 작성할 필요가 없었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094496Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:40/seg:0",
+      "source": "Build result",
+      "source_hash": 17985282131020415450,
+      "context_hash": 14743855310037773228,
+      "translation": "빌드 결과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094496Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:41/seg:0",
+      "source": "Check your working directory for the result:",
+      "source_hash": 14658407753198006124,
+      "context_hash": 15818258211875727745,
+      "translation": "작업 디렉터리에서 결과를 확인하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094496Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:43/seg:0",
+      "source": "This `result` is a [symbolic link](https://en.wikipedia.org/wiki/Symbolic_link) to a Nix store location containing the built binary; you can call `./result/bin/hello` to execute this program:",
+      "source_hash": 13418558785238403741,
+      "context_hash": 9616360901091557022,
+      "translation": "이 `result`는 빌드된 바이너리를 담고 있는 Nix 스토어 위치를 가리키는 [심볼릭 링크](https://en.wikipedia.org/wiki/Symbolic_link)입니다. `./result/bin/hello`를 호출하여 이 프로그램을 실행할 수 있습니다:",
+      "glossary_snapshot": {
+        "Nix": "Nix",
+        "Nix store": "Nix 스토어"
+      },
+      "translated_at": "2026-09-08T15:19:11.094496Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:45/seg:0",
+      "source": "Congratulations, you have successfully packaged your first program with Nix!",
+      "source_hash": 15357751421824480356,
+      "context_hash": 9887472025371709703,
+      "translation": "축하합니다, 여러분은 Nix로 첫 번째 프로그램을 성공적으로 패키징했습니다!",
+      "glossary_snapshot": {
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:11.094497Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:46/seg:0",
+      "source": "Next, you'll package another piece of software with external-to-`stdenv` dependencies that present new challenges, requiring you to make use of more `mkDerivation` features.",
+      "source_hash": 16553535322193280620,
+      "context_hash": 9848913757646849420,
+      "translation": "다음으로, 새로운 도전 과제를 제시하는 `stdenv` 외부 의존성을 가진 다른 소프트웨어 패키지를 만들게 되며, 이를 위해 더 많은 `mkDerivation` 기능을 활용해야 합니다.",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "dependencies": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:11.094497Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "A package with dependencies",
+      "source_hash": 17363216679796268914,
+      "context_hash": 14887664090474120577,
+      "translation": "의존성이 있는 패키지",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "dependencies": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:11.094497Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Now add a second, somewhat more complicated, program: [`icat`](https://github.com/atextor/icat) (which renders images in your terminal).",
+      "source_hash": 4808678876687893187,
+      "context_hash": 15441394128831814313,
+      "translation": "이제 다소 더 복잡한 두 번째 프로그램인 [`icat`](https://github.com/atextor/icat)(터미널에 이미지를 렌더링하는 프로그램)를 추가하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094498Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Change the `default.nix` from the previous section by adding a new attribute for `icat`:",
+      "source_hash": 11755469847315664241,
+      "context_hash": 4138808170788606894,
+      "translation": "이전 절의 `default.nix`를 수정하여 `icat`에 대한 새 속성을 추가하십시오:",
+      "glossary_snapshot": {
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:11.094498Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Copy `hello.nix` to a new file `icat.nix`, and update the `pname` and `version` attributes in that file:",
+      "source_hash": 3817500875113142069,
+      "context_hash": 5103942488426946000,
+      "translation": "`hello.nix`를 새 파일 `icat.nix`로 복사하고, 해당 파일의 `pname`과 `version` 속성을 업데이트하십시오:",
+      "glossary_snapshot": {
+        "attributes": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:11.094498Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Now to download the source code. `icat`'s upstream repository is hosted on [GitHub](https://github.com/atextor/icat), so you should replace the previous [source fetcher](https://nixos.org/manual/nixpkgs/stable/#chap-pkgs-fetchers).",
+      "source_hash": 17979429737222157038,
+      "context_hash": 13903055487973261953,
+      "translation": "이제 소스 코드를 다운로드할 차례입니다. `icat`의 업스트림 저장소는 [GitHub](https://github.com/atextor/icat)에서 호스팅되므로, 이전의 [소스 페처](https://nixos.org/manual/nixpkgs/stable/#chap-pkgs-fetchers)를 교체해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094498Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "This time, use [`fetchFromGitHub`](https://nixos.org/manual/nixpkgs/stable/#fetchfromgithub) instead of `fetchzip`, by updating the argument attribute set to the function accordingly:",
+      "source_hash": 2319193641216927037,
+      "context_hash": 6207364022972825961,
+      "translation": "이번에는 `fetchzip` 대신 [`fetchFromGitHub`](https://nixos.org/manual/nixpkgs/stable/#fetchfromgithub)를 사용하도록, 함수에 대한 인자 속성 집합을 그에 맞게 업데이트하십시오:",
+      "glossary_snapshot": {
+        "function": "함수",
+        "attribute set": "속성 집합",
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:11.094498Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "Fetching source from GitHub",
+      "source_hash": 7922477265021044487,
+      "context_hash": 2771219869740505529,
+      "translation": "GitHub에서 소스 가져오기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:11.094499Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "While `fetchzip` required `url` and `sha256` arguments, more are needed for [`fetchFromGitHub`](https://nixos.org/manual/nixpkgs/stable/#fetchfromgithub).",
+      "source_hash": 14326393112212887758,
+      "context_hash": 16148414890773522520,
+      "translation": "`fetchzip`는 `url`과 `sha256` 인자를 요구했지만, [`fetchFromGitHub`](https://nixos.org/manual/nixpkgs/stable/#fetchfromgithub)에는 더 많은 인자가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828257Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "The source URL is `https://github.com/atextor/icat`, which already gives the first two arguments:",
+      "source_hash": 1287920466740878924,
+      "context_hash": 15965396036794625633,
+      "translation": "소스 URL은 `https://github.com/atextor/icat`이며, 이는 이미 처음 두 인자를 제공합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "`owner`: the name of the account controlling the repository",
+      "source_hash": 9706083725841755256,
+      "context_hash": 13335721662541012423,
+      "translation": "`owner`: 저장소를 관리하는 계정의 이름",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "`repo`: the name of the repository to fetch",
+      "source_hash": 9589969497021751146,
+      "context_hash": 13207248139960915145,
+      "translation": "`repo`: 가져올 저장소의 이름",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "Navigate to the project's [Tags page](https://github.com/atextor/icat/tags) to find a suitable [Git revision](https://git-scm.com/docs/revisions) (`rev`), such as the Git commit hash or tag (e.g. `v1.0`) corresponding to the release you want to fetch.",
+      "source_hash": 14281879906005589923,
+      "context_hash": 17761372466858559582,
+      "translation": "가져오려는 릴리스에 해당하는 Git 커밋 해시나 태그(예: `v1.0`)와 같은 적절한 [Git 리비전](https://git-scm.com/docs/revisions)(`rev`)을 찾으려면 프로젝트의 [Tags 페이지](https://github.com/atextor/icat/tags)로 이동하십시오.",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "In this case, the latest release tag is `v0.5`.",
+      "source_hash": 17898079848330645468,
+      "context_hash": 14364929408211160094,
+      "translation": "이 경우 최신 릴리스 태그는 `v0.5`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "As in the `hello` example, a hash must also be supplied.",
+      "source_hash": 12581309273794485260,
+      "context_hash": 10222709982191201644,
+      "translation": "`hello` 예제에서와 마찬가지로 해시도 제공해야 합니다.",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:1",
+      "source": "This time, instead of using the empty string and letting `nix-build` report the correct one in an error, you can fetch the correct hash in the first place with the `nix-prefetch-url` command.",
+      "source_hash": 5348562603398551160,
+      "context_hash": 849864276289133765,
+      "translation": "이번에는 빈 문자열을 사용하고 `nix-build`가 오류로 올바른 값을 알려주도록 하는 대신, `nix-prefetch-url` 명령어로 처음부터 올바른 해시를 가져올 수 있습니다.",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "You need the SHA256 hash of the *contents* of the tarball (as opposed to the hash of the tarball file itself).",
+      "source_hash": 3879323449936460292,
+      "context_hash": 5166598410552740357,
+      "translation": "tar 파일 자체의 해시가 아니라 tar 파일 *내용물*의 SHA256 해시가 필요합니다.",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:1",
+      "source": "Therefore pass the `--unpack` and `--type sha256` arguments:",
+      "source_hash": 4430741585960923880,
+      "context_hash": 9376252596969040181,
+      "translation": "따라서 `--unpack`과 `--type sha256` 인자를 전달하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "Set the correct hash for `fetchFromGitHub`:",
+      "source_hash": 929647692073440367,
+      "context_hash": 6173899533941795938,
+      "translation": "`fetchFromGitHub`에 올바른 해시를 설정하십시오:",
+      "glossary_snapshot": {
+        "hash": "해시"
+      },
+      "translated_at": "2026-09-08T15:19:22.828259Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "Missing dependencies",
+      "source_hash": 1182965401263478307,
+      "context_hash": 12728953768216930962,
+      "translation": "누락된 의존성",
+      "glossary_snapshot": {
+        "dependencies": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:22.828259Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "Running `nix-build` on only the new `icat` attribute, an entirely new issue is reported:",
+      "source_hash": 13880867370315704826,
+      "context_hash": 15006884102877590679,
+      "translation": "새로운 `icat` 속성에 대해서만 `nix-build`를 실행하면, 완전히 새로운 문제가 보고됩니다:",
+      "glossary_snapshot": {
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:22.828259Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "A compiler error.",
+      "source_hash": 16425250583680059902,
+      "context_hash": 16886198284686057493,
+      "translation": "컴파일러 오류입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828259Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:1",
+      "source": "The `icat` source was pulled from GitHub, and Nix tried to build what it found, but compilation failed due to a missing dependency: the `imlib2` header.",
+      "source_hash": 4140638868630744821,
+      "context_hash": 8442950990906714171,
+      "translation": "`icat` 소스는 GitHub에서 가져왔으며, Nix는 찾은 것을 빌드하려 했지만 누락된 의존성인 `imlib2` 헤더 때문에 컴파일이 실패했습니다.",
+      "glossary_snapshot": {
+        "dependency": "의존성",
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:22.828259Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "If you [search for `imlib2` on search.nixos.org](https://search.nixos.org/packages?query=imlib2), you'll find that `imlib2` is already in Nixpkgs.",
+      "source_hash": 2196098321917751671,
+      "context_hash": 8979040716271405128,
+      "translation": "[search.nixos.org에서 `imlib2`를 검색](https://search.nixos.org/packages?query=imlib2)해 보면, `imlib2`가 이미 Nixpkgs에 있음을 알 수 있습니다.",
+      "glossary_snapshot": {
+        "NixOS": "NixOS",
+        "Nixpkgs": "Nixpkgs"
+      },
+      "translated_at": "2026-09-08T15:19:22.828259Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:0",
+      "source": "Add this package to your build environment by adding `imlib2` to the arguments of the function in `icat.nix`.",
+      "source_hash": 13644860293004431572,
+      "context_hash": 3142976669977647549,
+      "translation": "`icat.nix`에 있는 함수의 인자에 `imlib2`를 추가하여 이 패키지를 빌드 환경에 추가하십시오.",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "function": "함수"
+      },
+      "translated_at": "2026-09-08T15:19:22.828259Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:1",
+      "source": "Then add the argument's value `imlib2` to the list of `buildInputs` in `stdenv.mkDerivation`:",
+      "source_hash": 9085614844721958333,
+      "context_hash": 632051964347121651,
+      "translation": "그런 다음 `stdenv.mkDerivation`의 `buildInputs` 목록에 인자 값 `imlib2`를 추가하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:0",
+      "source": "Run `nix-build -A icat` again and you'll encounter another error, but compilation proceeds further this time:",
+      "source_hash": 17243139373692001903,
+      "context_hash": 15073080427053977726,
+      "translation": "`nix-build -A icat`를 다시 실행하면 또 다른 오류를 만나게 되지만, 이번에는 컴파일이 좀 더 진행됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:31/seg:0",
+      "source": "You can see a few warnings which should be corrected in the upstream code.",
+      "source_hash": 5121428534932661001,
+      "context_hash": 3657141281425864320,
+      "translation": "업스트림 코드에서 수정해야 할 몇 가지 경고를 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:31/seg:1",
+      "source": "But the important bit for this tutorial is `fatal error: X11/Xlib.h: No such file or directory`: another dependency is missing.",
+      "source_hash": 11088463726134202660,
+      "context_hash": 14696252652331976588,
+      "translation": "하지만 이 튜토리얼에서 중요한 부분은 `fatal error: X11/Xlib.h: No such file or directory`입니다: 또 다른 의존성이 누락되었습니다.",
+      "glossary_snapshot": {
+        "dependency": "의존성",
+        "tutorial": "튜토리얼"
+      },
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Finding packages",
+      "source_hash": 10581948288691210550,
+      "context_hash": 6928140243254895229,
+      "translation": "패키지 찾기",
+      "glossary_snapshot": {
+        "packages": "패키지"
+      },
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Determining from where to source a dependency is currently somewhat involved, because package names don't always correspond to library or program names.",
+      "source_hash": 13243704432065374887,
+      "context_hash": 7157299362800540976,
+      "translation": "패키지 이름이 항상 라이브러리나 프로그램 이름과 일치하지는 않기 때문에, 어디에서 의존성을 가져와야 할지 판단하는 일은 현재 다소 복잡합니다.",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "dependency": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "You need the `Xlib.h` headers from the `X11` C package.",
+      "source_hash": 3904342375691962107,
+      "context_hash": 13460393898140773042,
+      "translation": "`X11` C 패키지의 `Xlib.h` 헤더가 필요합니다.",
+      "glossary_snapshot": {
+        "package": "패키지"
+      },
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "The Nixpkgs derivation for this is `libX11`, available in the `xorg` package set.",
+      "source_hash": 12997829699323614697,
+      "context_hash": 7329772778696634317,
+      "translation": "이에 해당하는 Nixpkgs derivation은 `libX11`이며, `xorg` 패키지 집합에서 사용할 수 있습니다.",
+      "glossary_snapshot": {
+        "derivation": "derivation",
+        "Nixpkgs": "Nixpkgs",
+        "package set": "패키지 집합",
+        "package": "패키지"
+      },
+      "translated_at": "2026-09-08T15:19:22.828260Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:2",
+      "source": "There are multiple ways to figure this out:",
+      "source_hash": 16907991097174836977,
+      "context_hash": 18079239237520255634,
+      "translation": "이를 알아내는 방법에는 여러 가지가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828261Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "`search.nixos.org`",
+      "source_hash": 6826844588766681529,
+      "context_hash": 5247703276028795258,
+      "translation": "`search.nixos.org`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828261Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "The easiest way to find what you need is on search.nixos.org/packages.",
+      "source_hash": 3980307353655913347,
+      "context_hash": 8683811372782896096,
+      "translation": "필요한 것을 찾는 가장 쉬운 방법은 search.nixos.org/packages에서 패키지를 검색하는 것입니다.",
+      "glossary_snapshot": {
+        "NixOS": "NixOS",
+        "packages": "패키지"
+      },
+      "translated_at": "2026-09-08T15:19:22.828261Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "Unfortunately in this case, [searching for `x11`](https://search.nixos.org/packages?query=x11) produces too many irrelevant results because X11 is ubiquitous.",
+      "source_hash": 8182625005142731767,
+      "context_hash": 14925540799824328976,
+      "translation": "안타깝게도 이 경우, [`x11`을 검색하면](https://search.nixos.org/packages?query=x11) X11이 워낙 광범위하게 쓰이기 때문에 관련 없는 결과가 너무 많이 나옵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828261Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "On the left side bar there is a list package sets, and [selecting `xorg`](https://search.nixos.org/packages?buckets={%22package_attr_set%22%3A[%22xorg%22]%2C%22package_license_set%22%3A[]%2C%22package_maintainers_set%22%3A[]%2C%22package_platforms%22%3A[]}&query=x11) shows something promising.",
+      "source_hash": 13435910798835071304,
+      "context_hash": 15253456662243130897,
+      "translation": "왼쪽 사이드바에는 패키지 집합 목록이 있으며, [`xorg`를 선택하면](https://search.nixos.org/packages?buckets={%22package_attr_set%22%3A[%22xorg%22]%2C%22package_license_set%22%3A[]%2C%22package_maintainers_set%22%3A[]%2C%22package_platforms%22%3A[]}&query=x11) 유망해 보이는 결과가 나타납니다.",
+      "glossary_snapshot": {
+        "package": "패키지"
+      },
+      "translated_at": "2026-09-08T15:19:22.828261Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "In case all else fails, it helps to become familiar with searching the [Nixpkgs source code](https://github.com/nixos/nixpkgs) for keywords.",
+      "source_hash": 4667103758908704289,
+      "context_hash": 14225370307497383371,
+      "translation": "그래도 안 될 경우, [Nixpkgs 소스 코드](https://github.com/nixos/nixpkgs)에서 키워드를 검색하는 데 익숙해지면 도움이 됩니다.",
+      "glossary_snapshot": {
+        "Nixpkgs": "Nixpkgs"
+      },
+      "translated_at": "2026-09-08T15:19:22.828261Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Local code search",
+      "source_hash": 12342131117132545479,
+      "context_hash": 16799572759257734228,
+      "translation": "로컬 코드 검색",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:22.828262Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "To find name assignments in the source, search for `\"<keyword> =\"`.",
+      "source_hash": 10008019501831293404,
+      "context_hash": 10988921812932799084,
+      "translation": "소스에서 이름 할당을 찾으려면 `\"<keyword> =\"`를 검색하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029830Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:1",
+      "source": "For example, these are the search results for [`\"x11 = \"`](https://github.com/search?q=repo%3ANixOS%2Fnixpkgs+%22x11+%3D%22&type=code) or [`\"libx11 =\"`](https://github.com/search?q=repo%3ANixOS%2Fnixpkgs+%22libx11+%3D%22&type=code) on Github.",
+      "source_hash": 6422709845042114456,
+      "context_hash": 3122757114433202410,
+      "translation": "예를 들어, Github에서 [`\"x11 = \"`](https://github.com/search?q=repo%3ANixOS%2Fnixpkgs+%22x11+%3D%22&type=code) 또는 [`\"libx11 =\"`](https://github.com/search?q=repo%3ANixOS%2Fnixpkgs+%22libx11+%3D%22&type=code)를 검색한 결과는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029831Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Or fetch a clone of the [Nixpkgs repository](https://github.com/nixos/nixpkgs) and search the code locally.",
+      "source_hash": 8223991225750611203,
+      "context_hash": 13194354665081708257,
+      "translation": "또는 [Nixpkgs 저장소](https://github.com/nixos/nixpkgs)의 복제본을 가져와 로컬에서 코드를 검색하십시오.",
+      "glossary_snapshot": {
+        "Nixpkgs": "Nixpkgs"
+      },
+      "translated_at": "2026-09-08T15:19:06.029831Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Start a shell that makes the required tools available – `git` for version control, and `rg` for code search (provided by the [`ripgrep` package](https://search.nixos.org/packages?show=ripgrep)):",
+      "source_hash": 6392203415267108838,
+      "context_hash": 13008137286715684802,
+      "translation": "필요한 도구를 사용할 수 있는 셸을 시작하십시오 – 버전 관리를 위한 `git`, 코드 검색을 위한 `rg`([`ripgrep` 패키지](https://search.nixos.org/packages?show=ripgrep)에서 제공됨):",
+      "glossary_snapshot": {
+        "package": "패키지"
+      },
+      "translated_at": "2026-09-08T15:19:06.029832Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "The Nixpkgs repository is huge.",
+      "source_hash": 5440776128475733275,
+      "context_hash": 17777523840805350353,
+      "translation": "Nixpkgs 저장소는 매우 큽니다.",
+      "glossary_snapshot": {
+        "Nixpkgs": "Nixpkgs"
+      },
+      "translated_at": "2026-09-08T15:19:06.029832Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:1",
+      "source": "Only clone the latest revision to avoid waiting a long time for a full clone:",
+      "source_hash": 12707990676104024641,
+      "context_hash": 2552510300397707185,
+      "translation": "전체 복제를 오래 기다리지 않으려면 최신 리비전만 복제하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029832Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "To narrow down results, only search the `pkgs` subdirectory, which holds all the package recipes:",
+      "source_hash": 11495179419792465042,
+      "context_hash": 3489283930276005698,
+      "translation": "결과를 좁히려면 모든 패키지 레시피가 들어 있는 `pkgs` 하위 디렉터리만 검색하십시오.",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "recipes": "레시피"
+      },
+      "translated_at": "2026-09-08T15:19:06.029832Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "Since `rg` is case sensitive by default, Add `-i` to make sure you don't miss anything:",
+      "source_hash": 18334716250071402824,
+      "context_hash": 15499844383629429691,
+      "translation": "`rg`는 기본적으로 대소문자를 구분하므로, 아무것도 놓치지 않도록 `-i`를 추가하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029833Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "Local derivation search",
+      "source_hash": 10342135369560663634,
+      "context_hash": 6103618482131951158,
+      "translation": "로컬 derivation 검색",
+      "glossary_snapshot": {
+        "derivation": "derivation"
+      },
+      "translated_at": "2026-09-08T15:19:06.029833Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "To search derivations on the command line, use `nix-locate` from the [`nix-index`](https://github.com/nix-community/nix-index).",
+      "source_hash": 16136837626429371232,
+      "context_hash": 14935872324268709196,
+      "translation": "명령줄에서 derivation을 검색하려면 [`nix-index`](https://github.com/nix-community/nix-index)의 `nix-locate`를 사용하십시오.",
+      "glossary_snapshot": {
+        "derivations": "derivation"
+      },
+      "translated_at": "2026-09-08T15:19:06.029833Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "Adding package sets as dependencies",
+      "source_hash": 1294998039129963331,
+      "context_hash": 7651807049918938140,
+      "translation": "패키지 집합을 의존성으로 추가하기",
+      "glossary_snapshot": {
+        "package": "패키지",
+        "dependencies": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:06.029833Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "Add `xorg` to your derivation's input attribute set and use `xorg.libX11` in `buildInputs`:",
+      "source_hash": 6684410853237798227,
+      "context_hash": 1020274554182024722,
+      "translation": "derivation의 입력 속성 집합에 `xorg`를 추가하고 `buildInputs`에서 `xorg.libX11`을 사용하십시오.",
+      "glossary_snapshot": {
+        "derivation": "derivation",
+        "attribute set": "속성 집합",
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:06.029834Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:0",
+      "source": "Because the Nix language is lazily evaluated, accessing only `xorg.libX11` means that the remaining contents of the `xorg` attribute set are never processed.",
+      "source_hash": 16527883086590503721,
+      "context_hash": 11412371783201030974,
+      "translation": "Nix 언어는 지연 평가되므로, `xorg.libX11`만 접근하면 `xorg` 속성 집합의 나머지 내용은 전혀 처리되지 않습니다.",
+      "glossary_snapshot": {
+        "attribute": "속성",
+        "Nix language": "Nix 언어",
+        "attribute set": "속성 집합",
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:06.029834Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Fixing build failures",
+      "source_hash": 7875356859905710264,
+      "context_hash": 6961744168038491177,
+      "translation": "빌드 실패 수정하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029834Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Run the last command again:",
+      "source_hash": 548888681511556728,
+      "context_hash": 12446283275241796123,
+      "translation": "마지막 명령을 다시 실행하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "The missing dependency error is solved, but there is now another problem: `make: *** No rule to make target 'install'.  Stop.`",
+      "source_hash": 4437089790702133271,
+      "context_hash": 1124984999816091343,
+      "translation": "의존성 누락 오류는 해결되었지만, 이제 또 다른 문제가 있습니다: `make: *** No rule to make target 'install'.  Stop.`",
+      "glossary_snapshot": {
+        "dependency": "의존성"
+      },
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "`installPhase`",
+      "source_hash": 1697764335935866212,
+      "context_hash": 12774640432522180306,
+      "translation": "`installPhase`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "`stdenv` is automatically working with the `Makefile` that comes with `icat`.",
+      "source_hash": 13638509281056593611,
+      "context_hash": 14231002695113675555,
+      "translation": "`stdenv`는 `icat`에 딸려 있는 `Makefile`을 자동으로 사용해 작업합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "The console output shows that `configure` and `make` are executed without issue, so the `icat` binary is compiling successfully.",
+      "source_hash": 10732558401118724260,
+      "context_hash": 5891301722080679047,
+      "translation": "콘솔 출력을 보면 `configure`와 `make`가 문제없이 실행되므로, `icat` 바이너리는 성공적으로 컴파일되고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "The failure occurs when the `stdenv` attempts to run `make install`.",
+      "source_hash": 6753415076217699992,
+      "context_hash": 11172987881432271750,
+      "translation": "실패는 `stdenv`가 `make install`을 실행하려 할 때 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:1",
+      "source": "The `Makefile` included in the project happens to lack an `install` target.",
+      "source_hash": 6508135598350523811,
+      "context_hash": 7810392679232364568,
+      "translation": "프로젝트에 포함된 `Makefile`에는 마침 `install` 타겟이 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:2",
+      "source": "The `README` in the `icat` repository only mentions using `make` to build the tool, leaving the installation step up to users.",
+      "source_hash": 16096586682302166720,
+      "context_hash": 14554922214364315004,
+      "translation": "`icat` 저장소의 `README`는 도구를 빌드하는 데 `make`를 사용하는 것만 언급하며, 설치 단계는 사용자에게 맡깁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029835Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "To add this step to your derivation, use the [`installPhase` attribute](https://nixos.org/manual/nixpkgs/stable/#ssec-install-phase).",
+      "source_hash": 13142163575503632644,
+      "context_hash": 5188450622688520599,
+      "translation": "derivation에 이 단계를 추가하려면 [`installPhase` 속성](https://nixos.org/manual/nixpkgs/stable/#ssec-install-phase)을 사용하십시오.",
+      "glossary_snapshot": {
+        "derivation": "derivation",
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:19:06.029836Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:1",
+      "source": "It contains a list of command strings that are executed to perform the installation.",
+      "source_hash": 11445010123195992412,
+      "context_hash": 15657876217144744340,
+      "translation": "이 속성은 설치를 수행하기 위해 실행되는 명령 문자열의 목록을 담고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029836Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Because `make` finishes successfully, the `icat` executable is available in the build directory.",
+      "source_hash": 10302074441370570640,
+      "context_hash": 4916000331625999770,
+      "translation": "`make`가 성공적으로 끝나므로, `icat` 실행 파일은 빌드 디렉터리에서 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029836Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "You only need to copy it from there to the output directory.",
+      "source_hash": 8781583095145996769,
+      "context_hash": 6557527106134099820,
+      "translation": "그곳에서 출력 디렉터리로 복사하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029836Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "In Nix, the output directory is stored in the `$out` variable.",
+      "source_hash": 16933486125309402186,
+      "context_hash": 11529618845147789686,
+      "translation": "Nix에서 출력 디렉터리는 `$out` 변수에 저장됩니다.",
+      "glossary_snapshot": {
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:19:06.029836Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:1",
+      "source": "That variable is accessible in the derivation's [`builder` execution environment](https://nix.dev/manual/nix/2.19/language/derivations#builder-execution).",
+      "source_hash": 6523609406089374389,
+      "context_hash": 11820126350886194081,
+      "translation": "이 변수는 derivation의 [`builder` 실행 환경](https://nix.dev/manual/nix/2.19/language/derivations#builder-execution)에서 접근할 수 있습니다.",
+      "glossary_snapshot": {
+        "derivation": "derivation"
+      },
+      "translated_at": "2026-09-08T15:19:06.029837Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:2",
+      "source": "Create a `bin` directory within the `$out` directory and copy the `icat` binary there:",
+      "source_hash": 228291698064689198,
+      "context_hash": 12401265709824468859,
+      "translation": "`$out` 디렉터리 내에 `bin` 디렉터리를 만들고 `icat` 바이너리를 그곳에 복사하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029837Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "Phases and hooks",
+      "source_hash": 1926893973626883070,
+      "context_hash": 4563578444571760900,
+      "translation": "단계와 훅",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029837Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "Nixpkgs `stdenv.mkDerivation` derivations are separated into [phases](https://nixos.org/manual/nixpkgs/stable/#sec-stdenv-phases).",
+      "source_hash": 10344304850188745387,
+      "context_hash": 16739792892548720302,
+      "translation": "Nixpkgs의 `stdenv.mkDerivation` derivation은 [단계](https://nixos.org/manual/nixpkgs/stable/#sec-stdenv-phases)로 나뉘어 있습니다.",
+      "glossary_snapshot": {
+        "Nixpkgs": "Nixpkgs",
+        "derivations": "derivation"
+      },
+      "translated_at": "2026-09-08T15:19:06.029837Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:1",
+      "source": "Each is intended to control some aspect of the build process.",
+      "source_hash": 12235063434460982184,
+      "context_hash": 15546207763766741698,
+      "translation": "각 단계는 빌드 과정의 어떤 측면을 제어하기 위한 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:19:06.029837Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "Earlier you observed how `stdenv.mkDerivation` expected the project's `Makefile` to have an `install` target, and failed when it didn't.",
+      "source_hash": 17959108088818963450,
+      "context_hash": 6210529294831849716,
+      "translation": "앞서 `stdenv.mkDerivation`이 프로젝트의 `Makefile`에 `install` 타깃이 있을 것으로 기대하고, 그것이 없을 때 실패하는 것을 관찰했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369993Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:1",
+      "source": "To fix this, you defined a custom `installPhase` containing instructions for copying the `icat` binary to the correct output location, in effect installing it.",
+      "source_hash": 13923355462477440404,
+      "context_hash": 17201086470960621007,
+      "translation": "이를 해결하기 위해 `icat` 바이너리를 올바른 출력 위치로 복사하는, 사실상 설치를 수행하는 지침을 담은 사용자 정의 `installPhase`를 정의했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369995Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:2",
+      "source": "Up to that point, the `stdenv.mkDerivation` automatically determined the `buildPhase` information for the `icat` package.",
+      "source_hash": 2074615379754269257,
+      "context_hash": 895507285436320569,
+      "translation": "그 시점까지는 `stdenv.mkDerivation`이 `icat` 패키지의 `buildPhase` 정보를 자동으로 결정했습니다.",
+      "glossary_snapshot": {
+        "package": "패키지"
+      },
+      "translated_at": "2026-09-08T15:18:52.369995Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "During derivation realisation, there are a number of shell functions (\"hooks\", in Nixpkgs) which may execute in each derivation phase.",
+      "source_hash": 17981124654661876108,
+      "context_hash": 2356475895978148332,
+      "translation": "derivation 실현 과정에서는 각 derivation 단계에서 실행될 수 있는 여러 셸 함수(Nixpkgs에서는 \"훅\"이라 부름)가 존재합니다.",
+      "glossary_snapshot": {
+        "Nixpkgs": "Nixpkgs",
+        "derivation": "derivation",
+        "functions": "함수",
+        "realisation": "실현"
+      },
+      "translated_at": "2026-09-08T15:18:52.369996Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:1",
+      "source": "Hooks do things like set variables, source files, create directories, and so on.",
+      "source_hash": 14553177319145569729,
+      "context_hash": 10353646213936418171,
+      "translation": "훅은 변수 설정, 파일 소스 불러오기, 디렉터리 생성 등의 작업을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369997Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "These are specific to each phase, and run both before and after that phase's execution.",
+      "source_hash": 2284052078693242422,
+      "context_hash": 15607072866309431160,
+      "translation": "이들은 각 단계에 특화되어 있으며, 해당 단계의 실행 전과 후 모두에 실행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369997Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:1",
+      "source": "They modify the build environment for common operations during the build.",
+      "source_hash": 6234288685689838412,
+      "context_hash": 12925653554347943538,
+      "translation": "이들은 빌드 중 공통 작업을 위해 빌드 환경을 수정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369998Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "Include calls to these hooks in the derivation phases you define, even when you don't make direct use of them.",
+      "source_hash": 2429518029547086161,
+      "context_hash": 13061798826693133888,
+      "translation": "직접 사용하지 않더라도, 정의하는 derivation 단계에 이러한 훅에 대한 호출을 포함시키십시오.",
+      "glossary_snapshot": {
+        "derivation": "derivation"
+      },
+      "translated_at": "2026-09-08T15:18:52.369998Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:1",
+      "source": "This facilitates easy [overriding](https://nixos.org/manual/nixpkgs/stable/#chap-overrides) of specific parts of the derivation later.",
+      "source_hash": 15444346736551469902,
+      "context_hash": 1205656555827791743,
+      "translation": "이는 나중에 derivation의 특정 부분을 쉽게 [오버라이드](https://nixos.org/manual/nixpkgs/stable/#chap-overrides)할 수 있게 해줍니다.",
+      "glossary_snapshot": {
+        "derivation": "derivation"
+      },
+      "translated_at": "2026-09-08T15:18:52.369998Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:2",
+      "source": "And it keeps the code tidy and makes it easier to read.",
+      "source_hash": 5320972685422143466,
+      "context_hash": 13882383522709123749,
+      "translation": "또한 코드를 정돈된 상태로 유지하여 읽기 쉽게 만들어 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369999Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "Adjust your `installPhase` to call the appropriate hooks:",
+      "source_hash": 18409788583116449822,
+      "context_hash": 11534720864735810284,
+      "translation": "적절한 훅을 호출하도록 `installPhase`를 조정하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369999Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "A successful build",
+      "source_hash": 11544212287624035734,
+      "context_hash": 12729872872910904356,
+      "translation": "성공적인 빌드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.369999Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Running the `nix-build -A icat` command once more will finally do what you want, repeatably.",
+      "source_hash": 8835062122083945514,
+      "context_hash": 11045901490863151617,
+      "translation": "`nix-build -A icat` 명령을 다시 실행하면 마침내 원하는 대로, 그것도 반복 가능하게 동작할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "Call `ls` in the local directory to find a `result` symlink to a location in the Nix store:",
+      "source_hash": 50785544813637210,
+      "context_hash": 9521481528499875030,
+      "translation": "로컬 디렉터리에서 `ls`를 호출하여 Nix 스토어 내 위치를 가리키는 `result` 심볼릭 링크를 찾으십시오.",
+      "glossary_snapshot": {
+        "Nix store": "Nix 스토어",
+        "Nix": "Nix"
+      },
+      "translated_at": "2026-09-08T15:18:52.370Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "`result/bin/icat` is the executable built previously.",
+      "source_hash": 4691289246036038436,
+      "context_hash": 12898791565793021196,
+      "translation": "`result/bin/icat`는 앞서 빌드된 실행 파일입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "Success!",
+      "source_hash": 4026615970688687346,
+      "context_hash": 211098558865066986,
+      "translation": "성공입니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "Running `nix-build` (without specifying an attribute) builds all attributes at once.",
+      "source_hash": 126203164487947041,
+      "context_hash": 7640035320312803642,
+      "translation": "(속성을 지정하지 않고) `nix-build`를 실행하면 모든 속성을 한 번에 빌드합니다.",
+      "glossary_snapshot": {
+        "attributes": "속성",
+        "attribute": "속성"
+      },
+      "translated_at": "2026-09-08T15:18:52.370001Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "The first (`hello`) appears under `result/bin/`, while the second (`icat`) appears under `result-2/bin/`.",
+      "source_hash": 11396500986519578103,
+      "context_hash": 1656989730915300797,
+      "translation": "첫 번째(`hello`)는 `result/bin/` 아래에, 두 번째(`icat`)는 `result-2/bin/` 아래에 나타납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370001Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:2",
+      "source": "Adding more attributes produces additional `result-n` symlinks.",
+      "source_hash": 3736893024508928438,
+      "context_hash": 12634523387056746080,
+      "translation": "속성을 더 추가하면 추가적인 `result-n` 심볼릭 링크가 생성됩니다.",
+      "glossary_snapshot": {
+        "attributes": "속성"
+      },
+      "translated_at": "2026-09-08T15:18:52.370001Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "References",
+      "source_hash": 17861670083855418992,
+      "context_hash": 14519010171473356082,
+      "translation": "참조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370001Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "[Nixpkgs Manual - Standard Environment](https://nixos.org/manual/nixpkgs/unstable/#part-stdenv)",
+      "source_hash": 5533406891824655652,
+      "context_hash": 11691923055914129718,
+      "translation": "[Nixpkgs 매뉴얼 - 표준 환경](https://nixos.org/manual/nixpkgs/unstable/#part-stdenv)",
+      "glossary_snapshot": {
+        "standard environment": "표준 환경",
+        "Nixpkgs": "Nixpkgs"
+      },
+      "translated_at": "2026-09-08T15:18:52.370001Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Next steps",
+      "source_hash": 16066775224842874840,
+      "context_hash": 6204306403793488108,
+      "translation": "다음 단계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370002Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "[](callpackage-tutorial)",
+      "source_hash": 819947592711728207,
+      "context_hash": 4231001899269694681,
+      "translation": "[](callpackage-tutorial)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370002Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "[](sharing-dependencies)",
+      "source_hash": 6547290194362077617,
+      "context_hash": 1824021998537832123,
+      "translation": "[](sharing-dependencies)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370002Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "[](automatic-direnv)",
+      "source_hash": 2999122456252319884,
+      "context_hash": 13687237383440436459,
+      "translation": "[](automatic-direnv)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370002Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "[](python-dev-environment)",
+      "source_hash": 13494408192308411934,
+      "context_hash": 5362981370460588266,
+      "translation": "[](python-dev-environment)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370002Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "[Add your own new packages to Nixpkgs](https://github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md)",
+      "source_hash": 642949259677954679,
+      "context_hash": 5712708245214997837,
+      "translation": "[Nixpkgs에 여러분만의 새 패키지를 추가하십시오](https://github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md)",
+      "glossary_snapshot": {
+        "Nixpkgs": "Nixpkgs",
+        "packages": "패키지"
+      },
+      "translated_at": "2026-09-08T15:18:52.370002Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "[](../contributing/how-to-contribute.md)",
+      "source_hash": 760185862162779482,
+      "context_hash": 14811133776864732808,
+      "translation": "[](../contributing/how-to-contribute.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370003Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "[](../contributing/how-to-get-help.md)",
+      "source_hash": 14941183620754339035,
+      "context_hash": 15304766571494286084,
+      "translation": "[](../contributing/how-to-get-help.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-08T15:18:52.370003Z",
+      "issues": []
+    }
+  ]
+}
