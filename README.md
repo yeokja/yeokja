@@ -251,7 +251,11 @@ cd web && yarn install && yarn dev
 crates/
 ├── core/              # 도메인 모델, 변경 감지, 용어집, 설정
 ├── parser-utils/      # 공용 문장 분리
-├── parser-markdown/   # Markdown 파서 (pulldown-cmark)
+├── parser-markdown-dialect/ # Markdown 계열 공통 span 추출 (pulldown-cmark)
+├── parser-markdown/   # Markdown 파서
+├── parser-mdx/        # MDX 파서
+├── parser-myst/       # MyST 파서
+├── parser-markdeep/   # Markdeep 파서
 ├── parser-asciidoc/   # Asciidoc 파서 (라인 기반 span 방식)
 ├── parser-rst/        # reStructuredText 파서 (라인/표 지오메트리)
 ├── parser-verso/      # 공식 Verso AST manifest를 검증·소비하는 파서
