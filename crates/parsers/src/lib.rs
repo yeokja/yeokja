@@ -40,7 +40,7 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
         // source rule is missing. With no manifest this parser reports a hard,
         // actionable error from `parse_checked`.
         Some("lean") => Box::new(yeokja_parser_verso::VersoParser::new(file_path, "")),
-        Some("mdx") => Box::new(yeokja_parser_markdown::MdxParser),
+        Some("mdx") => Box::new(yeokja_parser_mdx::MdxParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
@@ -52,7 +52,8 @@ fn parser_by_name(
 ) -> Box<dyn DocumentParser> {
     match name {
         "asciidoc" => Box::new(yeokja_parser_asciidoc::AsciidocParser),
-        "mdx" => Box::new(yeokja_parser_markdown::MdxParser),
+        "markdeep" => Box::new(yeokja_parser_markdeep::MarkdeepParser),
+        "mdx" => Box::new(yeokja_parser_mdx::MdxParser),
         "rst" => Box::new(yeokja_parser_rst::RstParser),
         "pep" => Box::new(yeokja_parser_rst::PepParser),
         "pep_plaintext" => Box::new(yeokja_parser_rst::PepPlaintextParser),
@@ -64,7 +65,7 @@ fn parser_by_name(
             file_path,
             parser_manifest.unwrap_or_default(),
         )),
-        "myst" => Box::new(yeokja_parser_markdown::MystParser),
+        "myst" => Box::new(yeokja_parser_myst::MystParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }

@@ -1,0 +1,1636 @@
+{
+  "version": 1,
+  "source_hash": 14968847698785651596,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU Timing Performance Description: Timing operations in WebGPU TOC: Timing Performance",
+      "source_hash": 16946102176426254586,
+      "context_hash": 17027751970015953227,
+      "translation": "제목: WebGPU 타이밍 성능 설명: WebGPU에서의 작업 타이밍 측정 TOC: 타이밍 성능",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:25.875230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Let's go over various things you might want to time for performance.",
+      "source_hash": 8908541484474658729,
+      "context_hash": 10707601767745858311,
+      "translation": "성능을 위해 시간을 측정하고 싶을 만한 다양한 것들을 살펴보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "We'll time 3 things:",
+      "source_hash": 645244236079122638,
+      "context_hash": 3485712435100574731,
+      "translation": "3가지를 측정할 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "The frame rate in frames per second (fps)",
+      "source_hash": 16180026410903999042,
+      "context_hash": 5627343951829048419,
+      "translation": "초당 프레임 수(fps)로 나타낸 프레임 레이트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "The time spent in JavaScript per frame",
+      "source_hash": 9804372383224520546,
+      "context_hash": 11204018590152043853,
+      "translation": "프레임당 JavaScript에서 소요되는 시간",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "The time spent on the GPU per frame",
+      "source_hash": 14214974608978517721,
+      "context_hash": 6658035552342297988,
+      "translation": "프레임당 GPU에서 소요되는 시간",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "First, let's take a circle example from [the article on vertex buffers](webgpu-vertex-buffers.html) and lets animate them so we have something that's easy to see changes in how much time things take.",
+      "source_hash": 7415127976630503652,
+      "context_hash": 8014304269691508494,
+      "translation": "먼저, [정점 버퍼에 관한 글](webgpu-vertex-buffers.html)에 나온 원 예제를 가져와서, 작업에 걸리는 시간의 변화를 쉽게 확인할 수 있는 무언가를 만들기 위해 애니메이션으로 만들어 봅시다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:03:25.875231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "In that example we had 3 vertex buffers.",
+      "source_hash": 17968819403565952366,
+      "context_hash": 8373939158718993960,
+      "translation": "그 예제에서는 정점 버퍼가 3개 있었습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:03:25.875231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "One was for the positions and brightness of the vertices for a circle.",
+      "source_hash": 15535202514375056051,
+      "context_hash": 4053411937101642412,
+      "translation": "하나는 원의 정점들의 위치와 밝기를 위한 것이었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:2",
+      "source": "One was for things that are per instance but static which included the circle's offset and color.",
+      "source_hash": 3563880046863233318,
+      "context_hash": 12662056792901026736,
+      "translation": "하나는 인스턴스별이지만 정적인 것들을 위한 것으로, 원의 오프셋과 색상이 포함되어 있었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:3",
+      "source": "And, the last one was for things that change each time we render, in this case it was the scale so we could keep the aspect ratio of the circles correct so they stayed circles and not ellipses as the user changed the size of the window.",
+      "source_hash": 8251676306638939600,
+      "context_hash": 10939227294812367941,
+      "translation": "그리고 마지막 하나는 렌더링할 때마다 변경되는 것들을 위한 것이었는데, 이 경우에는 스케일이었으며, 사용자가 창의 크기를 변경하더라도 원이 타원이 되지 않고 원의 형태를 유지하도록 종횡비를 올바르게 유지하기 위한 것이었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "We want to animate them moving so let's move the offset to the same buffer as the scale.",
+      "source_hash": 17669588424290314450,
+      "context_hash": 8456209138381484265,
+      "translation": "원들이 움직이도록 애니메이션을 적용하고자 하므로, 오프셋을 스케일과 같은 버퍼로 옮겨봅시다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:25.875232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:1",
+      "source": "First we'll change the render pipeline to move the offset to the same buffer as the scale.",
+      "source_hash": 1020145048190763260,
+      "context_hash": 18356836215743439913,
+      "translation": "먼저 렌더 파이프라인을 변경하여 오프셋을 스케일과 같은 버퍼로 옮기겠습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:25.875232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "Then we'll change the part that sets up the vertex buffers to move the offsets together with the scales.",
+      "source_hash": 13651544569724991576,
+      "context_hash": 1746285267101716637,
+      "translation": "그런 다음 정점 버퍼를 설정하는 부분을 변경하여 오프셋을 스케일과 함께 옮기겠습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:03:25.875232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "At render time we can update the offsets of the circles based on their velocity and then upload those to the GPU.",
+      "source_hash": 2668205173815893888,
+      "context_hash": 2735510780211275020,
+      "translation": "렌더링 시점에 원들의 속도를 기반으로 오프셋을 업데이트한 뒤, 이를 GPU로 업로드할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "We also switched to a rAF loop[^rAF].",
+      "source_hash": 1040060788687967453,
+      "context_hash": 14212139710109102119,
+      "translation": "또한 rAF 루프[^rAF]로 전환했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:0",
+      "source": "`rAF` is short for `requestAnimationFrame`",
+      "source_hash": 1992048210484214482,
+      "context_hash": 12949607781589773073,
+      "translation": "`rAF`는 `requestAnimationFrame`의 줄임말입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "<a id=\"a-euclidianModulo\"></a>The code above uses `euclideanModulo` to update the offset. `euclideanModulo` returns the remainder of a division where the remainder is always positive, whereas the `%` operator returns the remainder in the same direction as the value.",
+      "source_hash": 16621115628152206622,
+      "context_hash": 17489935148176913142,
+      "translation": "<a id=\"a-euclidianModulo\"></a>위 코드는 오프셋을 업데이트하기 위해 `euclideanModulo`를 사용합니다. `euclideanModulo`는 나눗셈의 나머지를 반환하는데 이 나머지는 항상 양수인 반면, `%` 연산자는 값과 같은 방향의 나머지를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:1",
+      "source": "For example",
+      "source_hash": 9117899214634101441,
+      "context_hash": 4912560651671746927,
+      "translation": "예를 들면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:0",
+      "source": "modulo 2 of % vs euclideanModulo",
+      "source_hash": 9066669271351047951,
+      "context_hash": 7431482188009648571,
+      "translation": "% 대 euclideanModulo의 modulo 2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "To put it another way, here's a graph of the `%` operator vs `euclideanModulo`",
+      "source_hash": 9350049909469816531,
+      "context_hash": 5930974298429881904,
+      "translation": "다르게 표현하면, 다음은 `%` 연산자와 `euclideanModulo`를 비교한 그래프입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "euclideanModule(v, 2)",
+      "source_hash": 6025334815475709931,
+      "context_hash": 3954561678106112737,
+      "translation": "euclideanModule(v, 2)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "v % 2",
+      "source_hash": 15264302123428709625,
+      "context_hash": 6596253380050462517,
+      "translation": "v % 2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:0",
+      "source": "So, the code above takes the offset, which is in clip space, and adds 1.5.",
+      "source_hash": 2291345733380647731,
+      "context_hash": 14740920314751895843,
+      "translation": "그래서 위 코드는 클립 공간 상에 있는 오프셋을 가져와서 1.5를 더합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:1",
+      "source": "It then takes the `euclideanModulo` by 3 which will give us a number that is wrapped between 0.0 and 3.0 and then subtracts 1.5.",
+      "source_hash": 15308187515578581798,
+      "context_hash": 5281997772846572726,
+      "translation": "그런 다음 3으로 `euclideanModulo`를 취하는데, 이는 0.0과 3.0 사이로 감싸진 숫자를 반환하며, 그 후 1.5를 뺍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:2",
+      "source": "This gives us numbers that stay between -1.5 and +1.5 and lets them wrap around to the other side.",
+      "source_hash": 5149824230316819443,
+      "context_hash": 5304892148213482579,
+      "translation": "이렇게 하면 숫자가 -1.5와 +1.5 사이에 머무르면서 반대편으로 감싸질 수 있게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:3",
+      "source": "We use -1.5 to +1.5 so that the circles don't wrap until they are off the screen. [^offscreen]",
+      "source_hash": 4802547658451447676,
+      "context_hash": 14049397315544130489,
+      "translation": "원들이 화면 밖으로 나가기 전까지는 감싸지지 않도록 하기 위해 -1.5에서 +1.5를 사용합니다. [^offscreen]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "This only works if the radius of the circle is less than 0.5 but it seemed best not to bloat the code with complicated checks for size.",
+      "source_hash": 4653597734231210369,
+      "context_hash": 14920856840718222145,
+      "translation": "이는 원의 반지름이 0.5보다 작은 경우에만 동작하지만, 크기에 대한 복잡한 검사로 코드를 부풀리지 않는 것이 최선이라고 판단했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875234Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "To give us something to adjust, lets make it so we can set how many circles to draw.",
+      "source_hash": 4964149656301187960,
+      "context_hash": 6527143777729515355,
+      "translation": "조정할 만한 것을 제공하기 위해, 그릴 원의 개수를 설정할 수 있도록 만들어봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875234Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "So now we should have something that animates and we can adjust how much work is done by setting the number of circles.",
+      "source_hash": 9826978997831533695,
+      "context_hash": 13335441126838347782,
+      "translation": "이제 애니메이션이 되는 무언가가 생겼고, 원의 개수를 설정함으로써 얼마나 많은 작업이 수행되는지 조정할 수 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875234Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:0",
+      "source": "{{{example url=\"../webgpu-timing-animated.html\"}}}",
+      "source_hash": 12343759872762410636,
+      "context_hash": 4177474332928617167,
+      "translation": "{{{example url=\"../webgpu-timing-animated.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:25.875234Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "To that, let's add frames per second (fps) and time spent in JavaScript",
+      "source_hash": 2362401564280898162,
+      "context_hash": 13141506847932618711,
+      "translation": "여기에 초당 프레임 수(fps)와 JavaScript에서 소요되는 시간을 추가해봅시다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:25.875234Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:27/seg:0",
+      "source": "First we need a way to display this info so lets add an `<pre>` element positioned on top of the canvas.",
+      "source_hash": 16613964786196018195,
+      "context_hash": 3555555805340730376,
+      "translation": "먼저 이 정보를 표시할 방법이 필요하므로 캔버스 위에 위치시킨 `<pre>` 요소를 추가합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476208Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:0",
+      "source": "We already have the data needed to display frames per second.",
+      "source_hash": 11980855721339031746,
+      "context_hash": 14005146748576869551,
+      "translation": "초당 프레임 수를 표시하는 데 필요한 데이터는 이미 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476209Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:1",
+      "source": "It's the `deltaTime` we computed above.",
+      "source_hash": 13502922540497971075,
+      "context_hash": 12182046152780933676,
+      "translation": "위에서 계산한 `deltaTime`이 바로 그것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476209Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:0",
+      "source": "For JavaScript time, we can record the time our `requestAnimationFrame` started and the time it ended.",
+      "source_hash": 3771684546687442069,
+      "context_hash": 430512755460616024,
+      "translation": "JavaScript 시간의 경우, `requestAnimationFrame`이 시작된 시각과 끝난 시각을 기록할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476210Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:0",
+      "source": "And that gives us our first two timing measurements.",
+      "source_hash": 8767523028689611026,
+      "context_hash": 1304670509669778493,
+      "translation": "그리고 이를 통해 첫 두 가지 타이밍 측정값을 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476210Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "{{{example url=\"../webgpu-timing-with-fps-js-time.html\"}}}",
+      "source_hash": 3806935671348610542,
+      "context_hash": 7953001154722715066,
+      "translation": "{{{example url=\"../webgpu-timing-with-fps-js-time.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:27.476210Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "<a id=\"a-timestamp-query\"></a> Timing the GPU",
+      "source_hash": 8568053473149446503,
+      "context_hash": 817316092360781377,
+      "translation": "<a id=\"a-timestamp-query\"></a> GPU 타이밍 측정하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476211Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "WebGPU provides an **optional** `'timestamp-query'` feature for checking how long an operation takes on the GPU.",
+      "source_hash": 11517725431841868037,
+      "context_hash": 15090788616047325235,
+      "translation": "WebGPU는 GPU에서 작업이 얼마나 걸리는지 확인하기 위한 **선택적** `'timestamp-query'` 기능을 제공합니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:27.476212Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Since it's an optional feature we need to see if it exists and request it like we covered in [the article on limits and features](webgpu-limits-and-features.html).",
+      "source_hash": 4867266615194738270,
+      "context_hash": 9745211300358839270,
+      "translation": "이는 선택적 기능이므로 [제한 사항 및 기능에 관한 글](webgpu-limits-and-features.html)에서 다룬 것처럼 해당 기능이 존재하는지 확인하고 요청해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476212Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Above, we set `canTimestamp` to true or false based on if the adapter supports the `'timestamp-query'` feature.",
+      "source_hash": 17232578323554858739,
+      "context_hash": 6175534315200518176,
+      "translation": "위에서 우리는 어댑터가 `'timestamp-query'` 기능을 지원하는지에 따라 `canTimestamp`를 true 또는 false로 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476212Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "If it does we require that feature when we create our device.",
+      "source_hash": 4310033153964257752,
+      "context_hash": 13724504690010859874,
+      "translation": "지원한다면 디바이스를 생성할 때 해당 기능을 요구합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476212Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "With the feature enabled we can ask WebGPU for *timestamps* for a render pass or compute pass.",
+      "source_hash": 60397673903432031,
+      "context_hash": 17231598632384295949,
+      "translation": "기능이 활성화되면 렌더 패스나 컴퓨트 패스에 대한 *timestamps*를 WebGPU에 요청할 수 있습니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:27.476213Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "You do this by making a `GPUQuerySet` and adding it to your compute or render pass.",
+      "source_hash": 9417637030745506091,
+      "context_hash": 13252750534624932110,
+      "translation": "이는 `GPUQuerySet`을 만들어 컴퓨트 패스나 렌더 패스에 추가함으로써 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476213Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "A `GPUQuerySet` is effectively an array of query results.",
+      "source_hash": 10712937753790300126,
+      "context_hash": 9106426178914584990,
+      "translation": "`GPUQuerySet`은 사실상 쿼리 결과의 배열입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476213Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:3",
+      "source": "You tell WebGPU which element in the array to record the time the pass started and which element in the array to record when the pass ended.",
+      "source_hash": 16340074441920118948,
+      "context_hash": 17181488587711769199,
+      "translation": "배열의 어느 요소에 패스가 시작된 시각을 기록하고 어느 요소에 패스가 끝난 시각을 기록할지 WebGPU에 알려줍니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:27.476213Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:4",
+      "source": "You can then copy those timestamps to a buffer and map the buffer to read the results.[^mapping-not-necessary]",
+      "source_hash": 2459569040507491071,
+      "context_hash": 3320712959709716082,
+      "translation": "그런 다음 이 타임스탬프를 버퍼로 복사하고 버퍼를 매핑하여 결과를 읽을 수 있습니다.[^mapping-not-necessary]",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Copying the query results to mappable buffer is only for the purpose of reading the values from JavaScript.",
+      "source_hash": 9826278651994334544,
+      "context_hash": 12561807085120637631,
+      "translation": "쿼리 결과를 매핑 가능한 버퍼로 복사하는 것은 오직 JavaScript에서 값을 읽기 위한 목적일 뿐입니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "If your use-case only needs the results to stay on the GPU, for example as input to something else, then you don't need to copy the results to a mappable buffer.",
+      "source_hash": 11351273609070491858,
+      "context_hash": 2412285555957035788,
+      "translation": "사용 사례에서 결과가 GPU에 남아 있기만 하면 되는 경우, 예를 들어 다른 무언가의 입력으로 사용되는 경우라면 결과를 매핑 가능한 버퍼로 복사할 필요가 없습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "So, first we create a query set.",
+      "source_hash": 4066547954496139175,
+      "context_hash": 5149996446522459182,
+      "translation": "그래서 먼저 쿼리 세트를 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "We need count to be at least 2 so we can write both a start and end timestamp.",
+      "source_hash": 4912986586312162074,
+      "context_hash": 17167794007872784993,
+      "translation": "시작과 끝 타임스탬프를 모두 기록할 수 있도록 count는 최소 2 이상이어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "We need a buffer to convert the querySet info into data we can access.",
+      "source_hash": 17114997636960314113,
+      "context_hash": 562462096462958298,
+      "translation": "querySet 정보를 우리가 접근할 수 있는 데이터로 변환하려면 버퍼가 필요합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476215Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Each element in a querySet takes 8 bytes.",
+      "source_hash": 5612353736415821873,
+      "context_hash": 5217352662915165056,
+      "translation": "querySet의 각 요소는 8바이트를 차지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476215Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "We need to give it a usage of `QUERY_RESOLVE` and, if we want be able to read the results back in JavaScript we need the `COPY_SRC` usage so we can copy the result to a mappable buffer.",
+      "source_hash": 2854612317745558702,
+      "context_hash": 12207715600333232830,
+      "translation": "`QUERY_RESOLVE` 용도를 지정해야 하며, JavaScript에서 결과를 다시 읽을 수 있으려면 결과를 매핑 가능한 버퍼로 복사할 수 있도록 `COPY_SRC` 용도도 필요합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476215Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "Finally we create a mappable buffer to read the results.",
+      "source_hash": 11062481660659831186,
+      "context_hash": 14512757447640618162,
+      "translation": "마지막으로 결과를 읽기 위한 매핑 가능한 버퍼를 생성합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476215Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "We need to wrap this code in a way that only creates these things if the feature exists, otherwise we'll get an error trying to make a `'timestamp'` querySet.",
+      "source_hash": 8805026879710705174,
+      "context_hash": 467398198625599830,
+      "translation": "이 코드는 해당 기능이 존재할 때만 이러한 것들을 생성하도록 감싸야 합니다. 그렇지 않으면 `'timestamp'` querySet을 만들려고 할 때 오류가 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476216Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "In our render pass descriptor we tell it the querySet to use and the index of the elements in the querySet to write the start and ending timestamps.",
+      "source_hash": 3409580559049515664,
+      "context_hash": 7842907785268897300,
+      "translation": "렌더 패스 디스크립터에서는 사용할 querySet과 시작 및 종료 타임스탬프를 기록할 querySet 내 요소의 인덱스를 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476216Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "Above, if the feature exists, we add a `timestampWrites` section to our renderPassDescriptor and pass in the querySet and tell it to write the start to element 0 of the set and the end to element 1.",
+      "source_hash": 3068463758510749603,
+      "context_hash": 3432288969536168532,
+      "translation": "위에서, 기능이 존재하는 경우 renderPassDescriptor에 `timestampWrites` 섹션을 추가하고 querySet을 전달하며 세트의 0번 요소에 시작을, 1번 요소에 종료를 기록하도록 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476216Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "After we end the pass, we need to call `resolveQuerySet`.",
+      "source_hash": 6586772816340702075,
+      "context_hash": 8792604117087191502,
+      "translation": "패스를 종료한 후에는 `resolveQuerySet`을 호출해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:27.476216Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:1",
+      "source": "This takes the results of the query and puts them in a buffer.",
+      "source_hash": 9279947386294029865,
+      "context_hash": 6198280991477688907,
+      "translation": "이는 쿼리의 결과를 가져와 버퍼에 넣습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476216Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:2",
+      "source": "We pass it the querySet, the first index in the query set where to start resolving, the number of entries to resolve, a buffer to resolve to, and an offset in that buffer where to store the result.",
+      "source_hash": 9789905547475995976,
+      "context_hash": 1616608009185134119,
+      "translation": "이 함수에는 querySet, 결과 해석을 시작할 querySet 내 첫 인덱스, 해석할 항목 수, 결과를 해석할 버퍼, 그리고 결과를 저장할 버퍼 내 오프셋을 전달합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:27.476216Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "We also want to copy the `resolveBuffer` to our `resultsBuffer` so we can map it and look at the results in JavaScript.",
+      "source_hash": 11739266161574395288,
+      "context_hash": 16302916042094561548,
+      "translation": "또한 `resolveBuffer`를 `resultsBuffer`에 복사하여 매핑한 후 JavaScript에서 결과를 확인하고자 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024336Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:1",
+      "source": "We have an issue though.",
+      "source_hash": 18017526027306725785,
+      "context_hash": 4877958177822654861,
+      "translation": "하지만 문제가 하나 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:2",
+      "source": "We can not copy to our `resultsBuffer` while it's mapped.",
+      "source_hash": 15857792837443242616,
+      "context_hash": 7585690529377375794,
+      "translation": "`resultsBuffer`가 매핑되어 있는 동안에는 복사할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:3",
+      "source": "Fortunately buffers have a `mapState` property we can check.",
+      "source_hash": 3219821624166562189,
+      "context_hash": 3413994904758872168,
+      "translation": "다행히 버퍼에는 확인할 수 있는 `mapState` 속성이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:4",
+      "source": "If it's set to `unmapped`, the value it starts with, then it's safe to copy to it.",
+      "source_hash": 17492068723865865626,
+      "context_hash": 10464346638744170400,
+      "translation": "시작 값인 `unmapped`로 설정되어 있다면 안전하게 복사할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:5",
+      "source": "Other values are `'pending'`, the value it becomes the moment we call `mapAsync`, and `'mapped'`, the value it is when `mapAsync` resolves.",
+      "source_hash": 16324918462126935123,
+      "context_hash": 5451151617390460519,
+      "translation": "다른 값으로는 `mapAsync`를 호출하는 순간 변경되는 `'pending'`과, `mapAsync`가 완료(resolve)되었을 때의 값인 `'mapped'`가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:6",
+      "source": "After we `unmap` it it goes back to `'unmapped'`.",
+      "source_hash": 16260323529602589335,
+      "context_hash": 13612372763880323830,
+      "translation": "`unmap`을 호출한 후에는 다시 `'unmapped'` 상태로 돌아갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "After we've submitted the command buffer we can map the `resultBuffer`.",
+      "source_hash": 1040435548894102455,
+      "context_hash": 11506580397881862747,
+      "translation": "명령 버퍼를 제출한 후에는 `resultBuffer`를 매핑할 수 있습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:1",
+      "source": "Like above, only want to map it if it's `'unmapped'`.",
+      "source_hash": 14750283377097783267,
+      "context_hash": 3415628779082463945,
+      "translation": "위와 마찬가지로, `'unmapped'` 상태일 때만 매핑하고자 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "Query set results are in nanoseconds and are stored in 64bit integers.",
+      "source_hash": 156884627472685851,
+      "context_hash": 17666977107953118877,
+      "translation": "쿼리 세트 결과는 나노초 단위이며 64비트 정수로 저장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:1",
+      "source": "To read them in JavaScript we can use a `BigUint64Array` typedarray view.",
+      "source_hash": 17923018078091073651,
+      "context_hash": 3851977985436106787,
+      "translation": "JavaScript에서 이를 읽으려면 `BigUint64Array` 타입드 배열 뷰를 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024337Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:2",
+      "source": "Using `BigUint64Array` requires special care.",
+      "source_hash": 15003713126176997306,
+      "context_hash": 15234613062621711044,
+      "translation": "`BigUint64Array`를 사용할 때는 특별한 주의가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:3",
+      "source": "When you read an element from a `BigUint64Array` the type is a `bigint`, not a `number` so you can't use it with with lots of math functions.",
+      "source_hash": 3018693986380228733,
+      "context_hash": 6758348738924168694,
+      "translation": "`BigUint64Array`에서 요소를 읽으면 그 타입은 `number`가 아닌 `bigint`이므로 많은 수학 함수와 함께 사용할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:4",
+      "source": "Also, when you convert them to numbers they may lose precision because a `number` can only hold integers of 53 bits in size.",
+      "source_hash": 10515986635410252441,
+      "context_hash": 3853035339122004722,
+      "translation": "또한 이를 숫자로 변환하면 정밀도를 잃을 수 있는데, `number`는 53비트 크기의 정수만 담을 수 있기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:5",
+      "source": "So, first we subtract the 2 `bigint`s which stays a `bigint`.",
+      "source_hash": 9290098869731055674,
+      "context_hash": 17246221843816203390,
+      "translation": "따라서 먼저 두 `bigint`를 빼는데, 이 결과는 여전히 `bigint`로 남습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:6",
+      "source": "Then we convert the result to a number so we can use it as normal.",
+      "source_hash": 14754883409389443562,
+      "context_hash": 11058767518846542481,
+      "translation": "그런 다음 그 결과를 숫자로 변환하여 평소처럼 사용할 수 있게 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "In the code above, we are are only copying the results to `resultBuffer` some times, when it's not mapped.",
+      "source_hash": 3583403652742258378,
+      "context_hash": 310787306112026672,
+      "translation": "위 코드에서는 매핑되어 있지 않을 때에만, 즉 일부 경우에만 결과를 `resultBuffer`에 복사하고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:1",
+      "source": "That means we'll only be reading the time on some frames.",
+      "source_hash": 9919234784412247755,
+      "context_hash": 11009250874151074561,
+      "translation": "이는 일부 프레임에서만 시간을 읽게 된다는 의미입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:2",
+      "source": "Most likely every other frame but there is no strict guarantee how long it will take until `mapAsync` resolves.",
+      "source_hash": 9713039871574778226,
+      "context_hash": 6427326527110607850,
+      "translation": "대부분 한 프레임씩 걸러 읽게 되지만, `mapAsync`가 완료(resolve)되기까지 걸리는 시간에 대한 엄격한 보장은 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:3",
+      "source": "Because of that, we update `gpuTime` which we can use at anytime to get the last recorded time.",
+      "source_hash": 8140338266867297504,
+      "context_hash": 11885482649318459507,
+      "translation": "이 때문에 언제든지 마지막으로 기록된 시간을 얻을 수 있도록 `gpuTime`을 업데이트합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "And with that we get a GPU time from WebGPU",
+      "source_hash": 14256535373209593429,
+      "context_hash": 14771827299156851221,
+      "translation": "이렇게 해서 WebGPU로부터 GPU 시간을 얻습니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:0",
+      "source": "{{{example url=\"../webgpu-timing-with-timestamp.html\"}}}",
+      "source_hash": 10779653868082595823,
+      "context_hash": 12512004969494207839,
+      "translation": "{{{example url=\"../webgpu-timing-with-timestamp.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:30.024338Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "For me, the numbers change too often to see anything useful.",
+      "source_hash": 11980400025019597265,
+      "context_hash": 15901054421496873925,
+      "translation": "저의 경우, 숫자가 너무 자주 바뀌어서 유용한 정보를 확인하기 어렵습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:1",
+      "source": "One way to fix that is to compute a rolling average.",
+      "source_hash": 14268141478811195262,
+      "context_hash": 11136252912019732862,
+      "translation": "이를 해결하는 한 가지 방법은 이동 평균(rolling average)을 계산하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:2",
+      "source": "Here's a class to help compute a rolling average.",
+      "source_hash": 1579913573866578568,
+      "context_hash": 4941403413984368280,
+      "translation": "이동 평균 계산을 도와주는 클래스가 여기 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:0",
+      "source": "It keeps an array of values and a total.",
+      "source_hash": 4451985154929051430,
+      "context_hash": 10272715225087800978,
+      "translation": "이 클래스는 값들의 배열과 합계를 유지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:1",
+      "source": "When a new value is added the oldest value is subtracted from the total as the new value is added.",
+      "source_hash": 1524952638230307658,
+      "context_hash": 227183913291866174,
+      "translation": "새로운 값이 추가될 때, 가장 오래된 값이 합계에서 빼지면서 새로운 값이 더해집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:0",
+      "source": "We can use it like this.",
+      "source_hash": 1371974008001581491,
+      "context_hash": 6429312687293661911,
+      "translation": "다음과 같이 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:35/seg:0",
+      "source": "And now the numbers are a little more stable.",
+      "source_hash": 310126782708170515,
+      "context_hash": 971886320134899828,
+      "translation": "이제 숫자가 조금 더 안정적으로 표시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:0",
+      "source": "{{{example url=\"../webgpu-timing-with-timestamp-w-average.html\"}}}",
+      "source_hash": 8853526789692610683,
+      "context_hash": 4586540289932510980,
+      "translation": "{{{example url=\"../webgpu-timing-with-timestamp-w-average.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "<a id=\"a-timing-helper\"></a> Using a helper",
+      "source_hash": 6058205384156778334,
+      "context_hash": 12737876151205871869,
+      "translation": "<a id=\"a-timing-helper\"></a> 헬퍼 사용하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:30.024339Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "For me, I find all of this a little tedious and probably easy to get something wrong.",
+      "source_hash": 14992984472382713169,
+      "context_hash": 10838639991105884095,
+      "translation": "저로서는 이 모든 과정이 조금 번거롭고 아마도 실수하기 쉽다고 생각합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424552Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "We had to make 3 things, a querySet and 2 buffers.",
+      "source_hash": 7527296423982206892,
+      "context_hash": 8839734524636144629,
+      "translation": "querySet 1개와 버퍼 2개, 총 3가지를 만들어야 했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "We had to change our renderPassDescriptor.",
+      "source_hash": 1744602055190236743,
+      "context_hash": 9387236744560540007,
+      "translation": "renderPassDescriptor를 변경해야 했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:3",
+      "source": "We had to resolve the results and copy to a mappable buffer.",
+      "source_hash": 17330870584549587902,
+      "context_hash": 6561673803460346805,
+      "translation": "결과를 해석(resolve)하고 매핑 가능한 버퍼로 복사해야 했습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "One way to make this less tedious would be to make a class to helps us do the timing.",
+      "source_hash": 6845474616207876081,
+      "context_hash": 17506880217106030660,
+      "translation": "이를 덜 번거롭게 만드는 한 가지 방법은 타이밍 작업을 도와주는 클래스를 만드는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Here's one example of a helper that might help with some of these issues.",
+      "source_hash": 17388985817957122694,
+      "context_hash": 2468688424180794345,
+      "translation": "다음은 이러한 문제 중 일부를 해결하는 데 도움이 될 만한 헬퍼의 한 예시입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "The asserts are there to helps us not use this class wrong.",
+      "source_hash": 14658576538315948758,
+      "context_hash": 14522450337826590986,
+      "translation": "assert들은 이 클래스를 잘못 사용하지 않도록 도와주기 위해 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "For example if we end a pass but don't resolve it or, if we resolve it and try to read the result but we haven't submitted.",
+      "source_hash": 4488688665825512075,
+      "context_hash": 9387028599607451068,
+      "translation": "예를 들어 패스를 종료했지만 해석(resolve)하지 않았거나, 해석했지만 제출하지 않은 상태에서 결과를 읽으려 하는 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "With this class, we can remove much of the code we had before.",
+      "source_hash": 9899641895123973537,
+      "context_hash": 8999899465571554343,
+      "translation": "이 클래스를 사용하면 이전에 있던 코드의 상당 부분을 제거할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "{{{example url=\"../webgpu-timing-with-timing-helper.html\"}}}",
+      "source_hash": 15391670123456886075,
+      "context_hash": 12652374360117485791,
+      "translation": "{{{example url=\"../webgpu-timing-with-timing-helper.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:37.424553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "A few points about the `TimingHelper` class:",
+      "source_hash": 10752225996274655626,
+      "context_hash": 9146874782988085950,
+      "translation": "`TimingHelper` 클래스에 대해 몇 가지 짚어볼 점이 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "You still have to manually request the `'timestamp-query'` feature when you create your device but, the class handles whether it exists or not on the device.",
+      "source_hash": 1231120374364843295,
+      "context_hash": 6504567624928175241,
+      "translation": "여전히 디바이스를 생성할 때 `'timestamp-query'` 기능을 수동으로 요청해야 하지만, 해당 기능이 디바이스에 존재하는지 여부는 이 클래스가 처리해 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "When you call `timerHelper.beginRenderPass` or `timerHelper.beginComputePass` it automatically adds the appropriate properties to the pass descriptor.",
+      "source_hash": 6617612874246736505,
+      "context_hash": 8753581111181088869,
+      "translation": "`timerHelper.beginRenderPass`나 `timerHelper.beginComputePass`를 호출하면 자동으로 패스 디스크립터에 적절한 속성을 추가해 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "It also returns a pass encoder who's `end` function automatically resolves the queries.",
+      "source_hash": 1318776851528269915,
+      "context_hash": 1931792942441157609,
+      "translation": "또한 `end` 함수가 자동으로 쿼리를 해석(resolve)해 주는 패스 인코더를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "It's designed so if you use it wrong it will complain.",
+      "source_hash": 4555113690568295921,
+      "context_hash": 545183813709053475,
+      "translation": "잘못 사용하면 오류를 알려주도록 설계되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "It only handles 1 pass.",
+      "source_hash": 1120365486378192437,
+      "context_hash": 912575303487770165,
+      "translation": "이 클래스는 패스 1개만 처리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "There are a bunch of tradeoffs here and without more exploration it's not clear what would be best.",
+      "source_hash": 2034076373525007450,
+      "context_hash": 7120282553877870951,
+      "translation": "여기에는 여러 가지 트레이드오프가 있으며, 더 탐구해 보지 않고서는 무엇이 최선인지 명확하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "A class that handles multiple passes could be useful but, ideally, you'd use a single `GPUQuerySet` that has enough space for all of your passes, rather than 1 `GPUQuerySet` per pass.",
+      "source_hash": 16255487882690468306,
+      "context_hash": 6876886730943425962,
+      "translation": "여러 패스를 처리하는 클래스가 유용할 수도 있지만, 이상적으로는 패스마다 `GPUQuerySet` 1개씩을 두는 대신, 모든 패스를 감당할 만큼 충분한 공간을 가진 단일 `GPUQuerySet`을 사용해야 할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "But, in order to do that you'd either need to have the user tell you up front the maximum number of passes they'll use.",
+      "source_hash": 6072819691979832690,
+      "context_hash": 15050940418496387414,
+      "translation": "하지만 그렇게 하려면 사용자가 사용할 최대 패스 수를 미리 알려주도록 해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "Or, you need to make the code more complicated where it starts with a small `GPUQuerySet` and deletes it and makes a new larger one if you use more.",
+      "source_hash": 2900440751592548883,
+      "context_hash": 630943901625791863,
+      "translation": "또는, 작은 `GPUQuerySet`으로 시작해서 더 많이 사용하게 되면 이를 삭제하고 더 큰 것을 새로 만드는 식으로 코드를 더 복잡하게 만들어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:2",
+      "source": "But then, at least for 1 frame, you'd need to handle having multiple `GPUQuerySet`s",
+      "source_hash": 2462654168536909172,
+      "context_hash": 13086137103901778625,
+      "translation": "하지만 그렇게 하면 적어도 1개의 프레임에 대해서는 여러 개의 `GPUQuerySet`을 다루도록 처리해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "All of that seemed overkill so for now it seemed best to make it handle one pass and you can build on top of it until you decide it needs to be changed.",
+      "source_hash": 17079788605118841715,
+      "context_hash": 12337643194081201124,
+      "translation": "그 모든 것이 과한 것처럼 보였기에, 지금으로서는 패스 1개만 처리하도록 만들고 필요하다고 판단될 때까지 그 위에 기능을 쌓아 나가는 것이 최선으로 보였습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "You could also make a `NoTimingHelper`.",
+      "source_hash": 13907854291807363351,
+      "context_hash": 5343887356000293595,
+      "translation": "`NoTimingHelper`를 만들 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "As one possible way to make so you can add timing and turn it off without having to change too much code.",
+      "source_hash": 16996739736537578499,
+      "context_hash": 917649744519329566,
+      "translation": "코드를 너무 많이 바꾸지 않고도 타이밍 기능을 추가하거나 끌 수 있게 만드는 한 가지 가능한 방법으로서입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "In any case, I've used the `TimingHelper` class to time the various examples from [the articles on using compute shaders to compute image histograms](webgpu-compute-shaders-histogram.html).",
+      "source_hash": 12836410310018571828,
+      "context_hash": 5407510551006483138,
+      "translation": "어쨌든, 저는 [컴퓨트 셰이더를 사용해 이미지 히스토그램을 계산하는 것에 관한 글](webgpu-compute-shaders-histogram.html)의 여러 예제 시간을 측정하는 데 `TimingHelper` 클래스를 사용했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:1",
+      "source": "Here's a list of them.",
+      "source_hash": 17968558178613880575,
+      "context_hash": 3922268319796337754,
+      "translation": "다음은 그 목록입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:2",
+      "source": "Since only the video example runs continuously it's probably the best example",
+      "source_hash": 6641266874571873919,
+      "context_hash": 5300758658457330255,
+      "translation": "비디오 예제만 계속해서 실행되기 때문에, 아마도 가장 좋은 예제일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-video-w-timing.html\">4 channel video histogram</a>",
+      "source_hash": 9637201998758891290,
+      "context_hash": 8174063935348983602,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-video-w-timing.html\">4채널 비디오 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:37.424555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "The rest just run once and print their result to the JavaScript console.",
+      "source_hash": 14786613397828881860,
+      "context_hash": 6231452683255429008,
+      "translation": "나머지는 한 번만 실행되고 결과를 JavaScript 콘솔에 출력합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:37.424555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-4ch-optimized-more-w-timing.html\">4 channel workgroup per chunk histogram with reduce</a>",
+      "source_hash": 15860162447871484923,
+      "context_hash": 4743271415287104418,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-4ch-optimized-more-w-timing.html\">reduce를 사용한 청크당 워크그룹 4채널 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:37.424555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-4ch-race-fixed-w-timing.html\">4 channel workgroup per pixel histogram</a>",
+      "source_hash": 2101834239046177792,
+      "context_hash": 687833460435941249,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-4ch-race-fixed-w-timing.html\">픽셀당 워크그룹 4채널 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:37.424555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-4ch-javascript-w-timing.html\">4 channel JavaScript histogram</a>",
+      "source_hash": 2994289668043422971,
+      "context_hash": 2254227856865084130,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-4ch-javascript-w-timing.html\">4채널 JavaScript 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:37.424555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-optimized-more-w-timing.html\">1 channel workgroup per chunk histogram with reduce</a>",
+      "source_hash": 8866614358987755728,
+      "context_hash": 10110356740864067669,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-optimized-more-w-timing.html\">reduce를 사용한 청크별 워크그룹 1채널 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:02:02.892896Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-optimized-w-timing.html\">1 channel workgroup per chunk histogram with sum</a>",
+      "source_hash": 18070102596365652274,
+      "context_hash": 4470319795180633680,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-optimized-w-timing.html\">sum을 사용한 청크별 워크그룹 1채널 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:02:02.892896Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-race-fixed-w-timing.html\">1 channel workgroup per pixel histogram </a>",
+      "source_hash": 2463842618399713802,
+      "context_hash": 4825218206453164495,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-race-fixed-w-timing.html\">픽셀별 워크그룹 1채널 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:02:02.892897Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-slow-w-timing.html\">1 channel single core histogram</a>",
+      "source_hash": 17632135686897604015,
+      "context_hash": 13152864391812665092,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-slow-w-timing.html\">단일 코어 1채널 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:02:02.892897Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-javascript-w-timing.html\">1 channel JavaScript histogram</a>",
+      "source_hash": 8082733270814949214,
+      "context_hash": 3581607614662500502,
+      "translation": "<a target=\"_blank\" href=\"../webgpu-compute-shaders-histogram-javascript-w-timing.html\">1채널 JavaScript 히스토그램</a>",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:02:02.892897Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "<a id=\"a-implementation-defined\"></a> Important: `timestamp-query` results are implementation-defined",
+      "source_hash": 16147512127341203719,
+      "context_hash": 13464298173236252607,
+      "translation": "<a id=\"a-implementation-defined\"></a> 중요: `timestamp-query` 결과는 구현에 따라 다릅니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892897Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "This effectively means you can use them for debugging and for comparing techniques but you can not trust them to return similar results for all of your users.",
+      "source_hash": 9299657881199903397,
+      "context_hash": 2317565866629888138,
+      "translation": "이는 사실상 디버깅과 기법 비교에는 사용할 수 있지만, 모든 사용자에게서 유사한 결과를 반환한다고 신뢰할 수는 없다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892898Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "You can't not even assume relative results.",
+      "source_hash": 4020678936012250785,
+      "context_hash": 14763613388595221423,
+      "translation": "상대적인 결과조차 가정할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892898Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "Different GPUs work in different ways and are able to optimize rendering and computing across passes.",
+      "source_hash": 16032210765360844191,
+      "context_hash": 14957650332919455800,
+      "translation": "서로 다른 GPU는 각기 다른 방식으로 동작하며, 패스 전반에 걸쳐 렌더링과 연산을 최적화할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892898Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:3",
+      "source": "That means on one machine a first pass might take 200µs to draw 100 things and the 2nd pass might also take 200µs to 200 things but, another GPU might take 100µs to draw the first 100 things and 200µs to draw the 2nd 100 things so where as the first GPU had a relative difference of 0µs, the 2nd had a relative difference of 100µs even though both GPUs were asked to draw the same thing.",
+      "source_hash": 11414470944791696284,
+      "context_hash": 13566651568873570025,
+      "translation": "즉, 한 머신에서는 첫 번째 패스가 100개를 그리는 데 200µs가 걸리고 두 번째 패스도 200개를 그리는 데 200µs가 걸릴 수 있지만, 다른 GPU는 처음 100개를 그리는 데 100µs, 두 번째 100개를 그리는 데 200µs가 걸릴 수 있습니다. 따라서 첫 번째 GPU는 상대적 차이가 0µs였던 반면, 두 번째 GPU는 두 GPU 모두 동일한 작업을 그리도록 요청받았음에도 상대적 차이가 100µs였습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892898Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "<a id=\"a-implementation-defined\"></a> Important: `timestamp-query` results are not a good measure of performance",
+      "source_hash": 1577064473321757132,
+      "context_hash": 12351949871177172194,
+      "translation": "<a id=\"a-implementation-defined\"></a> 중요: `timestamp-query` 결과는 성능을 나타내는 좋은 척도가 아닙니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892898Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Timestamp queries are not a good measure of performance as there are many other factors that determine overall performance.",
+      "source_hash": 13476839249246557593,
+      "context_hash": 15554303922694987983,
+      "translation": "전체 성능을 결정하는 다른 많은 요인이 있기 때문에 타임스탬프 쿼리는 성능을 나타내는 좋은 척도가 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892898Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "To give a concrete example.",
+      "source_hash": 3465448374581198304,
+      "context_hash": 9833527946150177528,
+      "translation": "구체적인 예를 들어보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "We wrote a render pass based mipmap generator in [the article on loading images into textures](webgpu-importing-textures.html#a-generating-mips-on-the-gpu).",
+      "source_hash": 13270143671442947216,
+      "context_hash": 3825535466070113582,
+      "translation": "저희는 [텍스처로 이미지를 로드하는 것에 관한 문서](webgpu-importing-textures.html#a-generating-mips-on-the-gpu)에서 렌더 패스 기반 밉맵 생성기를 작성했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:3",
+      "source": "I wrote a compute pass based mipmap generator as well.",
+      "source_hash": 7249887820700915094,
+      "context_hash": 15700283086789264385,
+      "translation": "저는 연산 패스 기반 밉맵 생성기도 작성했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:4",
+      "source": "When I used timestamp-query to time both it told me the compute pass method was 5x faster than the render pass based method.",
+      "source_hash": 6334895501880643149,
+      "context_hash": 3424665213436918022,
+      "translation": "timestamp-query를 사용해 두 가지를 모두 측정했을 때, 연산 패스 방식이 렌더 패스 기반 방식보다 5배 빠르다는 결과가 나왔습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:5",
+      "source": "Yay!",
+      "source_hash": 17071830544623259868,
+      "context_hash": 9824109970087918819,
+      "translation": "야호!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:6",
+      "source": "But, then I switched to a throughput test.",
+      "source_hash": 14812814558992526487,
+      "context_hash": 5256815011121692322,
+      "translation": "하지만 그 후 저는 처리량 테스트로 전환했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:7",
+      "source": "Instead of using timestamp-query, I wrote a test that let me increase the number of 2048x2048 textures to generate mipmaps for at 60 frames a second.",
+      "source_hash": 17400582947853983566,
+      "context_hash": 4391893960795536775,
+      "translation": "timestamp-query를 사용하는 대신, 60프레임/초 속도로 밉맵을 생성할 2048x2048 텍스처의 개수를 늘려볼 수 있는 테스트를 작성했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:8",
+      "source": "I'd increase the number until the frame rate dropped below 60fps.",
+      "source_hash": 7636833432709718984,
+      "context_hash": 12881216442847344998,
+      "translation": "프레임 속도가 60fps 아래로 떨어질 때까지 개수를 늘렸습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:9",
+      "source": "Using this method showed the render pass method was 20% faster than the compute pass method on one machine, and 8% faster on another.",
+      "source_hash": 8647184857446549075,
+      "context_hash": 12726012670357424282,
+      "translation": "이 방법을 사용하자 한 머신에서는 렌더 패스 방식이 연산 패스 방식보다 20% 빠르고, 다른 머신에서는 8% 빠르다는 결과가 나왔습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "The point is, you can't just use timestamp-query in isolation to tell you how fast something will run.",
+      "source_hash": 11236778877531246447,
+      "context_hash": 12580171654372053272,
+      "translation": "요점은, timestamp-query만 단독으로 사용해서는 무언가가 얼마나 빠르게 실행될지 알 수 없다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892899Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "By default the",
+      "source_hash": 13842103223501080825,
+      "context_hash": 6711424821172251277,
+      "translation": "기본적으로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "time values are quantized to 100µ seconds.",
+      "source_hash": 6880177943951119584,
+      "context_hash": 5414659344566202342,
+      "translation": "시간 값은 100µ초 단위로 양자화됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "In Chrome, if you enable",
+      "source_hash": 11004559165586042909,
+      "context_hash": 14302685359200626193,
+      "translation": "Chrome에서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "\"enable-webgpu-developer-features\"",
+      "source_hash": 18288835421942985428,
+      "context_hash": 14832204061178416127,
+      "translation": "\"enable-webgpu-developer-features\"를",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "in",
+      "source_hash": 18348823282917902467,
+      "context_hash": 2016555036228710457,
+      "translation": "에서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "about:flags",
+      "source_hash": 3397612125714473073,
+      "context_hash": 6641189217955013253,
+      "translation": "about:flags",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": ", the time values may not be quantized.",
+      "source_hash": 1790997547783774084,
+      "context_hash": 6419390220591879208,
+      "translation": "활성화하면, 시간 값이 양자화되지 않을 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:1",
+      "source": "This would theoretically give you more accurate timings.",
+      "source_hash": 5842942235255100507,
+      "context_hash": 8321784310359894019,
+      "translation": "이론적으로는 이렇게 하면 더 정확한 타이밍을 얻을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:2",
+      "source": "That said, normally 100µ second quantized values should be enough for you to compare shaders techniques for performance.",
+      "source_hash": 16876528076680804936,
+      "context_hash": 10464831741107691564,
+      "translation": "그렇긴 하지만, 보통 셰이더 기법의 성능을 비교하는 데는 100µ초로 양자화된 값이면 충분합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:02:02.892900Z",
+      "issues": []
+    }
+  ]
+}

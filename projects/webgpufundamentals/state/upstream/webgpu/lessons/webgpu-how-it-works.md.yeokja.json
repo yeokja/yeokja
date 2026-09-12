@@ -1,0 +1,1299 @@
+{
+  "version": 1,
+  "source_hash": 2488224973530333203,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU How It Works Description: How WebGPU works TOC: How It Works",
+      "source_hash": 15630294796698777703,
+      "context_hash": 8420819183787226716,
+      "translation": "제목: WebGPU 작동 방식",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:05:32.596503Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Let's try to explain WebGPU by implementing something similar to what the GPU does with vertex shaders and fragment shaders but in JavaScript.",
+      "source_hash": 15404922133734705130,
+      "context_hash": 5146833118531936941,
+      "translation": "GPU가 정점 셰이더와 프래그먼트 셰이더로 하는 작업과 비슷한 것을 JavaScript로 구현하면서 WebGPU를 설명해 보겠습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:05:32.596504Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Hopefully this will give you an intuitive feeling about what's really going on.",
+      "source_hash": 11752212197956468563,
+      "context_hash": 13839558043895548758,
+      "translation": "이를 통해 실제로 일어나는 일에 대한 직관적인 느낌을 얻으실 수 있기를 바랍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596504Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "If you're familiar with [Array.map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map), if you squint real hard you can get some idea of how these 2 different kinds of shader functions work.",
+      "source_hash": 3519166407477494616,
+      "context_hash": 3662860780743425195,
+      "translation": "[Array.map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map)에 익숙하시다면, 눈을 크게 뜨고 잘 살펴보시면 이 두 가지 종류의 셰이더 함수가 어떻게 작동하는지 어느 정도 감을 잡으실 수 있습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "With `Array.map` you provide a function to transform a value.",
+      "source_hash": 17127495651058117557,
+      "context_hash": 13093994577995623885,
+      "translation": "`Array.map`을 사용하면 값을 변환하는 함수를 제공하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Example:",
+      "source_hash": 2367275816953728862,
+      "context_hash": 12907805797973412107,
+      "translation": "예시:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "Above our \"shader\" for array.map is just a function that given a number, returns its double.",
+      "source_hash": 7964333959300939831,
+      "context_hash": 12299886447456226858,
+      "translation": "위의 array.map을 위한 우리의 \"셰이더\"는 숫자가 주어지면 그 두 배의 값을 반환하는 함수일 뿐입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:1",
+      "source": "That's probably the closest analogy in JavaScript to what \"shader\" means.",
+      "source_hash": 13618452132207745864,
+      "context_hash": 16359781482301710578,
+      "translation": "이것이 아마도 JavaScript에서 \"셰이더\"가 의미하는 것과 가장 가까운 비유일 것입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:2",
+      "source": "It's a function that returns or generates values.",
+      "source_hash": 18090213008230611113,
+      "context_hash": 13982816775577047258,
+      "translation": "이는 값을 반환하거나 생성하는 함수입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:3",
+      "source": "You don't call it directly.",
+      "source_hash": 4618116619506138253,
+      "context_hash": 10576975052673232372,
+      "translation": "이를 직접 호출하지는 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:4",
+      "source": "Instead, you specify it and then the system calls it for you.",
+      "source_hash": 17264903585039014831,
+      "context_hash": 2982865882220683045,
+      "translation": "대신, 이를 지정하면 시스템이 이를 대신 호출해 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596505Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "For a GPU vertex shader you don't map over an input array.",
+      "source_hash": 17797741928839478826,
+      "context_hash": 11466109233476479557,
+      "translation": "GPU 정점 셰이더의 경우 입력 배열에 대해 맵을 수행하지 않습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:05:32.596506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "Instead, you just specify a count of how many times you want the function to be called.",
+      "source_hash": 9694217332274852233,
+      "context_hash": 15904483214805749224,
+      "translation": "대신, 함수를 호출하고자 하는 횟수를 지정하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "One consequence is that unlike `Array.map`, we no longer need a source array to do something.",
+      "source_hash": 159043551552216685,
+      "context_hash": 5634626305604058576,
+      "translation": "한 가지 결과는 `Array.map`과 달리 무언가를 하기 위해 더 이상 소스 배열이 필요하지 않다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "The thing that makes GPU work complicated is that these functions run on a separate system in your computer, the GPU.",
+      "source_hash": 3482364904145587873,
+      "context_hash": 11275234983713100402,
+      "translation": "GPU 작업을 복잡하게 만드는 것은 이러한 함수들이 컴퓨터 내의 별도 시스템인 GPU에서 실행된다는 점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:1",
+      "source": "This means all the data you create and reference has to somehow be sent to the GPU and you then need to communicate to the shader where you put that data and how to access it.",
+      "source_hash": 15307006286759287315,
+      "context_hash": 5456468122474340234,
+      "translation": "이는 여러분이 생성하고 참조하는 모든 데이터를 어떻게든 GPU로 전송해야 하며, 그런 다음 그 데이터를 어디에 두었는지와 어떻게 접근하는지를 셰이더에게 전달해야 함을 의미합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "Vertex And Fragment shaders can take data in 6 ways.",
+      "source_hash": 2509219578832155702,
+      "context_hash": 640731107195499303,
+      "translation": "정점 셰이더와 프래그먼트 셰이더는 6가지 방식으로 데이터를 받을 수 있습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:05:32.596506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:1",
+      "source": "Uniforms, Attributes, Buffers, Textures, Inter-Stage Variables, Constants.",
+      "source_hash": 1010395492544813767,
+      "context_hash": 11024652549727393103,
+      "translation": "유니폼, 어트리뷰트, 버퍼, 텍스처, 스테이지 간 변수, 상수.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:12/seg:0",
+      "source": "Uniforms",
+      "source_hash": 8895295185152440296,
+      "context_hash": 12936870199384563335,
+      "translation": "유니폼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596507Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Uniforms are values that are the same for each iteration of the shader.",
+      "source_hash": 13939268687911699231,
+      "context_hash": 4703924701832567173,
+      "translation": "유니폼은 셰이더의 각 반복마다 동일한 값입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596507Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:1",
+      "source": "Think of them as constant global variables.",
+      "source_hash": 3508251294222749719,
+      "context_hash": 6916884304927420295,
+      "translation": "이를 상수 전역 변수라고 생각하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596507Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:2",
+      "source": "You can set them before a shader is run but, while the shader is being used, they remain constant, or to put it another way, they remain *uniform*.",
+      "source_hash": 13590692356592785832,
+      "context_hash": 2210675555211668722,
+      "translation": "셰이더가 실행되기 전에 이를 설정할 수 있지만, 셰이더가 사용되는 동안에는 상수로 유지되며, 다시 말해 *유니폼*하게 유지됩니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596507Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:0",
+      "source": "Let's change `draw` to pass uniforms to a shader.",
+      "source_hash": 15965621527153638157,
+      "context_hash": 17350194122913743230,
+      "translation": "`draw`를 변경하여 유니폼을 셰이더에 전달하도록 해봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596507Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:1",
+      "source": "To do this we'll make an array called `bindings` and use it to pass in the uniforms.",
+      "source_hash": 13480483932458880065,
+      "context_hash": 14688065739731410107,
+      "translation": "이를 위해 `bindings`라는 배열을 만들고 이를 사용하여 유니폼을 전달하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596507Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:0",
+      "source": "And then let's change our shader to use the uniforms",
+      "source_hash": 9706890917193345578,
+      "context_hash": 7745168848797883848,
+      "translation": "그런 다음 유니폼을 사용하도록 셰이더를 변경해 봅시다",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:32.596507Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "So, the concept of uniforms hopefully seems pretty straight forward.",
+      "source_hash": 17321111569992899359,
+      "context_hash": 18059810998876732739,
+      "translation": "자, 유니폼의 개념은 상당히 단순하게 느껴지실 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596508Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:1",
+      "source": "The indirection through `bindings` is there because this is \"similar\" to how things are done in WebGPU.",
+      "source_hash": 10387123271472165718,
+      "context_hash": 16375799002402976058,
+      "translation": "`bindings`를 통한 간접 참조가 있는 이유는 이것이 WebGPU에서 일이 처리되는 방식과 \"유사\"하기 때문입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:05:32.596508Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:2",
+      "source": "Like was mentioned above, we access the things, in this case the uniforms, by location/index.",
+      "source_hash": 4860682296411168230,
+      "context_hash": 6103369311458144446,
+      "translation": "위에서 언급했듯이, 이 경우 유니폼과 같은 것들에 위치/인덱스로 접근합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596508Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:3",
+      "source": "Here they are found in `bindings[0]`.",
+      "source_hash": 5859261462512407496,
+      "context_hash": 6040395362161231282,
+      "translation": "여기서는 `bindings[0]`에서 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:32.596508Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "Attributes (vertex shaders only)",
+      "source_hash": 18297175368341418300,
+      "context_hash": 4100737381004230102,
+      "translation": "어트리뷰트 (정점 셰이더 전용)",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:05:32.596508Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:0",
+      "source": "Attributes provide per shader iteration data.",
+      "source_hash": 10682698497335748732,
+      "context_hash": 13634654991512861116,
+      "translation": "어트리뷰트는 셰이더 반복마다의 데이터를 제공합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:36.955847Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:1",
+      "source": "In `Array.map` above, the value `v` was pulled from `input` and automatically provided to the function.",
+      "source_hash": 6971016506680962545,
+      "context_hash": 871199635682513062,
+      "translation": "위의 `Array.map`에서 값 `v`는 `input`에서 가져와져 함수에 자동으로 제공되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955848Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:2",
+      "source": "This is very similar to an attribute in a shader.",
+      "source_hash": 18381442100865146416,
+      "context_hash": 18372187405132898394,
+      "translation": "이는 셰이더에서의 어트리뷰트와 매우 유사합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:36.955848Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "The difference is, we are not mapping over the input, instead, because we are just counting, we need to tell WebGPU about these inputs and how to get data out of them.",
+      "source_hash": 17805418754581377897,
+      "context_hash": 18438032532742540203,
+      "translation": "차이점은, 우리가 입력값을 매핑하는 것이 아니라, 단지 개수를 세고 있을 뿐이므로, WebGPU에 이러한 입력에 대해 그리고 그로부터 데이터를 얻는 방법을 알려주어야 한다는 것입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:05:36.955848Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "Imagine we updated `draw` like this.",
+      "source_hash": 8077358988164648741,
+      "context_hash": 10151344797245169295,
+      "translation": "`draw`를 이렇게 업데이트했다고 상상해 보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955848Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "Then we could call it like this.",
+      "source_hash": 8308876982715410977,
+      "context_hash": 8008493178318143614,
+      "translation": "그러면 다음과 같이 호출할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955848Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "As you can see above, `getAttribs` uses `offset`, and `stride` to compute indices into the corresponding `source` buffer and pulls out values.",
+      "source_hash": 4802391142313200601,
+      "context_hash": 13417777855255752387,
+      "translation": "위에서 볼 수 있듯이, `getAttribs`는 `offset`과 `stride`를 사용하여 해당 `source` 버퍼에 대한 인덱스를 계산하고 값을 꺼냅니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:05:36.955848Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:1",
+      "source": "The pulled out values are then sent to the shader.",
+      "source_hash": 13919132865274007924,
+      "context_hash": 7744059549243309557,
+      "translation": "꺼낸 값들은 그 후 셰이더로 전송됩니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:36.955848Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:2",
+      "source": "On each iteration `attribs` will be different.",
+      "source_hash": 13148534063371895522,
+      "context_hash": 15231917357695530877,
+      "translation": "반복마다 `attribs`는 달라질 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:0",
+      "source": "Raw Buffers",
+      "source_hash": 17983223771583221488,
+      "context_hash": 9628278401931249374,
+      "translation": "원시 버퍼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:29/seg:0",
+      "source": "Buffers are effectively arrays, again for our analogy let's make version of `draw` that uses buffers.",
+      "source_hash": 6333664779426628559,
+      "context_hash": 6576493963383959281,
+      "translation": "버퍼는 사실상 배열이므로, 다시 우리의 비유를 위해 버퍼를 사용하는 `draw` 버전을 만들어 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:29/seg:1",
+      "source": "We'll pass these buffers via `bindings` like we did with uniforms.",
+      "source_hash": 18320720798649588963,
+      "context_hash": 9423972232560733828,
+      "translation": "유니폼에서 했던 것처럼 이 버퍼들을 `bindings`를 통해 전달하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:0",
+      "source": "Here we got the same result as we did with attributes except this time, instead of the system pulling the values out of the buffers for us, we calculated our own indices into the bound buffers.",
+      "source_hash": 5335905372867347204,
+      "context_hash": 1481643155382127971,
+      "translation": "여기서 우리는 어트리뷰트와 동일한 결과를 얻었지만, 이번에는 시스템이 우리를 대신해 버퍼에서 값을 꺼내주는 대신, 바인딩된 버퍼에 대한 인덱스를 우리가 직접 계산했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:1",
+      "source": "This is more flexible than attributes since we basically have random access to the arrays.",
+      "source_hash": 4901332307224471574,
+      "context_hash": 1334453188692209219,
+      "translation": "이는 배열에 대해 기본적으로 임의 접근이 가능하기 때문에 어트리뷰트보다 더 유연합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:2",
+      "source": "But, it's potentially slower for that same reason.",
+      "source_hash": 8726238657556031735,
+      "context_hash": 2158940298051249370,
+      "translation": "하지만 바로 그 이유 때문에 잠재적으로 더 느립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:3",
+      "source": "Given the way attributes worked the GPU knows the values will be accessed in order which it can use to optimize.",
+      "source_hash": 18424644527200596124,
+      "context_hash": 7341545028679858202,
+      "translation": "어트리뷰트가 작동하는 방식 덕분에 GPU는 값들이 순서대로 접근될 것임을 알고 있으며, 이를 최적화에 활용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:4",
+      "source": "For example, in order access is usually cache friendly.",
+      "source_hash": 8383178298703561872,
+      "context_hash": 6360235654718684653,
+      "translation": "예를 들어, 순서대로 접근하는 것은 대개 캐시 친화적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:5",
+      "source": "When we calculate our own indices the GPU has no idea which part of a buffer we're going to access until we actually try to access it.",
+      "source_hash": 15687254906654388661,
+      "context_hash": 3849924422671630867,
+      "translation": "우리가 직접 인덱스를 계산하면, GPU는 실제로 접근을 시도하기 전까지는 버퍼의 어느 부분에 접근하게 될지 전혀 알 수 없습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:0",
+      "source": "Textures",
+      "source_hash": 12256644831456865711,
+      "context_hash": 9317799778425343479,
+      "translation": "텍스처",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:0",
+      "source": "Textures are 1d, 2d, or 3d arrays of data.",
+      "source_hash": 12130692634608133965,
+      "context_hash": 4966901479941607926,
+      "translation": "텍스처는 1차원, 2차원, 또는 3차원의 데이터 배열입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955849Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:1",
+      "source": "Of course, we could implement our own 2d or 3d arrays using buffers.",
+      "source_hash": 16280210927920416654,
+      "context_hash": 39648818972975714,
+      "translation": "물론, 버퍼를 사용해 우리만의 2차원이나 3차원 배열을 구현할 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:2",
+      "source": "What's special about textures is they can be sampled.",
+      "source_hash": 13181175778172874210,
+      "context_hash": 6457301175974531567,
+      "translation": "텍스처의 특별한 점은 샘플링될 수 있다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:3",
+      "source": "Sampling means that we can ask the GPU to compute a value between the values we supply.",
+      "source_hash": 3513251550442359255,
+      "context_hash": 18154512517539127621,
+      "translation": "샘플링이란 우리가 제공한 값들 사이의 값을 GPU에게 계산해 달라고 요청할 수 있다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:4",
+      "source": "We'll cover that this means in [the article on textures](webgpu-textures.html).",
+      "source_hash": 1708492896522059648,
+      "context_hash": 2209906687516220015,
+      "translation": "이것이 무엇을 의미하는지는 [텍스처에 관한 문서](webgpu-textures.html)에서 다루겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:5",
+      "source": "For now, let's make a JavaScript analogy again.",
+      "source_hash": 12851533150077813188,
+      "context_hash": 16667925692155073429,
+      "translation": "지금은 다시 JavaScript로 비유를 만들어 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "First we'll create a function `textureSample` that *samples* an array between values.",
+      "source_hash": 8352095403279508129,
+      "context_hash": 11568132426559995668,
+      "translation": "먼저 값들 사이를 *샘플링*하는 함수 `textureSample`을 만들겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:0",
+      "source": "A function something like that already exists on the GPU.",
+      "source_hash": 12210812633629171772,
+      "context_hash": 12813132039235283256,
+      "translation": "그와 비슷한 함수는 GPU에 이미 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:0",
+      "source": "Now let's use that in a shader.",
+      "source_hash": 566278068606661285,
+      "context_hash": 4869083446195414657,
+      "translation": "이제 셰이더에서 그것을 사용해 봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:36.955850Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:0",
+      "source": "When `ndx` is `3` we'll pass in `3 * 1.75` or `5.25` into `textureSample`.",
+      "source_hash": 9249901503298169320,
+      "context_hash": 7399944662700806234,
+      "translation": "`ndx`가 `3`일 때, 우리는 `textureSample`에 `3 * 1.75`, 즉 `5.25`를 전달하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955851Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:1",
+      "source": "That will compute a `startNdx` of `5`.",
+      "source_hash": 5079537425018006511,
+      "context_hash": 9010008464247721682,
+      "translation": "그러면 `startNdx`는 `5`로 계산됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955851Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:2",
+      "source": "So we'll pull out indices `5` and `6` which are `60` and `70`. `fraction` becomes `0.25`, so we'll get `60 + (70 - 60) * 0.25` which is `62.5`.",
+      "source_hash": 4913275534613185418,
+      "context_hash": 10439097351886557047,
+      "translation": "그래서 우리는 인덱스 `5`와 `6`을 꺼내는데, 이는 `60`과 `70`입니다. `fraction`은 `0.25`가 되므로, `60 + (70 - 60) * 0.25`, 즉 `62.5`를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:36.955851Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:0",
+      "source": "Looking at the code above we could write `textureSample` ourselves in our shader function.",
+      "source_hash": 13689491022841697808,
+      "context_hash": 4577568415474730999,
+      "translation": "위 코드를 보면 셰이더 함수 안에서 `textureSample`을 직접 작성할 수도 있습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:43.479460Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:1",
+      "source": "We could manually pull out the 2 values and interpolate between them.",
+      "source_hash": 2254480089437623198,
+      "context_hash": 2391431299746397745,
+      "translation": "2개의 값을 수동으로 꺼내서 그 사이를 보간할 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479461Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:2",
+      "source": "The reason the GPU has this special functionality is it can do it much faster and, depending on the settings, it may read as many as sixteen 4-float values to produce one 4-float value for us.",
+      "source_hash": 18303570616969059701,
+      "context_hash": 7494557362916818538,
+      "translation": "GPU가 이런 특별한 기능을 갖고 있는 이유는 훨씬 더 빠르게 처리할 수 있기 때문이며, 설정에 따라 하나의 4-float 값을 만들어내기 위해 최대 16개의 4-float 값을 읽어들일 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479461Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:3",
+      "source": "That would be a lot of work to do manually.",
+      "source_hash": 16730810610240069373,
+      "context_hash": 5219564040428390902,
+      "translation": "그것을 수동으로 하려면 상당히 많은 작업이 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479461Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:41/seg:0",
+      "source": "Inter-Stage Variables (fragment shaders only)",
+      "source_hash": 7543585066695203980,
+      "context_hash": 9756655255311246731,
+      "translation": "스테이지 간 변수 (프래그먼트 셰이더 전용)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479461Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:0",
+      "source": "Inter-Stage Variables are outputs from a vertex shader to a fragment shader.",
+      "source_hash": 6939245976526054671,
+      "context_hash": 16893622228395627542,
+      "translation": "스테이지 간 변수는 정점 셰이더에서 프래그먼트 셰이더로 전달되는 출력값입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:05:43.479461Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:1",
+      "source": "As was mentioned above, a vertex shader outputs positions that are used to draw/rasterize points, lines, and triangles.",
+      "source_hash": 12216847091659620125,
+      "context_hash": 4498437740825869609,
+      "translation": "위에서 언급했듯이, 정점 셰이더는 점, 선, 삼각형을 그리기/래스터화하는 데 사용되는 위치를 출력합니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:43.479461Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:0",
+      "source": "Let's imagine we're drawing a line.",
+      "source_hash": 3690273172593117287,
+      "context_hash": 3565241257721331439,
+      "translation": "선을 하나 그린다고 상상해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479461Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:1",
+      "source": "Let's say our vertex shader was run twice, the first time it output the equivalent of `5,0` and the second time the equivalent of `25,4`.",
+      "source_hash": 2585006275513347275,
+      "context_hash": 14382608452991086273,
+      "translation": "정점 셰이더가 두 번 실행되었고, 첫 번째 실행에서 `5,0`에 해당하는 값을 출력하고, 두 번째 실행에서 `25,4`에 해당하는 값을 출력했다고 해봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:2",
+      "source": "Given those 2 points the GPU will draw a line from `5,0` to `25,4` exclusive.",
+      "source_hash": 3562602994927112530,
+      "context_hash": 16746758135199951160,
+      "translation": "이 2개의 점이 주어지면 GPU는 `5,0`에서 `25,4`까지(끝점 제외) 선을 그립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:3",
+      "source": "To do this it will call our fragment shader 20 times, once for each of the pixels on that line.",
+      "source_hash": 12355773391654550108,
+      "context_hash": 2502369610399552101,
+      "translation": "이를 위해 GPU는 그 선 위의 픽셀마다 한 번씩, 총 20번 프래그먼트 셰이더를 호출합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:4",
+      "source": "Each time it calls our fragment shader it's up to us to decide what color to return.",
+      "source_hash": 1406258063879378729,
+      "context_hash": 17537589439142379513,
+      "translation": "프래그먼트 셰이더가 호출될 때마다 어떤 색을 반환할지는 우리가 결정할 몫입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:0",
+      "source": "Let's assume we have pair of functions that help us draw a line between 2 points.",
+      "source_hash": 4428141599962915188,
+      "context_hash": 17912495681924814507,
+      "translation": "두 점 사이에 선을 그리는 데 도움을 주는 한 쌍의 함수가 있다고 가정해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:1",
+      "source": "The first function computes how many pixels we need to draw and some values to help draw them.",
+      "source_hash": 6262469229370268507,
+      "context_hash": 9490322830355321170,
+      "translation": "첫 번째 함수는 그려야 할 픽셀 수와 그것을 그리는 데 도움이 되는 몇 가지 값을 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:2",
+      "source": "The second takes that info plus a pixel number and gives us a pixel position.",
+      "source_hash": 3714686734629010572,
+      "context_hash": 2406723060331208809,
+      "translation": "두 번째 함수는 그 정보와 픽셀 번호를 받아 픽셀 위치를 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:3",
+      "source": "Example:",
+      "source_hash": 2367275816953728862,
+      "context_hash": 14663014531956120186,
+      "translation": "예시:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:0",
+      "source": "Note: How `calcLine` and `calcLinePoint` work are unimportant, what's important is that they do work and let the loop above provide the pixel positions for a line. **Though if you're curious, see the live code example near the bottom of the article.**",
+      "source_hash": 2155447495030420659,
+      "context_hash": 10920137020756063549,
+      "translation": "참고: `calcLine`과 `calcLinePoint`가 어떻게 동작하는지는 중요하지 않으며, 중요한 것은 이 함수들이 실제로 동작하여 위의 루프가 선의 픽셀 위치를 제공할 수 있게 한다는 점입니다. **다만 궁금하신 분은 이 글 하단 근처에 있는 실시간 코드 예제를 참고하십시오.**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:0",
+      "source": "So, let's change our vertex shader so it outputs 2 values per iteration.",
+      "source_hash": 13820930871055608322,
+      "context_hash": 1501639618131987961,
+      "translation": "그러면 정점 셰이더가 한 번의 반복에서 2개의 값을 출력하도록 바꿔봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:05:43.479462Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:1",
+      "source": "We could do that in many ways.",
+      "source_hash": 3029940348849304940,
+      "context_hash": 13982380319764124184,
+      "translation": "이를 구현하는 방법은 여러 가지가 있을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:2",
+      "source": "Here's one.",
+      "source_hash": 15910433429106698119,
+      "context_hash": 12659708109767602943,
+      "translation": "여기 그 중 하나가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:49/seg:0",
+      "source": "Now let's write some code that loops over points 2 at a time and calls `rasterizeLines` to rasterize a line.",
+      "source_hash": 7990779882351249905,
+      "context_hash": 2805013159052836640,
+      "translation": "이제 점들을 2개씩 순회하면서 `rasterizeLines`를 호출하여 선을 래스터화하는 코드를 작성해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:51/seg:0",
+      "source": "We can update `draw` to use that code like this",
+      "source_hash": 2296983454393094662,
+      "context_hash": 15886517571081945563,
+      "translation": "`draw`를 다음과 같이 그 코드를 사용하도록 업데이트할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:0",
+      "source": "Now we're actually using `internalBuffer` 😃!",
+      "source_hash": 4778588004863973785,
+      "context_hash": 12242785913639024385,
+      "translation": "이제 우리는 실제로 `internalBuffer`를 사용하고 있습니다 😃!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:54/seg:0",
+      "source": "Let's update the code that calls `draw`.",
+      "source_hash": 5519839737372389063,
+      "context_hash": 883735527781289795,
+      "translation": "`draw`를 호출하는 코드를 업데이트해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:0",
+      "source": "If we print `pixels` as a rectangle where `0` becomes `.` we'd get this",
+      "source_hash": 12808884840640723238,
+      "context_hash": 1774557994199650549,
+      "translation": "`pixels`를 `0`이 `.`이 되는 직사각형 형태로 출력하면 다음과 같은 결과를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:58/seg:0",
+      "source": "Unfortunately, our fragment shader gets no input that changes each iteration so there is no way to output anything different for each pixel.",
+      "source_hash": 1465037760916647604,
+      "context_hash": 3012665441693463385,
+      "translation": "안타깝게도, 우리의 프래그먼트 셰이더는 반복마다 달라지는 입력을 받지 않기 때문에 픽셀마다 다른 값을 출력할 방법이 없습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:58/seg:1",
+      "source": "This is where inter-stage variables come in.",
+      "source_hash": 7112361829872616298,
+      "context_hash": 8609175959090604632,
+      "translation": "바로 이 지점에서 스테이지 간 변수가 등장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479463Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:58/seg:2",
+      "source": "Let's change our first shader to output an extra value.",
+      "source_hash": 6396534278393946758,
+      "context_hash": 4685354755418074127,
+      "translation": "첫 번째 셰이더를 바꿔서 추가 값을 출력하도록 해봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:43.479464Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:60/seg:0",
+      "source": "If we changed nothing else, after the loop inside `draw`, `internalBuffer` would have these values",
+      "source_hash": 16531692570192789968,
+      "context_hash": 13215273099996654560,
+      "translation": "다른 것을 아무것도 바꾸지 않았다면, `draw` 안의 루프 이후 `internalBuffer`는 다음과 같은 값을 갖게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479464Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:62/seg:0",
+      "source": "We can easily compute a value from 0.0 to 1.0 that represents how far along the line we are.",
+      "source_hash": 10868791059884357364,
+      "context_hash": 6415736118567812071,
+      "translation": "우리는 선을 따라 얼마나 진행했는지를 나타내는 0.0에서 1.0 사이의 값을 쉽게 계산할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479464Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:62/seg:1",
+      "source": "We can use this to interpolate the extra value we just added.",
+      "source_hash": 16573997143208722968,
+      "context_hash": 5101302279721562387,
+      "translation": "이를 이용해 방금 추가한 추가 값을 보간할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:05:43.479464Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:64/seg:0",
+      "source": "Now we can use those inter-stage variables in our fragment shader",
+      "source_hash": 3630830531046399097,
+      "context_hash": 12082728220500847145,
+      "translation": "이제 프래그먼트 셰이더에서 이러한 스테이지 간 변수를 사용할 수 있습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:05:43.479464Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:66/seg:0",
+      "source": "If we ran it now we'd see results like this",
+      "source_hash": 1508391946017874848,
+      "context_hash": 1951355058067940193,
+      "translation": "지금 실행하면 다음과 같은 결과를 볼 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978459Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:68/seg:0",
+      "source": "The first iteration of the vertex shader output `[[5,0], [9]]` and the 2nd iteration output `[[25,4], [3]]` and you can see, as the fragment shader was called, the 2nd value of each of those was interpolated between the two values.",
+      "source_hash": 9985317774481093120,
+      "context_hash": 2274000215180864636,
+      "translation": "정점 셰이더의 첫 번째 반복은 `[[5,0], [9]]`를 출력했고 2번째 반복은 `[[25,4], [3]]`을 출력했으며, 프래그먼트 셰이더가 호출될 때 각각의 두 번째 값이 두 값 사이에서 보간된 것을 볼 수 있습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:03:45.978460Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:69/seg:0",
+      "source": "We could make another function `mapTriangle` that given 3 points rasterized a triangle calling the fragment shader function for each point inside the triangle.",
+      "source_hash": 12246734349305833072,
+      "context_hash": 11741773698047698027,
+      "translation": "3개의 점이 주어졌을 때 삼각형을 래스터화하여 삼각형 내부의 각 점에 대해 프래그먼트 셰이더 함수를 호출하는 `mapTriangle`이라는 또 다른 함수를 만들 수 있습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:03:45.978733Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:69/seg:1",
+      "source": "It would interpolate the inter-stage variables from 3 points instead of 2.",
+      "source_hash": 13743584196840223723,
+      "context_hash": 12431480822513963404,
+      "translation": "이는 2개가 아닌 3개의 점으로부터 스테이지 간 변수를 보간할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978734Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:70/seg:0",
+      "source": "Here are all the examples above running live in case you find it useful to play around with them to understand them.",
+      "source_hash": 10674487742735354756,
+      "context_hash": 558004294916182303,
+      "translation": "이해에 도움이 될 수 있도록 직접 실행해볼 수 있는 위의 모든 예제를 여기에 준비했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978734Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:71/seg:0",
+      "source": "{{{example url=\"../webgpu-javascript-analogies.html\"}}}",
+      "source_hash": 17454555512331458959,
+      "context_hash": 6328779745015926222,
+      "translation": "{{{example url=\"../webgpu-javascript-analogies.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:45.978734Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:72/seg:0",
+      "source": "What happens in the JavaScript above is an analogy.",
+      "source_hash": 8426972478715143885,
+      "context_hash": 8423204104622467402,
+      "translation": "위의 JavaScript에서 일어나는 일은 하나의 비유입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978734Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:72/seg:1",
+      "source": "The details of how inter-stage variables are actually interpolated, how lines are drawn, how buffers are accessed, how textures are sampled, uniforms, attributes specified, etc... are different in WebGPU, but the concepts are very similar so I hope this JavaScript analogy provided some help in getting a mental model of what's happening.",
+      "source_hash": 1036148528877691691,
+      "context_hash": 7944008093128374099,
+      "translation": "스테이지 간 변수가 실제로 어떻게 보간되는지, 선이 어떻게 그려지는지, 버퍼에 어떻게 접근하는지, 텍스처가 어떻게 샘플링되는지, 유니폼과 어트리뷰트가 어떻게 지정되는지 등의 세부 사항은 WebGPU에서 다르지만, 개념은 매우 유사하므로 이 JavaScript 비유가 무슨 일이 일어나고 있는지에 대한 정신적 모델을 얻는 데 도움이 되었기를 바랍니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:45.978735Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:0",
+      "source": "Why is it this way?",
+      "source_hash": 6722790368563403697,
+      "context_hash": 17213224439677769544,
+      "translation": "왜 이런 방식일까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978735Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:1",
+      "source": "Well, if you look at `draw` and `rasterizeLines` you might notice that each iteration is entirely independent of the other iterations.",
+      "source_hash": 4594833322263614282,
+      "context_hash": 5354944195472026618,
+      "translation": "`draw`와 `rasterizeLines`를 보면 각 반복이 다른 반복과 완전히 독립적이라는 것을 알아챌 수 있을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978735Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:2",
+      "source": "Another way to say this, you could process each iteration in any order.",
+      "source_hash": 18052395626406241479,
+      "context_hash": 859675800885769646,
+      "translation": "다르게 말하면, 각 반복을 어떤 순서로든 처리할 수 있다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978735Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:3",
+      "source": "Instead of 0, 1, 2, 3, 4 you could process them 3, 1, 4, 0, 2 and you'd get the exact same result.",
+      "source_hash": 15587107005627682173,
+      "context_hash": 6804170614367432748,
+      "translation": "0, 1, 2, 3, 4 대신 3, 1, 4, 0, 2 순서로 처리해도 정확히 같은 결과를 얻을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:4",
+      "source": "The fact that they are independent means each iteration can be run in parallel by a different processor.",
+      "source_hash": 15573443191334236460,
+      "context_hash": 12173907497838424241,
+      "translation": "이들이 독립적이라는 사실은 각 반복이 서로 다른 프로세서에 의해 병렬로 실행될 수 있다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:5",
+      "source": "Modern 2021 top end GPUs have 10000 or more processors.",
+      "source_hash": 7545589120895884214,
+      "context_hash": 18249715863133483163,
+      "translation": "2021년 기준 최신 최상위 GPU는 10000개 이상의 프로세서를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:6",
+      "source": "That means up to 10000 things can be run in parallel.",
+      "source_hash": 8159166088933957574,
+      "context_hash": 250919575010288341,
+      "translation": "이는 최대 10000개의 작업이 병렬로 실행될 수 있다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:7",
+      "source": "That is where the power of using the GPU comes from.",
+      "source_hash": 17385594382501090959,
+      "context_hash": 13668236919050952732,
+      "translation": "바로 여기에서 GPU를 사용하는 힘이 나옵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:8",
+      "source": "By following these patterns the system can massively parallelize the work.",
+      "source_hash": 6892562882768726964,
+      "context_hash": 5651895603402785562,
+      "translation": "이러한 패턴을 따름으로써 시스템은 작업을 대규모로 병렬화할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:74/seg:0",
+      "source": "The biggest limitations are:",
+      "source_hash": 16699554705401864292,
+      "context_hash": 12715780620364795914,
+      "translation": "가장 큰 제약 사항은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:75/seg:0",
+      "source": "A shader function can only reference its inputs (attributes, buffers, textures, uniforms, inter-stage variables).",
+      "source_hash": 15195096281020728989,
+      "context_hash": 15500186313996313806,
+      "translation": "셰이더 함수는 자신의 입력(어트리뷰트, 버퍼, 텍스처, 유니폼, 스테이지 간 변수)만 참조할 수 있습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:03:45.978736Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:76/seg:0",
+      "source": "A shader can not allocate memory.",
+      "source_hash": 3683820553085849907,
+      "context_hash": 18059185676992552206,
+      "translation": "셰이더는 메모리를 할당할 수 없습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:03:45.978737Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:77/seg:0",
+      "source": "A shader has to be careful if it references things it writes to, the thing it's generating values for.",
+      "source_hash": 5947475219887678037,
+      "context_hash": 8093198883571855523,
+      "translation": "셰이더는 자신이 값을 쓰는 대상, 즉 값을 생성하고 있는 대상을 참조하는 경우 주의해야 합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:03:45.978737Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:0",
+      "source": "When you think about it this makes sense.",
+      "source_hash": 18196967399103432921,
+      "context_hash": 14899117383736746773,
+      "translation": "생각해보면 이는 타당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978737Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:1",
+      "source": "Imagine `fragShader` above tried to reference `dest` directly.",
+      "source_hash": 13757968376762815123,
+      "context_hash": 14847648507666993223,
+      "translation": "위의 `fragShader`가 `dest`를 직접 참조하려 했다고 상상해보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978737Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:2",
+      "source": "That would mean when trying to parallelize things it would be impossible to coordinate.",
+      "source_hash": 14407391123285029380,
+      "context_hash": 13124106230135650391,
+      "translation": "이는 작업을 병렬화하려 할 때 조율이 불가능해진다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978737Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:3",
+      "source": "Which iteration would go first?",
+      "source_hash": 221078939901584946,
+      "context_hash": 14690505165210229510,
+      "translation": "어느 반복이 먼저 실행되어야 할까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978738Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:4",
+      "source": "If the 3rd iteration referenced `dest[0]` then the 0th iteration would need to run first but if the 0th iteration referenced `dest[3]` then the 3rd iteration would need to run first.",
+      "source_hash": 3974483446945389234,
+      "context_hash": 15532841394587726263,
+      "translation": "3번째 반복이 `dest[0]`을 참조한다면 0번째 반복이 먼저 실행되어야 하지만, 0번째 반복이 `dest[3]`을 참조한다면 3번째 반복이 먼저 실행되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978738Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:79/seg:0",
+      "source": "Designing around this limitation also happens with CPUs and multiple thread or processes but in GPU land, with up to 10000 processors running at once, it takes special coordination.",
+      "source_hash": 5495484602031795780,
+      "context_hash": 11160240054339293036,
+      "translation": "이러한 제약을 고려한 설계는 CPU와 다중 스레드 또는 프로세스에서도 발생하지만, 최대 10000개의 프로세서가 동시에 실행되는 GPU 세계에서는 특별한 조율이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978738Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:79/seg:1",
+      "source": "We'll try to cover some of the techniques in other articles.",
+      "source_hash": 11636990533010895614,
+      "context_hash": 2221215068115191635,
+      "translation": "이러한 기법 중 일부는 다른 글에서 다루도록 하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:45.978738Z",
+      "issues": []
+    }
+  ]
+}

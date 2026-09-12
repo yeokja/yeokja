@@ -1,0 +1,995 @@
+{
+  "version": 1,
+  "source_hash": 4295226474781939382,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU - Directional Lighting Description: How to implement directional lighting in WebGPU TOC: Directional Lighting",
+      "source_hash": 13787715232246993003,
+      "context_hash": 16775075504616711055,
+      "translation": "제목: WebGPU - 방향성 조명 설명: WebGPU에서 방향성 조명을 구현하는 방법 TOC: 방향성 조명",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:14:27.535557Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This article is assumes you've read [the article on cameras](webgpu-cameras.html).",
+      "source_hash": 8399864782292040066,
+      "context_hash": 1986273310735812166,
+      "translation": "이 글은 [카메라에 관한 글](webgpu-cameras.html)을 읽었다고 가정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535563Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "There are many ways to implement lighting.",
+      "source_hash": 6948992203577895547,
+      "context_hash": 16974453686756313400,
+      "translation": "조명을 구현하는 방법에는 여러 가지가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535564Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Probably the simplest is *directional lighting*.",
+      "source_hash": 15502620818106302007,
+      "context_hash": 16986598136986646294,
+      "translation": "아마도 가장 간단한 것은 *방향성 조명*입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535565Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Directional lighting assumes the light is coming uniformly from one direction.",
+      "source_hash": 957568966282703343,
+      "context_hash": 10313659908404984445,
+      "translation": "방향성 조명은 빛이 한 방향에서 균일하게 들어온다고 가정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535565Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "The sun on a clear day is often considered a directional light.",
+      "source_hash": 428322111447640831,
+      "context_hash": 14768957137050291251,
+      "translation": "맑은 날의 태양은 흔히 방향성 광원으로 간주됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535565Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:2",
+      "source": "It's so far way that its rays can be considered to be hitting the surface of an object all in parallel.",
+      "source_hash": 9807696971696755712,
+      "context_hash": 8657468728338292358,
+      "translation": "태양은 너무 멀리 있어서 그 광선이 물체의 표면에 모두 평행하게 닿는다고 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535566Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "Computing directional lighting is actually pretty simple.",
+      "source_hash": 11874092821273035675,
+      "context_hash": 4592233497952329732,
+      "translation": "방향성 조명을 계산하는 것은 사실 꽤 간단합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535566Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "If we know what direction the light is traveling and we know what direction the surface of the object is facing we can take the *dot product* of the 2 directions and it will give us the cosine of the angle between the 2 directions.",
+      "source_hash": 5057329517226918612,
+      "context_hash": 1774711270540021541,
+      "translation": "빛이 진행하는 방향을 알고 물체의 표면이 향하는 방향을 안다면, 두 방향의 *내적*을 구할 수 있고, 이는 두 방향 사이 각도의 코사인 값을 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535567Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "Here's an example",
+      "source_hash": 10354955608149112439,
+      "context_hash": 15105587296896377820,
+      "translation": "예시를 하나 들어보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535568Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "{{{diagram url=\"resources/dot-product.html\" caption=\"drag the points\" width=\"700\" height=\"400\"}}}",
+      "source_hash": 945541316225090905,
+      "context_hash": 16451946433521377506,
+      "translation": "{{{diagram url=\"resources/dot-product.html\" caption=\"drag the points\" width=\"700\" height=\"400\"}}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535569Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "Drag the points around, if you get them exactly opposite of each other you'll see the dot product is -1.",
+      "source_hash": 6581680652953318750,
+      "context_hash": 6336140695718492078,
+      "translation": "점들을 드래그해서 정확히 서로 반대 방향에 놓이게 하면 내적이 -1이 되는 것을 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535569Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:1",
+      "source": "If they are at the same spot exactly the dot product is 1.",
+      "source_hash": 8232879198692440927,
+      "context_hash": 4847201583019758823,
+      "translation": "정확히 같은 위치에 있으면 내적은 1이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535569Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "How is that useful?",
+      "source_hash": 17767966045690612054,
+      "context_hash": 784418813301894983,
+      "translation": "이것이 왜 유용할까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535570Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:1",
+      "source": "Well if we know what direction the surface of our 3d object is facing and we know the direction the light is shining then we can just take the dot product of them and it will give us a number 1 if the light is pointing directly at the surface and -1 if they are pointing directly opposite.",
+      "source_hash": 8215618633849184694,
+      "context_hash": 9333605630295409284,
+      "translation": "3D 물체의 표면이 향하는 방향을 알고 빛이 비치는 방향을 안다면, 단순히 이 둘의 내적을 구하기만 하면 됩니다. 빛이 표면을 정면으로 향할 때는 1을, 정반대를 향할 때는 -1을 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535571Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "{{{diagram url=\"resources/directional-lighting.html\" caption=\"rotate the direction\" width=\"700\" height=\"400\"}}}",
+      "source_hash": 3113902017680619956,
+      "context_hash": 1509816964983694596,
+      "translation": "{{{diagram url=\"resources/directional-lighting.html\" caption=\"rotate the direction\" width=\"700\" height=\"400\"}}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535571Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "We can multiply our color by that dot product value and boom!",
+      "source_hash": 5346994109631640567,
+      "context_hash": 6897236826924071440,
+      "translation": "이 색상에 내적 값을 곱하면 짜잔! 조명입니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535572Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:1",
+      "source": "Light!",
+      "source_hash": 3897229135947421669,
+      "context_hash": 3804492682456507540,
+      "translation": "조명입니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535572Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "One problem, how do we know which direction the surfaces of our 3d object are facing.",
+      "source_hash": 943901555100634704,
+      "context_hash": 2402039528458436029,
+      "translation": "한 가지 문제가 있습니다. 3D 물체의 표면이 어느 방향을 향하는지 어떻게 알 수 있을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535572Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "<a id=\"a-normals\"></a> Introducing Normals",
+      "source_hash": 17288791983989340795,
+      "context_hash": 17741256316270395355,
+      "translation": "<a id=\"a-normals\"></a> 법선 소개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535573Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "I have no idea why they are called *normals* but at least in 3D graphics a normal is the word for a unit vector that describes the direction a surface is facing.",
+      "source_hash": 11475640679444719590,
+      "context_hash": 406273435664256935,
+      "translation": "왜 *법선(normal)*이라고 부르는지는 전혀 모르겠지만, 적어도 3D 그래픽스에서 법선은 표면이 향하는 방향을 나타내는 단위 벡터를 가리키는 용어입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535573Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Here are some normals for a cube and a sphere.",
+      "source_hash": 6465853575927708356,
+      "context_hash": 9019836930640149892,
+      "translation": "다음은 정육면체와 구의 법선 몇 가지입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535573Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "{{{diagram url=\"resources/normals.html\" width=\"700\" height=\"400\"}}}",
+      "source_hash": 12907193713353565878,
+      "context_hash": 12740392713145500282,
+      "translation": "{{{diagram url=\"resources/normals.html\" width=\"700\" height=\"400\"}}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535574Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "The lines sticking out of the objects represent normals for each vertex.",
+      "source_hash": 372798794780888495,
+      "context_hash": 13150784149206846877,
+      "translation": "물체에서 튀어나온 선들은 각 정점의 법선을 나타냅니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:14:27.535574Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Notice the cube has 3 normals at each corner.",
+      "source_hash": 14703043552477937176,
+      "context_hash": 2683922478555204917,
+      "translation": "정육면체의 각 모서리에 법선이 3개씩 있다는 점에 주목하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535575Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "That's because you need 3 different normals to represent the way each face of the cube is um, .. facing.",
+      "source_hash": 6114337399035417222,
+      "context_hash": 17966810596317196658,
+      "translation": "이는 정육면체의 각 면이 향하는 방향을 나타내려면 서로 다른 법선 3개가 필요하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Here the normals are also colored based on their direction with positive x being <span style=\"color: red;\">red</span>, up being <span style=\"color: green;\">green</span> and positive z being <span style=\"color: blue;\">blue</span>.",
+      "source_hash": 10470711553663030040,
+      "context_hash": 9211834676219007407,
+      "translation": "여기서 법선들은 방향에 따라 색상이 지정되어 있으며, 양의 x는 <span style=\"color: red;\">빨간색</span>, 위쪽은 <span style=\"color: green;\">초록색</span>, 양의 z는 <span style=\"color: blue;\">파란색</span>입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:27.535576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "So, let's go add normals to our `F` from [our previous examples](webgpu-cameras.html) so we can light it.",
+      "source_hash": 7863958003751045387,
+      "context_hash": 13167050363563721759,
+      "translation": "이제 [이전 예제](webgpu-cameras.html)의 `F`에 노멀을 추가하여 조명을 적용할 수 있도록 해봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699931Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "Since the `F` is very boxy and its faces are aligned to the x, y, or z axis it will be pretty easy.",
+      "source_hash": 93586272659045945,
+      "context_hash": 7559285419899195159,
+      "translation": "`F`는 매우 각진 형태이고 그 면들이 x, y, z 축에 정렬되어 있으므로 이는 꽤 쉬운 작업입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699931Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "Things that are facing forward have the normal `0, 0, 1` (positive Z).",
+      "source_hash": 9406147868160146024,
+      "context_hash": 12443096557188985966,
+      "translation": "앞을 향하고 있는 것들은 노멀이 `0, 0, 1`(양의 Z)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699932Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:3",
+      "source": "Things that are facing away are `0, 0, -1`. (negative Z).",
+      "source_hash": 15508654902235997625,
+      "context_hash": 18119030867300196856,
+      "translation": "뒤를 향하고 있는 것들은 `0, 0, -1`(음의 Z)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699932Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:4",
+      "source": "Facing left is `-1, 0, 0` (negative X), Facing right is `1, 0, 0` (Positive X).",
+      "source_hash": 6804262281951395695,
+      "context_hash": 2260970351923901045,
+      "translation": "왼쪽을 향하고 있는 것은 `-1, 0, 0`(음의 X)이고, 오른쪽을 향하고 있는 것은 `1, 0, 0`(양의 X)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699932Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:5",
+      "source": "Up is `0, 1, 0` (positive Y) and down is `0, -1, 0` (negative Y).",
+      "source_hash": 3250916790870070116,
+      "context_hash": 1434374246217992253,
+      "translation": "위쪽은 `0, 1, 0`(양의 Y)이고 아래쪽은 `0, -1, 0`(음의 Y)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699932Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:6",
+      "source": "While we're at it we'll get rid of the vertex colors since they'll make it harder to see the lighting.",
+      "source_hash": 5660843106076724254,
+      "context_hash": 1738845211885696303,
+      "translation": "이 김에 정점 색상은 제거하겠습니다. 조명 효과를 보기 어렵게 만들기 때문입니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:14:24.699933Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "We need to change our pipeline to use these normals instead of the colors",
+      "source_hash": 7049995936151260565,
+      "context_hash": 17593705096615598411,
+      "translation": "색상 대신 이 노멀들을 사용하도록 파이프라인을 변경해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699934Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Now we need to make our shaders use the normals",
+      "source_hash": 1006440404832092301,
+      "context_hash": 17392601109498952911,
+      "translation": "이제 셰이더가 노멀을 사용하도록 만들어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699934Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "In the vertex shader we just pass the normals through to the fragment shader",
+      "source_hash": 17625527636697827320,
+      "context_hash": 17386305819320627968,
+      "translation": "정점 셰이더에서는 노멀을 프래그먼트 셰이더로 그냥 전달하기만 합니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:14:24.699934Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "In the fragment shader we'll do the math using the dot product of the reverse direction of the light and the normal.",
+      "source_hash": 1739585960984766182,
+      "context_hash": 11741955082928069510,
+      "translation": "프래그먼트 셰이더에서는 빛의 반대 방향과 노멀의 내적을 이용해 계산을 수행합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:14:24.699934Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "We need to add space to our uniform buffer for the color and light direction and make views for setting them.",
+      "source_hash": 18032883519861736723,
+      "context_hash": 17981914253558924201,
+      "translation": "유니폼 버퍼에 색상과 빛의 방향을 위한 공간을 추가하고, 이를 설정하기 위한 뷰를 만들어야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:14:24.699935Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "and we need to set them",
+      "source_hash": 6851578352761269404,
+      "context_hash": 8616475980515697204,
+      "translation": "그리고 이를 설정해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699935Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "Our camera/eye is at z = 200 and it's looking at Z = 0.",
+      "source_hash": 8848413028852141657,
+      "context_hash": 11287247983790825138,
+      "translation": "우리의 카메라/눈은 z = 200에 있으며 Z = 0을 바라보고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699936Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:1",
+      "source": "In other words it's looking in the negative Z direction.",
+      "source_hash": 15916926100506642107,
+      "context_hash": 1214937650320704598,
+      "translation": "다시 말해, 음의 Z 방향을 바라보고 있는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699936Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "`normalize`, which we went over before, will make whatever values we put in there into a unit vector.",
+      "source_hash": 10611394604349528587,
+      "context_hash": 10096349989821748836,
+      "translation": "앞서 다룬 바 있는 `normalize`는 우리가 넣는 값이 무엇이든 단위 벡터로 만들어줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699936Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:1",
+      "source": "The specific values for the light in the sample are `x = -0.5` which is negative `x` but since we're looking in negative Z means the light is on the right pointing left. `y = -0.7` which is negative `y` means the light is above pointing down as down is -negative.. `z = -1` which is negative `z` means the light is pointing the same direction as our camera.",
+      "source_hash": 11269393850249037724,
+      "context_hash": 16671909723229500468,
+      "translation": "예제에서 빛에 대한 구체적인 값은 다음과 같습니다. `x = -0.5`는 음의 `x`이지만, 우리가 음의 Z 방향을 바라보고 있으므로 빛이 오른쪽에서 왼쪽을 향하고 있음을 의미합니다. `y = -0.7`은 음의 `y`이며, 빛이 위쪽에서 아래를 향하고 있음을 의미합니다. 아래쪽이 음수 방향이기 때문입니다. `z = -1`은 음의 `z`이며, 빛이 우리 카메라와 같은 방향을 향하고 있음을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699936Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:2",
+      "source": "The relative values means the direction is mostly pointing into the scene and pointing more down then right.",
+      "source_hash": 3246977798337333104,
+      "context_hash": 1981592903914332184,
+      "translation": "이 상대적인 값들은 방향이 대체로 장면 안쪽을 향하고 있으며, 오른쪽보다는 아래쪽을 더 많이 향하고 있음을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699936Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "And here it is",
+      "source_hash": 14719654840195250257,
+      "context_hash": 13403889706840198915,
+      "translation": "그리고 그 결과는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699936Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "{{{example url=\"../webgpu-lighting-directional.html\" }}}",
+      "source_hash": 4969540835414607340,
+      "context_hash": 1873198169542073168,
+      "translation": "{{{example url=\"../webgpu-lighting-directional.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:14:24.699937Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "If you rotate the F you might notice something.",
+      "source_hash": 10139042662491554739,
+      "context_hash": 16138886212642995980,
+      "translation": "F를 회전시켜 보면 무언가를 눈치챌 수 있을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699937Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:1",
+      "source": "The F is rotating but the lighting isn't changing.",
+      "source_hash": 6771682815193363552,
+      "context_hash": 17430128857580204109,
+      "translation": "F는 회전하고 있지만 조명은 변하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699937Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:2",
+      "source": "As the F rotates we want whatever part is facing the direction of the light to be the brightest.",
+      "source_hash": 13835068761584776248,
+      "context_hash": 17529157523630616125,
+      "translation": "F가 회전할 때 빛의 방향을 향하고 있는 부분이 가장 밝게 보이기를 원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699937Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "To fix this we need to re-orient the normals as the object is re-oriented.",
+      "source_hash": 38286090847711011,
+      "context_hash": 4568522507215673335,
+      "translation": "이를 고치기 위해서는 객체가 재배치될 때 노멀도 함께 재배치해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699937Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:1",
+      "source": "Like we did for positions we can multiply the normals by some matrix.",
+      "source_hash": 14684029132558347620,
+      "context_hash": 15626846077261746607,
+      "translation": "위치에 대해 했던 것처럼, 노멀에 어떤 행렬을 곱할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699937Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:2",
+      "source": "The most obvious matrix would be the `world` matrix.",
+      "source_hash": 14365105762382519376,
+      "context_hash": 3371389082669121232,
+      "translation": "가장 명백한 행렬은 `world` 행렬일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699937Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:3",
+      "source": "As it is right now we're only passing in one matrix.",
+      "source_hash": 608283797510507378,
+      "context_hash": 1891714728257589282,
+      "translation": "현재로서는 행렬을 하나만 전달하고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699938Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:4",
+      "source": "Let's change it to pass in 2 matrices.",
+      "source_hash": 15171509694476305470,
+      "context_hash": 15240461107037719651,
+      "translation": "이를 변경하여 행렬 2개를 전달하도록 합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699938Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:5",
+      "source": "One called `world` which will be the world matrix.",
+      "source_hash": 7082489950916481192,
+      "context_hash": 621741468289734003,
+      "translation": "하나는 `world`라고 부르며, 이는 월드 행렬이 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699938Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:6",
+      "source": "Another called `worldViewProjection` which will be what we're currently passing in as `matrix`",
+      "source_hash": 17784361950455456101,
+      "context_hash": 1547300466298035415,
+      "translation": "다른 하나는 `worldViewProjection`이라고 부르며, 이는 현재 `matrix`로 전달하고 있는 것이 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:24.699938Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:0",
+      "source": "Notice we are are passing in 0 for W when we multiple the normal by `uni.world`.",
+      "source_hash": 14756624487150810320,
+      "context_hash": 6273820848899894978,
+      "translation": "노멀을 `uni.world`로 곱할 때 W에 0을 전달하고 있다는 점에 주목하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398792Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:1",
+      "source": "That's because normals are a direction so we don't care about translation.",
+      "source_hash": 13344487396566905454,
+      "context_hash": 8511140124658196191,
+      "translation": "이는 노멀(normal)이 방향이기 때문에 이동은 신경 쓰지 않아도 되기 때문입니다.",
+      "glossary_snapshot": {
+        "translation": "이동"
+      },
+      "translated_at": "2026-09-12T08:23:37.280786Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:2",
+      "source": "By setting `w` to 0, all the translation will be multiplied by zero[^matrix-math].",
+      "source_hash": 7070559956048506446,
+      "context_hash": 11097455321276125343,
+      "translation": "`w`를 0으로 설정하면 모든 이동 값에 0이 곱해집니다[^matrix-math].",
+      "glossary_snapshot": {
+        "translation": "이동"
+      },
+      "translated_at": "2026-09-12T08:23:37.280787Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "see the article on [matrix math](webgpu-matrix-math.html).",
+      "source_hash": 9178577892466635820,
+      "context_hash": 4078564384033338654,
+      "translation": "[행렬 수학](webgpu-matrix-math.html)에 관한 글을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398792Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:0",
+      "source": "We need to go update our uniform buffer and values views.",
+      "source_hash": 10198971278654224241,
+      "context_hash": 17465333425676262466,
+      "translation": "유니폼 버퍼와 값 뷰를 업데이트해야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:31/seg:0",
+      "source": "And we have to change the code that updates them",
+      "source_hash": 9885384034856821625,
+      "context_hash": 13158076508223207229,
+      "translation": "그리고 그것들을 업데이트하는 코드를 변경해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:0",
+      "source": "and here's that",
+      "source_hash": 17536975725004696805,
+      "context_hash": 8895272834995015183,
+      "translation": "그 코드는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:34/seg:0",
+      "source": "{{{example url=\"../webgpu-lighting-directional-world.html\" }}}",
+      "source_hash": 167026747403147678,
+      "context_hash": 9697590547475926203,
+      "translation": "{{{example url=\"../webgpu-lighting-directional-world.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:35/seg:0",
+      "source": "Rotate the F and notice which ever side is facing the light direction gets lit.",
+      "source_hash": 9229866715357195028,
+      "context_hash": 15470706000150448745,
+      "translation": "F를 회전시키면서 빛 방향을 향하고 있는 쪽이 밝아지는 것을 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:0",
+      "source": "There is one problem which I don't know how to show directly so I'm going to show it in a diagram.",
+      "source_hash": 2236593690158983192,
+      "context_hash": 9572567030185746906,
+      "translation": "직접 보여줄 방법을 모르는 문제가 하나 있어서, 다이어그램으로 보여드리겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:1",
+      "source": "We're multiplying the `normal` by the `world` matrix to re-orient the normals.",
+      "source_hash": 12721192417570961510,
+      "context_hash": 4220851050151578404,
+      "translation": "노멀을 재배치하기 위해 `normal`에 `world` 행렬을 곱하고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:2",
+      "source": "What happens if we scale the world matrix?",
+      "source_hash": 13142034939368744911,
+      "context_hash": 13205052197712971160,
+      "translation": "world 행렬을 스케일하면 어떻게 될까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:3",
+      "source": "It turns out we get the wrong normals.",
+      "source_hash": 16742355093651103098,
+      "context_hash": 17756364236192476077,
+      "translation": "결과적으로 잘못된 노멀이 나옵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:37/seg:0",
+      "source": "{{{diagram url=\"resources/normals-scaled.html\" caption=\"click to toggle normals\" width=\"700\" height=\"400\" }}}",
+      "source_hash": 2013826226109776243,
+      "context_hash": 16695081536467801010,
+      "translation": "{{{diagram url=\"resources/normals-scaled.html\" caption=\"click to toggle normals\" width=\"700\" height=\"400\" }}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:38/seg:0",
+      "source": "I've never bothered to understand the solution but it turns out you can get the inverse of the world matrix, transpose it, which means swap the columns for rows, and use that instead and you'll get the right answer.",
+      "source_hash": 9359376608721694940,
+      "context_hash": 8052678424812795480,
+      "translation": "저는 그 해법을 제대로 이해하려고 해본 적이 없지만, world 행렬의 역행렬을 구한 뒤 전치(transpose)—즉 열과 행을 서로 바꾸는 것—하여 그것을 대신 사용하면 올바른 답을 얻을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:39/seg:0",
+      "source": "In the diagram above the <span style=\"color: #F0F;\">purple</span> sphere is unscaled.",
+      "source_hash": 15818264083124444356,
+      "context_hash": 16575886666840775875,
+      "translation": "위 다이어그램에서 <span style=\"color: #F0F;\">보라색</span> 구체는 스케일되지 않은 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398793Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:39/seg:1",
+      "source": "The <span style=\"color: #F00;\">red</span> sphere on the left is scaled and the normals are being multiplied by the world matrix.",
+      "source_hash": 8994011665061425511,
+      "context_hash": 18187308707681750485,
+      "translation": "왼쪽의 <span style=\"color: #F00;\">빨간색</span> 구체는 스케일되었고 노멀에 world 행렬을 곱하고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:39/seg:2",
+      "source": "You can see something is wrong.",
+      "source_hash": 16415380162316341529,
+      "context_hash": 3448176972829383855,
+      "translation": "무언가 잘못되었다는 것을 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:39/seg:3",
+      "source": "The <span style=\"color: #00F;\">blue</span> sphere on the right is using the world inverse transpose matrix.",
+      "source_hash": 7891859743146435765,
+      "context_hash": 11403703969282942055,
+      "translation": "오른쪽의 <span style=\"color: #00F;\">파란색</span> 구체는 world inverse transpose 행렬을 사용하고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:0",
+      "source": "Click the diagram to cycle through different representations.",
+      "source_hash": 3996894940332019679,
+      "context_hash": 8739917792739087964,
+      "translation": "다이어그램을 클릭하여 다양한 표현 방식을 순환해 보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:1",
+      "source": "You should notice when the scale is extreme it's very easy to see the normals on the left (world) are **not** staying perpendicular to the surface of the sphere where as the ones on the right (worldInverseTranspose) are staying perpendicular to the sphere.",
+      "source_hash": 12138742567959045971,
+      "context_hash": 13381911740363947688,
+      "translation": "스케일이 극단적일 때 왼쪽(world)의 노멀은 구체 표면에 수직을 **유지하지 못하는** 반면, 오른쪽(worldInverseTranspose)의 노멀은 구체 표면에 수직을 유지하고 있다는 것을 매우 쉽게 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:2",
+      "source": "The last mode makes them all shaded red.",
+      "source_hash": 15364946571983526177,
+      "context_hash": 14831245154196202423,
+      "translation": "마지막 모드는 모든 것을 빨갛게 음영 처리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:3",
+      "source": "You should see the lighting on the 2 outer spheres is very different based on which matrix is used.",
+      "source_hash": 1616365672311166225,
+      "context_hash": 8784054812434601034,
+      "translation": "어떤 행렬을 사용하는지에 따라 바깥쪽 2개의 구체의 조명이 매우 다르게 나타나는 것을 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:4",
+      "source": "It's hard to tell which is correct which is why this is a subtle issue but based on the other visualizations it's clear using the worldInverseTranspose is correct.",
+      "source_hash": 10030619881045561024,
+      "context_hash": 4676431258649320715,
+      "translation": "어느 쪽이 맞는지 구분하기 어려워서 이것이 미묘한 문제이긴 하지만, 다른 시각화 자료들을 보면 worldInverseTranspose를 사용하는 것이 옳다는 것이 분명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:0",
+      "source": "To implement this in our example let's change the code like this.",
+      "source_hash": 3347115132475078623,
+      "context_hash": 11908487212961602366,
+      "translation": "이를 우리 예제에 구현하기 위해 코드를 다음과 같이 변경해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:1",
+      "source": "First we'll update the shader.",
+      "source_hash": 3418190742904127801,
+      "context_hash": 7708666186071750030,
+      "translation": "먼저 셰이더를 업데이트하겠습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:2",
+      "source": "Technically we could just update the value of `world` but it's best if we rename things so they're named what they actually are otherwise it will get confusing.",
+      "source_hash": 15233659809611321755,
+      "context_hash": 15903272120804820214,
+      "translation": "엄밀히 말하면 `world`의 값만 업데이트해도 되지만, 혼란을 피하기 위해서는 이름을 실제로 의미하는 대로 다시 짓는 것이 가장 좋습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:3",
+      "source": "We could call it `worldInverseTranspose` but it's common to call it a `normalMatrix` and since we really only care about how it orients the normal we really only need a 3x3 matrix.",
+      "source_hash": 16903517499733736438,
+      "context_hash": 7870819781044673681,
+      "translation": "`worldInverseTranspose`라고 부를 수도 있지만, 일반적으로 `normalMatrix`라고 부르며, 노멀을 어떻게 재배치하는지만 신경 쓰면 되므로 실제로는 3x3 행렬만 있으면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:43/seg:0",
+      "source": "Because we're using a 3x3 matrix our normal calculation got slightly simpler.",
+      "source_hash": 6074610019347069948,
+      "context_hash": 12303145941062371290,
+      "translation": "3x3 행렬을 사용하기 때문에 노멀 계산이 약간 더 간단해졌습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398794Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:44/seg:0",
+      "source": "And of course we need to update the JavaScript for the new shape of our uniforms.",
+      "source_hash": 10372898922591922725,
+      "context_hash": 15297322661248844616,
+      "translation": "그리고 당연히 유니폼의 새로운 형태에 맞춰 JavaScript도 업데이트해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398795Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:46/seg:0",
+      "source": "Before we can compute our normal matrix we need a function to transpose a matrix",
+      "source_hash": 16934827918542037785,
+      "context_hash": 4951013317767550718,
+      "translation": "노멀 행렬을 계산하기 전에 행렬을 전치하는 함수가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398795Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:48/seg:0",
+      "source": "And we need a function to get a 3x3 matrix from a 4x4 matrix",
+      "source_hash": 2988363801950728476,
+      "context_hash": 13565775196957308031,
+      "translation": "그리고 4x4 행렬에서 3x3 행렬을 얻어내는 함수도 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:35.398795Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:50/seg:0",
+      "source": "Notice that a 3x3 matrix in WebGPU has each column padded.",
+      "source_hash": 6348165717283180267,
+      "context_hash": 177868262930323641,
+      "translation": "WebGPU에서 3x3 행렬은 각 열이 패딩되어 있다는 점에 유의하십시오.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T06:56:36.101198Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:50/seg:1",
+      "source": "We covered this in [the article on memory layout](webgpu-memory-layout.html).",
+      "source_hash": 17982347585938799856,
+      "context_hash": 303690492888831214,
+      "translation": "이 내용은 [메모리 레이아웃에 관한 문서](webgpu-memory-layout.html)에서 다루었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:56:36.101198Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:51/seg:0",
+      "source": "Now that we have these 2 functions we can compute and set the normal matrix.",
+      "source_hash": 8270996033949012550,
+      "context_hash": 15869856805009576970,
+      "translation": "이제 이 두 함수가 있으므로 노멀 행렬을 계산하고 설정할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:56:36.101199Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:53/seg:0",
+      "source": "Because the effect is subtle and because we aren't scaling anything there's no noticeable difference but at least now we're prepared.",
+      "source_hash": 12642356062328389960,
+      "context_hash": 13466712409875764075,
+      "translation": "그 효과가 미묘하고 아무것도 스케일링하지 않기 때문에 눈에 띄는 차이는 없지만, 적어도 이제는 준비가 되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:56:36.101199Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:54/seg:0",
+      "source": "{{{example url=\"../webgpu-lighting-directional-worldinversetranspose.html\" }}}",
+      "source_hash": 14304296985373310168,
+      "context_hash": 2693826875530471957,
+      "translation": "{{{example url=\"../webgpu-lighting-directional-worldinversetranspose.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T06:56:36.101199Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:55/seg:0",
+      "source": "I hope this first step into lighting was clear.",
+      "source_hash": 15474244738281416034,
+      "context_hash": 9305144533466848066,
+      "translation": "라이팅에 대한 이 첫걸음이 명확했기를 바랍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:56:36.101199Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:55/seg:1",
+      "source": "Next up [point lighting](webgpu-lighting-point.html).",
+      "source_hash": 17013304773618051088,
+      "context_hash": 2640586233173148648,
+      "translation": "다음은 [점 조명](webgpu-lighting-point.html)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:56:36.101199Z",
+      "issues": []
+    }
+  ]
+}

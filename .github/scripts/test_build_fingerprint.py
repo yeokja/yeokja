@@ -31,7 +31,7 @@ class BuildFingerprintTests(unittest.TestCase):
         # Real projects gitignore ko/ (it's reconstructed from state/ on every
         # run) — without this, a later `git add -A` in a test would pick it
         # up as newly tracked and shift the fingerprint on its own.
-        self.write(self.project / ".gitignore", "ko/\n")
+        self.write(self.project / ".gitignore", "ko/\nko-ui/\n")
         self.write(self.project / "yeokja.toml", "[project]\n")
         self.state_dir = self.project / "state"
         self.state_dir.mkdir()
@@ -104,6 +104,28 @@ class BuildFingerprintTests(unittest.TestCase):
         self.write(self.project / "yeokja.toml", "[project]\nextra = true\n")
         run_git(["add", "-A"], self.root)
         run_git(["commit", "-q", "-m", "tweak config"], self.root)
+        self.assertNotEqual(before, self.fingerprint())
+
+    def test_ui_translation_changes_invalidate_after_output_reconstruction(self) -> None:
+        state = self.state_dir / "ui" / "index.md.yeokja.json"
+        output = self.project / "ko-ui" / "index.md"
+        self.write(state, '{"translation": "이전 제목"}')
+        self.write(output, "이전 제목")
+        run_git(["add", "-A"], self.root)
+        before = self.fingerprint()
+
+        # State is excluded: only the reconstructed renderer input should
+        # invalidate the build, just like the book translation under ko/.
+        self.write(state, '{"translation": "새 제목"}')
+        run_git(["add", "-A"], self.root)
+        self.assertEqual(before, self.fingerprint())
+        self.write(output, "새 제목")
+        self.assertNotEqual(before, self.fingerprint())
+
+    def test_missing_ui_output_is_stable_until_reconstructed(self) -> None:
+        before = self.fingerprint()
+        self.assertEqual(before, self.fingerprint())
+        self.write(self.project / "ko-ui" / "index.md", "한국어 제목")
         self.assertNotEqual(before, self.fingerprint())
 
     def test_changing_only_state_leaves_the_fingerprint_unchanged(self) -> None:

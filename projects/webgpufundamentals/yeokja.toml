@@ -1,0 +1,71 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+[[sources]]
+path = "upstream/webgpu/lessons"
+pattern = "*.md"
+parser = "markdown"
+output = "ko/webgpu/lessons/ko/{path}"
+
+[provider]
+type = "claude_code"
+model = "claude-sonnet-5"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = false
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 4
+batch_segments = 32
+
+[build.html]
+command = '''
+set -eu
+tree=$PWD
+python3 "$YEOKJA_ROOT/scripts/verify_sources.py"
+build_dir=$(mktemp -d)
+trap 'rm -rf "$build_dir"' EXIT
+cp -RL . "$build_dir/tree"
+cd "$build_dir/tree"
+PUPPETEER_SKIP_DOWNLOAD=true npm ci --no-audit --no-fund
+if [ -z "${PUPPETEER_EXECUTABLE_PATH:-}" ]; then
+  node node_modules/@gfxfundamentals/lesson-builder/node_modules/puppeteer/install.mjs
+fi
+python3 "$YEOKJA_ROOT/scripts/prepare_build.py"
+GIT_DIR="$(git -C "$YEOKJA_ROOT/upstream" rev-parse --absolute-git-dir)" GIT_WORK_TREE="$PWD" npx grunt build
+python3 "$YEOKJA_ROOT/scripts/prepare_site.py" out
+rm -rf "$tree/site"
+cp -R out "$tree/site"
+python3 "$YEOKJA_ROOT/scripts/verify_site.py" "$tree/site"
+'''
+outputs = ["site"]
+
+[[sources]]
+path = "metadata"
+pattern = "*.md"
+parser = "markdown"
+output = "ko-metadata/{path}"
+
+[[sources]]
+path = "upstream/webgpu/lessons"
+pattern = "*.inc.html"
+parser = "markdown"
+output = "ko/webgpu/lessons/ko/{path}"
+
+[[sources]]
+path = "upstream/webgpu/lessons"
+pattern = "toc.html"
+parser = "markdown"
+output = "ko/webgpu/lessons/ko/{path}"

@@ -1,0 +1,1882 @@
+{
+  "version": 1,
+  "source_hash": 8343561093553127707,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU Data Memory Layout Description: How to layout and prepare data for WebGPU TOC: Data Memory Layout",
+      "source_hash": 11007473767767785618,
+      "context_hash": 6235850005958406985,
+      "translation": "제목: WebGPU 데이터 메모리 레이아웃 설명: WebGPU를 위한 데이터 레이아웃 및 준비 방법 목차: 데이터 메모리 레이아웃",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:01.009995Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "In WebGPU, nearly all of the data you provide to it needs to be layed out in memory to match what you define in your shaders.",
+      "source_hash": 14937942714879598162,
+      "context_hash": 14704091771378068335,
+      "translation": "WebGPU에서는 여러분이 제공하는 거의 모든 데이터가 셰이더에서 정의한 내용과 일치하도록 메모리에 배치되어야 합니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:03:01.009997Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "This is a big contrast to JavaScript and TypeScript where memory layout issues rarely come up.",
+      "source_hash": 7586195118783651762,
+      "context_hash": 12998609842663907534,
+      "translation": "이는 메모리 레이아웃 문제가 거의 발생하지 않는 JavaScript 및 TypeScript와 큰 대조를 이룹니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.009998Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "In WGSL when you write your shaders, it's common to define `struct`s.",
+      "source_hash": 12981757796930553375,
+      "context_hash": 11878794976090921803,
+      "translation": "WGSL로 셰이더를 작성할 때 `struct`를 정의하는 것이 일반적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.009998Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Structs are kind of like JavaScript objects, you declare members of a struct, similar to properties of a JavaScript object.",
+      "source_hash": 17900789278041727750,
+      "context_hash": 17615675055410736452,
+      "translation": "구조체(struct)는 JavaScript 객체와 비슷한데, JavaScript 객체의 프로퍼티와 유사하게 구조체의 멤버를 선언합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.009998Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "But, on top of giving each property a name, you also have to give it a type. **AND**, when providing the data **it's up to you** to compute where in a buffer that particular member of the struct will appear.",
+      "source_hash": 10981227639623402624,
+      "context_hash": 6369136154375979749,
+      "translation": "하지만 각 프로퍼티에 이름을 부여하는 것에 더해, 타입도 부여해야 합니다. **그리고** 데이터를 제공할 때 구조체의 특정 멤버가 버퍼의 어느 위치에 나타날지 계산하는 것은 **여러분의 몫**입니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:01.009999Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "In [WGSL](webgpu-wgsl.html) v1, there are 4 base types",
+      "source_hash": 12743370036045403025,
+      "context_hash": 2248667241141385912,
+      "translation": "[WGSL](webgpu-wgsl.html) v1에는 4가지 기본 타입이 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.009999Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "`f32` (a 32bit floating point number)",
+      "source_hash": 6434459748291000867,
+      "context_hash": 15188699266541944581,
+      "translation": "`f32` (32비트 부동소수점 수)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.009999Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "`i32` (a 32bit integer)",
+      "source_hash": 5512692219924252407,
+      "context_hash": 6819955607370161127,
+      "translation": "`i32` (32비트 정수)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "`u32` (a 32bit unsigned integer)",
+      "source_hash": 5373297039216277434,
+      "context_hash": 7880261250935532222,
+      "translation": "`u32` (32비트 부호 없는 정수)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "`f16` (a 16bit floating point number) [^f16-optional]",
+      "source_hash": 172744397762624650,
+      "context_hash": 17016784412901794993,
+      "translation": "`f16` (16비트 부동소수점 수) [^f16-optional]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "`f16` support is an [optional feature](webgpu-limits-and-features.html)",
+      "source_hash": 17654722029314183679,
+      "context_hash": 13549648528014131345,
+      "translation": "`f16` 지원은 [선택적 기능](webgpu-limits-and-features.html)입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "A byte is 8 bits so a 32 bit value takes 4 bytes and a 16 bit value takes 2 bytes.",
+      "source_hash": 5502031940809172981,
+      "context_hash": 16256468017990362474,
+      "translation": "1바이트는 8비트이므로, 32비트 값은 4바이트를 차지하고 16비트 값은 2바이트를 차지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010001Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "If we declare a struct like this",
+      "source_hash": 2770060665234171132,
+      "context_hash": 13829893525330413721,
+      "translation": "다음과 같은 구조체를 선언한다면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010001Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:12/seg:0",
+      "source": "A visual representation of that structure might look something like this",
+      "source_hash": 11235087697270212820,
+      "context_hash": 13401724301963378066,
+      "translation": "그 구조체를 시각적으로 표현하면 다음과 같은 모습이 될 것입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010001Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:0",
+      "source": "Each square block is a byte.",
+      "source_hash": 6359466960995335214,
+      "context_hash": 13126563573412429949,
+      "translation": "각 정사각형 블록은 1바이트입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010001Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:1",
+      "source": "Above you can see our data takes 12 bytes. `velocity` takes the first 4 bytes. `acceleration` takes the next 4, and `frameCount` takes the last 4.",
+      "source_hash": 7729835903533952028,
+      "context_hash": 7509390395447356131,
+      "translation": "위에서 볼 수 있듯이 우리의 데이터는 12바이트를 차지합니다. `velocity`는 처음 4바이트를 차지하고, `acceleration`은 다음 4바이트를, `frameCount`는 마지막 4바이트를 차지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010001Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "To pass data to the shader we need to prepare data to match the memory layout `OurStruct`.",
+      "source_hash": 7434078279351019228,
+      "context_hash": 15296897151500995040,
+      "translation": "셰이더에 데이터를 전달하려면 메모리 레이아웃 `OurStruct`와 일치하도록 데이터를 준비해야 합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:03:01.010002Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:1",
+      "source": "To do that we need to make an `ArrayBuffer` of 12 bytes, then setup `TypedArray` views of the correct type so we can fill it out.",
+      "source_hash": 10736341005441905001,
+      "context_hash": 3957620261171209340,
+      "translation": "그렇게 하려면 12바이트짜리 `ArrayBuffer`를 만든 다음, 채워 넣을 수 있도록 올바른 타입의 `TypedArray` 뷰를 설정해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010002Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "Above, `ourStructData` is an `ArrayBuffer` which is a chunk of memory.",
+      "source_hash": 5585194688746083881,
+      "context_hash": 16287191305245474144,
+      "translation": "위에서 `ourStructData`는 메모리 덩어리인 `ArrayBuffer`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010002Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:1",
+      "source": "To look at the contents of this memory we can create views of it. `ourStructValuesAsF32` is a view of the memory as 32bit floating point values. `ourStructValuesAsU32` is a view of **the same memory** as 32bit unsigned integer values.",
+      "source_hash": 5206448152450885561,
+      "context_hash": 266554488673503102,
+      "translation": "이 메모리의 내용을 살펴보기 위해 뷰(view)를 만들 수 있습니다. `ourStructValuesAsF32`는 메모리를 32비트 부동소수점 값으로 보는 뷰입니다. `ourStructValuesAsU32`는 **동일한 메모리**를 32비트 부호 없는 정수 값으로 보는 뷰입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010002Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "Now that we have a buffer and 2 views we can set the data in the structure.",
+      "source_hash": 11561580068557935158,
+      "context_hash": 3977592041383453170,
+      "translation": "이제 버퍼와 2개의 뷰가 있으니 구조체에 데이터를 설정할 수 있습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:01.010003Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "<a id=\"a-typed-arrays\"></a> `TypedArrays`",
+      "source_hash": 18109800300359326153,
+      "context_hash": 3640459768932187670,
+      "translation": "<a id=\"a-typed-arrays\"></a> `TypedArrays`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010003Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Like many things in programming there are multiple ways we could set the data for `OurStruct`. `TypedArray`s have a constructor that takes various forms.",
+      "source_hash": 17595745495548607657,
+      "context_hash": 16065989789630791674,
+      "translation": "프로그래밍의 많은 것들이 그렇듯이, `OurStruct`의 데이터를 설정하는 방법에는 여러 가지가 있습니다. `TypedArray`는 다양한 형태를 받는 생성자를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010003Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "For example",
+      "source_hash": 9117899214634101441,
+      "context_hash": 13850252930788082271,
+      "translation": "예를 들면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010003Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "`new Float32Array(12)`",
+      "source_hash": 12894757604015301003,
+      "context_hash": 18037244476819824780,
+      "translation": "`new Float32Array(12)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "This version makes a **new** `ArrayBuffer`, in this case of 12 * 4 bytes.",
+      "source_hash": 5518823921177967081,
+      "context_hash": 9530315198354398732,
+      "translation": "이 버전은 **새로운** `ArrayBuffer`를 만드는데, 이 경우 12 * 4바이트 크기입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "It then creates the `Float32Array` to view it.",
+      "source_hash": 6805194837553926939,
+      "context_hash": 13863818711325773390,
+      "translation": "그런 다음 그것을 보기 위한 `Float32Array`를 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "`new Float32Array([4, 5, 6])`",
+      "source_hash": 14804838489441384065,
+      "context_hash": 16734519981027438932,
+      "translation": "`new Float32Array([4, 5, 6])`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "This version makes a **new** `ArrayBuffer`, in this case of 3 * 4 bytes.",
+      "source_hash": 10361289808323899509,
+      "context_hash": 2408571033325320861,
+      "translation": "이 버전은 **새로운** `ArrayBuffer`를 만드는데, 이 경우 3 * 4바이트 크기입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "It then creates the `Float32Array` to view it.",
+      "source_hash": 6805194837553926939,
+      "context_hash": 10721516393187469621,
+      "translation": "그런 다음 그것을 보기 위한 `Float32Array`를 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "And it sets the initial values to 4, 5, 6.",
+      "source_hash": 12259815231705043169,
+      "context_hash": 8868605913987268870,
+      "translation": "그리고 초기 값을 4, 5, 6으로 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:01.010005Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Note you can also pass another `TypedArray`.",
+      "source_hash": 10923000959602606825,
+      "context_hash": 10677338524276354018,
+      "translation": "다른 `TypedArray`를 전달할 수도 있다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616733Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "For example",
+      "source_hash": 9117899214634101441,
+      "context_hash": 11703684253215695216,
+      "translation": "예를 들어",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "`new Float32Array(someUint8ArrayOf6Values)` will make a **new** `ArrayBuffer` of size 6 * 4, then create a `Float32Array` to view it, then copy the values from the existing view into the new `Float32Array`.",
+      "source_hash": 9951087005289881986,
+      "context_hash": 3861880534411655213,
+      "translation": "`new Float32Array(someUint8ArrayOf6Values)`는 크기가 6 * 4인 **새로운** `ArrayBuffer`를 만들고, 그것을 뷰로 하는 `Float32Array`를 생성한 다음, 기존 뷰의 값들을 새 `Float32Array`로 복사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "The values are copied by number, not in binary.",
+      "source_hash": 7909408630319589780,
+      "context_hash": 13533486486925309265,
+      "translation": "값들은 이진 형태가 아니라 숫자로 복사됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "In other words, they are copied like this",
+      "source_hash": 3104646830807808381,
+      "context_hash": 11416486338989231154,
+      "translation": "즉, 다음과 같이 복사됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "What does \"copied by value\" mean?",
+      "source_hash": 1149791833811752927,
+      "context_hash": 1380452093065653678,
+      "translation": "\"값으로 복사된다\"는 것은 무엇을 의미할까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:1",
+      "source": "Take this example",
+      "source_hash": 17890925000846497089,
+      "context_hash": 5761009469414647015,
+      "translation": "다음 예시를 살펴보십시오",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "The reason is you can't put values like 0.8 and 1.2 into a `Uint32Array`.",
+      "source_hash": 15283236283612970813,
+      "context_hash": 16150214295957049772,
+      "translation": "그 이유는 0.8이나 1.2 같은 값을 `Uint32Array`에 넣을 수 없기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "They get converted to unsigned integers",
+      "source_hash": 12876374827549030576,
+      "context_hash": 13752941524065328205,
+      "translation": "이런 값들은 부호 없는 정수로 변환됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "`new Float32Array(someArrayBuffer)`",
+      "source_hash": 7085705421134018651,
+      "context_hash": 4614091385000745793,
+      "translation": "`new Float32Array(someArrayBuffer)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "This is the case we used before.",
+      "source_hash": 10418023368947791319,
+      "context_hash": 13806784634873527538,
+      "translation": "이는 앞서 사용했던 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "A new `Float32Array` view is made on an **existing buffer**.",
+      "source_hash": 4398750489576094825,
+      "context_hash": 10985350202157470303,
+      "translation": "**기존 버퍼**에 새로운 `Float32Array` 뷰가 만들어집니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "`new Float32Array(someArrayBuffer, byteOffset)`",
+      "source_hash": 7446911330814751648,
+      "context_hash": 992027991816864190,
+      "translation": "`new Float32Array(someArrayBuffer, byteOffset)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616734Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "This makes a new `Float32Array` on an **existing buffer** but starts the view at `byteOffset`",
+      "source_hash": 10265062534200081827,
+      "context_hash": 10447232970527046673,
+      "translation": "이는 **기존 버퍼**에 새로운 `Float32Array`를 만들지만, 뷰는 `byteOffset`에서 시작합니다",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "`new Float32Array(someArrayBuffer, byteOffset, length)`",
+      "source_hash": 4484417940169330892,
+      "context_hash": 4373201256453145838,
+      "translation": "`new Float32Array(someArrayBuffer, byteOffset, length)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "This makes a new `Float32Array` on an **existing buffer**.",
+      "source_hash": 3476047347191114151,
+      "context_hash": 7734496533783510008,
+      "translation": "이는 **기존 버퍼**에 새로운 `Float32Array`를 만듭니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:1",
+      "source": "The view starts at `byteOffset` and is `length` units long.",
+      "source_hash": 834047312381080995,
+      "context_hash": 1172096485654964971,
+      "translation": "뷰는 `byteOffset`에서 시작하며 길이는 `length` 단위입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:2",
+      "source": "So if we passed 3 for length the view would be 3 float32 values long (12 bytes) of `someArrayBuffer`",
+      "source_hash": 17179517308542558468,
+      "context_hash": 14555301431150246248,
+      "translation": "따라서 length에 3을 전달하면 뷰는 `someArrayBuffer`의 float32 값 3개 길이(12바이트)가 됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "Using this last form we could change the code above to this",
+      "source_hash": 4813133931080767864,
+      "context_hash": 8042349915320719940,
+      "translation": "이 마지막 형태를 사용하면 위 코드를 다음과 같이 바꿀 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "Further, every `TypedArray` has the following properties",
+      "source_hash": 10554540146807941226,
+      "context_hash": 1304168258311272463,
+      "translation": "또한, 모든 `TypedArray`는 다음과 같은 속성을 가지고 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "`length`: number of units",
+      "source_hash": 12827606585350398863,
+      "context_hash": 3117970104294884782,
+      "translation": "`length`: 단위 개수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "`byteLength`: size in bytes",
+      "source_hash": 7866664776481542355,
+      "context_hash": 2878066894967740585,
+      "translation": "`byteLength`: 바이트 단위 크기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616735Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "`byteOffset`: offset in the `TypedArray`'s `ArrayBuffer`",
+      "source_hash": 6808623246665199205,
+      "context_hash": 12478739139338265557,
+      "translation": "`byteOffset`: `TypedArray`의 `ArrayBuffer` 내에서의 오프셋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "`buffer`: the `ArrayBuffer` this `TypedArray` is viewing",
+      "source_hash": 16042989316690692871,
+      "context_hash": 5582474256452637596,
+      "translation": "`buffer`: 이 `TypedArray`가 보고 있는 `ArrayBuffer`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "And `TypedArray`s have various methods, many are similar to `Array` but one that is not is `subarray`.",
+      "source_hash": 7905773805699188205,
+      "context_hash": 957080011303132689,
+      "translation": "그리고 `TypedArray`는 다양한 메서드를 가지고 있으며, 그중 다수는 `Array`와 유사하지만 그렇지 않은 것 중 하나가 `subarray`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:1",
+      "source": "It creates a new `TypedArray` view of the same type.",
+      "source_hash": 97815341972723516,
+      "context_hash": 6029501069109012867,
+      "translation": "이는 동일한 타입의 새로운 `TypedArray` 뷰를 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:2",
+      "source": "Its parameters are `subarray(begin, end)` where `end` is not included.",
+      "source_hash": 4311364363801953256,
+      "context_hash": 5936599880542031677,
+      "translation": "매개변수는 `subarray(begin, end)`이며, `end`는 포함되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:3",
+      "source": "So `someTypedArray.subarray(5, 10)` makes a new `TypedArray` of **the same `ArrayBuffer`** of elements 5 to 9 of `someTypedArray`.",
+      "source_hash": 12400867323120725237,
+      "context_hash": 7550396400648964139,
+      "translation": "따라서 `someTypedArray.subarray(5, 10)`은 `someTypedArray`의 5번부터 9번까지의 요소로 이루어진, **동일한 `ArrayBuffer`**의 새로운 `TypedArray`를 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "So we could change the code above to this",
+      "source_hash": 2975717344756905020,
+      "context_hash": 13010243326564949433,
+      "translation": "이를 통해 위 코드를 다음과 같이 바꿀 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Multiple views of the same `ArrayBuffer`",
+      "source_hash": 3748239754740909365,
+      "context_hash": 8994472841256077434,
+      "translation": "동일한 `ArrayBuffer`의 여러 뷰",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Having a view of **the same arrayBuffer** means exactly that.",
+      "source_hash": 8654816444018399524,
+      "context_hash": 456829547649618260,
+      "translation": "**동일한 arrayBuffer**의 뷰를 갖는다는 것은 말 그대로 그런 의미입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "For example",
+      "source_hash": 9117899214634101441,
+      "context_hash": 15621441672717795254,
+      "translation": "예를 들어",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:04.616736Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Similarly if we have different typed views",
+      "source_hash": 12458014169574242075,
+      "context_hash": 6883976191407488416,
+      "translation": "마찬가지로 서로 다른 타입의 뷰가 있는 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899398Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The values above are the 32bit hex representations of the floating point values for 1, 1000, -1000",
+      "source_hash": 7369506334594313389,
+      "context_hash": 1541009675148631680,
+      "translation": "위의 값들은 1, 1000, -1000에 대한 부동소수점 값의 32비트 16진수 표현입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899398Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "For example: Let's create a 16 byte `ArrayBuffer`.",
+      "source_hash": 14106890913718561683,
+      "context_hash": 2937753798194510219,
+      "translation": "예를 들어, 16바이트 `ArrayBuffer`를 만들어 보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "Then we'll create different `TypedArray` views of the same memory.",
+      "source_hash": 9860015144396233273,
+      "context_hash": 5666599397812394802,
+      "translation": "그런 다음 동일한 메모리에 대한 서로 다른 `TypedArray` 뷰를 만들겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Here's a representation of all of those views, all viewing the same memory.",
+      "source_hash": 15611129845956520214,
+      "context_hash": 2979740174153092985,
+      "translation": "다음은 동일한 메모리를 보는 이 모든 뷰들의 표현입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "Below, edit any one number and the corresponding values that are using the same memory will change.",
+      "source_hash": 7115299168768356158,
+      "context_hash": 1415155800533863148,
+      "translation": "아래에서 숫자 하나를 편집하면 동일한 메모리를 사용하는 해당 값들이 변경됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "`map` issues",
+      "source_hash": 446378489989356990,
+      "context_hash": 16470238067323189078,
+      "translation": "`map` 관련 문제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Be aware, the `map` function of a `TypedArray` makes a new typed array of the same type!",
+      "source_hash": 15380893335650473974,
+      "context_hash": 4278894432350252623,
+      "translation": "주의하십시오, `TypedArray`의 `map` 함수는 동일한 타입의 새로운 타입 배열을 만듭니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "If you need to map a typedarray into some other type you'll either need to loop over the array yourself or else convert it to a JavaScript array which you can do with `Array.from`.",
+      "source_hash": 11615862283672217759,
+      "context_hash": 16237941666802859751,
+      "translation": "타입 배열을 다른 타입으로 매핑해야 하는 경우, 배열을 직접 순회하거나 `Array.from`을 사용해 JavaScript 배열로 변환해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "Taking the example above",
+      "source_hash": 8094300338183304828,
+      "context_hash": 12173553351676449823,
+      "translation": "위의 예시를 가져오면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "vec and mat types",
+      "source_hash": 3766157934504909972,
+      "context_hash": 7478390543871906517,
+      "translation": "vec 및 mat 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "[WGSL](webgpu-wgsl.html) has types made from the 4 base types.",
+      "source_hash": 1632463944784749428,
+      "context_hash": 7701489768831280509,
+      "translation": "[WGSL](webgpu-wgsl.html)은 4가지 기본 타입으로 만들어진 타입들을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "They are:",
+      "source_hash": 3220299403901221654,
+      "context_hash": 6163631788481824940,
+      "translation": "다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "type",
+      "source_hash": 9210950940912046410,
+      "context_hash": 17324583851202967407,
+      "translation": "타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "description",
+      "source_hash": 6101248067392796388,
+      "context_hash": 5299860736854614183,
+      "translation": "설명",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "short name",
+      "source_hash": 3098697836441308631,
+      "context_hash": 863031795965273562,
+      "translation": "짧은 이름",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "a type with 2",
+      "source_hash": 2164722861594942582,
+      "context_hash": 4559993553654481122,
+      "translation": "2개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 1348669971562572666,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "a type with 2",
+      "source_hash": 2164722861594942582,
+      "context_hash": 15043011969252591231,
+      "translation": "2개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899399Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 1348669971562572666,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "a type with 2",
+      "source_hash": 2164722861594942582,
+      "context_hash": 15043011969252591231,
+      "translation": "2개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 1348669971562572666,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "a type with 2",
+      "source_hash": 2164722861594942582,
+      "context_hash": 15043011969252591231,
+      "translation": "2개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 14951494380782926511,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "a type with 3",
+      "source_hash": 12389440566616400287,
+      "context_hash": 15043011969252591231,
+      "translation": "3개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 7537459714312049281,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "a type with 3",
+      "source_hash": 12389440566616400287,
+      "context_hash": 15043011969252591231,
+      "translation": "3개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 7537459714312049281,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "a type with 3",
+      "source_hash": 12389440566616400287,
+      "context_hash": 15043011969252591231,
+      "translation": "3개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 7537459714312049281,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "a type with 3",
+      "source_hash": 12389440566616400287,
+      "context_hash": 15043011969252591231,
+      "translation": "3개를 가진 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 5266187602276445676,
+      "translation": "개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:08.899400Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "a type with 4",
+      "source_hash": 14763136819265419756,
+      "context_hash": 15043011969252591231,
+      "translation": "4개로 구성된 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 912538701424064213,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "a type with 4",
+      "source_hash": 14763136819265419756,
+      "context_hash": 15043011969252591231,
+      "translation": "4개로 구성된 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 912538701424064213,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "a type with 4",
+      "source_hash": 14763136819265419756,
+      "context_hash": 15043011969252591231,
+      "translation": "4개로 구성된 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 912538701424064213,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:0",
+      "source": "a type with 4",
+      "source_hash": 14763136819265419756,
+      "context_hash": 15043011969252591231,
+      "translation": "4개로 구성된 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 2264599322871074174,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:0",
+      "source": "a matrix of 2",
+      "source_hash": 1368680560536707213,
+      "context_hash": 15043011969252591231,
+      "translation": "2×2 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:30/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 16352706022594511615,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:31/seg:0",
+      "source": "a matrix of 2",
+      "source_hash": 1368680560536707213,
+      "context_hash": 15043011969252591231,
+      "translation": "2×2 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 16352706022594511615,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:33/seg:0",
+      "source": "a matrix of 2",
+      "source_hash": 1368680560536707213,
+      "context_hash": 15043011969252591231,
+      "translation": "2×2 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:34/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 16352706022594511615,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:35/seg:0",
+      "source": "a matrix of 2",
+      "source_hash": 1368680560536707213,
+      "context_hash": 15043011969252591231,
+      "translation": "2×2 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:36/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 16352706022594511615,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:37/seg:0",
+      "source": "a matrix of 2",
+      "source_hash": 1368680560536707213,
+      "context_hash": 15043011969252591231,
+      "translation": "2×2 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:38/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 16352706022594511615,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624003Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:39/seg:0",
+      "source": "a matrix of 2",
+      "source_hash": 1368680560536707213,
+      "context_hash": 15043011969252591231,
+      "translation": "2×2 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:40/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 10368530387839715384,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:41/seg:0",
+      "source": "a matrix of 3",
+      "source_hash": 11373276872790952157,
+      "context_hash": 15043011969252591231,
+      "translation": "3×3 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:42/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 13939632203081017469,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:43/seg:0",
+      "source": "a matrix of 3",
+      "source_hash": 11373276872790952157,
+      "context_hash": 15043011969252591231,
+      "translation": "3×3 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:44/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 13939632203081017469,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:45/seg:0",
+      "source": "a matrix of 3",
+      "source_hash": 11373276872790952157,
+      "context_hash": 15043011969252591231,
+      "translation": "3×3 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:46/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 13939632203081017469,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:47/seg:0",
+      "source": "a matrix of 3",
+      "source_hash": 11373276872790952157,
+      "context_hash": 15043011969252591231,
+      "translation": "3×3 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:48/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 13939632203081017469,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:49/seg:0",
+      "source": "a matrix of 3",
+      "source_hash": 11373276872790952157,
+      "context_hash": 15043011969252591231,
+      "translation": "3×3 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:50/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 13939632203081017469,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:51/seg:0",
+      "source": "a matrix of 3",
+      "source_hash": 11373276872790952157,
+      "context_hash": 15043011969252591231,
+      "translation": "3×3 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:52/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 10437211671721421009,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:06.624004Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:53/seg:0",
+      "source": "a matrix of 4",
+      "source_hash": 4193063515332472503,
+      "context_hash": 15043011969252591231,
+      "translation": "4의 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:54/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 12915906831340144347,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:55/seg:0",
+      "source": "a matrix of 4",
+      "source_hash": 4193063515332472503,
+      "context_hash": 15043011969252591231,
+      "translation": "4의 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:56/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 12915906831340144347,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:57/seg:0",
+      "source": "a matrix of 4",
+      "source_hash": 4193063515332472503,
+      "context_hash": 15043011969252591231,
+      "translation": "4의 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:58/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 12915906831340144347,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:59/seg:0",
+      "source": "a matrix of 4",
+      "source_hash": 4193063515332472503,
+      "context_hash": 15043011969252591231,
+      "translation": "4의 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:60/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 12915906831340144347,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:61/seg:0",
+      "source": "a matrix of 4",
+      "source_hash": 4193063515332472503,
+      "context_hash": 15043011969252591231,
+      "translation": "4의 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:62/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 12915906831340144347,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:63/seg:0",
+      "source": "a matrix of 4",
+      "source_hash": 4193063515332472503,
+      "context_hash": 15043011969252591231,
+      "translation": "4의 행렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:64/seg:0",
+      "source": "s",
+      "source_hash": 8793464060190139421,
+      "context_hash": 11811380949977620130,
+      "translation": "s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:65/seg:0",
+      "source": "Given that a `vec3f` is a type with 3 `f32`s and `mat4x4f` is an 4x4 matrix of `f32`s, so it's 16 `f32`s, what do think the following struct looks like in memory?",
+      "source_hash": 8613265091298295353,
+      "context_hash": 10420164319970216916,
+      "translation": "`vec3f`가 3개의 `f32`로 이루어진 타입이고 `mat4x4f`가 `f32`의 4x4 행렬, 즉 16개의 `f32`라고 할 때, 다음 구조체가 메모리에서 어떻게 보일 것 같습니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:67/seg:0",
+      "source": "Ready?",
+      "source_hash": 16733853468506503278,
+      "context_hash": 16748767661760538512,
+      "translation": "준비되셨습니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:69/seg:0",
+      "source": "What's up with that?",
+      "source_hash": 8371644482000076769,
+      "context_hash": 8753252164577143387,
+      "translation": "이게 어떻게 된 일입니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:69/seg:1",
+      "source": "It turns out every type has alignment requirements.",
+      "source_hash": 4294020100601674344,
+      "context_hash": 2600610212725819281,
+      "translation": "알고 보면 모든 타입에는 정렬 요구사항이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:69/seg:2",
+      "source": "For a given type it must be aligned to a multiple of a certain number of bytes.",
+      "source_hash": 3458394029456088598,
+      "context_hash": 2059202084689585592,
+      "translation": "주어진 타입은 특정 바이트 수의 배수로 정렬되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:70/seg:0",
+      "source": "Here are the sizes and alignments of the various types.",
+      "source_hash": 13376972052476027625,
+      "context_hash": 3612807044949677618,
+      "translation": "다음은 다양한 타입들의 크기와 정렬입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:72/seg:0",
+      "source": "But wait, there's MORE!",
+      "source_hash": 14358672854236944580,
+      "context_hash": 6216510350144443920,
+      "translation": "하지만 잠깐, 더 있습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:73/seg:0",
+      "source": "What do you think the layout of this struct will be?",
+      "source_hash": 14519570229078264055,
+      "context_hash": 15566522558030260024,
+      "translation": "이 구조체의 레이아웃은 어떻게 될 것 같습니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:75/seg:0",
+      "source": "The `array<type, count>` syntax defines an array of `type` with `count` elements.",
+      "source_hash": 17418916342439455759,
+      "context_hash": 11284095547933313858,
+      "translation": "`array<type, count>` 구문은 `count`개의 요소를 가진 `type`의 배열을 정의합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:76/seg:0",
+      "source": "Here's you go...",
+      "source_hash": 2121820025436197063,
+      "context_hash": 8748594960108896635,
+      "translation": "자, 여기 있습니다...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:78/seg:0",
+      "source": "If you look in the alignment table you'll see `vec3<f32>` has an alignment of 16 bytes.",
+      "source_hash": 17523176773115637391,
+      "context_hash": 12994185553753796526,
+      "translation": "정렬 표를 보면 `vec3<f32>`가 16바이트의 정렬을 가진다는 것을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976001Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:78/seg:1",
+      "source": "That means each `vec3<f32>`, whether it's in a matrix or an array ends up having an extra space.",
+      "source_hash": 7205396644497837524,
+      "context_hash": 13345517893714710369,
+      "translation": "이는 각 `vec3<f32>`가 행렬에 있든 배열에 있든 상관없이 추가 공간을 갖게 된다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:79/seg:0",
+      "source": "Here's another one",
+      "source_hash": 11731784897881624992,
+      "context_hash": 18114776051970613172,
+      "translation": "여기 또 다른 예시가 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:82/seg:0",
+      "source": "Why did `size` end up at byte offset 12, just after orientation but `scale` and `friction` got bumped offsets 32 and 64",
+      "source_hash": 1515743298182434462,
+      "context_hash": 13946362125705810515,
+      "translation": "왜 `size`는 orientation 바로 뒤인 바이트 오프셋 12에 위치하는데, `scale`과 `friction`은 오프셋 32와 64로 밀려났습니까",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:83/seg:0",
+      "source": "That's because arrays and structs have their own own special alignment rules so even though the array is a single `vec3f` and the `Ex4a` struct is also a single `vec3f` they get aligned according to different rules.",
+      "source_hash": 558062752988184142,
+      "context_hash": 2155931887830884199,
+      "translation": "이는 배열과 구조체가 각자 고유한 특별 정렬 규칙을 가지고 있기 때문으로, 배열이 단일 `vec3f`이고 `Ex4a` 구조체 역시 단일 `vec3f`임에도 불구하고 서로 다른 규칙에 따라 정렬됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:84/seg:0",
+      "source": "<a id=\"a-struct-array-size-alignment\"></a>",
+      "source_hash": 14432412365341589716,
+      "context_hash": 61751128311733402,
+      "translation": "<a id=\"a-struct-array-size-alignment\"></a>",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:85/seg:0",
+      "source": "type",
+      "source_hash": 9210950940912046410,
+      "context_hash": 9255993132959440495,
+      "translation": "타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:86/seg:0",
+      "source": "align",
+      "source_hash": 16037999123435341784,
+      "context_hash": 1178132315351779310,
+      "translation": "정렬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:87/seg:0",
+      "source": "size",
+      "source_hash": 11796996340440422578,
+      "context_hash": 3672105086660767868,
+      "translation": "크기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:88/seg:0",
+      "source": "S with members M",
+      "source_hash": 13573292910326966131,
+      "context_hash": 1464125761559588133,
+      "translation": "멤버 M을 가진 S",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:03:12.976002Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:89/seg:0",
+      "source": "1",
+      "source_hash": 13237225503670494420,
+      "context_hash": 14340837535983038661,
+      "translation": "1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395765Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:90/seg:0",
+      "source": "...M",
+      "source_hash": 11807206560157992355,
+      "context_hash": 814571827874784551,
+      "translation": "...M",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395765Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:91/seg:0",
+      "source": "N",
+      "source_hash": 1636549453969407356,
+      "context_hash": 2313818766601652323,
+      "translation": "N",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395765Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:92/seg:0",
+      "source": "max(AlignOfMember(S,1), ... , AlignOfMember(S,N))",
+      "source_hash": 17772751483915156323,
+      "context_hash": 9967727644975343190,
+      "translation": "max(AlignOfMember(S,1), ... , AlignOfMember(S,N))",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395765Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:93/seg:0",
+      "source": "roundUp(AlignOf(S), justPastLastMember)",
+      "source_hash": 11375438074342756675,
+      "context_hash": 14406249880064378051,
+      "translation": "roundUp(AlignOf(S), justPastLastMember)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:94/seg:0",
+      "source": "where justPastLastMember = OffsetOfMember(S,N) + SizeOfMember(S,N)</td></tr> <tr><td>",
+      "source_hash": 5731376387416803667,
+      "context_hash": 6312297243788302767,
+      "translation": "where justPastLastMember = OffsetOfMember(S,N) + SizeOfMember(S,N)</td></tr> <tr><td>",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:95/seg:0",
+      "source": "</td><td>AlignOf(E)</td><td>N × roundUp(AlignOf(E), SizeOf(E))</td></tr> </tbody>",
+      "source_hash": 10373343547717287920,
+      "context_hash": 10256498841343687494,
+      "translation": "</td><td>AlignOf(E)</td><td>N × roundUp(AlignOf(E), SizeOf(E))</td></tr> </tbody>",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:97/seg:0",
+      "source": "You can read the rules in more detail [here in the WGSL spec](https://www.w3.org/TR/WGSL/#alignment-and-size).",
+      "source_hash": 1895381465258022085,
+      "context_hash": 9361341420315565089,
+      "translation": "규칙에 대해 더 자세히 알고 싶으시면 [여기 WGSL 명세](https://www.w3.org/TR/WGSL/#alignment-and-size)를 읽어 보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Computing Offset and Sizes is a PITA!",
+      "source_hash": 5963929971572960250,
+      "context_hash": 17972995826618310916,
+      "translation": "오프셋과 크기 계산은 정말 골칫거리입니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Computing sizes and offsets of data in WGSL is probably the largest pain point of WebGPU.",
+      "source_hash": 8633804639697425534,
+      "context_hash": 9405886974969992502,
+      "translation": "WGSL에서 데이터의 크기와 오프셋을 계산하는 것은 아마도 WebGPU에서 가장 큰 골칫거리일 것입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "You are required to compute these offsets yourself and keep them up to date.",
+      "source_hash": 14888539752677208092,
+      "context_hash": 296947273650007066,
+      "translation": "이러한 오프셋을 직접 계산하고 계속 최신 상태로 유지해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:2",
+      "source": "If you add a member somewhere in the middle of a struct in your shaders you need to go back to your JavaScript and update all the offsets.",
+      "source_hash": 10227202050760247670,
+      "context_hash": 15841087545392220549,
+      "translation": "셰이더의 구조체 중간 어딘가에 멤버를 추가하면 자바스크립트로 돌아가서 모든 오프셋을 업데이트해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395766Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:3",
+      "source": "Get a single byte or length wrong and the data you pass to the shader will be wrong.",
+      "source_hash": 16408281108895244979,
+      "context_hash": 10066520514303064585,
+      "translation": "바이트나 길이를 하나라도 잘못 계산하면 셰이더에 전달하는 데이터가 잘못됩니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:01:56.395767Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:4",
+      "source": "You won't get an error, but your shader will likely do the wrong thing because it's looking at bad data.",
+      "source_hash": 16041959636465170159,
+      "context_hash": 6540725717254580707,
+      "translation": "오류가 발생하지는 않지만, 셰이더는 잘못된 데이터를 보고 있기 때문에 십중팔구 잘못된 동작을 하게 됩니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:01:56.395767Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:5",
+      "source": "Your model won't draw or your computation will produce bad results.",
+      "source_hash": 3990974292759183830,
+      "context_hash": 16410064717609952751,
+      "translation": "모델이 그려지지 않거나 계산 결과가 잘못될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395767Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Fortunately there are libraries to help with this.",
+      "source_hash": 1804440995347779615,
+      "context_hash": 17052203468963370369,
+      "translation": "다행히도 이를 도와주는 라이브러리들이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395767Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Here's one: [webgpu-utils](https://github.com/greggman/webgpu-utils)",
+      "source_hash": 8578415842429512442,
+      "context_hash": 744767328213561929,
+      "translation": "그중 하나가 바로 [webgpu-utils](https://github.com/greggman/webgpu-utils)입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:01:56.395767Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "You give it your WGSL code and it gives an API do all of this for you.",
+      "source_hash": 7252641090748490107,
+      "context_hash": 17366954879972166641,
+      "translation": "WGSL 코드를 넘겨주면 이 모든 작업을 대신 처리해 주는 API를 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395767Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "This way you can change your structs and, more often than not, things will just work.",
+      "source_hash": 16188435921186883772,
+      "context_hash": 4591519440114134568,
+      "translation": "이 방식을 사용하면 구조체를 변경해도 대부분의 경우 그대로 잘 작동합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395768Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "For example, using that last example we can pass it to `webgpu-utils` like this",
+      "source_hash": 14454967800348483697,
+      "context_hash": 12453183134364994381,
+      "translation": "예를 들어, 앞서의 예제를 `webgpu-utils`에 다음과 같이 전달할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395768Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "Whether you use this particular library or a different one or none at all is up to you.",
+      "source_hash": 16778438312003092164,
+      "context_hash": 6371154878607630657,
+      "translation": "이 특정 라이브러리를 사용할지, 다른 라이브러리를 사용할지, 아니면 아무것도 사용하지 않을지는 여러분의 선택에 달려 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395768Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "For me, I would often spent 20-30-60 minutes trying to figure out why something was not working only to find that I manually computed an offset or size wrong so for my own work I'd rather use a library and avoid that pain.",
+      "source_hash": 16739394482371652677,
+      "context_hash": 2015351907539648872,
+      "translation": "저의 경우, 무언가 작동하지 않는 이유를 알아내려고 20~30~60분을 허비하다가 결국 오프셋이나 크기를 수동으로 잘못 계산한 것을 발견하는 일이 잦았기 때문에, 제 작업에서는 그런 고생을 피하기 위해 차라리 라이브러리를 사용하는 편을 택하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395768Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "If you do want to do it manually though, [here's a page that will compute the offsets for you](resources/wgsl-offset-computer.html).",
+      "source_hash": 6523483279347889009,
+      "context_hash": 5852596312500936663,
+      "translation": "그래도 수동으로 직접 해보고 싶으시다면, [여기 오프셋을 계산해 주는 페이지](resources/wgsl-offset-computer.html)가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395768Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Otherwise, there are many libraries to help abstract webgpu and make things like this, and others, easier.",
+      "source_hash": 6658204107293440997,
+      "context_hash": 9938297580840805290,
+      "translation": "그 외에도 webgpu를 추상화하여 이런 작업 등을 더 쉽게 만들어 주는 라이브러리들이 많이 있습니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:01:56.395768Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:1",
+      "source": "You can find a list [here](webgpu-resources.html).",
+      "source_hash": 15204765132362585166,
+      "context_hash": 18132784173910861866,
+      "translation": "목록은 [여기](webgpu-resources.html)에서 확인하실 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:01:56.395768Z",
+      "issues": []
+    }
+  ]
+}

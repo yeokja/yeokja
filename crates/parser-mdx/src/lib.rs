@@ -20,7 +20,7 @@ use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_utils::{apply_splices, collect_splices};
 
-use crate::{Extra, parse_with};
+use yeokja_parser_markdown_dialect::{Extra, parse_with};
 
 /// Top-level front matter keys whose values readers see.
 const TRANSLATED_FIELDS: &[&str] = &["title", "snippet", "description", "summary"];
@@ -594,7 +594,7 @@ impl DocumentParser for MdxParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::MarkdownParser;
+    use yeokja_parser_markdown::MarkdownParser;
 
     fn sources(doc: &Document) -> Vec<String> {
         doc.translatable_segments()

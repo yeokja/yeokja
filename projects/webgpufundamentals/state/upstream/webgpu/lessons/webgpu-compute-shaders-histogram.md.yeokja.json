@@ -1,0 +1,2906 @@
+{
+  "version": 1,
+  "source_hash": 10693742635991933147,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU Compute Shaders - Image Histogram Description: Efficiently compute an image histogram.",
+      "source_hash": 12525856129527200947,
+      "context_hash": 14246097941293474228,
+      "translation": "제목: WebGPU 컴퓨트 셰이더 - 이미지 히스토그램 설명: 이미지 히스토그램을 효율적으로 계산합니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:07:47.690776Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:0/seg:1",
+      "source": "TOC: Image Histogram",
+      "source_hash": 5990216092130033076,
+      "context_hash": 5264212647250342326,
+      "translation": "목차: 이미지 히스토그램",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690779Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This article continues from [the article on compute shader basics](webgpu-compute-shaders.html).",
+      "source_hash": 840589692816233806,
+      "context_hash": 12622572579726211653,
+      "translation": "이 글은 [컴퓨트 셰이더 기초에 관한 글](webgpu-compute-shaders.html)에서 이어집니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:07:47.690779Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "This is going to be a long 2 part article and we're going to take many steps to optimize things.",
+      "source_hash": 11307131091354863515,
+      "context_hash": 16075060369766419679,
+      "translation": "이 글은 2부로 구성된 긴 글이며, 여러 단계를 거쳐 최적화를 진행할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690780Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "This optimization will make things faster but the output will unfortunately not change the result so each step will look the same as the previous step.",
+      "source_hash": 16018100033832996744,
+      "context_hash": 15066169272528367551,
+      "translation": "이 최적화는 속도를 더 빠르게 만들어 주지만, 안타깝게도 결과물 자체는 바뀌지 않으므로 각 단계는 이전 단계와 동일하게 보일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690780Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Further, we're going to mention speed and timing but the articles and examples would get even longer if we added the code to do the timing so we'll leave timing to [another article](webgpu-timing.html) and in these articles I'll just mention my own timing and provide some run-able examples.",
+      "source_hash": 9655006608630992160,
+      "context_hash": 8890283329327453894,
+      "translation": "또한 속도와 타이밍에 대해 언급할 예정이지만, 타이밍을 측정하는 코드까지 추가하면 글과 예제가 더욱 길어지므로 타이밍은 [다른 글](webgpu-timing.html)에 맡기고, 이 글들에서는 제가 직접 측정한 타이밍을 언급하고 실행 가능한 예제 몇 가지를 제공하는 데 그치겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690781Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "Hopefully this article will provide one example of making a compute shader.",
+      "source_hash": 15896710392838130352,
+      "context_hash": 17268546926310770604,
+      "translation": "이 글이 컴퓨트 셰이더를 만드는 한 가지 예시가 되기를 바랍니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:07:47.690781Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "An image histogram is where you sum up all the pixels in an image by their values or by some measure of their values.",
+      "source_hash": 13243042242113440791,
+      "context_hash": 16590211214233009988,
+      "translation": "이미지 히스토그램은 이미지 내 모든 픽셀을 그 값이나 어떤 값의 척도에 따라 합산하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690782Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "For example, this 6x7 image",
+      "source_hash": 4398201729703984090,
+      "context_hash": 7717188944355972466,
+      "translation": "예를 들어, 다음과 같은 6x7 이미지가 있다고 합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690782Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "6x7",
+      "source_hash": 8031379961911052200,
+      "context_hash": 7842882522627034921,
+      "translation": "6x7",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690782Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "It has these colors.",
+      "source_hash": 100680920310787290,
+      "context_hash": 10328122919724612915,
+      "translation": "이 이미지는 다음과 같은 색상들을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690782Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "For each color we can compute a luminance level, (how bright it is).",
+      "source_hash": 10646680365366114163,
+      "context_hash": 5112684536061647020,
+      "translation": "각 색상에 대해 밝기 정도를 나타내는 휘도(luminance) 레벨을 계산할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690783Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:1",
+      "source": "Looking online I found this formula",
+      "source_hash": 13660189993238276018,
+      "context_hash": 18015878921724128195,
+      "translation": "온라인에서 찾아보니 다음과 같은 공식이 있었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690783Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "Using that we can convert each value to a luminance level",
+      "source_hash": 11335379171212314222,
+      "context_hash": 15006788899268327612,
+      "translation": "이를 사용하여 각 값을 휘도 레벨로 변환할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690783Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "We can decide on a number \"bins\".",
+      "source_hash": 8877819794710029566,
+      "context_hash": 8660291324167478949,
+      "translation": "\"빈(bin)\"의 개수를 결정할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690783Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:1",
+      "source": "Let's decide on 3 bins.",
+      "source_hash": 14130822005756772211,
+      "context_hash": 2166520565462306079,
+      "translation": "3개의 빈으로 결정해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690783Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:2",
+      "source": "We can then quantize those luminance values so they select a \"bin\" and add up the number of pixels that fit in each bin.",
+      "source_hash": 12832067475764184418,
+      "context_hash": 2846215665435552234,
+      "translation": "그런 다음 이 휘도 값들을 양자화하여 각각 하나의 \"빈\"을 선택하게 하고, 각 빈에 속하는 픽셀 수를 합산할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690783Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "Finally we can graph the values in those bins",
+      "source_hash": 6806734508068924657,
+      "context_hash": 17007592720406004244,
+      "translation": "마지막으로 이 빈들의 값을 그래프로 나타낼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690784Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "The graph shows that there are more dark pixels (🟦 18) than medium brightness pixels (🟥 16) and even fewer bright pixels (🟨 8).",
+      "source_hash": 12142662276375853894,
+      "context_hash": 8017493871216891199,
+      "translation": "그래프를 보면 어두운 픽셀(🟦 18개)이 중간 밝기 픽셀(🟥 16개)보다 많고, 밝은 픽셀(🟨 8개)은 더 적다는 것을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690784Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:1",
+      "source": "That's not so interesting with just 3 bins.",
+      "source_hash": 15795850104705911417,
+      "context_hash": 13857710272105362905,
+      "translation": "빈이 3개뿐이라면 그다지 흥미롭지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690784Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:2",
+      "source": "But, if we take a picture like this",
+      "source_hash": 969115817563367292,
+      "context_hash": 12846857735180988798,
+      "translation": "하지만 다음과 같은 사진을 사용한다면 어떨까요.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690784Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "Photo by Francesco Ungaro",
+      "source_hash": 2387405472419119953,
+      "context_hash": 13327828980885747466,
+      "translation": "사진: Francesco Ungaro",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690784Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "and we count up the pixel luminance values, separate them into say 256 bins, and graph them, we get something like this",
+      "source_hash": 18009574390515563746,
+      "context_hash": 5750569077986917209,
+      "translation": "그리고 픽셀 휘도 값을 세어 256개의 빈으로 나눈 뒤 그래프로 나타내면, 다음과 같은 결과를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690784Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "Computing an image histogram is pretty simple.",
+      "source_hash": 6296480853340941661,
+      "context_hash": 12756785353259896376,
+      "translation": "이미지 히스토그램을 계산하는 것은 꽤 간단합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:1",
+      "source": "Let's first do it in JavaScript",
+      "source_hash": 2266949387472972199,
+      "context_hash": 12212090723894285686,
+      "translation": "먼저 JavaScript로 구현해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "Let's make a function that given an `ImageData` object, generates a histogram.",
+      "source_hash": 6898719340682314498,
+      "context_hash": 9955118336768440940,
+      "translation": "`ImageData` 객체를 받아 히스토그램을 생성하는 함수를 만들어 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "As you can see above, we walk through each pixel.",
+      "source_hash": 7695145164314211916,
+      "context_hash": 17625196543790516019,
+      "translation": "위에서 볼 수 있듯이, 각 픽셀을 순회합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:1",
+      "source": "We extract r, g, and b from the image.",
+      "source_hash": 9733535102307948912,
+      "context_hash": 5982496930664068521,
+      "translation": "이미지에서 r, g, b 값을 추출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:2",
+      "source": "We compute a luminance value.",
+      "source_hash": 698732050091866344,
+      "context_hash": 5926451997172191562,
+      "translation": "휘도 값을 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:3",
+      "source": "We convert that to a bin index and increment that bin's count.",
+      "source_hash": 14826335583570891563,
+      "context_hash": 8594816805966722202,
+      "translation": "그 값을 빈 인덱스로 변환하고 해당 빈의 카운트를 증가시킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:0",
+      "source": "Once we have that data we can graph it.",
+      "source_hash": 5358381974585480255,
+      "context_hash": 10364380883770858872,
+      "translation": "이 데이터를 얻고 나면 그래프로 나타낼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690785Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:1",
+      "source": "The main graph function just draws a line for each bin multiplied by some scale and the height of the canvas.",
+      "source_hash": 3030274507351069612,
+      "context_hash": 15198754326794000845,
+      "translation": "메인 그래프 함수는 각 빈에 대해 어떤 스케일 값과 캔버스의 높이를 곱한 선을 그리는 것뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:47.690786Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:27/seg:0",
+      "source": "Deciding on a scale appears to be just a personal choice.",
+      "source_hash": 18411521295392181988,
+      "context_hash": 5227920431224334488,
+      "translation": "척도를 결정하는 것은 그저 개인적인 선택인 것으로 보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435298Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:27/seg:1",
+      "source": "If you know of a good formula for choosing a scale leave a comment. 😅 Based on looking around the net I came up with this formula for scale.",
+      "source_hash": 10473148470977831686,
+      "context_hash": 15509533969445104748,
+      "translation": "척도를 선택하는 좋은 공식을 알고 계신다면 댓글을 남겨 주십시오. 😅 인터넷을 이곳저곳 살펴본 끝에 저는 다음과 같은 척도 공식을 생각해 냈습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435299Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:29/seg:0",
+      "source": "Where `numEntries` is the total number of pixels in the image (ie, width * height), and basically we're trying to scale so the bin with the most values touches the top of the graph but, if that bin is too large then we have some ratio that appears to produce a pleasant graph.",
+      "source_hash": 15760045537295783932,
+      "context_hash": 7051343246403491991,
+      "translation": "여기서 `numEntries`는 이미지의 전체 픽셀 수(즉, width * height)이며, 기본적으로 가장 값이 많은 구간(bin)이 그래프의 위쪽 끝에 닿도록 척도를 조정하려는 것입니다. 다만 그 구간이 너무 크다면, 보기 좋은 그래프를 만들어 내는 것으로 보이는 일정한 비율을 적용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435299Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:0",
+      "source": "Putting it all together we create a 2D canvas and draw",
+      "source_hash": 3319483822783657322,
+      "context_hash": 11935816116412791251,
+      "translation": "이것들을 모두 합쳐서 2D 캔버스를 만들고 그립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435299Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:0",
+      "source": "Now we need to load an image.",
+      "source_hash": 16063884083816051240,
+      "context_hash": 7435006117348414811,
+      "translation": "이제 이미지를 로드해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:1",
+      "source": "We'll use the code we wrote in [the article on loading images](webgpu-importing-textures.html).",
+      "source_hash": 18097718444921304391,
+      "context_hash": 3910086897428733004,
+      "translation": "[이미지 로딩에 관한 글](webgpu-importing-textures.html)에서 작성한 코드를 사용하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "We need get the data from an image.",
+      "source_hash": 6578766415501331805,
+      "context_hash": 3825365081711283303,
+      "translation": "이미지로부터 데이터를 가져와야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:1",
+      "source": "To do that we can draw the image to a 2d canvas and then use `getImageData`.",
+      "source_hash": 8589717074264000930,
+      "context_hash": 17437389311504347617,
+      "translation": "이를 위해 이미지를 2d 캔버스에 그린 다음 `getImageData`를 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:0",
+      "source": "We'll also write a function to display an `ImageBitmap`",
+      "source_hash": 12849828792208777652,
+      "context_hash": 16705152684109767237,
+      "translation": "또한 `ImageBitmap`을 표시하는 함수도 작성하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:0",
+      "source": "Let's add some CSS so our image is not displayed too big and give it a background color so we don't have to draw one.",
+      "source_hash": 16292850950527959306,
+      "context_hash": 11624383630706607845,
+      "translation": "이미지가 너무 크게 표시되지 않도록 CSS를 추가하고, 배경색을 직접 그리지 않아도 되도록 배경색을 지정하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:0",
+      "source": "And then we just need call the functions we wrote above.",
+      "source_hash": 3238653442579996378,
+      "context_hash": 17691159765635278230,
+      "translation": "그런 다음 위에서 작성한 함수들을 호출하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:0",
+      "source": "And here's the image histogram.",
+      "source_hash": 17272763484425594905,
+      "context_hash": 7902917758016814024,
+      "translation": "그리고 여기 이미지 히스토그램이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:0",
+      "source": "{{{example url=\"../webgpu-compute-shaders-histogram-javascript.html\"}}}",
+      "source_hash": 13621966634902424997,
+      "context_hash": 7530012718864405708,
+      "translation": "{{{example url=\"../webgpu-compute-shaders-histogram-javascript.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:07:54.435300Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:0",
+      "source": "Hopefully it was easy to follow what the JavaScript code is doing.",
+      "source_hash": 10017803167219894363,
+      "context_hash": 13817127298661193669,
+      "translation": "JavaScript 코드가 하는 일을 이해하기 쉬웠기를 바랍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:1",
+      "source": "Let's convert it to WebGPU!",
+      "source_hash": 2351865950530432060,
+      "context_hash": 2836419851004061232,
+      "translation": "이제 이것을 WebGPU로 변환해 봅시다!",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "<a id=\"a-comptuing-a-histogram\"></a>Computing a histogram on the GPU",
+      "source_hash": 17829069468961839396,
+      "context_hash": 4305688327285567273,
+      "translation": "<a id=\"a-comptuing-a-histogram\"></a>GPU에서 히스토그램 계산하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Let's start with the most obvious solution.",
+      "source_hash": 7681427374770139893,
+      "context_hash": 11167321556985746015,
+      "translation": "가장 명확한 해법부터 시작해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "We'll directly convert the JavaScript `computeHistogram` function to WGSL.",
+      "source_hash": 15764780385670255956,
+      "context_hash": 11559770586564765528,
+      "translation": "JavaScript의 `computeHistogram` 함수를 WGSL로 직접 변환하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "The luminance function is pretty straight forward.",
+      "source_hash": 9789008157688156757,
+      "context_hash": 12233219980413647531,
+      "translation": "휘도(luminance) 함수는 매우 간단합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "Here the JavaScript again",
+      "source_hash": 6923206829668688647,
+      "context_hash": 16266065832506976303,
+      "translation": "여기 다시 JavaScript 코드가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "and here's the corresponding WGSL",
+      "source_hash": 16766748093708625217,
+      "context_hash": 6946589224655077074,
+      "translation": "그리고 여기 이에 대응하는 WGSL 코드가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The `dot` function, which is short for \"dot product\", multiplies every element of one vector with the corresponding element of another vector and then adds the results.",
+      "source_hash": 7345247863875015608,
+      "context_hash": 172958802778752331,
+      "translation": "\"dot product(내적)\"의 줄임말인 `dot` 함수는 한 벡터의 모든 요소를 다른 벡터의 대응되는 요소와 곱한 다음, 그 결과들을 더합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435301Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "For `vec3f` like above, it could be defined as",
+      "source_hash": 2088482945084075344,
+      "context_hash": 1858813878379087021,
+      "translation": "위와 같은 `vec3f`의 경우, 다음과 같이 정의될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "Which is what we had in JavaScript.",
+      "source_hash": 15278082025948059720,
+      "context_hash": 10482273551377010442,
+      "translation": "이는 JavaScript에서 사용했던 것과 동일합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "The major difference is in WGSL we'll pass in the color as a `vec3f` instead of the individual channels.",
+      "source_hash": 1847757026485524051,
+      "context_hash": 13263464039465995249,
+      "translation": "주요한 차이점은 WGSL에서는 개별 채널 대신 색상을 `vec3f`로 전달한다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "For the main part of computing a histogram, here's the JavaScript again",
+      "source_hash": 10049457023217316493,
+      "context_hash": 8606917085285817116,
+      "translation": "히스토그램 계산의 주요 부분에 대해, 여기 다시 JavaScript 코드가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Here's the corresponding WGSL",
+      "source_hash": 18019994369139667609,
+      "context_hash": 6443133403941175786,
+      "translation": "그리고 여기 이에 대응하는 WGSL 코드가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "Above, not much changed.",
+      "source_hash": 11171652398224889978,
+      "context_hash": 11011531142609047457,
+      "translation": "위 코드에서는 크게 달라진 부분이 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "In JavaScript we get the data, width, and height from `imgData`.",
+      "source_hash": 17201724427059847454,
+      "context_hash": 2200454332678100931,
+      "translation": "JavaScript에서는 `imgData`로부터 데이터, 너비, 높이를 가져옵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:2",
+      "source": "In WGSL we get the width and height from the texture by passing it to the `textureDimensions` function.",
+      "source_hash": 18244439196220513850,
+      "context_hash": 9129918907648336734,
+      "translation": "WGSL에서는 텍스처를 `textureDimensions` 함수에 전달하여 너비와 높이를 가져옵니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "`textureDimensions` takes a texture and a mip level (the `0` above) and returns the size of the mip level for that texture.",
+      "source_hash": 10351128806952893417,
+      "context_hash": 964150581037416094,
+      "translation": "`textureDimensions`는 텍스처와 밉 레벨(위의 `0`)을 받아서 해당 텍스처의 그 밉 레벨의 크기를 반환합니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "We loop through all of the pixels of the texture, just like we did in JavaScript.",
+      "source_hash": 15527552408116016675,
+      "context_hash": 1132814393991068471,
+      "translation": "JavaScript에서 했던 것과 마찬가지로, 텍스처의 모든 픽셀을 순회합니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:07:54.435302Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "We call `textureLoad` to get the color from the texture.",
+      "source_hash": 7111127838912665019,
+      "context_hash": 9426017038562906638,
+      "translation": "`textureLoad`를 호출하여 텍스처에서 색상을 가져옵니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:08:13.025796Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "`textureLoad` returns a single texel from a single mip level of a texture.",
+      "source_hash": 17909893603655250940,
+      "context_hash": 4355775198450511814,
+      "translation": "`textureLoad`는 텍스처의 단일 밉 레벨에서 하나의 텍셀을 반환합니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:08:13.025796Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:1",
+      "source": "It takes a texture, an `vec2u` texel position, and a mip level (the `0`).",
+      "source_hash": 14296755015375113400,
+      "context_hash": 4732206881061832776,
+      "translation": "이 함수는 텍스처, `vec2u` 텍셀 위치, 그리고 밉 레벨(`0`)을 인자로 받습니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:08:13.025797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "We compute a luminance value, convert it to a bin index and increment that bin.",
+      "source_hash": 5563835187000113514,
+      "context_hash": 9136794473015140831,
+      "translation": "휘도 값을 계산하고, 이를 빈(bin) 인덱스로 변환한 후 해당 빈을 증가시킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "Now the we have a compute shader, let's use it",
+      "source_hash": 2651010538182780310,
+      "context_hash": 17150943508730493395,
+      "translation": "이제 컴퓨트 셰이더가 생겼으니, 이를 사용해 봅시다",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "We have our pretty standard initialization code",
+      "source_hash": 3888576430034275426,
+      "context_hash": 3602831344564495904,
+      "translation": "우리는 상당히 표준적인 초기화 코드를 가지고 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "then we create our shader",
+      "source_hash": 859716852329621483,
+      "context_hash": 3159077607125555695,
+      "translation": "그런 다음 셰이더를 생성합니다",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "We create a compute pipeline to run the shader",
+      "source_hash": 5776239940085941357,
+      "context_hash": 15405016454556772410,
+      "translation": "셰이더를 실행하기 위한 컴퓨트 파이프라인을 생성합니다",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "After we load the image we need to make a texture and copy the data to it.",
+      "source_hash": 1002438037508710343,
+      "context_hash": 15613555984817600160,
+      "translation": "이미지를 로드한 후에는 텍스처를 만들고 데이터를 복사해야 합니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:08:13.025797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:1",
+      "source": "We'll use the `createTextureFromSource` function we wrote in [the article on loading images into textures](webgpu-importing-textures.html#a-create-texture-from-source).",
+      "source_hash": 9614690488743871463,
+      "context_hash": 13442642782914563125,
+      "translation": "[텍스처로 이미지 불러오기에 관한 글](webgpu-importing-textures.html#a-create-texture-from-source)에서 작성한 `createTextureFromSource` 함수를 사용하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025798Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:0",
+      "source": "We need to create a storage buffer for the shader to sum up the color values with",
+      "source_hash": 12913831507826327400,
+      "context_hash": 15316942329180653824,
+      "translation": "셰이더가 색상 값을 합산할 수 있도록 스토리지 버퍼를 생성해야 합니다",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025798Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:34/seg:0",
+      "source": "and a buffer to get back the results so we can draw them",
+      "source_hash": 3363542077427915322,
+      "context_hash": 9713846131109168661,
+      "translation": "그리고 결과를 다시 가져와 그릴 수 있도록 버퍼도 필요합니다",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:13.025798Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:0",
+      "source": "We need a bind group to pass the texture and histogram buffer to our pipeline",
+      "source_hash": 18313370533684645517,
+      "context_hash": 1340230346488541038,
+      "translation": "텍스처와 히스토그램 버퍼를 파이프라인에 전달하기 위한 바인드 그룹이 필요합니다",
+      "glossary_snapshot": {
+        "texture": "텍스처",
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:13.025798Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:38/seg:0",
+      "source": "We can now setup the commands to run the compute shader",
+      "source_hash": 315966350615872880,
+      "context_hash": 12835716835416505110,
+      "translation": "이제 컴퓨트 셰이더를 실행하기 위한 명령을 설정할 수 있습니다",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025798Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:0",
+      "source": "We need to copy the histogram buffer to the result buffer",
+      "source_hash": 15436323333135679429,
+      "context_hash": 10592735697503962539,
+      "translation": "히스토그램 버퍼를 결과 버퍼로 복사해야 합니다",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:13.025799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:42/seg:0",
+      "source": "and then execute the commands",
+      "source_hash": 17336257827383748293,
+      "context_hash": 10852731372390819217,
+      "translation": "그런 다음 명령을 실행합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:44/seg:0",
+      "source": "Finally we can get the data from the result buffer and pass it to our existing functions to draw the histogram",
+      "source_hash": 5852199322438640457,
+      "context_hash": 4956831974531205929,
+      "translation": "마지막으로 결과 버퍼에서 데이터를 가져와 기존 함수에 전달하여 히스토그램을 그릴 수 있습니다",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:13.025799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:46/seg:0",
+      "source": "And it should work",
+      "source_hash": 14601621799007911036,
+      "context_hash": 6659594623838549750,
+      "translation": "그리고 이것은 제대로 작동할 것입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:47/seg:0",
+      "source": "{{{example url=\"../webgpu-compute-shaders-histogram-slow.html\"}}}",
+      "source_hash": 7275573642846353091,
+      "context_hash": 17018295106141099675,
+      "translation": "{{{example url=\"../webgpu-compute-shaders-histogram-slow.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:13.025799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:48/seg:0",
+      "source": "Timing the results I found **this is about 30x slower than the JavaScript version!!!** 😱😱😱 (YMMV).",
+      "source_hash": 15950596357754389314,
+      "context_hash": 17055156030745006671,
+      "translation": "결과 시간을 측정해보니 **이것이 JavaScript 버전보다 약 30배 느리다는 것**을 발견했습니다!!! 😱😱😱 (결과는 환경에 따라 다를 수 있습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:49/seg:0",
+      "source": "What's up with that?",
+      "source_hash": 8371644482000076769,
+      "context_hash": 3974435380865472466,
+      "translation": "도대체 무슨 일일까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:49/seg:1",
+      "source": "We designed our solution above with a single loop and used a single workgroup invocation with a size of 1.",
+      "source_hash": 18301230132897405206,
+      "context_hash": 1984969106771573093,
+      "translation": "위에서 우리는 단일 루프를 사용하여 솔루션을 설계했고, 크기가 1인 단일 워크그룹 호출을 사용했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:49/seg:2",
+      "source": "That means just a single \"core\" of the GPU was used to compute the histogram.",
+      "source_hash": 4174109652407681645,
+      "context_hash": 13170837350391240383,
+      "translation": "이는 히스토그램을 계산하는 데 GPU의 단 하나의 \"코어\"만 사용되었다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:49/seg:3",
+      "source": "GPU cores are generally not as fast as CPU cores.",
+      "source_hash": 8775101820030775077,
+      "context_hash": 8979349247316293234,
+      "translation": "GPU 코어는 일반적으로 CPU 코어만큼 빠르지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:49/seg:4",
+      "source": "CPU cores have tons of extra circuitry to try to speed them up.",
+      "source_hash": 10600606519058171866,
+      "context_hash": 7935936914372124511,
+      "translation": "CPU 코어는 속도를 높이기 위한 수많은 추가 회로를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:49/seg:5",
+      "source": "GPUs get their speed from massive parallelization but need to keep their design simpler.",
+      "source_hash": 9324229374158355801,
+      "context_hash": 4871367100465218740,
+      "translation": "GPU는 대규모 병렬화를 통해 속도를 얻지만, 설계를 더 단순하게 유지해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:49/seg:6",
+      "source": "Given our shader above we didn't take advantage of any parallelization.",
+      "source_hash": 969191416957630246,
+      "context_hash": 10240729870391894507,
+      "translation": "위의 셰이더를 보면 우리는 병렬화를 전혀 활용하지 않았습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:50/seg:0",
+      "source": "Here's a diagram of what's happening using our small example texture.",
+      "source_hash": 4764739094670906302,
+      "context_hash": 16616621889803445999,
+      "translation": "여기 작은 예제 텍스처를 사용하여 무슨 일이 일어나는지 보여주는 다이어그램이 있습니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Diagram vs Shader Differences",
+      "source_hash": 1461449564134309401,
+      "context_hash": 797808471891968376,
+      "translation": "다이어그램 대 셰이더의 차이점",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "These diagrams are not a perfect representation of our shaders",
+      "source_hash": 14683227594302405588,
+      "context_hash": 17710877684484284117,
+      "translation": "이 다이어그램들은 우리 셰이더를 완벽하게 표현한 것은 아닙니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "They show only 3 bins where as our shader has 256 bins",
+      "source_hash": 14854409967925647606,
+      "context_hash": 9305621641280420551,
+      "translation": "우리 셰이더는 256개의 빈을 가지고 있지만, 다이어그램에서는 3개의 빈만 보여줍니다",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The code is simplified.",
+      "source_hash": 8769812869023707654,
+      "context_hash": 11093780062442916839,
+      "translation": "코드는 단순화되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:13.025800Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "▢ is the texel color",
+      "source_hash": 17276840604609471019,
+      "context_hash": 152214103058372301,
+      "translation": "▢는 텍셀 색상입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373344Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "◯ is the bin selection represented as luminance",
+      "source_hash": 12624931952444563579,
+      "context_hash": 9002802823425898656,
+      "translation": "◯는 휘도로 표현된 빈(bin) 선택입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373346Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Many things are abbreviated.",
+      "source_hash": 7444015420731881909,
+      "context_hash": 13873891753165861308,
+      "translation": "많은 것들이 축약되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373347Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "`wid` = `workgroup_id`",
+      "source_hash": 16260763658105172672,
+      "context_hash": 4777409052171190355,
+      "translation": "`wid` = `workgroup_id`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373347Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "`gid` = `global_invocation_id`",
+      "source_hash": 6567347221000417274,
+      "context_hash": 2350741596565584184,
+      "translation": "`gid` = `global_invocation_id`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373347Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "`lid` = `local_invocation_id`",
+      "source_hash": 17458856588142095241,
+      "context_hash": 1395468382412931493,
+      "translation": "`lid` = `local_invocation_id`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "`ourTex` = `ourTexture`",
+      "source_hash": 5526598235707585577,
+      "context_hash": 14060213280026389762,
+      "translation": "`ourTex` = `ourTexture`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "`texLoad` = `textureLoad`",
+      "source_hash": 16179070648901095852,
+      "context_hash": 583549088159790256,
+      "translation": "`texLoad` = `textureLoad`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "etc...",
+      "source_hash": 3471353063571885782,
+      "context_hash": 10162116978861858665,
+      "translation": "기타 등등...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373349Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Many of these changes are because there is only so much room to try to display many details.",
+      "source_hash": 2030724429757387886,
+      "context_hash": 8243946747864445288,
+      "translation": "이러한 변경 사항의 대부분은 많은 세부 정보를 표시하려는 데 공간이 한정되어 있기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373349Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "While this first example uses a single invocation, as we progress we'll need to cram more info in less space.",
+      "source_hash": 13610470494803097231,
+      "context_hash": 8427346762518056263,
+      "translation": "이 첫 번째 예제는 단일 인보케이션을 사용하지만, 진행하면서 더 적은 공간에 더 많은 정보를 담아야 할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373349Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:2",
+      "source": "I hope the diagrams aid in understanding rather than make things more confusing. 😅",
+      "source_hash": 18019089834759259700,
+      "context_hash": 16073472939316149267,
+      "translation": "다이어그램이 혼란을 가중시키기보다는 이해에 도움이 되기를 바랍니다. 😅",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373350Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Given a single GPU invocation is slower than a CPU we need to find a way to parallelize our approach.",
+      "source_hash": 14835078258867747512,
+      "context_hash": 3274376092898471330,
+      "translation": "단일 GPU 인보케이션이 CPU보다 느리다는 점을 감안하면, 우리의 접근 방식을 병렬화할 방법을 찾아야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373350Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Optimize - More Invocations",
+      "source_hash": 2138825907718120170,
+      "context_hash": 14890308851320421118,
+      "translation": "최적화 - 더 많은 인보케이션",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373351Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Possibly the easiest and most obvious way to speed this up use to use one workgroup per pixel.",
+      "source_hash": 12345585733764442184,
+      "context_hash": 9455796107532612460,
+      "translation": "이를 빠르게 만드는 가장 쉽고 명백한 방법은 픽셀 하나당 워크그룹 하나를 사용하는 것일 수 있습니다. 위의 코드에는 for 루프가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373351Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "In our code above we have for loop",
+      "source_hash": 13404741289885186876,
+      "context_hash": 12956142647445581486,
+      "translation": "위의 코드에는 for 루프가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373352Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "We could change the code use instead use `global_invocation_id` as an input and then process every single pixel in a separate invocation.",
+      "source_hash": 6917480492279604279,
+      "context_hash": 358579652120693750,
+      "translation": "대신 `global_invocation_id`를 입력으로 사용하도록 코드를 변경하여 각 픽셀을 별도의 인보케이션에서 처리할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373352Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Here's the needed changes to the shader",
+      "source_hash": 3716655859437300850,
+      "context_hash": 1894364979353677649,
+      "translation": "다음은 셰이더에 필요한 변경 사항입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:03.373352Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "As you can see, we got rid of the loop, instead we use the `@builtin(global_invocation_id)` value to make each workgroup responsible for a single pixel.",
+      "source_hash": 14518838526321435546,
+      "context_hash": 6314493945072904456,
+      "translation": "보시다시피 루프를 없애고, 대신 `@builtin(global_invocation_id)` 값을 사용해 각 워크그룹이 단일 픽셀을 담당하도록 했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373354Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "Theoretically this would mean all of the pixels could be processed in parallel.",
+      "source_hash": 2561981252066290189,
+      "context_hash": 11503037258399308179,
+      "translation": "이론적으로 이는 모든 픽셀이 병렬로 처리될 수 있다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373354Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:2",
+      "source": "Our image is 2448 × 1505 which is almost 3.7 million pixels so there are lots of chances for parallelization.",
+      "source_hash": 2667485332689348295,
+      "context_hash": 7744545447792504816,
+      "translation": "우리의 이미지는 2448 × 1505로 거의 370만 픽셀에 달하므로 병렬화의 기회가 많습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373354Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "The only other change needed is to actually run one workgroup per pixel.",
+      "source_hash": 2803626303148492249,
+      "context_hash": 14613050920484068945,
+      "translation": "유일하게 필요한 다른 변경 사항은 픽셀 하나당 워크그룹 하나를 실제로 실행하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373355Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "Here it is running",
+      "source_hash": 5229629209196276780,
+      "context_hash": 4577846733765912854,
+      "translation": "다음은 실행되는 모습입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373355Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "{{{example url=\"../webgpu-compute-shaders-histogram-with-race.html\"}}}",
+      "source_hash": 13969802819648215095,
+      "context_hash": 2888613518200446322,
+      "translation": "{{{example url=\"../webgpu-compute-shaders-histogram-with-race.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:03.373356Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "What's wrong?",
+      "source_hash": 13169677815669104581,
+      "context_hash": 17879733935113557953,
+      "translation": "무엇이 잘못되었을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373357Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "Why doesn't this histogram match the previous histogram and why don't the totals match?",
+      "source_hash": 10066614818898436900,
+      "context_hash": 11718825660258736491,
+      "translation": "왜 이 히스토그램이 이전 히스토그램과 일치하지 않으며, 합계도 일치하지 않을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373357Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:2",
+      "source": "Note: your computer might get different results than mine.",
+      "source_hash": 6158175608768030647,
+      "context_hash": 16563356610876573908,
+      "translation": "참고: 여러분의 컴퓨터는 저와 다른 결과를 얻을 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373358Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:3",
+      "source": "On mine, this is the histogram from the previous version on the top, and then 4 results from the new version on the bottom.",
+      "source_hash": 15488707892091415670,
+      "context_hash": 11989209097568231391,
+      "translation": "제 경우, 위쪽은 이전 버전의 히스토그램이고, 아래쪽은 새 버전의 결과 4개입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373358Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "Previous Result",
+      "source_hash": 16749200157421546309,
+      "context_hash": 14999372072489812652,
+      "translation": "이전 결과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373358Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "New Results",
+      "source_hash": 5338054814218721635,
+      "context_hash": 8239934249610416414,
+      "translation": "새 결과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373359Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "Our new version gets inconsistent results (at least on my machine).",
+      "source_hash": 14472364573391591484,
+      "context_hash": 10668528427825422486,
+      "translation": "새 버전은 (적어도 제 컴퓨터에서는) 일관되지 않은 결과를 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373359Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "What happened?",
+      "source_hash": 17156917992337147092,
+      "context_hash": 4644877139006900377,
+      "translation": "무슨 일이 일어난 것일까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:03.373359Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "This is a classic *race condition* like we mentioned in [the previous article](../webgpu-compute-shaders.html#a-race-conditions).",
+      "source_hash": 17283666672274408409,
+      "context_hash": 14366038732384117913,
+      "translation": "이는 [이전 글](../webgpu-compute-shaders.html#a-race-conditions)에서 언급했던 것과 같은 전형적인 *경쟁 조건(race condition)*입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533757Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "This line in our shader",
+      "source_hash": 1976864659441254689,
+      "context_hash": 14123979502967658177,
+      "translation": "셰이더에 있는 이 줄은",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:04.533758Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "Actually translates to this",
+      "source_hash": 109810168315287347,
+      "context_hash": 1727987268793813152,
+      "translation": "실제로는 다음과 같이 변환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533760Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "What happens when 2 or more invocations are running in parallel and happen to have the same `bin` value?",
+      "source_hash": 2303173766115649585,
+      "context_hash": 6256925058405577245,
+      "translation": "2개 이상의 호출(invocation)이 병렬로 실행되면서 마침 같은 `bin` 값을 가지게 되면 어떤 일이 발생합니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533760Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "Imagine 2 invocations, where `bin = 1` and `bins[1] = 3`.",
+      "source_hash": 2999312921141731373,
+      "context_hash": 1729792056578164410,
+      "translation": "`bin = 1`이고 `bins[1] = 3`인 2개의 호출을 상상해 보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533760Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:1",
+      "source": "If they run in parallel both invocations will load 3 and both invocations will write 4, when the correct answer would be 5.",
+      "source_hash": 4792226602284338024,
+      "context_hash": 3730603011366820392,
+      "translation": "이들이 병렬로 실행되면 두 호출 모두 3을 로드하고 두 호출 모두 4를 기록하게 되는데, 올바른 답은 5여야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "Invocation 1",
+      "source_hash": 13228577129065615996,
+      "context_hash": 16445392141806961955,
+      "translation": "호출 1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "Invocation 2",
+      "source_hash": 617234624041548235,
+      "context_hash": 10240413204544356139,
+      "translation": "호출 2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:0",
+      "source": "value = bins[bin]",
+      "source_hash": 13488199958257677276,
+      "context_hash": 12467378425933569755,
+      "translation": "value = bins[bin]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:27/seg:0",
+      "source": "// loads 3",
+      "source_hash": 18330815194043557328,
+      "context_hash": 5194752890490984695,
+      "translation": "// 3을 로드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:28/seg:0",
+      "source": "value = bins[bin]",
+      "source_hash": 13488199958257677276,
+      "context_hash": 3793268833499313656,
+      "translation": "value = bins[bin]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:29/seg:0",
+      "source": "// loads 3",
+      "source_hash": 18330815194043557328,
+      "context_hash": 15091173586810533759,
+      "translation": "// 3을 로드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:30/seg:0",
+      "source": "value = value + 1",
+      "source_hash": 4300805501976613426,
+      "context_hash": 7553513727132290602,
+      "translation": "value = value + 1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533761Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:31/seg:0",
+      "source": "// adds 1",
+      "source_hash": 8404785585944757666,
+      "context_hash": 3433734702555539403,
+      "translation": "// 1을 더함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533762Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:32/seg:0",
+      "source": "value = value + 1",
+      "source_hash": 4300805501976613426,
+      "context_hash": 11692738864148063433,
+      "translation": "value = value + 1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533762Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:33/seg:0",
+      "source": "// adds 1",
+      "source_hash": 8404785585944757666,
+      "context_hash": 18157699660717524766,
+      "translation": "// 1을 더함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533762Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:34/seg:0",
+      "source": "bins[bin] = value",
+      "source_hash": 641012397816120519,
+      "context_hash": 10935574915617285329,
+      "translation": "bins[bin] = value",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533762Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:35/seg:0",
+      "source": "// stores 4",
+      "source_hash": 14709776722166267816,
+      "context_hash": 1666073341755769613,
+      "translation": "// 4를 저장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533762Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:36/seg:0",
+      "source": "bins[bin] = value",
+      "source_hash": 641012397816120519,
+      "context_hash": 13718988889673696023,
+      "translation": "bins[bin] = value",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533762Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:37/seg:0",
+      "source": "// stores 4",
+      "source_hash": 14709776722166267816,
+      "context_hash": 6311118771722199262,
+      "translation": "// 4를 저장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533762Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:38/seg:0",
+      "source": "You can see the problem visually in the diagram below.",
+      "source_hash": 16448432201212956466,
+      "context_hash": 7368775628787298425,
+      "translation": "아래 다이어그램에서 이 문제를 시각적으로 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533763Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:38/seg:1",
+      "source": "You'll see several invocations go and fetch the current value in the bin, add one to it, and put it back, each of oblivious that another invocation is reading and updating the same bin at the same time.",
+      "source_hash": 8398883855144907284,
+      "context_hash": 15387151051953497644,
+      "translation": "여러 호출이 bin의 현재 값을 가져와 1을 더한 후 다시 넣는 과정을 반복하는데, 각 호출은 다른 호출이 동시에 같은 bin을 읽고 갱신하고 있다는 사실을 전혀 알지 못하는 것을 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533763Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:40/seg:0",
+      "source": "WGSL has special \"atomic\" instructions to solve this issue.",
+      "source_hash": 6220961884061891477,
+      "context_hash": 9021914893966360089,
+      "translation": "WGSL에는 이 문제를 해결하기 위한 특별한 \"원자적(atomic)\" 명령어가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533763Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:40/seg:1",
+      "source": "This case we can use `atomicAdd`. `atomicAdd` makes the addition \"atomic\" which means rather than 3 operations, load->add->store, all 3 operations happen at once, \"atomically\".",
+      "source_hash": 2304381600101496476,
+      "context_hash": 4010684620670645753,
+      "translation": "이 경우에는 `atomicAdd`를 사용할 수 있습니다. `atomicAdd`는 덧셈을 \"원자적\"으로 만드는데, 이는 로드->더하기->저장이라는 3개의 연산이 아니라 그 3개의 연산 전부가 \"원자적으로\" 한 번에 일어난다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533764Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:40/seg:2",
+      "source": "This effectively prevents more than two invocations from updating a value at the same time.",
+      "source_hash": 1280040128130850146,
+      "context_hash": 2868480897035993893,
+      "translation": "이는 사실상 두 개 이상의 호출이 동시에 같은 값을 갱신하는 것을 막아줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533764Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:41/seg:0",
+      "source": "Atomic functions have the requirement that they only work on `i32` or `u32` and they require to data itself to be of type `atomic`.",
+      "source_hash": 13043137865912892291,
+      "context_hash": 17680379659916818349,
+      "translation": "원자적 함수는 `i32` 또는 `u32`에서만 동작하며, 데이터 자체가 `atomic` 타입이어야 한다는 요구 사항이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533764Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:42/seg:0",
+      "source": "Here's the changes to our shaders",
+      "source_hash": 15831579344349095318,
+      "context_hash": 13294325346780333637,
+      "translation": "다음은 셰이더에 가해진 변경 사항입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533765Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:44/seg:0",
+      "source": "With that our compute shader, that uses 1 workgroup invocation per pixel, works!",
+      "source_hash": 9089420129898875222,
+      "context_hash": 13184898323102445437,
+      "translation": "이로써 픽셀당 1개의 워크그룹 호출을 사용하는 우리의 컴퓨트 셰이더가 정상 동작합니다!",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:04.533765Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:45/seg:0",
+      "source": "{{{example url=\"../webgpu-compute-shaders-histogram-race-fixed.html\"}}}",
+      "source_hash": 10386639454104738800,
+      "context_hash": 16766364115883614356,
+      "translation": "{{{example url=\"../webgpu-compute-shaders-histogram-race-fixed.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:04.533765Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:46/seg:0",
+      "source": "Unfortunately we have a new problem. `atomicAdd` effectively needs to block other invocations from updating the same bin at the same time.",
+      "source_hash": 342251721528236437,
+      "context_hash": 16425909455231601461,
+      "translation": "안타깝게도 새로운 문제가 생겼습니다. `atomicAdd`는 사실상 다른 호출들이 동시에 같은 bin을 갱신하지 못하도록 차단해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533766Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:46/seg:1",
+      "source": "We can see the issue here.",
+      "source_hash": 5410179152653308017,
+      "context_hash": 8668590097274617389,
+      "translation": "여기서 그 문제를 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533766Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:46/seg:2",
+      "source": "The diagram below shows `atomicAdd` as 3 operations but when an invocation is doing an `atomicAdd` it \"locks the bin\" so that another invocation has to wait until it's done.",
+      "source_hash": 13657096310818616689,
+      "context_hash": 1061991166592209551,
+      "translation": "아래 다이어그램은 `atomicAdd`를 3개의 연산으로 보여주지만, 어떤 호출이 `atomicAdd`를 수행하는 동안에는 \"bin을 잠가서\" 다른 호출이 그 작업이 끝날 때까지 기다려야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:04.533766Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:47/seg:0",
+      "source": "Two workgroups, one locking the bottom bin, the other blocked from using the same bottom bin",
+      "source_hash": 1263020375991139697,
+      "context_hash": 1784731486906098904,
+      "translation": "두 개의 워크그룹, 하나는 하단 빈을 잠그고 있고 다른 하나는 동일한 하단 빈을 사용하지 못해 차단된 상태입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985199Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:48/seg:0",
+      "source": "In the diagrams, when an invocation is locking a bin it will have a line from the invocation to the bin in the color of the bin.",
+      "source_hash": 667574222977065637,
+      "context_hash": 14582702051326743310,
+      "translation": "다이어그램에서 인보케이션이 빈을 잠그고 있을 때는 해당 빈의 색상으로 인보케이션에서 빈까지 이어지는 선이 표시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985200Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:48/seg:1",
+      "source": "Invocations that are waiting for that bin to unlock will have a stop sign 🛑 on them.",
+      "source_hash": 16615558268864098114,
+      "context_hash": 1633213777689677305,
+      "translation": "해당 빈이 잠금 해제되기를 기다리는 인보케이션에는 정지 표지판 🛑이 표시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985201Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:50/seg:0",
+      "source": "On my machine, this new version runs at around 4x faster than JavaScript though YMMV.",
+      "source_hash": 10306140816788829241,
+      "context_hash": 10491559681355211076,
+      "translation": "제 컴퓨터에서는 이 새 버전이 JavaScript보다 약 4배 빠르게 실행되지만, 결과는 환경에 따라 다를 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985201Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Workgroups",
+      "source_hash": 9383224185438496984,
+      "context_hash": 11869669263334945055,
+      "translation": "워크그룹",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985201Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Can we go faster?",
+      "source_hash": 11016923231299782501,
+      "context_hash": 10390203956273960074,
+      "translation": "더 빠르게 만들 수 있을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985201Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "As mentioned in [the previous article](../webgpu-compute-shaders.html), the \"workgroup\" is the smallest unit of work we can ask the GPU can do.",
+      "source_hash": 12945143181913664781,
+      "context_hash": 3212660738674882884,
+      "translation": "[이전 글](../webgpu-compute-shaders.html)에서 언급했듯이, \"워크그룹\"은 GPU에게 요청할 수 있는 작업의 최소 단위입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985201Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "You define the size of a workgroup in 3 dimensions when you create the shader module, and then you call `dispatchWorkgroups` to run a bunch of these workgroups.",
+      "source_hash": 1286385379325802377,
+      "context_hash": 544509402505060336,
+      "translation": "셰이더 모듈을 생성할 때 워크그룹의 크기를 3차원으로 정의하며, 그런 다음 `dispatchWorkgroups`를 호출해 이러한 워크그룹들을 여러 개 실행합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:14.985201Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Workgroups can share internal storage and coordinate that storage with in the workgroup itself.",
+      "source_hash": 776397097201052959,
+      "context_hash": 9034757386734656297,
+      "translation": "워크그룹은 내부 저장소를 공유할 수 있으며, 해당 저장소를 워크그룹 자체 내에서 조율할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985201Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "How could we take advantage of that fact?",
+      "source_hash": 18382528804120211039,
+      "context_hash": 7332051699775063437,
+      "translation": "이 사실을 어떻게 활용할 수 있을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Let's try this.",
+      "source_hash": 2834079944513219644,
+      "context_hash": 580228300021951785,
+      "translation": "한번 시도해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "We'll make our workgroup size, 256x1 (so 256 invocations per workgroup).",
+      "source_hash": 2235351755398894975,
+      "context_hash": 514673742400983568,
+      "translation": "워크그룹 크기를 256x1로 만들겠습니다(즉, 워크그룹당 256개의 인보케이션).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "We'll have each invocation work on a 256x1 section of the image.",
+      "source_hash": 12057921853395847555,
+      "context_hash": 12174537157763813020,
+      "translation": "각 인보케이션이 이미지의 256x1 영역을 처리하도록 하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:3",
+      "source": "This will mean we will have `Math.ceil(texture.width / 256) * texture.height` total workgroups.",
+      "source_hash": 10364899707454915954,
+      "context_hash": 11608510174479817332,
+      "translation": "이는 `Math.ceil(texture.width / 256) * texture.height`개의 워크그룹이 총 필요하다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:4",
+      "source": "For our image, which is 2448 × 1505, that would be 10 x 1505 or 15050 workgroups.",
+      "source_hash": 10480082308336918121,
+      "context_hash": 17391075619404813686,
+      "translation": "2448 × 1505 크기의 이미지의 경우, 10 x 1505, 즉 15050개의 워크그룹이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "We'll have the invocations within the workgroup use workgroup storage to sum up the luminance values into bins.",
+      "source_hash": 13663180543942359657,
+      "context_hash": 14788044077851100939,
+      "translation": "워크그룹 내의 인보케이션들이 워크그룹 저장소를 사용해 휘도 값을 빈에 합산하도록 하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Finally we'll copy the workgroup memory for the workgroup into its own \"chunk\".",
+      "source_hash": 15183798545207941254,
+      "context_hash": 1056938771431024923,
+      "translation": "마지막으로, 워크그룹의 워크그룹 메모리를 자체 \"청크\"로 복사하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "That way we will not have to coordinate with other workgroups.",
+      "source_hash": 4882376288030266028,
+      "context_hash": 17066461404589156655,
+      "translation": "이렇게 하면 다른 워크그룹과 조율할 필요가 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:2",
+      "source": "When were done, we'll run another compute shader to sum up the chunks.",
+      "source_hash": 1577029005051111868,
+      "context_hash": 7303143216188914045,
+      "translation": "작업이 끝나면, 또 다른 컴퓨트 셰이더를 실행해 청크들을 합산하겠습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:14.985202Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Let's edit our shader.",
+      "source_hash": 736544087663366328,
+      "context_hash": 11161916640162061499,
+      "translation": "셰이더를 수정해 봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "First we'll change our `bins` from type `storage` to type `workgroup` so they'll only be shared with invocations in the same workgroup.",
+      "source_hash": 14978465782925562317,
+      "context_hash": 17218788921942203632,
+      "translation": "먼저 `bins`의 타입을 `storage`에서 `workgroup`으로 변경하여, 동일한 워크그룹 내의 인보케이션들끼리만 공유되도록 하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "Above we declared some constants so we can easily change them.",
+      "source_hash": 1915152477512040758,
+      "context_hash": 4110430453468609643,
+      "translation": "위에서는 쉽게 변경할 수 있도록 몇 가지 상수를 선언했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Then we need storage for all of our chunks",
+      "source_hash": 13012963315876638198,
+      "context_hash": 17174263385988913952,
+      "translation": "다음으로 모든 청크를 위한 저장소가 필요합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "We can use the constants to define our workgroup size",
+      "source_hash": 6725862046096461163,
+      "context_hash": 11486941174344691277,
+      "translation": "이 상수들을 사용해 워크그룹 크기를 정의할 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "The main part that increments the bins is very similar to our previous shader.",
+      "source_hash": 9138904757567729117,
+      "context_hash": 17242850987438222299,
+      "translation": "빈을 증가시키는 주요 부분은 이전 셰이더와 매우 유사합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "Because our chunk size is hardcoded into the shader we don't want to work on pixels outside of our texture.",
+      "source_hash": 8890087352581999039,
+      "context_hash": 14788015164872598092,
+      "translation": "청크 크기가 셰이더에 하드코딩되어 있기 때문에, 텍스처 바깥의 픽셀에서는 작업하지 않도록 해야 합니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "So for example if our image was 300 pixels wide, the first workgroup would work on pixels 0 to 255.",
+      "source_hash": 14283415408634956179,
+      "context_hash": 1510372780778568924,
+      "translation": "예를 들어 이미지의 너비가 300픽셀이라면, 첫 번째 워크그룹은 0번부터 255번까지의 픽셀을 처리하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985203Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:2",
+      "source": "The second workgroup would work on pixels 256 to 511.",
+      "source_hash": 14897135708830639402,
+      "context_hash": 2809707189311482514,
+      "translation": "두 번째 워크그룹은 256번부터 511번까지의 픽셀을 처리하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985204Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:3",
+      "source": "But we only need work up to pixel 299.",
+      "source_hash": 17033121488531273106,
+      "context_hash": 12809835444831504046,
+      "translation": "하지만 실제로는 299번 픽셀까지만 처리하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985204Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:4",
+      "source": "This is what the `if(all(position < size))` does.",
+      "source_hash": 92361215674666599,
+      "context_hash": 9364150465868160167,
+      "translation": "이것이 바로 `if(all(position < size))`가 하는 역할입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985204Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:5",
+      "source": "Both `position` and `size` are `vec2u` and so `position < size` will produce 2 boolean values which is a`vec2<bool>`. the `all` function returns `true` if all of its inputs are true.",
+      "source_hash": 1793919925224651738,
+      "context_hash": 15479978611892169573,
+      "translation": "`position`과 `size`는 모두 `vec2u` 타입이므로, `position < size`는 `vec2<bool>` 타입인 2개의 불리언 값을 생성합니다. `all` 함수는 모든 입력값이 참일 때 `true`를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985204Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:6",
+      "source": "So, the code will only go inside the `if` if `position.x < size.x` and `position.y < size.y`.",
+      "source_hash": 8047078736670849320,
+      "context_hash": 1994750886885021030,
+      "translation": "따라서 이 코드는 `position.x < size.x`이고 `position.y < size.y`일 때만 `if` 블록 내부로 진입합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:14.985204Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "As for `numBins`, we have as many bins as we defined for the chunk size.",
+      "source_hash": 11120203667548585152,
+      "context_hash": 18189803589812514851,
+      "translation": "`numBins`의 경우, 청크 크기로 정의한 만큼의 빈을 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467832Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:1",
+      "source": "We can no longer lookup the size because we don't pass in a buffer for `var<workgroup>` like we did for `var<storage>`.",
+      "source_hash": 16738105410099465556,
+      "context_hash": 10821452836672439766,
+      "translation": "`var<storage>`에서 했던 것처럼 `var<workgroup>`에 버퍼를 전달하지 않기 때문에 더 이상 크기를 조회할 수 없습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:24.467834Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:2",
+      "source": "Its size is defined when we create the shader module.",
+      "source_hash": 5802535445764321950,
+      "context_hash": 11897711481732168004,
+      "translation": "그 크기는 셰이더 모듈을 생성할 때 정의됩니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:24.467835Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "Finally the most different part of the shader.",
+      "source_hash": 15752513958223858539,
+      "context_hash": 4226709712207509620,
+      "translation": "마지막으로 셰이더에서 가장 다른 부분입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:24.467836Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "This part just has each invocation copy one bin to the corresponding bin of a specific chunk, the chunk being worked on by this workgroup.",
+      "source_hash": 3362786983974409269,
+      "context_hash": 10481113225956305859,
+      "translation": "이 부분은 각 호출이 특정 청크의 대응하는 빈으로 빈 하나를 복사하도록 하는데, 이 청크는 이 워크그룹이 작업 중인 청크입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467836Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:1",
+      "source": "Some of the calculations where are to convert `global_invocation_id` into both a `chunkPos` and a `binPos`.",
+      "source_hash": 572045984669876334,
+      "context_hash": 11402725812767087592,
+      "translation": "여기서 이루어지는 계산 중 일부는 `global_invocation_id`를 `chunkPos`와 `binPos` 둘 다로 변환하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467836Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:2",
+      "source": "Those values are effectively the `workgroup_id` and `local_invocation_id` so we could simplify this code to",
+      "source_hash": 371209379977113606,
+      "context_hash": 10844835138173111910,
+      "translation": "이 값들은 사실상 `workgroup_id`와 `local_invocation_id`이므로 다음과 같이 이 코드를 단순화할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467837Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "We'd then need to add `workgroup_id` and `local_invocation_id` as inputs to the shader function",
+      "source_hash": 2520183257312461632,
+      "context_hash": 13611470360119147962,
+      "translation": "그러면 `workgroup_id`와 `local_invocation_id`를 셰이더 함수의 입력으로 추가해야 합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:24.467837Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "<a id=\"a-workgroup-barrier\"></a>workgroupBarrier",
+      "source_hash": 17145822357184778388,
+      "context_hash": 10117992491159233456,
+      "translation": "<a id=\"a-workgroup-barrier\"></a>workgroupBarrier",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467838Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The `workgroupBarrier()` effectively says \"stop here until all invocations in this workgroup reach this point.",
+      "source_hash": 7416805767763816839,
+      "context_hash": 14303162690990803279,
+      "translation": "`workgroupBarrier()`는 사실상 \"이 워크그룹의 모든 호출이 이 지점에 도달할 때까지 여기서 멈춰라\"라고 말하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467838Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "We need this because each invocation is updating different elements in `bins` but afterward, each invocation will copy just one element from `bins` to the correspond element in one of the `chunks` so we need to make sure all other invocations are done.",
+      "source_hash": 12734764303425532793,
+      "context_hash": 7877177530385147043,
+      "translation": "각 호출이 `bins`의 서로 다른 요소를 갱신하지만, 그 이후 각 호출은 `bins`의 요소 하나만을 `chunks` 중 하나의 대응하는 요소로 복사하게 되므로, 다른 모든 호출이 완료되었는지 확인해야 하기 때문에 이것이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467839Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "To say this another way, any invocation can `atomicAdd` any element in `bins` depending on what color it reads from the texture.",
+      "source_hash": 15483018258493390740,
+      "context_hash": 3088954201325525642,
+      "translation": "다르게 말하면, 어떤 호출이든 텍스처에서 읽은 색상에 따라 `bins`의 어떤 요소에도 `atomicAdd`를 할 수 있습니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:08:24.467839Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "But, only `local_invocation_id` = 3,0 will copy `bin[3]` to `chunks[chunk][3]` so it has to wait for all other invocations to have their chance to update `bin[3]`.",
+      "source_hash": 14363302311731804466,
+      "context_hash": 789894006086758069,
+      "translation": "하지만 `local_invocation_id` = 3,0인 호출만이 `bin[3]`을 `chunks[chunk][3]`으로 복사하므로, 다른 모든 호출이 `bin[3]`을 갱신할 기회를 가질 때까지 기다려야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467840Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Putting it all together here is our new shader",
+      "source_hash": 10196117904494856939,
+      "context_hash": 14880921193961222538,
+      "translation": "이 모든 것을 종합하면, 다음이 새로운 셰이더입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:24.467840Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "One more thing we could do, rather than hardcode `chunkWidth` and `chunkHeight` we could pass them in from JavaScript like this",
+      "source_hash": 5506644631256979033,
+      "context_hash": 11883813546682055986,
+      "translation": "우리가 할 수 있는 또 한 가지는, `chunkWidth`와 `chunkHeight`를 하드코딩하는 대신 다음과 같이 JavaScript에서 전달하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467840Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "If we ran this shader it would work something like this:",
+      "source_hash": 2152545195820678857,
+      "context_hash": 8926578199003993734,
+      "translation": "이 셰이더를 실행하면 대략 다음과 같이 작동할 것입니다:",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:24.467840Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Above you can see, each workgroup reads one chunk's worth of pixels and updates the bins accordingly.",
+      "source_hash": 18394423200049744006,
+      "context_hash": 12046154976319331856,
+      "translation": "위에서 볼 수 있듯이, 각 워크그룹은 한 청크 분량의 픽셀을 읽고 그에 따라 빈을 갱신합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467841Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:1",
+      "source": "Just like before, if 2 invocations need to update the same bin one of them will have to wait 🛑.",
+      "source_hash": 12691855482882321668,
+      "context_hash": 15159259916254086869,
+      "translation": "이전과 마찬가지로, 2개의 호출이 같은 빈을 갱신해야 하는 경우 그중 하나는 기다려야 합니다 🛑.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467841Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:2",
+      "source": "Afterwords they all wait for each other at the `workgroupBarrier` 🚧.",
+      "source_hash": 15711231776105150140,
+      "context_hash": 12571119421970244108,
+      "translation": "그 후 모두가 `workgroupBarrier` 🚧에서 서로를 기다립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467841Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:3",
+      "source": "After that each invocation copies the bin it's responsible for to the corresponding bin in the chunk it's working on.",
+      "source_hash": 4687110164307931011,
+      "context_hash": 10548617442255945049,
+      "translation": "그런 다음 각 호출은 자신이 담당하는 빈을 자신이 작업 중인 청크의 대응하는 빈으로 복사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467842Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Summing the chunks",
+      "source_hash": 1997580977056979004,
+      "context_hash": 15700597907774024986,
+      "translation": "청크 합산하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467842Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "All the pixel luminance values have now been counted but we need to sum up the bins to get the answer.",
+      "source_hash": 13591394008054777343,
+      "context_hash": 5739786860003302995,
+      "translation": "이제 모든 픽셀의 휘도 값이 계산되었지만, 답을 얻으려면 빈들을 합산해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467842Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "Let's write a compute shader to do that.",
+      "source_hash": 4210502856392377798,
+      "context_hash": 4849353507222220610,
+      "translation": "그것을 수행할 컴퓨트 셰이더를 작성해 봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:24.467842Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:2",
+      "source": "We can do one invocation per bin.",
+      "source_hash": 14385830496594456152,
+      "context_hash": 14984337665647905315,
+      "translation": "빈 하나당 호출 하나를 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467843Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:3",
+      "source": "Each invocation will just add up all of the values from the same bin in each chunk and then write the result to the first chunk",
+      "source_hash": 12684588503965074188,
+      "context_hash": 7220259392514318866,
+      "translation": "각 호출은 각 청크에서 같은 빈의 모든 값을 더한 다음 그 결과를 첫 번째 청크에 씁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467843Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Here's the code",
+      "source_hash": 15514489424272332507,
+      "context_hash": 8728304268916875525,
+      "translation": "다음은 그 코드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467843Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "And, like before, we can inject the `chunkWidth` and `chunkHeight`.",
+      "source_hash": 15642449073932488994,
+      "context_hash": 6248294459797261786,
+      "translation": "그리고 이전과 마찬가지로, `chunkWidth`와 `chunkHeight`를 주입할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467843Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "This shader will effectively work like this",
+      "source_hash": 12681786774697231169,
+      "context_hash": 7830025783583248372,
+      "translation": "이 셰이더는 사실상 다음과 같이 작동할 것입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:24.467843Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Now that we have these 2 shaders, let's update the code to use them.",
+      "source_hash": 7115278803738743720,
+      "context_hash": 7576452614136341939,
+      "translation": "이제 이 두 셰이더를 갖췄으니, 이를 사용하도록 코드를 업데이트합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467844Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "We need to create pipelines for both shaders",
+      "source_hash": 12686427529297180132,
+      "context_hash": 17056410866488317886,
+      "translation": "두 셰이더 모두를 위한 파이프라인을 생성해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:24.467844Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "We need to create a storage buffer large enough for all our chunks so we compute how many chunks we need to cover the entire image.",
+      "source_hash": 2303305974440550480,
+      "context_hash": 8248548351319709386,
+      "translation": "모든 청크를 담을 만큼 충분히 큰 스토리지 버퍼를 생성해야 하므로, 전체 이미지를 커버하는 데 필요한 청크 수를 계산합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:24.467844Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "We still need our result buffer to read the result but it's no longer the same size as the previous buffer",
+      "source_hash": 5732461181277259249,
+      "context_hash": 13175405509523442916,
+      "translation": "결과를 읽으려면 여전히 결과 버퍼가 필요하지만, 더 이상 이전 버퍼와 같은 크기가 아닙니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:24.467844Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "We need a bindGroup for each pass.",
+      "source_hash": 8111834663837037871,
+      "context_hash": 7739478354027043304,
+      "translation": "각 패스마다 bindGroup이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686759Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:1",
+      "source": "One to pass the texture and chunks to the first shader and another to pass the chunks to the second shader",
+      "source_hash": 8096312537723070918,
+      "context_hash": 14074405237307020457,
+      "translation": "하나는 텍스처와 청크를 첫 번째 셰이더로 전달하고, 다른 하나는 청크를 두 번째 셰이더로 전달합니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:25.686759Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "Finally we can run our shaders.",
+      "source_hash": 15420197352190098021,
+      "context_hash": 7083350997898076175,
+      "translation": "마침내 셰이더를 실행할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686760Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:1",
+      "source": "First, the part that reads the pixels and sorts them into bins, we dispatch one workgroup for each chunk.",
+      "source_hash": 9482167649593949746,
+      "context_hash": 13371313477638527534,
+      "translation": "먼저 픽셀을 읽어서 빈으로 분류하는 부분에서는, 각 청크마다 워크그룹 하나를 디스패치합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686760Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:0",
+      "source": "Then we need to run the shader that sums up the chunks.",
+      "source_hash": 15991624012464740571,
+      "context_hash": 8487923522022661431,
+      "translation": "그다음 청크를 합산하는 셰이더를 실행해야 합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:25.686760Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:1",
+      "source": "It's just 1 workgroup which uses 1 invocation per bin (256 invocations).",
+      "source_hash": 11798318055718524106,
+      "context_hash": 2895908875555714018,
+      "translation": "이는 단 1개의 워크그룹으로, 빈마다 1개의 호출(256개 호출)을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686760Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:20/seg:0",
+      "source": "The rest of the code is the same.",
+      "source_hash": 2562386753008434816,
+      "context_hash": 3314186435117776094,
+      "translation": "나머지 코드는 동일합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686760Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:21/seg:0",
+      "source": "{{{example url=\"../webgpu-compute-shaders-histogram-optimized.html\"}}}",
+      "source_hash": 6308269641994946554,
+      "context_hash": 15389107664188254915,
+      "translation": "{{{example url=\"../webgpu-compute-shaders-histogram-optimized.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:25.686760Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:22/seg:0",
+      "source": "Timing this on my machine I was happy to see the first shader runs in 0.2ms!",
+      "source_hash": 13371702896348214301,
+      "context_hash": 5205959886483565475,
+      "translation": "제 컴퓨터에서 시간을 재보니 첫 번째 셰이더가 0.2ms 만에 실행되어 만족스러웠습니다!",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:22/seg:1",
+      "source": "It read the entire image and filled out all the chunks lickety-split!",
+      "source_hash": 13191488412515988104,
+      "context_hash": 13744343651050867414,
+      "translation": "전체 이미지를 읽고 모든 청크를 순식간에 채웠습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:23/seg:0",
+      "source": "Unfortunately the part that sums up the chunks took much longer. 11ms That's SLOWER than our previous shader!",
+      "source_hash": 3975550979734821693,
+      "context_hash": 5120324287588681972,
+      "translation": "안타깝게도 청크를 합산하는 부분은 훨씬 더 오래 걸렸습니다. 11ms로, 이전 셰이더보다 더 느립니다!",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:24/seg:0",
+      "source": "On a different machine the previous solution was was 4.4ms and this new was 1.7ms so it wasn't a complete loss.",
+      "source_hash": 11117749189378012085,
+      "context_hash": 15082594472746157261,
+      "translation": "다른 컴퓨터에서는 이전 방식이 4.4ms, 이 새로운 방식이 1.7ms였으므로 완전히 헛수고는 아니었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:25/seg:0",
+      "source": "Can we do better?",
+      "source_hash": 16729577141455108763,
+      "context_hash": 11570746241611635778,
+      "translation": "더 잘할 수 있을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Reduce",
+      "source_hash": 534534279949558735,
+      "context_hash": 9589096445463534986,
+      "translation": "리듀스(Reduce)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "The solution above used a single workgroup.",
+      "source_hash": 13375015632630298659,
+      "context_hash": 5610180659450309079,
+      "translation": "위의 해법은 단일 워크그룹을 사용했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "Even though it has 256 invocations a modern GPU has 1000s of cores and we're only use 256 of them.",
+      "source_hash": 6516718951691918545,
+      "context_hash": 6032696467342334809,
+      "translation": "256개의 호출이 있긴 하지만, 최신 GPU에는 수천 개의 코어가 있는데 우리는 그중 256개만 사용하고 있는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "One technique we could try is sometimes called reducing.",
+      "source_hash": 4812639264991902572,
+      "context_hash": 7651389924283427248,
+      "translation": "시도해 볼 수 있는 한 가지 기법으로 흔히 리듀싱(reducing)이라 불리는 것이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "We will have each workgroup only add 2 chunks, writing the result to the first of those 2 chunks.",
+      "source_hash": 364062944232786221,
+      "context_hash": 11337604389539486076,
+      "translation": "각 워크그룹이 청크 2개만 더해서 그 결과를 두 청크 중 첫 번째 청크에 기록하도록 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686761Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:2",
+      "source": "This way, if we have 1000 chunks we can use 500 workgroups.",
+      "source_hash": 3195874096220402103,
+      "context_hash": 9379859117369016216,
+      "translation": "이렇게 하면 청크가 1000개 있을 때 워크그룹을 500개 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:3",
+      "source": "That's far more parallelization.",
+      "source_hash": 17199231905943664204,
+      "context_hash": 13353804083987695037,
+      "translation": "이는 훨씬 더 높은 병렬화입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:4",
+      "source": "We'll repeat the process 500 chunks reduced into 250, 250 -> 125, 125 -> 63 etc... until we've reduced to 1 chunk.",
+      "source_hash": 7970015764675248936,
+      "context_hash": 16644641933452734538,
+      "translation": "이 과정을 반복해서 500개 청크를 250개로, 250 -> 125, 125 -> 63 등으로 줄여나가 결국 1개의 청크로 줄일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "We can use just one shader and we just have to pass in a stride to reduce the chunks down to one chunk.",
+      "source_hash": 5057788793823043794,
+      "context_hash": 6935519202903516256,
+      "translation": "셰이더 하나만 사용하면 되고, 청크를 하나로 줄이기 위해 스트라이드(stride)를 전달하기만 하면 됩니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "The stride is the number of chunks we need to advance to get to the second chunk we're summing with.",
+      "source_hash": 4781464395274716207,
+      "context_hash": 17474684307399290923,
+      "translation": "스트라이드는 우리가 합산하려는 두 번째 청크에 도달하기 위해 건너뛰어야 하는 청크의 개수입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:2",
+      "source": "If we pass in a stride of 1 then we'll sum adjacent chunks.",
+      "source_hash": 17715321020347685878,
+      "context_hash": 8412619633693372811,
+      "translation": "스트라이드를 1로 전달하면 인접한 청크들을 합산하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:3",
+      "source": "If we pass in a stride of 2 then we sum every other chunk. etc...",
+      "source_hash": 6244712045535296192,
+      "context_hash": 5770443245564414620,
+      "translation": "스트라이드를 2로 전달하면 하나 걸러 하나씩 청크를 합산하게 됩니다. 등등...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "Here are the changes to our shader",
+      "source_hash": 12951099662820743075,
+      "context_hash": 7901118646882316808,
+      "translation": "다음은 셰이더에 가한 변경 사항입니다",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "You can see above, we compute a `chunk0` and `chunk1` based on the `workgroup_id.x` and `uni.stride` that we pass in as a uniform.",
+      "source_hash": 5471903744328082818,
+      "context_hash": 7746225227211038665,
+      "translation": "위에서 볼 수 있듯이, 유니폼으로 전달하는 `workgroup_id.x`와 `uni.stride`를 기반으로 `chunk0`과 `chunk1`을 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:1",
+      "source": "We then just add the 2 bins from the 2 chunks and store them back the first.",
+      "source_hash": 11393351724361765485,
+      "context_hash": 7881236589149561740,
+      "translation": "그런 다음 두 청크에서 나온 2개의 빈을 더해서 첫 번째 청크에 다시 저장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "If we run it with the correct number of invocations and stride settings it will operate something like this.",
+      "source_hash": 4931817620990143016,
+      "context_hash": 2941126757720242358,
+      "translation": "올바른 개수의 호출과 스트라이드 설정으로 실행하면 다음과 같이 동작할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686762Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:1",
+      "source": "Note: the darkened chunks are chunks that are no longer used.",
+      "source_hash": 2497643765460032170,
+      "context_hash": 17133146655394093314,
+      "translation": "참고: 어두워진 청크는 더 이상 사용되지 않는 청크입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686763Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "To make this new one work we need to add a uniform buffer for each stride value as well as a bindGroup.",
+      "source_hash": 15775370216093138007,
+      "context_hash": 4676666942630907094,
+      "translation": "이 새로운 방식을 동작시키려면 각 스트라이드 값에 대한 유니폼 버퍼와 bindGroup을 추가해야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:25.686763Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "Then we just need to call these with the correct number of dispatches until we've reduced things to 1 chunk",
+      "source_hash": 15031422505127301440,
+      "context_hash": 11115473196972766526,
+      "translation": "그런 다음 1개의 청크로 줄어들 때까지 올바른 디스패치 횟수로 이들을 호출하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:25.686763Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "{{{example url=\"../webgpu-compute-shaders-histogram-optimized-more.html\"}}}",
+      "source_hash": 3484746117525407953,
+      "context_hash": 4957438427379746205,
+      "translation": "{{{example url=\"../webgpu-compute-shaders-histogram-optimized-more.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:06:57.070348Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "Timing this version I got under 1ms on both machines I tested! 🎉🚀",
+      "source_hash": 6644217545904281197,
+      "context_hash": 10863303292736521953,
+      "translation": "이 버전의 시간을 측정해 보니 테스트한 두 기기 모두에서 1ms 미만이 나왔습니다! 🎉🚀",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070350Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "Here are some timings from various machines",
+      "source_hash": 1930573043140225561,
+      "context_hash": 12766346674597908266,
+      "translation": "여러 기기에서 측정한 타이밍은 다음과 같습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070350Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:0",
+      "source": "There may be a faster way to compute a histogram.",
+      "source_hash": 10381405903859884684,
+      "context_hash": 1215088786080383068,
+      "translation": "히스토그램을 계산하는 더 빠른 방법이 있을 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070351Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:1",
+      "source": "It might also be better to try different chunk sizes.",
+      "source_hash": 13807067068376494030,
+      "context_hash": 8460230856556111657,
+      "translation": "청크 크기를 다르게 시도해 보는 것이 더 나을 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070351Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:2",
+      "source": "Maybe 16x16 is better than 256x1.",
+      "source_hash": 2445158265849193682,
+      "context_hash": 12361773795325721956,
+      "translation": "어쩌면 16x16이 256x1보다 나을 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070351Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:3",
+      "source": "Also, at some point WebGPU will likely support *subgroups* which is yet another whole topic and an area for even more optimization.",
+      "source_hash": 17997074053196382544,
+      "context_hash": 16547893253075007153,
+      "translation": "또한 언젠가 WebGPU는 *subgroups*를 지원하게 될 것인데, 이는 또 다른 완전히 새로운 주제이며 더 많은 최적화가 가능한 영역입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:06:57.070352Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:0",
+      "source": "For now I hope these examples have given you some ideas on how to write and optimize a compute shader.",
+      "source_hash": 4271291839058331014,
+      "context_hash": 5859803057531651597,
+      "translation": "지금까지의 예제들이 컴퓨트 셰이더를 작성하고 최적화하는 방법에 대한 몇 가지 아이디어를 드렸기를 바랍니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:06:57.070352Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:1",
+      "source": "The takeaways are:",
+      "source_hash": 8079065393270364450,
+      "context_hash": 18075826257976432355,
+      "translation": "요점은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070353Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:20/seg:0",
+      "source": "Find a way to use all of the parallelization the GPU provides",
+      "source_hash": 2211411007829323482,
+      "context_hash": 11378297311390672864,
+      "translation": "GPU가 제공하는 모든 병렬화를 활용할 방법을 찾으십시오",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070353Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:21/seg:0",
+      "source": "Be aware of race conditions",
+      "source_hash": 15726595121805690797,
+      "context_hash": 7072541847084274873,
+      "translation": "경쟁 조건(race condition)에 유의하십시오",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070353Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:22/seg:0",
+      "source": "Use `var<workgroup>` to create storage shared between all invocations of a workgroup",
+      "source_hash": 15398497524910145177,
+      "context_hash": 11125012292974211315,
+      "translation": "`var<workgroup>`을 사용하여 워크그룹의 모든 호출 간에 공유되는 저장소를 만드십시오",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070353Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:23/seg:0",
+      "source": "Try to design algorithms that require less coordination between invocations.",
+      "source_hash": 4386463341212689198,
+      "context_hash": 11715606067243898687,
+      "translation": "호출 간에 필요한 조율을 줄이는 알고리즘을 설계하도록 노력하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070354Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:24/seg:0",
+      "source": "When coordination is required, atomic operations can be a solution as well as `workgroupBarrier`.",
+      "source_hash": 9530214324563219966,
+      "context_hash": 684225522925940138,
+      "translation": "조율이 필요한 경우, 원자적 연산(atomic operations)이 `workgroupBarrier`와 마찬가지로 해결책이 될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070354Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:25/seg:0",
+      "source": "We did so-so on this front.",
+      "source_hash": 6718782447273026644,
+      "context_hash": 301348852222488147,
+      "translation": "이 부분에서는 우리가 그럭저럭 잘 해냈습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070354Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:25/seg:1",
+      "source": "When computing our chunks in workgroup memory we still have conflicts which we resolved via `atomicAdd` but we have no conflicts when copying from the `bins` in the workgroup into the `chunks` and we have no conflicts when we reduce the `chunks` to one final result",
+      "source_hash": 15569274777216730165,
+      "context_hash": 15569374296270455581,
+      "translation": "워크그룹 메모리에서 청크를 계산할 때 여전히 충돌이 있었고 이는 `atomicAdd`를 통해 해결했지만, 워크그룹 안의 `bins`를 `chunks`로 복사할 때는 충돌이 없으며 `chunks`를 하나의 최종 결과로 리듀스할 때도 충돌이 없습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070354Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:26/seg:0",
+      "source": "Maybe one more",
+      "source_hash": 8432229624959133439,
+      "context_hash": 2419586310073229783,
+      "translation": "하나 더 있을지도 모릅니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070355Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:27/seg:0",
+      "source": "Don't assume the GPU is fast.",
+      "source_hash": 4829261378476783930,
+      "context_hash": 2494179713156547204,
+      "translation": "GPU가 빠르다고 가정하지 마십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070355Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:28/seg:0",
+      "source": "We learned individual cores of a GPU are not so fast.",
+      "source_hash": 4027316460417073806,
+      "context_hash": 2295798902930992613,
+      "translation": "우리는 GPU의 개별 코어가 그다지 빠르지 않다는 것을 배웠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070355Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:28/seg:1",
+      "source": "All the speed comes from parallelization so we need to design parallel solutions.",
+      "source_hash": 212583008932823505,
+      "context_hash": 9066967887589779327,
+      "translation": "모든 속도는 병렬화에서 나오므로 병렬적인 해법을 설계해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070355Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:29/seg:0",
+      "source": "In [the next article](webgpu-compute-shaders-histogram-part-2.html) we'll tweak these a little as well as change it so we graph the results using the GPU instead of pulling them back to JavaScript.",
+      "source_hash": 15207384975879714268,
+      "context_hash": 13839570052385564981,
+      "translation": "[다음 글](webgpu-compute-shaders-histogram-part-2.html)에서는 이를 조금 조정하는 것은 물론, 결과를 JavaScript로 다시 가져오는 대신 GPU를 사용하여 그래프로 그리도록 변경해 보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070355Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:29/seg:1",
+      "source": "We'll also try some real time video adjustments based on having created an image histogram.",
+      "source_hash": 15269487100130233252,
+      "context_hash": 2945124390137752025,
+      "translation": "또한 이미지 히스토그램을 만든 것을 바탕으로 실시간 비디오 조정도 시도해 보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.070356Z",
+      "issues": []
+    }
+  ]
+}

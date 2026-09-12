@@ -6,7 +6,7 @@
 # 그대로입니다. 여기서 읽는 것은 오직 실제 렌더링 입력뿐입니다:
 #   - upstream 서브모듈 HEAD (+ 더티 여부)
 #   - 프로젝트 트리의 git 추적 파일 (state/ 제외 — 상태 변화는 ko/에 반영됨)
-#   - yeokja translate가 이미 재구성해 둔 ko/ 의 내용
+#   - yeokja translate가 이미 재구성해 둔 ko/, ko-ui/ 의 내용
 #   - 빌드 타깃 이름
 #
 # 이 스크립트는 프로젝트 밖을 참조하지 않는 `[derive] base = "upstream"` +
@@ -53,6 +53,14 @@ fingerprint_input() {
   if [ -d "$project_dir/ko-index" ]; then
     echo "ko-index:"
     find "$project_dir/ko-index" -type f -exec sha256sum {} + | LC_ALL=C sort
+  fi
+
+  # 별도 HTML 복원 스크립트가 읽는 UI 번역도 실제 렌더링 입력입니다.
+  # state/는 위에서 제외하므로 ko-ui/를 빠뜨리면 UI 번역만 수정했을 때
+  # 재빌드를 건너뛰게 됩니다. 없는 프로젝트의 기존 지문은 유지합니다.
+  if [ -d "$project_dir/ko-ui" ]; then
+    echo "ko-ui:"
+    find "$project_dir/ko-ui" -type f -exec sha256sum {} + | LC_ALL=C sort
   fi
 
   if [ "$daily" = "--daily" ]; then
