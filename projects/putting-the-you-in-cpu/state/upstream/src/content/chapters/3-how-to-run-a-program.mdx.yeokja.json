@@ -1,0 +1,1634 @@
+{
+  "version": 1,
+  "source_hash": 10938122442643728269,
+  "segments": [
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How to Run a Program",
+      "source_hash": 12943471584328937829,
+      "context_hash": 8873397056102637439,
+      "translation": "프로그램을 실행하는 방법",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450573Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "So far, we've covered how CPUs execute machine code loaded from executables, what ring-based security is, and how syscalls work.",
+      "source_hash": 7639586926850219633,
+      "context_hash": 9909422701230197525,
+      "translation": "지금까지 CPU가 실행 파일에서 로드된 기계어 코드를 실행하는 방식, 링 기반 보안이 무엇인지, 그리고 시스템 호출이 작동하는 방식을 다루었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450574Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "In this section, we'll dive deep into the Linux kernel to figure out how programs are loaded and run in the first place.",
+      "source_hash": 9296506594929463336,
+      "context_hash": 13020211920932883320,
+      "translation": "이 섹션에서는 리눅스 커널을 깊이 파고들어 애초에 프로그램이 어떻게 로드되고 실행되는지 알아보겠습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:06.450574Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "We're specifically going to look at Linux on x86-64.",
+      "source_hash": 18112464181287423277,
+      "context_hash": 5042832521684729693,
+      "translation": "특히 x86-64에서의 리눅스를 살펴볼 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450574Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "Why?",
+      "source_hash": 18107367210216418892,
+      "context_hash": 6096227319589284312,
+      "translation": "왜일까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450574Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "Linux is a fully featured production OS for desktop, mobile, and server use cases.",
+      "source_hash": 9198134908456421092,
+      "context_hash": 997457629707338032,
+      "translation": "리눅스는 데스크톱, 모바일, 서버 용도로 사용되는 완전한 기능을 갖춘 프로덕션 운영체제입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450575Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:1",
+      "source": "Linux is open source, so it's super easy to research just by reading its source code.",
+      "source_hash": 2007894094081581282,
+      "context_hash": 18228368920848957642,
+      "translation": "리눅스는 오픈 소스이므로 소스 코드를 읽는 것만으로도 조사하기가 매우 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450575Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:2",
+      "source": "I will be directly referencing some kernel code in this article!",
+      "source_hash": 11730224153913859862,
+      "context_hash": 5229900701161258114,
+      "translation": "이 글에서는 커널 코드 일부를 직접 참조할 것입니다!",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:06.450575Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "x86-64 is the architecture that most modern desktop computers use, and the target architecture of a lot of code.",
+      "source_hash": 5503887368191295441,
+      "context_hash": 13198940090558582073,
+      "translation": "x86-64는 대부분의 현대 데스크톱 컴퓨터가 사용하는 아키텍처이며, 많은 코드의 대상 아키텍처이기도 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450575Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "The subset of behavior I mention that is x86-64-specific will generalize well.",
+      "source_hash": 7528510255965166397,
+      "context_hash": 10952103595806644456,
+      "translation": "제가 언급하는 동작 중 x86-64에 특화된 부분은 일반화가 잘 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "Most of what we learn will generalize well to other operating systems and architectures, even if they differ in various specific ways.",
+      "source_hash": 11248269800607500318,
+      "context_hash": 1424086401838628721,
+      "translation": "우리가 배우는 내용 대부분은 세부적인 면에서는 다르더라도 다른 운영체제와 아키텍처에도 잘 일반화될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Basic Behavior of Exec Syscalls",
+      "source_hash": 17419331126761527413,
+      "context_hash": 12939280101952784627,
+      "translation": "Exec 시스템 호출의 기본 동작",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Let's start with a very important system call: `execve`.",
+      "source_hash": 2594529910988584128,
+      "context_hash": 3216155777404321828,
+      "translation": "매우 중요한 시스템 호출인 `execve`부터 시작해봅시다.",
+      "glossary_snapshot": {
+        "system call": "시스템 호출"
+      },
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "It loads a program and, if successful, replaces the current process with that program.",
+      "source_hash": 14000140426205704750,
+      "context_hash": 1841078810015708311,
+      "translation": "이는 프로그램을 로드하고, 성공하면 현재 프로세스를 해당 프로그램으로 대체합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "A couple other syscalls (`execlp`, `execvpe`, etc.) exist, but they all layer on top of `execve` in various fashions.",
+      "source_hash": 14347452226366373647,
+      "context_hash": 8717332432601685022,
+      "translation": "몇 가지 다른 시스템 호출(`execlp`, `execvpe` 등)이 존재하지만, 이들은 모두 다양한 방식으로 `execve` 위에 계층화되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Aside: `execveat`**",
+      "source_hash": 9054993416344547571,
+      "context_hash": 13777256774858155522,
+      "translation": "**여담: `execveat`**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "`execve` is *actually* built on top of `execveat`, a more general syscall that runs a program with some configuration options.",
+      "source_hash": 10003705254592677117,
+      "context_hash": 2110429213324678355,
+      "translation": "`execve`는 *사실* 몇 가지 설정 옵션을 지정하여 프로그램을 실행하는, 더 일반적인 시스템 호출인 `execveat` 위에 구축되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "For simplicity, we'll mostly talk about `execve`; the only difference is that it provides some defaults to `execveat`.",
+      "source_hash": 8951401601295460483,
+      "context_hash": 217640936405162938,
+      "translation": "단순화를 위해 우리는 주로 `execve`에 대해 이야기할 것입니다. 유일한 차이점은 `execveat`에 몇 가지 기본값을 제공한다는 점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Curious what `ve` stands for?",
+      "source_hash": 6515237163274315717,
+      "context_hash": 2847836156638809591,
+      "translation": "`ve`가 무엇을 뜻하는지 궁금하십니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450576Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "The `v` means one parameter is the vector (list) of arguments (`argv`), and the `e` means another parameter is the vector of environment variables (`envp`).",
+      "source_hash": 5712584447021699405,
+      "context_hash": 6553774725633967957,
+      "translation": "`v`는 하나의 매개변수가 인자의 벡터(목록)(`argv`)임을 의미하고, `e`는 또 다른 매개변수가 환경 변수의 벡터(`envp`)임을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "Various other exec syscalls have different suffixes to designate different call signatures.",
+      "source_hash": 2598484622814414487,
+      "context_hash": 6564743511542062662,
+      "translation": "다른 여러 exec 시스템 호출들은 서로 다른 호출 시그니처를 나타내기 위해 다른 접미사를 가집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:3",
+      "source": "The `at` in `execveat` is just \"at\", because it specifies the location to run `execve` at.",
+      "source_hash": 14825754991010672505,
+      "context_hash": 16527211986036708397,
+      "translation": "`execveat`의 `at`은 그저 \"at\"일 뿐인데, `execve`를 실행할 위치를 지정하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The call signature of `execve` is:",
+      "source_hash": 10349492045033811640,
+      "context_hash": 10499478882651513808,
+      "translation": "`execve`의 호출 시그니처는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "The `filename` argument specifies a path to the program to run.",
+      "source_hash": 16109724199676514508,
+      "context_hash": 3364207391120519824,
+      "translation": "`filename` 인자는 실행할 프로그램의 경로를 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "`argv` is a null-terminated (meaning the last item is a null pointer) list of arguments to the program.",
+      "source_hash": 5472027734373043059,
+      "context_hash": 4472826294328639240,
+      "translation": "`argv`는 널로 끝나는(즉, 마지막 항목이 널 포인터임을 의미하는) 프로그램 인자 목록입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "The `argc` argument you'll commonly see passed to C main functions is actually calculated later by the syscall, thus the null-termination.",
+      "source_hash": 8381052426267128969,
+      "context_hash": 6935500917054698777,
+      "translation": "C의 main 함수에 흔히 전달되는 `argc` 인자는 사실 시스템 호출에 의해 나중에 계산되며, 이 때문에 널 종료가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "The `envp` argument contains another null-terminated list of environment variables used as context for the application.",
+      "source_hash": 10808919108545258380,
+      "context_hash": 4949698554346274090,
+      "translation": "`envp` 인자에는 애플리케이션의 컨텍스트로 사용되는, 널로 끝나는 또 다른 환경 변수 목록이 담겨 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:1",
+      "source": "They're... conventionally `KEY=VALUE` pairs. *Conventionally.* I love computers.",
+      "source_hash": 3205527025967984032,
+      "context_hash": 6662730409692239199,
+      "translation": "이들은... 관례적으로 `KEY=VALUE` 쌍입니다. *관례적으로* 말입니다. 저는 컴퓨터가 정말 좋습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "Fun fact!",
+      "source_hash": 7236473673521032687,
+      "context_hash": 13607922339457800079,
+      "translation": "재미있는 사실입니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "You know that convention where a program's first argument is the name of the program?",
+      "source_hash": 15970543537672517272,
+      "context_hash": 11439599648675235710,
+      "translation": "프로그램의 첫 번째 인자가 프로그램의 이름이라는 관례를 알고 계십니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:2",
+      "source": "That's *purely a convention*, and isn't actually set by the `execve` syscall itself!",
+      "source_hash": 1359778874333564025,
+      "context_hash": 11907468123230925351,
+      "translation": "그것은 *순전히 관례일 뿐*이며, `execve` 시스템 호출 자체가 실제로 설정하는 것이 아닙니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:3",
+      "source": "The first argument will be whatever is passed to `execve` as the first item in the `argv` argument, even if it has nothing to do with the program name.",
+      "source_hash": 11417258479285910929,
+      "context_hash": 1924450609511901441,
+      "translation": "첫 번째 인자는 프로그램 이름과 전혀 관계가 없더라도, `argv` 인자의 첫 번째 항목으로서 `execve`에 전달된 것이 무엇이든 그것이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:06.450577Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "Interestingly, `execve` does have some code that assumes `argv[0]` is the program name.",
+      "source_hash": 12963613006216192392,
+      "context_hash": 10232342916669075724,
+      "translation": "흥미롭게도, `execve`에는 `argv[0]`이 프로그램 이름이라고 가정하는 코드가 실제로 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690865Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:1",
+      "source": "More on this later when we talk about interpreted scripting languages.",
+      "source_hash": 8441880500700948148,
+      "context_hash": 5406431061523414322,
+      "translation": "이에 대해서는 나중에 인터프리터 스크립팅 언어를 다룰 때 더 자세히 살펴보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690865Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "Step 0: Definition",
+      "source_hash": 3880422200126123597,
+      "context_hash": 12402606081047326872,
+      "translation": "0단계: 정의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690865Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "We already know how syscalls work, but we've never seen a real-world code example!",
+      "source_hash": 3513742266526553554,
+      "context_hash": 7197120775991227454,
+      "translation": "우리는 이미 시스템 호출이 어떻게 동작하는지 알고 있지만, 실제 코드 예시는 아직 본 적이 없습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690865Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:1",
+      "source": "Let's look at the Linux kernel's source code to see how `execve` is defined under the hood:",
+      "source_hash": 5294727548784472526,
+      "context_hash": 9410224222730379536,
+      "translation": "리눅스 커널의 소스 코드를 살펴보고 `execve`가 내부적으로 어떻게 정의되어 있는지 확인해봅시다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:10.690865Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "`SYSCALL_DEFINE3` is a macro for defining a 3-argument system call's code.",
+      "source_hash": 9879927587508225856,
+      "context_hash": 7710339207027138881,
+      "translation": "`SYSCALL_DEFINE3`은 인자가 3개인 시스템 호출의 코드를 정의하기 위한 매크로입니다.",
+      "glossary_snapshot": {
+        "system call": "시스템 호출"
+      },
+      "translated_at": "2026-09-12T05:54:10.690865Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "I was curious why the [arity](https://en.wikipedia.org/wiki/Arity) is hardcoded in the macro name; I googled around and learned that this was a workaround to fix [some security vulnerability](https://nvd.nist.gov/vuln/detail/CVE-2009-0029).",
+      "source_hash": 10802678965404933641,
+      "context_hash": 6221640713345102032,
+      "translation": "저는 왜 [arity](https://en.wikipedia.org/wiki/Arity)가 매크로 이름에 하드코딩되어 있는지 궁금해서 검색해보았는데, 이것이 [어떤 보안 취약점](https://nvd.nist.gov/vuln/detail/CVE-2009-0029)을 수정하기 위한 우회책이었다는 것을 알게 되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "The filename argument is passed to a `getname()` function, which copies the string from user space to kernel space and does some usage tracking things.",
+      "source_hash": 7563622471070286643,
+      "context_hash": 18245681606019375633,
+      "translation": "filename 인자는 `getname()` 함수로 전달되는데, 이 함수는 문자열을 사용자 공간에서 커널 공간으로 복사하고 몇 가지 사용 추적 작업을 수행합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:1",
+      "source": "It returns a `filename` struct, which is defined in `include/linux/fs.h`.",
+      "source_hash": 16773646212791082077,
+      "context_hash": 17262609762316901234,
+      "translation": "이 함수는 `include/linux/fs.h`에 정의된 `filename` 구조체를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:2",
+      "source": "It stores a pointer to the original string in user space as well as a new pointer to the value copied to kernel space:",
+      "source_hash": 18421126214282210793,
+      "context_hash": 7683398262856434157,
+      "translation": "이 구조체는 사용자 공간에 있는 원본 문자열에 대한 포인터와, 커널 공간으로 복사된 값에 대한 새로운 포인터를 모두 저장합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "The `execve` system call then calls a `do_execve()` function.",
+      "source_hash": 16860805778372211067,
+      "context_hash": 10452869123906950475,
+      "translation": "이후 `execve` 시스템 호출은 `do_execve()` 함수를 호출합니다.",
+      "glossary_snapshot": {
+        "system call": "시스템 호출"
+      },
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:1",
+      "source": "This, in turn, calls `do_execveat_common()`with some defaults.",
+      "source_hash": 422633871675860397,
+      "context_hash": 522656728313634188,
+      "translation": "이 함수는 다시 몇 가지 기본값과 함께 `do_execveat_common()`을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:2",
+      "source": "The `execveat` syscall which I mentioned earlier also calls `do_execveat_common()`, but passes through more user-provided options.",
+      "source_hash": 1150677855288174020,
+      "context_hash": 14677654341655178342,
+      "translation": "앞서 언급한 `execveat` 시스템 호출 또한 `do_execveat_common()`을 호출하지만, 더 많은 사용자 제공 옵션을 그대로 전달합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:0",
+      "source": "In the below snippet, I've included the definitions of both `do_execve` and `do_execveat`:",
+      "source_hash": 17797073176158419420,
+      "context_hash": 10915455462006159830,
+      "translation": "아래 코드 스니펫에는 `do_execve`와 `do_execveat` 두 함수의 정의를 모두 포함시켰습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:31/seg:0",
+      "source": "[spacing sic\\]",
+      "source_hash": 17149280786325222874,
+      "context_hash": 609612072124123581,
+      "translation": "[간격은 원문 그대로임]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:0",
+      "source": "In `execveat`, a file descriptor (a type of id that points to *some resource*) is passed to the syscall and then to `do_execveat_common`.",
+      "source_hash": 1679960071771691922,
+      "context_hash": 15201287287102865218,
+      "translation": "`execveat`에서는 파일 디스크립터(*어떤 자원*을 가리키는 일종의 id)가 시스템 호출에 전달된 후 `do_execveat_common`으로 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690866Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:1",
+      "source": "This specifies the directory to execute the program relative to.",
+      "source_hash": 2664319881783822588,
+      "context_hash": 7023183698538118334,
+      "translation": "이는 프로그램을 실행할 때 기준이 되는 디렉터리를 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:0",
+      "source": "In `execve`, a special value is used for the file descriptor argument, `AT_FDCWD`.",
+      "source_hash": 15881468943381145701,
+      "context_hash": 4258968509950594164,
+      "translation": "`execve`에서는 파일 디스크립터 인자로 `AT_FDCWD`라는 특수한 값이 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:1",
+      "source": "This is a shared constant in the Linux kernel that tells functions to interpret pathnames as relative to the current working directory.",
+      "source_hash": 6522441850442893975,
+      "context_hash": 9444384834363281071,
+      "translation": "이는 리눅스 커널에서 공유되는 상수로, 함수들이 경로명을 현재 작업 디렉터리에 대한 상대 경로로 해석하도록 지시합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:2",
+      "source": "Functions that accept file descriptors usually include a manual check like",
+      "source_hash": 1716551819659445066,
+      "context_hash": 1132410239104372410,
+      "translation": "파일 디스크립터를 인자로 받는 함수들은 보통 다음과 같은 수동 검사를 포함합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:34/seg:0",
+      "source": ".",
+      "source_hash": 12781307830597812232,
+      "context_hash": 1538144400465563145,
+      "translation": ".",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:35/seg:0",
+      "source": "Step 1: Setup",
+      "source_hash": 5426476612423436605,
+      "context_hash": 5870536705129049090,
+      "translation": "1단계: 설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:0",
+      "source": "We've now reached `do_execveat_common`, the core function handling program execution.",
+      "source_hash": 5290283493024882777,
+      "context_hash": 13229069473527425181,
+      "translation": "이제 프로그램 실행을 처리하는 핵심 함수인 `do_execveat_common`에 도달했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:1",
+      "source": "We're going to take a brief step back from staring at code to get a bigger picture view of what this function does.",
+      "source_hash": 3256915209582968824,
+      "context_hash": 15404844500911599182,
+      "translation": "코드를 계속 들여다보는 것에서 잠시 물러나, 이 함수가 하는 일을 더 큰 그림에서 살펴보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:37/seg:0",
+      "source": "The first major job of `do_execveat_common` is setting up a struct called `linux_binprm`.",
+      "source_hash": 1361982300965870002,
+      "context_hash": 17738011127857044842,
+      "translation": "`do_execveat_common`의 첫 번째 주요 작업은 `linux_binprm`이라는 구조체를 설정하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:37/seg:1",
+      "source": "I won't include a copy of [the whole struct definition](https://github.com/torvalds/linux/blob/22b8cc3e78f5448b4c5df00303817a9137cd663f/include/linux/binfmts.h#L15-L65), but there are several important fields to go over:",
+      "source_hash": 11628374332102898121,
+      "context_hash": 5613567411937655467,
+      "translation": "[전체 구조체 정의](https://github.com/torvalds/linux/blob/22b8cc3e78f5448b4c5df00303817a9137cd663f/include/linux/binfmts.h#L15-L65)를 그대로 포함시키지는 않겠지만, 살펴볼 만한 중요한 필드가 몇 가지 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:38/seg:0",
+      "source": "Data structures like `mm_struct` and `vm_area_struct` are defined to prepare virtual memory management for the new program.",
+      "source_hash": 14446483887222635882,
+      "context_hash": 13784381512675891487,
+      "translation": "`mm_struct`와 `vm_area_struct`와 같은 데이터 구조체는 새 프로그램을 위한 가상 메모리 관리를 준비하기 위해 정의됩니다.",
+      "glossary_snapshot": {
+        "virtual memory": "가상 메모리"
+      },
+      "translated_at": "2026-09-12T05:54:10.690867Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:39/seg:0",
+      "source": "`argc` and `envc` are calculated and stored to be passed to the program.",
+      "source_hash": 12414728722817611925,
+      "context_hash": 17834805946983444409,
+      "translation": "`argc`와 `envc`는 계산되어 프로그램에 전달될 값으로 저장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690868Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:0",
+      "source": "`filename` and `interp` store the filename of the program and its interpreter, respectively.",
+      "source_hash": 13091742092032086873,
+      "context_hash": 10369231941374692403,
+      "translation": "`filename`과 `interp`는 각각 프로그램의 파일명과 그 인터프리터를 저장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690868Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:1",
+      "source": "These start out equal to each other, but can change in some cases: one such case is when running interpreted scripts with a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)).",
+      "source_hash": 4309446752765140421,
+      "context_hash": 1356080856160278180,
+      "translation": "이 둘은 처음에는 서로 같은 값으로 시작하지만, 경우에 따라 달라질 수 있습니다. 그중 한 가지 예는 [셔뱅](https://en.wikipedia.org/wiki/Shebang_(Unix))을 사용하는 인터프리터 스크립트를 실행하는 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690868Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:2",
+      "source": "When executing a Python program, for example, `filename` points to the source file but `interp` is the path to the Python interpreter.",
+      "source_hash": 3267942003033959423,
+      "context_hash": 10854073957513737258,
+      "translation": "예를 들어 파이썬 프로그램을 실행할 때, `filename`은 소스 파일을 가리키지만 `interp`는 파이썬 인터프리터의 경로입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:10.690868Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:0",
+      "source": "`buf` is an array filled with the first 256 bytes of the file to be executed.",
+      "source_hash": 9022920231358719016,
+      "context_hash": 11867851443017436806,
+      "translation": "`buf`는 실행될 파일의 첫 256바이트로 채워진 배열입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934816Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:1",
+      "source": "It's used to detect the format of the file and load script shebangs.",
+      "source_hash": 1166959389825819006,
+      "context_hash": 12621898498341233646,
+      "translation": "이는 파일의 형식을 감지하고 스크립트의 셔뱅(shebang)을 불러오는 데 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934816Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:42/seg:0",
+      "source": "(TIL: binprm stands for **bin**ary **pr**og**r**a**m**.)",
+      "source_hash": 3116973987007240270,
+      "context_hash": 16035058574798901345,
+      "translation": "(오늘 알게 된 사실: binprm은 **bin**ary **pr**og**r**a**m**의 약자입니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934816Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:43/seg:0",
+      "source": "Let's take a closer look at this buffer `buf`:",
+      "source_hash": 13486756840452620712,
+      "context_hash": 6950477100167553872,
+      "translation": "이 버퍼 `buf`를 좀 더 자세히 살펴봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:47/seg:0",
+      "source": "As we can see, its length is defined as the constant `BINPRM_BUF_SIZE`.",
+      "source_hash": 5924937818893308336,
+      "context_hash": 1258338493941920836,
+      "translation": "보시다시피, 그 길이는 `BINPRM_BUF_SIZE`라는 상수로 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:47/seg:1",
+      "source": "By searching the codebase for this string, we can find a definition for this in `include/uapi/linux/binfmts.h`:",
+      "source_hash": 4258578538507187026,
+      "context_hash": 16798358669347593280,
+      "translation": "코드베이스에서 이 문자열을 검색해 보면, `include/uapi/linux/binfmts.h`에서 이에 대한 정의를 찾을 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:51/seg:0",
+      "source": "So, the kernel loads the opening 256 bytes of the executed file into this memory buffer.",
+      "source_hash": 17118448835573453265,
+      "context_hash": 16038365596137017078,
+      "translation": "즉, 커널은 실행되는 파일의 시작 256바이트를 이 메모리 버퍼로 불러들입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:52/seg:0",
+      "source": "**Aside: what's a UAPI?**",
+      "source_hash": 1551245965887498131,
+      "context_hash": 11023455115608023595,
+      "translation": "**덧붙임: UAPI란 무엇인가?**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:53/seg:0",
+      "source": "You might notice that the above code's path contains `/uapi/`.",
+      "source_hash": 6527224119367760993,
+      "context_hash": 3630163182045086860,
+      "translation": "위 코드의 경로에 `/uapi/`가 포함되어 있음을 눈치채셨을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:53/seg:1",
+      "source": "Why isn't the length defined in the same file as the `linux_binprm` struct, `include/linux/binfmts.h`?",
+      "source_hash": 1527632160660957883,
+      "context_hash": 17740833821481724671,
+      "translation": "왜 이 길이는 `linux_binprm` 구조체와 같은 파일인 `include/linux/binfmts.h`에 정의되어 있지 않을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:54/seg:0",
+      "source": "UAPI stands for \"userspace API.\" In this case, it means someone decided that the length of the buffer should be part of the kernel's public API.",
+      "source_hash": 17370777917976450828,
+      "context_hash": 8392832962173310837,
+      "translation": "UAPI는 \"사용자 공간 API(userspace API)\"의 약자입니다. 이 경우, 누군가 이 버퍼의 길이가 커널의 공개 API에 속해야 한다고 결정했다는 것을 의미합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:54/seg:1",
+      "source": "In theory, everything UAPI is exposed to userland, and everything non-UAPI is private to kernel code.",
+      "source_hash": 16497095238903240171,
+      "context_hash": 17468890345666454723,
+      "translation": "이론상, UAPI에 해당하는 모든 것은 사용자 영역에 노출되며, UAPI가 아닌 모든 것은 커널 코드 내부에 비공개로 남아 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934817Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:55/seg:0",
+      "source": "Kernel and user space code originally coexisted in one jumbled mass.",
+      "source_hash": 7733698592214129442,
+      "context_hash": 10119710160503608299,
+      "translation": "커널과 사용자 공간 코드는 원래 하나의 뒤섞인 덩어리로 공존했습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934818Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:55/seg:1",
+      "source": "In 2012, UAPI code was [refactored into a separate directory](https://lwn.net/Articles/507794/) as an attempt to improve maintainability.",
+      "source_hash": 17034573266163107819,
+      "context_hash": 9163304216942240434,
+      "translation": "2012년, 유지보수성을 개선하려는 시도로 UAPI 코드는 [별도의 디렉터리로 리팩터링되었습니다](https://lwn.net/Articles/507794/).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934818Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:56/seg:0",
+      "source": "Step 2: Binfmts",
+      "source_hash": 17142763858762361529,
+      "context_hash": 12119786627082407060,
+      "translation": "2단계: Binfmts",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934818Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:57/seg:0",
+      "source": "The kernel's next major job is iterating through a bunch of \"binfmt\" (binary format) handlers.",
+      "source_hash": 8421844885322895838,
+      "context_hash": 2397051977181842958,
+      "translation": "커널의 다음 주요 작업은 여러 \"binfmt\"(바이너리 형식) 핸들러들을 순회하는 것입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934818Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:57/seg:1",
+      "source": "These handlers are defined in files like `fs/binfmt_elf.c` and `fs/binfmt_flat.c`. [Kernel modules](https://wiki.archlinux.org/title/Kernel_module) can also add their own binfmt handlers to the pool.",
+      "source_hash": 3422813349731564167,
+      "context_hash": 8883847596464585425,
+      "translation": "이 핸들러들은 `fs/binfmt_elf.c`, `fs/binfmt_flat.c`와 같은 파일에 정의되어 있습니다. [커널 모듈](https://wiki.archlinux.org/title/Kernel_module) 역시 자체 binfmt 핸들러를 이 풀에 추가할 수 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934818Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:58/seg:0",
+      "source": "Each handler exposes a `load_binary()` function which takes a `linux_binprm` struct and checks if the handler understands the program's format.",
+      "source_hash": 10627572267997851469,
+      "context_hash": 6978912104345443508,
+      "translation": "각 핸들러는 `linux_binprm` 구조체를 인자로 받아 해당 핸들러가 프로그램의 형식을 이해하는지 확인하는 `load_binary()` 함수를 노출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:59/seg:0",
+      "source": "This often involves looking for [magic numbers](https://en.wikipedia.org/wiki/Magic_number_(programming)#Format_indicator) in the buffer, attempting to decode the start of the program (also from the buffer), and/or checking the file extension.",
+      "source_hash": 3560825835978601452,
+      "context_hash": 15633402297524325759,
+      "translation": "이 과정은 흔히 버퍼 내에서 [매직 넘버](https://en.wikipedia.org/wiki/Magic_number_(programming)#Format_indicator)를 찾거나, (역시 버퍼로부터) 프로그램의 시작 부분을 디코딩해 보거나, 파일 확장자를 확인하는 작업을 포함합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:59/seg:1",
+      "source": "If the handler does support the format, it prepares the program for execution and returns a success code.",
+      "source_hash": 9363014040907375533,
+      "context_hash": 16096877651385483014,
+      "translation": "핸들러가 해당 형식을 실제로 지원한다면, 프로그램의 실행을 준비하고 성공 코드를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:59/seg:2",
+      "source": "Otherwise, it quits early and returns an error code.",
+      "source_hash": 15405140392441096986,
+      "context_hash": 13339339863073715228,
+      "translation": "그렇지 않다면, 조기에 종료하고 오류 코드를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:59/seg:3",
+      "source": "The kernel tries the `load_binary()` function of each binfmt until it reaches one that succeeds.",
+      "source_hash": 4322046214536968430,
+      "context_hash": 6602800776889435517,
+      "translation": "커널은 성공하는 것에 도달할 때까지 각 binfmt의 `load_binary()` 함수를 시도합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:59/seg:4",
+      "source": "Sometimes these will run recursively; for example, if a script has an interpreter specified and that interpreter is, itself, a script, the hierarchy might be `binfmt_script` > `binfmt_script` > `binfmt_elf` (where ELF is the executable format at the end of the chain).",
+      "source_hash": 11579633679381092755,
+      "context_hash": 15022179983349735917,
+      "translation": "때로는 이것이 재귀적으로 실행되기도 합니다. 예를 들어, 어떤 스크립트에 인터프리터가 지정되어 있고 그 인터프리터 자체도 스크립트라면, 그 계층 구조는 `binfmt_script` > `binfmt_script` > `binfmt_elf`(ELF가 체인 끝에 있는 실행 파일 형식)의 형태일 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:60/seg:0",
+      "source": "Format Highlight: Scripts",
+      "source_hash": 17840749236070493550,
+      "context_hash": 12287134509660482119,
+      "translation": "형식 하이라이트: 스크립트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:61/seg:0",
+      "source": "Of the many formats Linux supports, `binfmt_script` is the first I want to specifically talk about.",
+      "source_hash": 14720164823334857970,
+      "context_hash": 594466789108177549,
+      "translation": "리눅스가 지원하는 여러 형식 중, `binfmt_script`가 제가 특별히 이야기하고 싶은 첫 번째 대상입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:62/seg:0",
+      "source": "Have you ever read or written a [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix))?",
+      "source_hash": 2020096073159902741,
+      "context_hash": 1154865178586985787,
+      "translation": "[셔뱅(shebang)](https://en.wikipedia.org/wiki/Shebang_(Unix))을 읽거나 작성해 본 적이 있으십니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:62/seg:1",
+      "source": "That line at the start of some scripts that specifies the path to the interpreter?",
+      "source_hash": 2043532795719431376,
+      "context_hash": 5370367458898289933,
+      "translation": "일부 스크립트의 맨 앞에 있으며 인터프리터의 경로를 지정하는 그 줄 말입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:66/seg:0",
+      "source": "I always just assumed these were handled by the shell, but no!",
+      "source_hash": 4018116819774747356,
+      "context_hash": 7449697406012960810,
+      "translation": "저는 늘 이것들이 셸에 의해 처리되는 것이라고 그냥 짐작해 왔는데, 그렇지 않습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:66/seg:1",
+      "source": "Shebangs are actually a feature of the kernel, and scripts are executed with the same syscalls as every other program.",
+      "source_hash": 12487262392126937241,
+      "context_hash": 15428161470928249966,
+      "translation": "셔뱅은 실제로 커널의 기능이며, 스크립트는 다른 모든 프로그램과 동일한 시스템 호출을 통해 실행됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:66/seg:2",
+      "source": "Computers are *so cool*.",
+      "source_hash": 5835953132498817883,
+      "context_hash": 7228877179367655149,
+      "translation": "컴퓨터는 *정말 멋집니다*.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934819Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:67/seg:0",
+      "source": "Take a look at how `fs/binfmt_script.c` checks if a file starts with a shebang:",
+      "source_hash": 13116575958473918229,
+      "context_hash": 9251206235568584907,
+      "translation": "`fs/binfmt_script.c`가 파일이 셔뱅으로 시작하는지 어떻게 확인하는지 살펴봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:11.934820Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:71/seg:0",
+      "source": "If the file does start with a shebang, the binfmt handler then reads the interpreter path and any space-separated arguments after the path.",
+      "source_hash": 11181167467854471067,
+      "context_hash": 6618179724496569893,
+      "translation": "파일이 셔뱅으로 시작하는 경우, binfmt 핸들러는 인터프리터 경로와 그 경로 뒤에 공백으로 구분된 인자들을 읽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498011Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:71/seg:1",
+      "source": "It stops when it hits either a newline or the end of the buffer.",
+      "source_hash": 7634712769654161689,
+      "context_hash": 4405887881199086378,
+      "translation": "이 과정은 개행 문자나 버퍼의 끝에 도달하면 멈춥니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498011Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:72/seg:0",
+      "source": "There are two interesting, wonky things going on here.",
+      "source_hash": 8230463367985571901,
+      "context_hash": 14697545715551448286,
+      "translation": "여기서 흥미롭고 이상한 점이 두 가지 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:73/seg:0",
+      "source": "**First of all**, remember that buffer in `linux_binprm` that was filled with the first 256 bytes of the file?",
+      "source_hash": 16741492620761358534,
+      "context_hash": 14412036408291351313,
+      "translation": "**가장 먼저**, `linux_binprm`에 있는, 파일의 첫 256바이트로 채워졌던 그 버퍼를 기억하십니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:73/seg:1",
+      "source": "That's used for executable format detection, but that same buffer is also what shebangs are read out of in `binfmt_script`.",
+      "source_hash": 8317323867138243725,
+      "context_hash": 5632669243952536026,
+      "translation": "이 버퍼는 실행 파일 형식 감지에 사용되지만, 동일한 버퍼가 `binfmt_script`에서 셔뱅을 읽어내는 데에도 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:74/seg:0",
+      "source": "During my research, I read an article that described the buffer as 128 bytes long.",
+      "source_hash": 6944171254955273132,
+      "context_hash": 12687915209983567173,
+      "translation": "조사를 하던 중, 저는 그 버퍼가 128바이트 길이라고 설명하는 글을 읽었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:74/seg:1",
+      "source": "At some point after that article was published, the length was doubled to 256 bytes!",
+      "source_hash": 15853789607325339994,
+      "context_hash": 4659071570640895535,
+      "translation": "그 글이 게재된 이후 어느 시점에, 그 길이는 256바이트로 두 배가 되었습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:74/seg:2",
+      "source": "Curious why, I checked the Git blame — a log of everybody who edited a certain line of code — for the line where `BINPRM_BUF_SIZE` is defined in the Linux source code.",
+      "source_hash": 2248369013550660725,
+      "context_hash": 5965659710662527943,
+      "translation": "그 이유가 궁금해서, 저는 Linux 소스 코드에서 `BINPRM_BUF_SIZE`가 정의된 줄에 대한 Git blame — 특정 코드 줄을 편집한 모든 사람의 기록 — 을 확인해보았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:74/seg:3",
+      "source": "Lo and behold...",
+      "source_hash": 12517108251962615395,
+      "context_hash": 17454770187615049569,
+      "translation": "그런데 세상에...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:76/seg:0",
+      "source": "COMPUTERS ARE SO COOL!",
+      "source_hash": 16011034698236821709,
+      "context_hash": 10284865465940744537,
+      "translation": "컴퓨터는 정말 멋집니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:77/seg:0",
+      "source": "Since shebangs are handled by the kernel, and pulled from `buf` instead of loading the whole file, they're *always* truncated to the length of `buf`.",
+      "source_hash": 6088824636766336882,
+      "context_hash": 15944632014142940011,
+      "translation": "셔뱅은 커널에 의해 처리되며, 파일 전체를 불러오는 대신 `buf`에서 가져오기 때문에, 셔뱅은 *항상* `buf`의 길이만큼 잘립니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:77/seg:1",
+      "source": "Apparently, 4 years ago, someone got annoyed by the kernel truncating their >128-character paths, and their solution was to double the truncation point by doubling the buffer size!",
+      "source_hash": 2604778905391070992,
+      "context_hash": 5478117977780147720,
+      "translation": "듣자 하니, 4년 전에 누군가가 커널이 128자 이상의 경로를 잘라내는 것에 짜증이 나서, 버퍼 크기를 두 배로 늘려 잘림 지점을 두 배로 늘리는 것을 해결책으로 삼았다고 합니다!",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:17.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:77/seg:2",
+      "source": "Today, on your very own Linux machine, if you have a shebang line more than 256 characters long, everything past 256 characters will be *completely lost*.",
+      "source_hash": 3763768069668997541,
+      "context_hash": 16003608619962448718,
+      "translation": "오늘날, 여러분의 Linux 머신에서도 셔뱅 줄이 256자를 넘으면, 256자를 넘는 모든 부분은 *완전히 사라지게* 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:79/seg:0",
+      "source": "Imagine having a bug because of this.",
+      "source_hash": 3975878256247200823,
+      "context_hash": 7290577130912456960,
+      "translation": "이것 때문에 버그가 생겼다고 상상해 보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:79/seg:1",
+      "source": "Imagine trying to figure out the root cause of what's breaking your code.",
+      "source_hash": 3064079470689436190,
+      "context_hash": 13948319520863716572,
+      "translation": "여러분의 코드가 왜 망가지는지 근본 원인을 찾아내려 애쓰는 상황을 상상해 보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:79/seg:2",
+      "source": "Imagine how it would feel, discovering that the problem is deep within the Linux kernel.",
+      "source_hash": 16500148363765050944,
+      "context_hash": 7190872367277989671,
+      "translation": "문제가 Linux 커널 깊숙한 곳에 있다는 것을 발견했을 때 어떤 기분일지 상상해 보십시오.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:79/seg:3",
+      "source": "Woe to the next IT person at a massive enterprise who discovers that part of a path has mysteriously gone missing.",
+      "source_hash": 6037751135899954673,
+      "context_hash": 2437146088702138908,
+      "translation": "경로의 일부가 알 수 없이 사라졌다는 것을 발견하게 될, 거대한 기업의 다음 IT 담당자에게 애도를 표합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:80/seg:0",
+      "source": "**The second wonky thing:** remember how it's only *convention* for `argv[0]` to be the program name, how the caller can pass any `argv` they want to an exec syscall and it will pass through unmoderated?",
+      "source_hash": 15503140744485428288,
+      "context_hash": 12359346736476241863,
+      "translation": "**두 번째 이상한 점:** `argv[0]`이 프로그램 이름이라는 것이 단지 *관례*일 뿐이며, 호출자는 exec 시스템 호출에 원하는 어떤 `argv`든 전달할 수 있고 그것이 아무런 검증 없이 그대로 통과된다는 것을 기억하십니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:81/seg:0",
+      "source": "It just so happens that `binfmt_script` is one of those places that *assumes* `argv[0]` is the program name.",
+      "source_hash": 5224533097080675639,
+      "context_hash": 8822300225167510600,
+      "translation": "마침 `binfmt_script`가 바로 `argv[0]`이 프로그램 이름이라고 *가정하는* 곳들 중 하나입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:81/seg:1",
+      "source": "It always removes `argv[0]`, and then adds the following to the start of `argv`:",
+      "source_hash": 12807786041930672940,
+      "context_hash": 8366319409780119222,
+      "translation": "이것은 항상 `argv[0]`을 제거한 다음, `argv`의 맨 앞에 다음을 추가합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:82/seg:0",
+      "source": "Path to the interpreter",
+      "source_hash": 1633004271930136248,
+      "context_hash": 13306580818595682703,
+      "translation": "인터프리터의 경로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:83/seg:0",
+      "source": "Arguments to the interpreter",
+      "source_hash": 6989845796297380949,
+      "context_hash": 17254453886444794233,
+      "translation": "인터프리터에 대한 인자들",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:84/seg:0",
+      "source": "Filename of the script",
+      "source_hash": 11494878642858428252,
+      "context_hash": 2725956684445659175,
+      "translation": "스크립트의 파일 이름",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:86/seg:0",
+      "source": "**Example: Argument Modification**",
+      "source_hash": 1598886659843150796,
+      "context_hash": 9163614939870075581,
+      "translation": "**예시: 인자 수정**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:87/seg:0",
+      "source": "Let's look at a sample `execve` call:",
+      "source_hash": 10701425036713832101,
+      "context_hash": 12858598071240321883,
+      "translation": "`execve` 호출 예시를 살펴봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498013Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:91/seg:0",
+      "source": "This hypothetical `script` file has the following shebang as its first line:",
+      "source_hash": 12744160285766801062,
+      "context_hash": 11908473565643448315,
+      "translation": "이 가상의 `script` 파일은 첫 번째 줄에 다음과 같은 셔뱅을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498014Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:95/seg:0",
+      "source": "The modified `argv` finally passed to the Node interpreter will be:",
+      "source_hash": 3875622629943508359,
+      "context_hash": 15851915797932460210,
+      "translation": "최종적으로 Node 인터프리터에 전달되는 수정된 `argv`는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498014Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:100/seg:0",
+      "source": "After updating `argv`, the handler finishes preparing the file for execution by setting `linux_binprm.interp` to the interpreter path (in this case, the Node binary).",
+      "source_hash": 6159100747920231440,
+      "context_hash": 4261402012231696411,
+      "translation": "`argv`를 갱신한 후, 핸들러는 `linux_binprm.interp`를 인터프리터 경로(이 경우 Node 바이너리)로 설정함으로써 실행을 위한 파일 준비를 마칩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498014Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:100/seg:1",
+      "source": "Finally, it returns 0 to indicate success preparing the program for execution.",
+      "source_hash": 134075160249137984,
+      "context_hash": 3186761386617934044,
+      "translation": "마지막으로, 프로그램 실행 준비가 성공했음을 나타내기 위해 0을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498014Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:101/seg:0",
+      "source": "Format Highlight: Miscellaneous Interpreters",
+      "source_hash": 10589927006564594885,
+      "context_hash": 10154211636611067389,
+      "translation": "형식 하이라이트: 기타 인터프리터",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:17.498014Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:102/seg:0",
+      "source": "Another interesting handler is `binfmt_misc`.",
+      "source_hash": 1438206310194756267,
+      "context_hash": 15407619208163791189,
+      "translation": "또 다른 흥미로운 핸들러는 `binfmt_misc`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082971Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:102/seg:1",
+      "source": "It opens up the ability to add some limited formats through userland configuration, by mounting a special file system at `/proc/sys/fs/binfmt_misc/`.",
+      "source_hash": 10587955826989217317,
+      "context_hash": 10309970196509804535,
+      "translation": "이것은 `/proc/sys/fs/binfmt_misc/`에 특수 파일 시스템을 마운트함으로써, 사용자 영역 설정을 통해 제한된 형식을 추가할 수 있는 기능을 열어줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:102/seg:2",
+      "source": "Programs can perform [specially formatted](https://docs.kernel.org/admin-guide/binfmt-misc.html) writes to files in this directory to add their own handlers.",
+      "source_hash": 13844782811566516015,
+      "context_hash": 14001235991524030750,
+      "translation": "프로그램은 이 디렉터리 안의 파일에 [특별히 형식화된](https://docs.kernel.org/admin-guide/binfmt-misc.html) 쓰기를 수행하여 자신만의 핸들러를 추가할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:102/seg:3",
+      "source": "Each configuration entry specifies:",
+      "source_hash": 5633611845438703931,
+      "context_hash": 11889320207839090187,
+      "translation": "각 설정 항목은 다음을 명시합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:103/seg:0",
+      "source": "How to detect their file format.",
+      "source_hash": 16398307110573430528,
+      "context_hash": 9855123759869883295,
+      "translation": "파일 형식을 감지하는 방법.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:103/seg:1",
+      "source": "This can specify either a magic number at a certain offset or a file extension to look for.",
+      "source_hash": 842870947842343689,
+      "context_hash": 14164784028384020557,
+      "translation": "이것은 특정 오프셋에 있는 매직 넘버 또는 찾아야 할 파일 확장자 중 하나를 지정할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:104/seg:0",
+      "source": "The path to an interpreter executable.",
+      "source_hash": 10456353419061324321,
+      "context_hash": 12724714023933161630,
+      "translation": "인터프리터 실행 파일의 경로.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:104/seg:1",
+      "source": "There's no way to specify interpreter arguments, so a wrapper script is needed if those are desired.",
+      "source_hash": 14817720503564416507,
+      "context_hash": 3999554904655811070,
+      "translation": "인터프리터 인자를 지정할 방법은 없으므로, 그것이 필요하다면 래퍼 스크립트가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:105/seg:0",
+      "source": "Some configuration flags, including one specifying how `binfmt_misc` updates `argv`.",
+      "source_hash": 8945611779988294099,
+      "context_hash": 1250057742444884268,
+      "translation": "`binfmt_misc`가 `argv`를 어떻게 갱신하는지 지정하는 플래그를 포함한 몇 가지 설정 플래그.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:106/seg:0",
+      "source": "This `binfmt_misc` system is often used by Java installations, configured to detect class files by their `0xCAFEBABE` magic bytes and JAR files by their extension.",
+      "source_hash": 10729813536604643749,
+      "context_hash": 12718755564772544585,
+      "translation": "이 `binfmt_misc` 시스템은 흔히 Java 설치 과정에서 사용되며, 클래스 파일은 `0xCAFEBABE` 매직 바이트로, JAR 파일은 확장자로 감지하도록 설정됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:106/seg:1",
+      "source": "On my particular system, a  handler is configured that detects Python bytecode by its .pyc extension and passes it to the appropriate handler.",
+      "source_hash": 7129718013572888636,
+      "context_hash": 2542038910665531178,
+      "translation": "제 특정 시스템에서는 .pyc 확장자로 Python 바이트코드를 감지하여 적절한 핸들러로 전달하는 핸들러가 설정되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:107/seg:0",
+      "source": "This is a pretty cool way to let program installers add support for their own formats without needing to write highly privileged kernel code.",
+      "source_hash": 15261352938960481440,
+      "context_hash": 14956482095003905530,
+      "translation": "이것은 프로그램 설치 프로그램이 고도로 권한이 부여된 커널 코드를 작성할 필요 없이 자신만의 형식에 대한 지원을 추가할 수 있게 해주는 꽤 멋진 방법입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "In the End (Not the Linkin Park Song)",
+      "source_hash": 4851289380923658581,
+      "context_hash": 18330230492454031103,
+      "translation": "끝에서 (Linkin Park의 노래가 아닙니다)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082972Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "An exec syscall will always end up in one of two paths:",
+      "source_hash": 12986823595529203191,
+      "context_hash": 18178020834737693913,
+      "translation": "exec 시스템 호출은 항상 두 경로 중 하나로 귀결됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "It will eventually reach an executable binary format that it understands, perhaps after several layers of script interpreters, and run that code.",
+      "source_hash": 18265411163432663191,
+      "context_hash": 7301441510259164887,
+      "translation": "여러 겹의 스크립트 인터프리터를 거친 후일 수도 있지만, 결국 자신이 이해하는 실행 가능한 바이너리 형식에 도달하여 그 코드를 실행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "At this point, the old code has been replaced.",
+      "source_hash": 158454931356904574,
+      "context_hash": 3737192758065115503,
+      "translation": "이 시점에서, 기존 코드는 교체된 상태입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "... or it will exhaust all its options and return an error code to the calling program, tail between its legs.",
+      "source_hash": 9954234490311631136,
+      "context_hash": 10402578362389569484,
+      "translation": "... 아니면 모든 선택지를 소진하고 꼬리를 내린 채 호출 프로그램에 오류 코드를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "If you've ever used a Unix-like system, you might've noticed that shell scripts run from a terminal still execute if they don't have a shebang line or `.sh` extension.",
+      "source_hash": 9606149043824799415,
+      "context_hash": 6669111712692775777,
+      "translation": "Unix 계열 시스템을 사용해 본 적이 있다면, 셔뱅 줄이나 `.sh` 확장자가 없어도 터미널에서 실행한 셸 스크립트가 여전히 실행되는 것을 눈치챘을 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "You can test this out right now if you have a non-Windows terminal handy:",
+      "source_hash": 9426854941363701380,
+      "context_hash": 3607412632616829315,
+      "translation": "Windows가 아닌 터미널이 있다면 지금 바로 이것을 테스트해 볼 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "(`chmod +x` tells the OS that a file is an executable.",
+      "source_hash": 7009689398306265828,
+      "context_hash": 13007149554535554192,
+      "translation": "(`chmod +x`는 OS에게 어떤 파일이 실행 파일임을 알려줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "You won't be able to run it otherwise.)",
+      "source_hash": 13092349748168499056,
+      "context_hash": 16426488368207238148,
+      "translation": "그렇지 않으면 그것을 실행할 수 없습니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "So, why does the shell script run as a shell script?",
+      "source_hash": 2070993205340078552,
+      "context_hash": 8301548764076874350,
+      "translation": "그렇다면, 셸 스크립트는 왜 셸 스크립트로 실행되는 것입니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "The kernel's format handlers should have no clear way of detecting shell scripts without any discernible label!",
+      "source_hash": 15253139198149969159,
+      "context_hash": 10584879986239865648,
+      "translation": "커널의 형식 핸들러는 식별 가능한 표식 없이는 셸 스크립트를 감지할 명확한 방법이 없어야 합니다!",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Well, it turns out that this behavior isn't part of the kernel.",
+      "source_hash": 1521185979146431173,
+      "context_hash": 7023449199518860181,
+      "translation": "그런데 사실, 이 동작은 커널의 일부가 아닙니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-09-12T05:54:20.082973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "It's actually a common way for your *shell* to handle a failure case.",
+      "source_hash": 142232615839314024,
+      "context_hash": 5690397189405198726,
+      "translation": "이것은 실제로 여러분의 *셸*이 실패 상황을 처리하는 흔한 방식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "When you execute a file using a shell and the exec syscall fails, most shells will *retry executing the file as a shell script* by executing a shell with the filename as the first argument.",
+      "source_hash": 12305377058370332,
+      "context_hash": 7078993145204669167,
+      "translation": "셸을 사용해 파일을 실행하다가 exec 시스템 호출이 실패하면, 대부분의 셸은 파일명을 첫 번째 인자로 하여 셸을 실행함으로써 *파일을 셸 스크립트로서 재실행*을 시도합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:1",
+      "source": "Bash will typically use itself as this interpreter, while ZSH uses whatever `sh` is, usually [Bourne shell](https://en.wikipedia.org/wiki/Bourne_shell).",
+      "source_hash": 7834005243482052281,
+      "context_hash": 5192012449841861660,
+      "translation": "Bash는 보통 자기 자신을 이 인터프리터로 사용하는 반면, ZSH는 `sh`가 무엇이든 그것을 사용하며, 보통은 [Bourne 셸](https://en.wikipedia.org/wiki/Bourne_shell)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "This behavior is so common because it's specified in [*POSIX*](https://en.wikipedia.org/wiki/POSIX), an old standard designed to make code portable between Unix systems.",
+      "source_hash": 8131668130950785684,
+      "context_hash": 130370740390497871,
+      "translation": "이 동작이 이토록 흔한 이유는 그것이 Unix 시스템 간에 코드를 이식 가능하게 만들기 위해 고안된 오래된 표준인 [*POSIX*](https://en.wikipedia.org/wiki/POSIX)에 명시되어 있기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:1",
+      "source": "While POSIX isn't strictly followed by most tools or operating systems, many of its conventions are still shared.",
+      "source_hash": 1482242863306739384,
+      "context_hash": 13250089238373412394,
+      "translation": "POSIX가 대부분의 도구나 운영체제에서 엄격히 준수되는 것은 아니지만, 그 관례 중 많은 부분은 여전히 공유되고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "If \\[an exec syscall\\] fails due to an error equivalent to the `[ENOEXEC]` error, **the shell shall execute a command equivalent to having a shell invoked with the command name as its first operand**, with any remaining arguments passed to the new shell.",
+      "source_hash": 17155138011420456217,
+      "context_hash": 16234518771919842565,
+      "translation": "만약 [exec 시스템 호출이] `[ENOEXEC]` 오류에 상응하는 오류로 인해 실패하면, **셸은 명령 이름을 첫 번째 피연산자로 하여 셸을 호출하는 것과 동등한 명령을 실행해야 하며**, 나머지 인자들은 새로운 셸에 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "If the executable file is not a text file, the shell may bypass this command execution.",
+      "source_hash": 11031609558385014055,
+      "context_hash": 9309990708162081770,
+      "translation": "실행 파일이 텍스트 파일이 아닌 경우, 셸은 이 명령 실행을 건너뛸 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:2",
+      "source": "In this case, it shall write an error message and shall return an exit status of 126.",
+      "source_hash": 13498557619052967366,
+      "context_hash": 10172791647558471402,
+      "translation": "이 경우, 셸은 오류 메시지를 기록하고 종료 상태 126을 반환해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:54:20.082974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "*Source: <cite>[Shell Command Language, POSIX.1-2017](https://pubs.opengroup.org/onlinepubs/9699919799.2018edition/utilities/V3_chap02.html#tag_18_09_01_01)</cite>*",
+      "source_hash": 13657321068474936782,
+      "context_hash": 6545814688576833292,
+      "translation": "*출처: <cite>[Shell Command Language, POSIX.1-2017](https://pubs.opengroup.org/onlinepubs/9699919799.2018edition/utilities/V3_chap02.html#tag_18_09_01_01)</cite>*",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:53:48.680178Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Computers are so cool!",
+      "source_hash": 8801314705078602374,
+      "context_hash": 1297387181235144416,
+      "translation": "컴퓨터는 정말 멋집니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:53:48.680179Z",
+      "issues": []
+    }
+  ]
+}
