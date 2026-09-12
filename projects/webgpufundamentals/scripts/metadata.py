@@ -58,3 +58,8 @@ if mode == 'extract' and camera.is_file():
     if not match:
         raise ValueError('camera aim paragraph changed; review the fence repair')
     (root / 'metadata/_camera-aim-fs.md').write_text(match[1] + '\n')
+
+if mode == 'apply' and camera.is_file():
+    # Keep every translated build input inside the fingerprinted ko overlay.
+    supplement = (root / 'ko-metadata/_camera-aim-fs.md').read_text()
+    (root / 'ko/webgpu/lessons/ko/_camera-aim-fs.md').write_text(supplement)

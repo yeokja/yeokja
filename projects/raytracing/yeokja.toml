@@ -1,0 +1,69 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+[[sources]]
+path = "upstream/books"
+pattern = "*.html"
+parser = "markdeep"
+output = "ko/books/{path}"
+
+[[sources]]
+path = "ui"
+pattern = "*.md"
+parser = "markdown"
+output = "ko-ui/{path}"
+
+[provider]
+type = "claude_code"
+model = "claude-sonnet-5"
+prompt_template = '''
+Translate standalone geometry captions (including Quads) to Korean; do not leave them in English.
+Translate the numbered sentences from {source_lang} to {target_lang} for the Ray Tracing book series.
+When a segment is ONLY a renderer UI label such as Figure, Listing, Table, Section or Sec., translate it to Korean; the preservation rule applies only INSIDE bracketed source references.
+For exact standalone renderer label segments, use these required UI translations: Sec. → 절; Section → 절; Subsection → 하위 절; Listing → 코드. These are UI labels, not structural reference identifiers.
+Use formal written Korean (합쇼체, ~합니다/~입니다, ~하십시오); translate all prose, titles and captions.
+Translate ordinary English UI labels such as issues (이슈); retain GitHub as a brand name.
+Keep personal names, email addresses, code identifiers, filenames, URLs and bibliographic metadata intact.
+Preserve all Markdown and HTML syntax, tags, attributes, inline code, link targets, and formatting markers.
+This is Markdeep: preserve mathematical expressions delimited by $ or $$ EXACTLY, including LaTeX commands.
+Preserve EVERY occurrence of every mathematical expression, even when it repeats: never omit a repeated expression as redundant.
+Never add code backticks around words that were not code in the source.
+Preserve cross-reference identifiers EXACTLY, including [Section ...], [Figure ...], [Listing ...], [Table ...], [Equation ...] and reference-link labels.
+Do not translate the English structural words Figure, Listing, Table, Equation or Section INSIDE those bracketed references.
+Keep any literal placeholder unchanged. Translate link display text but keep its destination and identifier unchanged.
+Do not create new Markdown blocks or replace underscore emphasis delimiters. When Korean particles follow underscore emphasis, add a separating space so emphasis remains valid.
+Use the glossary consistently:
+{glossary}
+Previous validation feedback:
+{feedback}
+Context (full paragraph):
+{context}
+Return ONLY numbered translations in the same [N] format, one line per numbered sentence, with no preamble or code fence:
+{segments}
+'''
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.html]
+command = '''
+set -e
+python3 "$YEOKJA_ROOT/scripts/build_site.py" "$PWD" "$YEOKJA_ROOT"
+'''
+outputs = ["site"]

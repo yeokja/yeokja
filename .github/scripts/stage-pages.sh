@@ -118,6 +118,7 @@ overlay_site "dist-rustc-dev-guide" "site" "rustc-dev-guide"
 overlay_site "dist-learn-fpga" "site" "learn-fpga"
 overlay_site "dist-zero-to-nix" "site" "zero-to-nix"
 overlay_site "dist-nix-dev" "site" "nix-dev"
+overlay_site "dist-raytracing" "site" "raytracing"
 
 cp "$landing_dir/index.html" "$site_dir/index.html"
 cp "$landing_dir/favicon.svg" "$site_dir/favicon.svg"

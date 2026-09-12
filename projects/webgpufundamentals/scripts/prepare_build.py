@@ -16,9 +16,7 @@ for folder in Path('webgpu/lessons').iterdir():
         shutil.rmtree(folder)
 
 # The upstream camera lesson lacks one closing fence, swallowing prose as JS.
-import os
 import re
-project = Path(os.environ['YEOKJA_ROOT'])
 paragraph_re = re.compile(r'(<a id="a-aim-fs"></a> .*?)(?=\n\n```js\n-  const numFs)', re.S)
 for language in ('en', 'ko'):
     folder = Path('webgpu/lessons') / ('ko' if language == 'ko' else '')
@@ -27,6 +25,6 @@ for language in ('en', 'ko'):
     match = paragraph_re.search(content)
     if not match:
         raise ValueError('camera aim paragraph changed; review the fence repair')
-    paragraph = match[1] if language == 'en' else (project / 'ko-metadata/_camera-aim-fs.md').read_text().strip()
+    paragraph = match[1] if language == 'en' else (folder / '_camera-aim-fs.md').read_text().strip()
     content = content[:match.start()] + '```\n\n' + paragraph + content[match.end():]
     camera.write_text(content)

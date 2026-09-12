@@ -28,6 +28,13 @@ fi
 cd "$project_dir"
 
 case "$project" in
+  raytracing)
+    python3 scripts/prepare_index.py extract --check
+    "$yeokja" status --check upstream/books
+    "$yeokja" status --check ui
+    "$yeokja" translate upstream/books
+    "$yeokja" translate ui
+    ;;
   webgpufundamentals)
     python3 scripts/metadata.py extract
     "$yeokja" status --check metadata
