@@ -28,6 +28,13 @@ fi
 cd "$project_dir"
 
 case "$project" in
+  putting-the-you-in-cpu)
+    "$yeokja" status --check upstream/src/content/chapters
+    "$yeokja" status --check ui
+    "$yeokja" translate upstream/src/content/chapters
+    "$yeokja" translate ui
+    python3 scripts/prepare_ui.py
+    ;;
   devguide|learn-fpga)
     "$yeokja" translate upstream
     "$yeokja" status --check upstream

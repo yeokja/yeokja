@@ -1,0 +1,56 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+[[sources]]
+path = "upstream/src/content/chapters"
+pattern = "**/*.mdx"
+parser = "mdx"
+output = "ko/src/content/chapters/{path}"
+
+[provider]
+type = "claude_code"
+model = "claude-sonnet-5"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32
+
+[[sources]]
+path = "ui"
+pattern = "*.md"
+parser = "markdown"
+output = "ko-ui/{path}"
+
+[build.html]
+command = '''
+set -e
+tree=$PWD
+build_dir=$(mktemp -d)
+trap 'rm -rf "$build_dir"' EXIT
+cp -RL . "$build_dir/tree"
+cd "$build_dir/tree"
+python3 "$YEOKJA_ROOT/scripts/prepare_site.py"
+bun install --frozen-lockfile --ignore-scripts
+bun run build
+node "$YEOKJA_ROOT/scripts/rewrite-base.mjs" site /putting-the-you-in-cpu
+cp LICENSE site/LICENSE
+python3 "$YEOKJA_ROOT/scripts/verify_site.py" site
+rm -rf "$tree/site"
+cp -R site "$tree/site"
+'''
+outputs = ["site"]
