@@ -1,7 +1,7 @@
 # Putting the "You" in CPU 한국어판
 
 [Hack Club · Lexi Mattick의 원문](https://github.com/hackclub/putting-the-you-in-cpu)을
-yeokja의 `claude_code` provider와 `claude-sonnet-5` 모델로 번역합니다.
+[yeokja](https://github.com/yeokja/yeokja)의 `claude_code` provider와 `claude-sonnet-5` 모델로 번역합니다. Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
 원문과 이미지의 MIT 라이선스는 upstream/LICENSE 및 배포 사이트의 LICENSE에 보존합니다.
 
 ## 번역과 빌드

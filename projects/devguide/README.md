@@ -1,7 +1,7 @@
 # Python Developer's Guide 한국어 번역
 
 공식 [`python/devguide`](https://github.com/python/devguide) 저장소의 RST 문서
-64개를 `yeokja`와 Codex로 옮기는 비공식 한국어 번역 프로젝트입니다. Python
+64개를 [`yeokja`](https://github.com/yeokja/yeokja)와 Codex로 옮기는 비공식 한국어 번역 프로젝트입니다. OpenAI 사의 `gpt-5.6-sol` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다. Python
 프로젝트나 Python Software Foundation이 제공하거나 승인한 공식 번역이 아닙니다.
 원문은 CC0-1.0으로 제공되며, 이 프로젝트는 원문 커밋
 `261dc2116ca81985c5c0cfc59db5a251d2c8db96`을 고정해서 사용합니다.

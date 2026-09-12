@@ -5,7 +5,7 @@
 원본은 `upstream` submodule의 `release` 리비전으로 고정합니다.
 문서·이미지·코드의 라이선스는 원본 `COPYING.txt`의 CC0입니다.
 
-번역은 yeokja의 `claude_code` provider와 `claude-sonnet-5` 모델로 수행합니다.
+번역은 [yeokja](https://github.com/yeokja/yeokja)의 `claude_code` provider와 `claude-sonnet-5` 모델로 수행합니다. Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
 `state/`에는 번역과 평가 기록을 커밋하고, `ko/`·`ko-ui/`는 재구성 결과라
 커밋하지 않습니다. 제목과 그래픽스 용어는 `glossary.toml`로 관리합니다.
 

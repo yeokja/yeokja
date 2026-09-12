@@ -1,8 +1,8 @@
 # WebGPU Fundamentals 한국어 번역
 
 원본: https://github.com/webgpu/webgpufundamentals (BSD-3-Clause).
-원본은 `upstream` 서브모듈 커밋으로 고정합니다. 번역은 Yeokja의
-`claude_code` provider와 `claude-sonnet-5` 모델로 생성합니다.
+원본은 `upstream` 서브모듈 커밋으로 고정합니다. 번역은 [Yeokja](https://github.com/yeokja/yeokja)의
+`claude_code` provider와 `claude-sonnet-5` 모델로 생성합니다. Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
 `sonnet-5` 별칭 대신 CLI에서 확인한 정식 모델 ID를 사용합니다.
 
 영문 Markdown 66개, WGSL 함수 레퍼런스와 목차 HTML, 제목·설명·목차 및

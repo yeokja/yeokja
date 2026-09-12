@@ -1,7 +1,7 @@
 # Rust 컴파일러 개발 가이드 한국어 번역
 
 [rust-lang/rustc-dev-guide](https://github.com/rust-lang/rustc-dev-guide)의
-`src/**/*.md` 전체와 HTML 블록 안의 경고문·접기 제목을 yeokja의 `claude_code` provider로 한국어로 번역합니다.
+`src/**/*.md` 전체와 HTML 블록 안의 경고문·접기 제목을 [yeokja](https://github.com/yeokja/yeokja)의 `claude_code` provider(`claude-sonnet-5` 모델)로 한국어로 번역합니다. Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
 원문은 `upstream` 서브모듈 커밋으로 고정하고, 번역문은 `state/`에 저장합니다.
 `ko/`, `build/`, `dist/`는 다시 생성할 수 있는 산출물입니다.
 
