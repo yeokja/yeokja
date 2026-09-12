@@ -10,8 +10,8 @@ state/          # 번역 상태 (*.yeokja.json) — 진실의 원천, 커밋 대
 ko/             # 번역 출력 — state/에서 재구성되는 파생 산출물, gitignore
 assets/         # 한국어판 전용 추가물: PDF 테마, 나눔고딕 폰트(OFL)
 patches/        # upstream 원본에 가하는 최소 수정 (Index 빈 줄, PDF 테마 전환)
-build-html.sh   # HTML 빌드 (이 머신의 ruby 2.6/openjdk 툴체인 가정)
-build-pdf.sh    # PDF 빌드 (asdf ruby 3.4.2 + asciidoctor-pdf, 로컬 전용)
+build-html.sh   # HTML 빌드 (Nix devShell의 asciidoctor/jre 툴체인 가정)
+build-pdf.sh    # PDF 빌드 (Nix devShell의 asciidoctor-pdf + jre 툴체인 가정)
 build/tree/     # 조립된 빌드 트리 — 일회용, gitignore
 dist/           # 빌드 산출물 (site/) — gitignore
 yeokja.toml     # 프로젝트 설정

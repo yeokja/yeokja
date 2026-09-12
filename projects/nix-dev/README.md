@@ -11,13 +11,12 @@ NixOS 배포까지 따라가는 튜토리얼, 상황별 가이드와 레시피, 
 
 ## 번역과 빌드
 
-저장소 루트에서 실행합니다. 번역에는 기존 프로젝트와 동일한 Claude CLI가,
-HTML 빌드에는 Python 3(3.12 이상, 3.14에서 확인)과 Pagefind 검색 색인을 위한
-Node.js(`npx`)가 필요합니다. 빌드 명령이 `requirements.txt`의 Sphinx
-툴체인을 `build/venv`에 설치하므로(파일이 바뀌지 않으면 재사용) 별도 준비는
-없습니다. 다른 Python을 쓰려면 `NIX_DEV_PYTHON=python3.12`처럼 지정합니다.
-GitHub Actions에서는 워크플로가 같은 requirements를 Python 3.12에 미리
-설치합니다.
+저장소 루트에서 실행합니다. 번역에는 기존 프로젝트와 동일한 Claude CLI가
+필요하고, HTML 빌드는 `cd projects/nix-dev && nix develop path:../../nix#nix-dev`로
+준비한 셸(Python 3, uv, Pagefind)에서 실행합니다. 셸의 hook이
+`requirements.txt`의 Sphinx 툴체인을 `build/venv`에 설치하므로(파일이 바뀌지
+않으면 재사용) 별도 준비는 없습니다. 다른 Python을 쓰려면
+`NIX_DEV_PYTHON=python3.12`처럼 지정합니다.
 
 ```sh
 git submodule update --init projects/nix-dev/upstream

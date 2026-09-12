@@ -5,11 +5,11 @@
 # projects/nix-dev입니다. 결과는 트리의 site/에 남기고 yeokja가 dist/로
 # 복사합니다.
 #
-# 1. Python 툴체인: requirements.txt를 $YEOKJA_ROOT/build/venv에 설치합니다.
-#    venv는 requirements.txt의 해시를 도장(stamp)으로 남겨 두어 파일이 그대로면
-#    재설치하지 않습니다. GitHub Actions에서는 워크플로가 같은 requirements를
-#    setup-python 환경에 미리 설치하므로 venv를 만들지 않고 PATH의 python3를
-#    씁니다.
+# 1. Python 툴체인: nix devShell(nix/projects/nix-dev.nix)이 python3와 uv를
+#    제공하고, 그 shellHook이 requirements.txt를 build/venv에 설치한 뒤 venv의
+#    python3를 PATH 앞에 얹습니다. 이 스크립트는 그 PATH의 python3를 그대로
+#    씁니다(nix develop이 셸을 준비하지 않은 경우도 대비해 NIX_DEV_PYTHON으로
+#    다른 python3를 지정할 수 있습니다).
 # 2. 실파일 source/: 조립 트리의 파일은 upstream(또는 ko/)을 가리키는
 #    심링크인데, myst는 `[…](./other.md)` 같은 문서 링크를 realpath로 풀어
 #    srcdir 바깥이라며 깨뜨리고(myst.xref_missing), 아래 버전 치환도 서브모듈
@@ -23,32 +23,15 @@
 #    않지만(upstream도 번역과 무관한 경고가 생길 수 있음) 오류가 있으면
 #    sphinx-build 자체가 실패합니다.
 # 5. Pagefind: upstream의 search.html 템플릿이 Sphinx 검색 대신 Pagefind UI를
-#    쓰므로 색인(site/pagefind/)이 없으면 검색 페이지가 비어 버립니다. 색인
-#    생성이 실패하면 빌드도 실패시킵니다. 언어는 pagefind.yml의 en 대신 ko로
-#    강제합니다.
+#    쓰므로 색인(site/pagefind/)이 없으면 검색 페이지가 비어 버립니다. nix
+#    devShell이 pagefind 바이너리를 PATH에 제공하므로 이 스크립트는 npx 없이
+#    pagefind를 직접 부릅니다. 색인 생성이 실패하면 빌드도 실패시킵니다.
+#    언어는 pagefind.yml의 en 대신 ko로 강제합니다.
 
 set -euo pipefail
 
 root=${YEOKJA_ROOT:?YEOKJA_ROOT가 필요합니다 — yeokja build html로 실행하세요}
-tree=$PWD
-
-if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
-  python=python3
-else
-  python=${NIX_DEV_PYTHON:-python3}
-  venv=$root/build/venv
-  requirements=$root/requirements.txt
-  stamp=$venv/.requirements.stamp
-  want=$("$python" -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$requirements")
-  if [ ! -x "$venv/bin/python" ] || [ "$(cat "$stamp" 2>/dev/null)" != "$want" ]; then
-    echo "build-site: ${venv}에 Sphinx 툴체인을 설치합니다" >&2
-    rm -rf "$venv"
-    "$python" -m venv "$venv"
-    "$venv/bin/python" -m pip install --quiet --disable-pip-version-check -r "$requirements"
-    printf '%s\n' "$want" > "$stamp"
-  fi
-  python=$venv/bin/python
-fi
+python=${NIX_DEV_PYTHON:-python3}
 
 rm -rf source.real
 cp -RL source source.real
@@ -63,9 +46,5 @@ mv "$manual.substituted" "$manual"
 rm -rf site
 "$python" -m sphinx -b html -j auto -d build/doctrees source site
 
-if ! command -v npx >/dev/null 2>&1; then
-  echo "build-site: Pagefind 검색 색인을 만들려면 Node.js(npx)가 필요합니다" >&2
-  exit 1
-fi
-npx -y pagefind@1 --site site --force-language ko
+pagefind --site site --force-language ko
 test -f site/pagefind/pagefind-ui.js

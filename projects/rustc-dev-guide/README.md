@@ -22,12 +22,11 @@ target/release/yeokja -C projects/rustc-dev-guide coverage upstream/src
 
 ## HTML 빌드와 Pages
 
-원문의 CI와 같은 도구 버전을 사용합니다.
+Nix devShell이 mdbook·mdbook-mermaid 툴체인을 제공합니다.
 
 ```sh
-cargo install --locked mdbook --version 0.5.2
-cargo install --locked mdbook-mermaid --version 0.17.0
-target/release/yeokja -C projects/rustc-dev-guide build html
+cd projects/rustc-dev-guide
+nix develop path:../../nix#rustc-dev-guide -c ../../target/release/yeokja build html
 ```
 
 HTML은 `dist/site/`에 생성됩니다. 기존 Deploy Pages 워크플로는 커밋된

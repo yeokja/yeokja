@@ -6,14 +6,15 @@
 
 ## 번역과 빌드
 
-저장소 루트에서 다음 명령을 실행합니다. Node.js 24 이상과 Bun 1.3.14가 필요합니다.
+저장소 루트에서 다음 명령을 실행합니다. 빌드 툴체인(Bun, Node.js 24,
+Python 3)은 `nix develop path:nix#putting-the-you-in-cpu`가 제공합니다.
 
 ```sh
 git submodule update --init projects/putting-the-you-in-cpu/upstream
 cargo build --release -p yeokja-cli
 # 커밋된 state에서 복원하므로 provider 호출 없이 실행됩니다.
 .github/scripts/rebuild-translations.sh putting-the-you-in-cpu
-target/release/yeokja -C projects/putting-the-you-in-cpu build html
+cd projects/putting-the-you-in-cpu && nix develop path:../../nix#putting-the-you-in-cpu -c ../../target/release/yeokja build html
 ```
 
 결과는 `dist/site/`이며 Pages 파이프라인은 이를 `/putting-the-you-in-cpu/`에 배치합니다.

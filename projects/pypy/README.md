@@ -26,18 +26,20 @@ dist/           # 빌드 결과물 (yeokja build)
 
 공식 빌드 환경이 **Python 2.7**입니다(`.readthedocs.yaml`) — `conf.py`의
 `pypyconfig` 확장이 py2 문법인 `pypy.config`/`rpython.config`를 임포트해
-설정 문서를 생성하기 때문입니다. macOS에서는 brew의 `pypy`(2.7)로 환경을
-만듭니다:
+설정 문서를 생성하기 때문입니다. 로컬 툴체인은 Nix devShell로 준비합니다:
 
 ```sh
-brew install pypy
-pypy -m ensurepip
-pypy -m pip install --user 'virtualenv==16.7.12'
-pypy -m virtualenv ~/.venvs/pypy-doc-py2
-~/.venvs/pypy-doc-py2/bin/pip install 'sphinx<2' docutils==0.11 \
-    sphinx-issues==1.2.0 'sphinx_rtd_theme<1' py sphinx-affiliates
-PATH=~/.venvs/pypy-doc-py2/bin:$PATH yeokja build html
+cd projects/pypy
+nix develop path:../../nix#pypy -c ../../target/release/yeokja build html
 ```
+
+devShell의 `shellHook`이 `requirements.txt`(`sphinx<2`, `docutils==0.11`,
+`sphinx-issues==1.2.0`, `sphinx_rtd_theme<1`, `py`, `sphinx-affiliates`)를
+PyPy2 virtualenv(`build/venv`)에 설치하고 그 bin을 PATH 앞에 얹습니다.
+nixpkgs의 `pypy27.withPackages`/`pypy27Packages.*`는 오랫동안 깨져 있어
+(`pip`으로 설치한 패키지를 임포트하지 못함 — NixOS/nixpkgs#39356) 직접 쓸 수
+없으므로, bare `pypy27` 인터프리터에 `ensurepip`과 구버전 `virtualenv`(최신
+virtualenv는 Python 2를 지원하지 않음)를 사용자 site에 설치해 우회합니다.
 
 rpython 임포트가 플랫폼 프로브(.o 컴파일)를 발동하며 소스 루트를 realpath로
 검증하므로, 링크 트리에서는 단언이 깨집니다. `yeokja.toml`의 generate 스텝이

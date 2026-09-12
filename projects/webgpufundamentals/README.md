@@ -23,8 +23,13 @@ python3 scripts/verify_sources.py
 yeokja build html
 ```
 
-Node 24가 필요합니다. 빌드 중 원본 lesson-builder가 요구하는 Chrome을 설치하며,
-이미 설치된 Chrome은 `PUPPETEER_EXECUTABLE_PATH`로 지정할 수 있습니다.
+필요한 툴체인(Node 24, Python 3, git, Linux에서는 Chromium)은
+저장소 루트의 `nix develop path:nix#webgpufundamentals`(또는 이 디렉토리에서
+`nix develop path:../../nix#webgpufundamentals`)가 제공합니다. Linux에서는 이 셀이
+`PUPPETEER_EXECUTABLE_PATH`를 nixpkgs Chromium으로 설정해 빌드 중 Chrome 다운로드를
+건너뜁니다. darwin에서는 기존처럼 원본 lesson-builder가 Puppeteer로 Chrome을
+직접 내려받습니다(이미 설치된 Chrome은 `PUPPETEER_EXECUTABLE_PATH`로 지정할 수
+있습니다).
 빌드는 원본 서브모듈 이력을 읽어 게시 날짜를 생성합니다. 원본 파일은 수정하지
 않고 별도 빌드 복사본에 한국어 오버레이와 필요한 수정만 적용합니다.
 

@@ -49,28 +49,6 @@
               cp Napkin.pdf $out/
             '';
           };
-          devShell = pkgs.mkShell {
-            packages = with pkgs; [
-              asymptote
-              biber
-              ghostscript
-              mathjax
-              notoSansCjk
-              notoSerifCjk
-              pandoc
-              perlPackages.LaTeXML
-              python3
-              tex
-              epubcheck
-            ];
-            FONTCONFIG_FILE = pkgs.makeFontsConf {
-              fontDirectories = [notoSansCjk notoSerifCjk];
-            };
-            shellHook = ''
-              export OSFONTDIR="${notoSansCjk}/share/fonts//:${notoSerifCjk}/share/fonts//"
-              export NAPKIN_MATHJAX_DIR="${pkgs.mathjax}/lib/node_modules/mathjax"
-            '';
-          };
         }
       );
 }

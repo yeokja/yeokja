@@ -27,20 +27,19 @@ python3 scripts/index_terms.py extract
 ../../target/release/yeokja status upstream --check
 ../../target/release/yeokja evaluate upstream --mechanical-only
 ../../target/release/yeokja coverage upstream --min-lines 3
-../../target/release/yeokja build pdf
+```
+
+PDF 빌드에 필요한 나눔/TeX Gyre 글꼴과 latexmk, XeLaTeX 툴체인은
+Nix devShell로 준비해 실행합니다.
+
+```sh
+nix develop path:../../nix#hott -c ../../target/release/yeokja build pdf
 ```
 
 번역 시 Codex CLI의 ChatGPT 로그인이 필요합니다. 이미 번역된 state만으로
 출력을 재구성하고 PDF를 빌드할 때는 모델 호출이 필요하지 않습니다.
 
 ## PDF와 GitHub Pages
-
-Ubuntu 24.04의 다음 패키지로 빌드합니다.
-
-```sh
-sudo apt-get install fonts-nanum fonts-texgyre latexmk texlive-xetex texlive-latex-extra \
-  texlive-fonts-recommended texlive-science texlive-lang-korean
-```
 
 `output/pdf/HoTT-ko.pdf`가 배포 결과물입니다. GitHub Pages 워크플로의
 `latex-hott` 작업이 같은 툴체인으로 PDF를 빌드하고 `/hott/HoTT-ko.pdf`에

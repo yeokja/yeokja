@@ -13,15 +13,15 @@ PostHog 분석, 쿠키 배너, 뉴스레터 가입, 페이지 피드백 위젯�
 
 ## 번역과 빌드
 
-저장소 루트에서 실행합니다. 번역에는 기존 프로젝트와 동일한 Claude CLI가,
-HTML 빌드에는 Node.js(24 이상)와 npm이 필요합니다. 빌드 명령이 upstream의
-`package-lock.json`으로 의존성을 설치하므로 별도 준비는 없습니다.
+저장소 루트에서 실행합니다. 번역에는 기존 프로젝트와 동일한 Claude CLI가 필요합니다.
+HTML 빌드에 필요한 Node.js 툴체인은 `nix develop`이 제공하므로 별도 준비는
+없습니다.
 
 ```sh
 git submodule update --init projects/zero-to-nix/upstream
 target/release/yeokja -C projects/zero-to-nix translate upstream/src/content
 target/release/yeokja -C projects/zero-to-nix status --check upstream/src/content
-target/release/yeokja -C projects/zero-to-nix build html
+cd projects/zero-to-nix && nix develop path:../../nix#zero-to-nix -c ../../target/release/yeokja build html
 ```
 
 `ko/`를 원본 위에 조립하고 패치를 적용한 뒤 `astro build`로 `dist/site/`를

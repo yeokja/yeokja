@@ -8,9 +8,9 @@ yeokja로 한국어 번역합니다. 원본은 `upstream` 서브모듈에 고정
 
 ## 번역과 빌드
 
-저장소 루트에서 실행합니다. 번역에는 기존 프로젝트와 동일한 Claude CLI가,
-HTML 빌드에는 Python 3 및 Pandoc이 필요합니다. GitHub Actions에서는
-프로젝트의 빌드 명령이 Pandoc을 준비하므로 기존 Pages 워크플로를 사용합니다.
+저장소 루트에서 실행합니다. 번역에는 기존 프로젝트와 동일한 Claude CLI가 필요하고,
+HTML 빌드는 `cd projects/learn-fpga && nix develop path:../../nix#learn-fpga`로
+준비한 셸(Python 3, Pandoc)에서 실행합니다.
 
 ```sh
 git submodule update --init projects/learn-fpga/upstream

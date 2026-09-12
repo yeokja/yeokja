@@ -15,10 +15,14 @@
 ../../target/debug/yeokja status upstream --check
 ../../target/debug/yeokja evaluate upstream --mechanical-only
 ../../target/debug/yeokja orphans
-../../target/debug/yeokja build pdf
 ```
 
-PDF 빌드에는 Python 3, XeLaTeX, BibTeX, MakeIndex와 나눔 글꼴이 필요합니다.
+PDF 빌드에는 Python 3, XeLaTeX, BibTeX, MakeIndex와 나눔/DejaVu 글꼴이 필요합니다.
+Nix devShell로 준비해 실행합니다.
+
+```sh
+nix develop path:../../nix#chisel-book -c ../../target/debug/yeokja build pdf
+```
 
 원문은 Creative Commons Attribution-ShareAlike 4.0 International License로
 배포됩니다. 이 번역은 비공식 번역이며 원저작자는 Martin Schoeberl입니다.

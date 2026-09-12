@@ -50,7 +50,8 @@ cargo build --manifest-path ../../Cargo.toml
 ../../target/debug/yeokja build html
 ```
 
-로컬 HTML 빌드에는 Python 3과 `upstream/scripts/requirements.txt`의 패키지가
-필요합니다. 번역문을 수정할 때는 `ko/`가 아니라 `state/`의 `translation` 필드를
+로컬 HTML 빌드는 `cd projects/mil && nix develop path:../../nix#mil`로 준비한
+셸(Python 3, uv)에서 실행합니다. 셸의 hook이 `upstream/scripts/requirements.txt`를
+`build/venv`에 설치합니다. 번역문을 수정할 때는 `ko/`가 아니라 `state/`의 `translation` 필드를
 수정합니다. `ko/`와 `build/tree/`는 다음 실행에서 다시 만들어지는 파생
 산출물입니다.

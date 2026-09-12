@@ -19,11 +19,10 @@
 #   파서 crate가 바뀌어도 그 파서가 만드는 ko/ 내용이 그대로면 지문도 그대로입니다
 #   — 판단 기준은 결과물이지 파서 버전이 아닙니다.
 #
-# rebuild: 지문이 바뀐 프로젝트·타깃만, 각각 필요한 툴체인만 설치해 빌드합니다
-#   (PyPy는 Python 2.7+Sphinx, theBeamBook은 Ruby+Asciidoctor, Lean 서적은 elan
-#   또는 Python+Sphinx, Napkin은 Nix+LaTeXML, Zero to Nix는 Node+Astro, nix.dev는
-#   Python 3+Sphinx와 Pagefind용 Node.js — 러너에 기본 설치됨). 잡은
-#   GitHub-hosted 러너에서 병렬로 돕니다.
+# rebuild: 지문이 바뀐 프로젝트·타깃만 빌드합니다. 툴체인은 프로젝트마다
+#   nix/projects/<project>.nix의 devShell이 선언하며, 로컬과 같은
+#   `nix develop path:../../nix#<project> -c yeokja build <target>`으로 실행합니다.
+#   잡은 GitHub-hosted 러너에서 병렬로 돕니다.
 #
 # stage: 마지막으로 스테이징한 Pages 트리를 캐시에서 복원하고(캐시가 없을 때만
 #   배포된 사이트를 wget으로 미러링), 새 산출물을 그 위에 덮어쓴 뒤 트리를 다시
@@ -37,9 +36,9 @@
 # 타깃도 없어 CI에서 할 일이 없으므로 목록에서 뺍니다.
 #
 # 새 배포 프로젝트나 타깃을 추가하면 .github/pages-projects.json과 stage 잡이
-# 부르는 .github/scripts/stage-pages.sh에 각각 항목을 추가해야 합니다. 새
-# 툴체인이 필요하면 아래 rebuild 잡에 설치 스텝도 추가합니다. 전체를 강제로
-# 다시 빌드하려면 workflow_dispatch의 force_rebuild를 켭니다.
+# 부르는 .github/scripts/stage-pages.sh에 각각 항목을 추가하고, 그 프로젝트의
+# 툴체인을 nix/projects/<project>.nix에 선언합니다. 전체를 강제로 다시
+# 빌드하려면 workflow_dispatch의 force_rebuild를 켭니다.
 name: Deploy Pages
 
 # main push와 수동 실행에서만 배포합니다. pull_request 검증은 pr.yml에서 따로
@@ -182,190 +181,46 @@ jobs:
       - name: Rebuild translated sources from committed state
         run: .github/scripts/rebuild-translations.sh ${{ matrix.project }}
 
-      # PyPy 문서의 conf.py는 py2 문법인 pypy.config를 임포트하므로 공식
-      # 환경(.readthedocs.yaml)과 같은 Python 2.7이 필요합니다.
-      - name: Install Python 2.7 for the PyPy docs
-        if: matrix.toolchain == 'python2'
-        uses: actions/setup-python@v5
-        with:
-          python-version: 'pypy2.7'
-
-      - name: Install the PyPy docs Sphinx toolchain
-        if: matrix.toolchain == 'python2'
-        run: pip install 'sphinx<2' 'docutils==0.11' 'sphinx-issues==1.2.0' 'sphinx_rtd_theme<1' py sphinx-affiliates
-
-      - name: Install Python 3
-        if: matrix.toolchain == 'python3-devguide' || matrix.toolchain == 'python3-mil' || matrix.toolchain == 'python3-peps' || matrix.toolchain == 'python3-nix-dev'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install uv for the Python devguide
-        if: matrix.toolchain == 'python3-devguide'
-        uses: astral-sh/setup-uv@v10.0.1
-
-      - name: Install the Mathematics in Lean Sphinx toolchain
-        if: matrix.toolchain == 'python3-mil'
-        run: pip install -r projects/${{ matrix.project }}/upstream/scripts/requirements.txt
-
-      - name: Install the PEPs Sphinx toolchain
-        if: matrix.toolchain == 'python3-peps'
-        run: pip install -r projects/${{ matrix.project }}/upstream/requirements.txt
-
-      # 빌드 스크립트는 GITHUB_ACTIONS가 켜져 있으면 venv를 만들지 않고 여기서
-      # 설치한 툴체인을 씁니다. Pagefind는 러너의 Node.js로 npx가 받습니다.
-      - name: Install the nix.dev Sphinx toolchain
-        if: matrix.toolchain == 'python3-nix-dev'
-        run: pip install -r projects/${{ matrix.project }}/requirements.txt
-
-      - name: Install Ruby
-        if: matrix.toolchain == 'ruby'
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.3"
-
-      - name: Install the Asciidoctor toolchain
-        if: matrix.toolchain == 'ruby'
-        run: gem install asciidoctor asciidoctor-diagram rouge
-
-      - name: Install XeLaTeX for the Chisel book
-        if: matrix.toolchain == 'latex-chisel'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            fonts-dejavu-core fonts-nanum \
-            texlive-bibtex-extra texlive-fonts-recommended texlive-lang-korean \
-            texlive-latex-extra texlive-xetex
-
-      - name: Install XeLaTeX for the HoTT book
-        if: matrix.toolchain == 'latex-hott'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fonts-nanum fonts-texgyre latexmk texlive-xetex \
-            texlive-latex-extra texlive-fonts-recommended texlive-science texlive-lang-korean
-
-      - name: Install Nix for the Napkin build
-        if: matrix.toolchain == 'nix'
+      # 빌드 툴체인은 프로젝트마다 nix/projects/<project>.nix의 devShell이
+      # 선언합니다(설계: docs/superpowers/specs/2026-09-12-nix-devshells-design.md).
+      # 로컬에서도 같은 명령으로 같은 셸에 들어가므로 여기에는 프로젝트별
+      # 설치 스텝이 없습니다. upstream의 의존성 잠금(npm, pip, lake, cargo)은
+      # 셸 안에서 각 패키지 매니저가 처리합니다.
+      - name: Install Nix
         uses: cachix/install-nix-action@v31
 
-      # Napkin 빌드가 매번 cache.nixos.org에서 수천 개의 스토어 경로(scheme-full
-      # TeX Live 포함)를 받아 오던 것을 Actions 캐시로 대체합니다. html·epub은
-      # assets/의 플레이크를, pdf는 upstream의 플레이크를 쓰므로 스토어 캐시도
-      # nix_store 값으로 둘로 나눕니다 — 한 키를 같이 쓰면 먼저 저장된 쪽의
-      # 부분집합만 남아 다른 쪽은 매번 다시 받게 됩니다. 키는 flake.lock의
-      # 해시라 입력이 바뀔 때만 새 항목이 생기고, 그때 같은 접두사의 옛 항목은
-      # purge로 지워 저장소 캐시 한도(10 GB)를 아낍니다. `nix develop`은 GC
+      # 셸이 요구하는 스토어 경로를 Actions 캐시에 보관합니다. 키는 프로젝트·타깃
+      # 단위입니다 — napkin의 pdf는 upstream flake로 `nix build`를 하고
+      # html·epub은 devShell만 쓰므로, 한 키를 같이 쓰면 먼저 저장된 쪽의
+      # 부분집합만 남아 다른 쪽은 매번 다시 받게 됩니다. 해시 입력은
+      # flake.lock과 그 프로젝트의 셸 정의(그리고 napkin처럼 자체 flake.lock을
+      # 가진 프로젝트는 그것까지)라, 입력이 바뀔 때만 새 항목이 생기고 그때
+      # 같은 접두사의 옛 항목은 purge로 지워 저장소 캐시 한도(10 GB)를
+      # 아낍니다. hashFiles는 없는 파일을 무시합니다. `nix develop`은 GC
       # 루트를 남기지 않아 저장 전 GC를 걸면 방금 받은 경로가 지워지므로
       # gc-max-store-size는 두지 않습니다.
-      - name: Cache the Nix store for the Napkin build
-        if: matrix.toolchain == 'nix'
+      - name: Cache the Nix store
         uses: nix-community/cache-nix-action@v7
         with:
-          primary-key: nix-${{ runner.os }}-${{ matrix.nix_store }}-${{ hashFiles('projects/napkin/assets/flake.lock', 'projects/napkin/upstream/flake.lock') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-${{ matrix.nix_store }}-
+          primary-key: nix-${{ runner.os }}-${{ matrix.project }}-${{ matrix.target }}-${{ hashFiles('nix/flake.lock', format('nix/projects/{0}.nix', matrix.project), format('projects/{0}/assets/flake.lock', matrix.project), format('projects/{0}/upstream/flake.lock', matrix.project)) }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-${{ matrix.project }}-${{ matrix.target }}-
           purge: true
-          purge-prefixes: nix-${{ runner.os }}-${{ matrix.nix_store }}-
+          purge-prefixes: nix-${{ runner.os }}-${{ matrix.project }}-${{ matrix.target }}-
           purge-created: 0
           purge-primary-key: never
 
-      # Sphinx의 graphviz 확장과 asciidoctor-diagram 둘 다 다이어그램을
-      # 렌더링하려면 dot 바이너리가 있어야 합니다. 없으면 빌드가 실패하는 대신
-      # 경고만 남기고 다이어그램 원본 텍스트를 그대로 페이지에 삽입해버려서,
-      # 깨진 결과물이 조용히 배포되는 문제가 있었습니다.
-      #
-      # 번역된 다이어그램은 노드 라벨이 한글이라 dot이 PNG로 래스터라이즈할 때
-      # (RPython translation.rst의 digraph처럼) CI 러너에 한글 글리프가 있는
-      # 폰트가 없으면 글자가 네모(tofu)로 깨져서 그대로 이미지에 구워집니다.
-      # fonts-noto-cjk를 같이 깔아야 fontconfig가 Sans-Serif 요청을 한글이
-      # 있는 폰트로 대체합니다.
-      - name: Install Graphviz
-        if: matrix.toolchain == 'python2' || matrix.toolchain == 'ruby'
-        run: sudo apt-get update && sudo apt-get install -y graphviz fonts-noto-cjk
-
-      # FP in Lean은 빌드 중 Python 출력을 책에 포함하므로 upstream CI와 같은
-      # 버전을 사용합니다. 같은 Lean 잡인 TPiL에도 일관된 Python을 제공합니다.
-      - name: Install Python for the Lean books
-        if: matrix.toolchain == 'lean'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10.4'
-
-      # upstream Lean 책 CI와 같은 방식으로 elan을 설치합니다. book과 examples는
-      # 서로 다른 lean-toolchain을 가지며, 첫 lean 호출이 각각을 설치합니다.
-      # rust-forge의 mdbook 전처리기(blacksmith)는 cargo로 빌드되고, 릴리스
-      # 채널 테이블을 채우려면 static.rust-lang.org에서 최신 stable/beta/nightly
-      # 정보를 가져와야 하므로(RUN_BLACKSMITH=1) 네트워크 접근이 필요합니다.
-      - name: Install Rust for rust-forge's blacksmith preprocessor
-        if: matrix.toolchain == 'rust-forge'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install mdbook for rust-forge
-        if: matrix.toolchain == 'rust-forge'
+      # 셸의 shellHook가 venv 설치처럼 시간이 걸리는 준비를 하므로, 빌드와
+      # 분리해 먼저 한 번 들어가 봅니다 — 실패하면 툴체인 문제임이 로그에서
+      # 바로 드러납니다.
+      - name: Enter the project's Nix shell
         run: |
-          MDBOOK_VERSION=0.5.4
-          curl -sSL "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar -xz
-          echo "$PWD" >> "$GITHUB_PATH"
-
-      - name: Install Rust for component-docs
-        if: matrix.toolchain == 'component-docs'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install component-docs mdBook tools
-        if: matrix.toolchain == 'component-docs'
-        run: |
-          cargo install --locked mdbook --version 0.5.3
-          cargo install --locked mdbook-tabs --version 1.0.1
-
-      - name: Install Rust for rustc-dev-guide
-        if: matrix.toolchain == 'rustc-dev-guide'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install rustc-dev-guide mdBook tools
-        if: matrix.toolchain == 'rustc-dev-guide'
-        run: |
-          cargo install --locked mdbook --version 0.5.2
-          cargo install --locked mdbook-mermaid --version 0.17.0
-
-      # Zero to Nix와 WebGPU Fundamentals는 Node로 빌드합니다. upstream lockfile을
-      # 키로 npm 캐시를 유지해 `npm ci`가 매번 레지스트리를 다 받지 않게 합니다.
-      - name: Install Node for npm site builds
-        if: matrix.toolchain == 'node'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-          cache-dependency-path: projects/${{ matrix.project }}/upstream/package-lock.json
-
-      - name: Install Node for CPU Land
-        if: matrix.toolchain == 'cpu-astro'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Install Bun for CPU Land
-        if: matrix.toolchain == 'cpu-astro'
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.3.14'
-
-      - name: Install elan for the Lean books
-        if: matrix.toolchain == 'lean'
-        run: |
-          curl -O --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh
-          chmod u+x elan-init.sh
-          ./elan-init.sh -y --default-toolchain none
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-
-      - name: Install the Lean book toolchains
-        if: matrix.toolchain == 'lean'
-        run: |
-          (cd projects/${{ matrix.project }}/upstream/examples && lean --version)
-          (cd projects/${{ matrix.project }}/upstream/book && lean --version)
+          cd projects/${{ matrix.project }}
+          nix develop "path:../../nix#${{ matrix.project }}" -c true
 
       - name: Build ${{ matrix.target }}
         run: |
           cd projects/${{ matrix.project }}
-          ../../target/release/yeokja build ${{ matrix.target }}
+          nix develop "path:../../nix#${{ matrix.project }}" -c ../../target/release/yeokja build ${{ matrix.target }}
 
       - name: Upload build output
         uses: actions/upload-artifact@v4

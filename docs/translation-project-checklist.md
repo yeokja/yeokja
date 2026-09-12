@@ -47,10 +47,13 @@
 배포 대상에 포함하려면 다음 두 곳에 항목을 추가합니다 (`.github/workflows/pages.yml`
 상단 주석 참고):
 
-- `.github/pages-projects.json`: `project`, `target`, `toolchain`,
-  `artifact`, `artifact_path` (필요하면 `unshallow`) 항목을 추가합니다.
+- `.github/pages-projects.json`: `project`, `target`, `artifact`,
+  `artifact_path` (필요하면 `unshallow`, `rebuild_daily`) 항목을 추가합니다.
 - `.github/scripts/stage-pages.sh`: 새 프로젝트의 스테이징 경로를 추가합니다.
-- 새 툴체인이 필요하면 `pages.yml`의 `rebuild` 잡에 설치 스텝을 추가합니다.
+- 빌드 툴체인은 `nix/projects/<name>.nix`의 devShell에 선언합니다(계약은
+  `nix/README.md`, 설계는 `docs/superpowers/specs/2026-09-12-nix-devshells-design.md`).
+  CI와 로컬 모두 `nix develop path:../../nix#<name> -c ../../target/release/yeokja build <target>`으로
+  빌드하므로 `pages.yml`에는 프로젝트별 설치 스텝을 두지 않습니다.
 - CI는 번역을 하지 않고 커밋된 `state/`에서 `ko/`를 재구성만 하며,
   `status --check`가 미번역 세그먼트를 발견하면 실패합니다. 배포 전 로컬에서
   `.github/scripts/rebuild-translations.sh <project>`로 같은 과정을 재현해

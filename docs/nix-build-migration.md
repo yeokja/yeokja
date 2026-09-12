@@ -7,6 +7,12 @@ Nix로 옮긴 프로젝트에도 그대로 유효합니다(캐시 적중 시 잡
 
 **이 문서는 조사 결과이며, 코드 변경을 담고 있지 않습니다.**
 
+> **후속(2026-09-12)**: 이 조사가 전제한 "순수 derivation" 대신, Nix를 툴체인
+> 관리자(devShell)로만 쓰는 방향이 채택되어 모든 배포 프로젝트에 적용되었습니다
+> (`docs/superpowers/specs/2026-09-12-nix-devshells-design.md`). 아래의 장벽
+> (네트워크, elan, Python 2.7)은 devShell에서는 문제가 되지 않으므로 이 문서의
+> 우선순위 표는 더 이상 실행 계획이 아닙니다.
+
 ## 조사 방법
 
 `.github/workflows/pages.yml`의 `rebuild` 잡 matrix(11개 항목)와 각 프로젝트의
