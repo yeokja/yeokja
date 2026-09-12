@@ -232,9 +232,64 @@ cd web && yarn install && yarn dev
 | Provider | `type` | 비고 |
 |----------|--------|------|
 | OpenAI (호환) | `openai` | Azure, vLLM, Ollama 등 OpenAI-compatible API |
+| Codex CLI | `codex` | ChatGPT 구독 로그인, Codex CLI 0.154.0 이상 |
 | Anthropic | `anthropic` | Claude API |
 | Google Gemini | `gemini` | Gemini API |
 | TranslateGemma | `translate_gemma` | 로컬 서빙 (vLLM/Ollama) |
+
+### Codex 구독으로 번역하기
+
+먼저 `codex login`으로 ChatGPT 계정에 로그인합니다. API 키 방식과 구독 방식은
+별개입니다. `codex` provider는 ChatGPT 인증을 요구하고, API 키 및 API URL 환경
+변수(`OPENAI_API_KEY`, `CODEX_API_KEY`, `OPENAI_BASE_URL`)를 자식 프로세스에 전달하지 않습니다.
+
+```toml
+[provider]
+type = "codex"
+model = "gpt-5.4" # 계정에서 사용 가능한 모델 ID로 변경
+reasoning_effort = "high" # 선택한 모델과 설치된 CLI가 지원하는 값
+# 선택 사항: 번역용 기본 지침을 완전히 교체합니다. [N] 응답 형식은 유지해야 합니다.
+system_prompt = "정확하게 한국어로 번역하세요. 번호와 마크업을 보존하고 번역문만 출력하세요."
+```
+
+`reasoning_effort`와 `system_prompt`는 생략할 수 있습니다. `model = ""`이면
+Codex 기본 모델을 사용합니다. 사용자 Codex 설정 파일은 읽지 않으므로 해당 파일의
+모델·effort·MCP·플러그인 설정은 상속하지 않습니다. 구독 인증은 기존 `CODEX_HOME`을
+사용합니다. 번역과 LLM 평가 모두 지정한 모델·effort를 사용하지만, 평가는 별도의
+평가 지침을 유지합니다.
+
+각 호출은 임시 디렉터리에서 `codex exec --json`으로 실행합니다.
+
+- `model_instructions_file`: 임시 파일의 지침으로 Codex 기본 시스템 지침을 교체합니다.
+- `--ephemeral` 및 `history.persistence="none"`: 재개 가능한 세션과 history 저장을 끕니다.
+  JSONL의 `thread.started` 이벤트는 여전히 발생합니다.
+- `default_permissions="yeokja"`, `permissions.yeokja.filesystem={"/"="deny"}`:
+  모델 도구의 파일 읽기·쓰기를 차단합니다. `read-only`만으로는 읽기가 차단되지 않습니다.
+- `approval_policy="never"`: 모델이 추가 권한을 요청해 제한을 해제할 수 없습니다.
+- shell, 이미지 읽기, 브라우저, 컴퓨터 제어, 앱, 플러그인, hooks, 하위 에이전트를 끄고,
+  MCP·웹 검색·프로젝트 AGENTS.md 주입을 끕니다. 사용자 설정과 execpolicy rules도 읽지 않습니다.
+- `--model`과 `model_reasoning_effort`: 모델과 추론 강도를 명시적으로 전달합니다.
+
+파일 제한은 **모델 도구**에 적용됩니다. Codex 실행기 자체는 인증, 임시 지침,
+런타임 파일을 읽고 로그·캐시를 쓸 수 있으며, 전역 스킬 목록 같은 Codex 자체 컨텍스트가
+추가될 수 있습니다. Codex 0.154.0은 `apply_patch`를 도구 목록에 남겨두지만,
+실제 파일 접근은 위 권한으로 차단됩니다. 임시 지침은 호출 종료 후 삭제합니다.
+오래된 CLI가 옵션을 무시하지 않도록 `--strict-config`를 사용합니다.
+
+한 호출의 제한 시간은 10분이며, 실패·비정상 종료·완료되지 않은 JSONL 응답은
+번역 실패로 처리합니다.
+
+macOS에서 실제 CLI의 지침·모델·effort 전달, 파일 접근 차단, 세션 미저장을 검증하는
+통합 테스트도 제공합니다. 임시 localhost 모의 서버를 사용하므로 구독 사용량은 소모하지
+않습니다. Codex CLI 설치와 localhost 소켓 및 OS sandbox 실행 권한이 필요합니다.
+
+```sh
+cargo test -p yeokja-translate real_cli_enforces_file_denial_and_ephemeral_instructions -- --ignored
+```
+
+옵션 근거: [Codex 설정](https://learn.chatgpt.com/docs/config-file/config-reference),
+[비대화형 실행](https://learn.chatgpt.com/docs/non-interactive-mode),
+[구독 인증](https://learn.chatgpt.com/docs/auth).
 
 ## 변경 감지
 

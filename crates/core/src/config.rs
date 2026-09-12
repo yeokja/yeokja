@@ -171,6 +171,12 @@ pub struct ProviderConfig {
     #[serde(rename = "type")]
     pub provider_type: String,
     pub model: String,
+    /// Codex reasoning effort; supported values depend on the selected model/CLI.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>,
+    /// Replace the Codex translation instructions. Evaluation keeps its own instructions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_prompt: Option<String>,
     #[serde(default)]
     pub api_key_env: Option<String>,
     #[serde(default)]

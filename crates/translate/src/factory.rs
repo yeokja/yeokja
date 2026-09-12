@@ -3,6 +3,7 @@
 
 use crate::anthropic::AnthropicProvider;
 use crate::claude_code::ClaudeCodeProvider;
+use crate::codex::CodexProvider;
 use crate::gemini::GeminiProvider;
 use crate::openai_compatible::OpenAICompatibleProvider;
 use crate::pi::PiProvider;
@@ -40,7 +41,7 @@ fn optional_model(config: &ProviderConfig) -> Option<String> {
 }
 
 /// Build the shared low-level LLM provider described by the config.
-/// `system_prompt` is only used by CLI-backed providers (claude_code, pi);
+/// `system_prompt` is only used by CLI-backed providers (claude_code, pi, codex);
 /// HTTP providers receive their instructions inside each prompt.
 fn create_llm_provider(
     config: &ProviderConfig,
@@ -63,6 +64,11 @@ fn create_llm_provider(
         "claude_code" | "claude-code" => Arc::new(ClaudeCodeProvider::new(
             optional_model(config),
             Some(system_prompt.to_string()),
+        )),
+        "codex" => Arc::new(CodexProvider::new(
+            optional_model(config),
+            config.reasoning_effort.clone(),
+            system_prompt.to_string(),
         )),
         "pi" => Arc::new(PiProvider::new(
             optional_model(config),
@@ -107,7 +113,15 @@ pub fn create_provider(
         }
     }
 
-    let llm = create_llm_provider(config, TRANSLATOR_SYSTEM_PROMPT)?;
+    let system_prompt = if config.provider_type == "codex" {
+        config
+            .system_prompt
+            .as_deref()
+            .unwrap_or(TRANSLATOR_SYSTEM_PROMPT)
+    } else {
+        TRANSLATOR_SYSTEM_PROMPT
+    };
+    let llm = create_llm_provider(config, system_prompt)?;
     Ok(Arc::new(AsTranslation(llm)))
 }
 
@@ -135,6 +149,8 @@ mod tests {
         ProviderConfig {
             provider_type: provider_type.to_string(),
             model: "test-model".to_string(),
+            reasoning_effort: None,
+            system_prompt: None,
             api_key_env: None,
             base_url: None,
             prompt_template: None,
@@ -146,6 +162,13 @@ mod tests {
         for ty in ["openai", "openai_compatible", "anthropic", "gemini", "translate_gemma"] {
             assert!(create_provider(&provider_config(ty)).is_ok(), "provider {ty}");
         }
+    }
+
+    #[test]
+    fn codex_supports_translation_and_evaluation() {
+        let config = provider_config("codex");
+        assert!(create_provider(&config).is_ok());
+        assert!(create_evaluator_provider(&config).unwrap().is_some());
     }
 
     #[test]
@@ -171,5 +194,23 @@ mod tests {
         assert!(create_evaluator_provider(&provider_config("translate_gemma"))
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn codex_config_roundtrips_and_old_config_still_loads() {
+        let config: ProviderConfig = toml::from_str(r#"
+type = "codex"
+model = "chosen-model"
+reasoning_effort = "high"
+system_prompt = "Translate only."
+"#).unwrap();
+        assert_eq!(config.reasoning_effort.as_deref(), Some("high"));
+        assert_eq!(config.system_prompt.as_deref(), Some("Translate only."));
+        let restored: ProviderConfig = toml::from_str(&toml::to_string(&config).unwrap()).unwrap();
+        assert_eq!(restored.reasoning_effort, config.reasoning_effort);
+        assert_eq!(restored.system_prompt, config.system_prompt);
+        let old: ProviderConfig = toml::from_str("type = \"pi\"\nmodel = \"test\"").unwrap();
+        assert!(old.reasoning_effort.is_none());
+        assert!(old.system_prompt.is_none());
     }
 }
