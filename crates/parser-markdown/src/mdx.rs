@@ -630,9 +630,9 @@ mod tests {
     }
 
     #[test]
-    fn plain_markdown_parser_still_swallows_jsx_children() {
-        let doc = MarkdownParser.parse("<Admonition>\ntext\n</Admonition>\n");
-        assert!(doc.translatable_segments().is_empty());
+    fn plain_markdown_parser_translates_html_children_but_not_jsx_attributes() {
+        let doc = MarkdownParser.parse("<Admonition title=\"Keep title\">\ntext\n</Admonition>\n");
+        assert_eq!(sources(&doc), ["text"]);
     }
 
     #[test]

@@ -1,0 +1,744 @@
+{
+  "version": 1,
+  "source_hash": 1850032665043851835,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Implicit caller location",
+      "source_hash": 1276357545512509708,
+      "context_hash": 2046633103285630012,
+      "translation": "암묵적 호출자 위치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Approved in [RFC 2091], this feature enables the accurate reporting of caller location during panics initiated from functions like `Option::unwrap`, `Result::expect`, and `Index::index`.",
+      "source_hash": 18207968186823600361,
+      "context_hash": 18246908526570973026,
+      "translation": "[RFC 2091]에서 승인된 이 기능은 `Option::unwrap`, `Result::expect`, `Index::index`와 같은 함수에서 시작된 패닉 발생 시 호출자 위치를 정확히 보고할 수 있게 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "This feature adds the [`#[track_caller]`][attr-reference] attribute for functions, the [`caller_location`][intrinsic] intrinsic, and the stabilization-friendly [`core::panic::Location::caller`][wrapper] wrapper.",
+      "source_hash": 179649108356072554,
+      "context_hash": 2341277189747511110,
+      "translation": "이 기능은 함수를 위한 [`#[track_caller]`][attr-reference] 속성, [`caller_location`][intrinsic] intrinsic, 그리고 안정화에 친화적인 [`core::panic::Location::caller`][wrapper] 래퍼를 추가합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Motivating example",
+      "source_hash": 7574864356763068815,
+      "context_hash": 15930760348065743729,
+      "translation": "동기가 되는 예제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Take this example program:",
+      "source_hash": 11243691915337992244,
+      "context_hash": 12141919933305462350,
+      "translation": "다음과 같은 예제 프로그램을 살펴봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Prior to Rust 1.42, panics like this `unwrap()` printed a location in core:",
+      "source_hash": 8027508464224148488,
+      "context_hash": 6834148956712640585,
+      "translation": "Rust 1.42 이전에는 이러한 `unwrap()`으로 인한 패닉이 core 내부의 위치를 출력했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "As of 1.42, we get a much more helpful message:",
+      "source_hash": 14511576460001183516,
+      "context_hash": 8775985952531024837,
+      "translation": "1.42부터는 훨씬 더 유용한 메시지를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "These error messages are achieved through a combination of changes to `panic!` internals to make use of `core::panic::Location::caller` and a number of `#[track_caller]` annotations in the standard library which propagate caller information.",
+      "source_hash": 10332058296868100053,
+      "context_hash": 4736992745610174086,
+      "translation": "이러한 오류 메시지는 `core::panic::Location::caller`를 활용하도록 `panic!` 내부를 변경한 것과, 호출자 정보를 전파하는 표준 라이브러리 내 다수의 `#[track_caller]` 어노테이션을 조합하여 달성됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Reading caller location",
+      "source_hash": 8229217305792073472,
+      "context_hash": 18418478074968654207,
+      "translation": "호출자 위치 읽기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Previously, `panic!` made use of the `file!()`, `line!()`, and `column!()` macros to construct a [`Location`] pointing to where the panic occurred.",
+      "source_hash": 14545381361348375098,
+      "context_hash": 15186500253211294716,
+      "translation": "이전에는 `panic!`이 패닉이 발생한 위치를 가리키는 [`Location`]을 구성하기 위해 `file!()`, `line!()`, `column!()` 매크로를 활용했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "These macros couldn't be given an overridden location, so functions which intentionally invoked `panic!` couldn't provide their own location, hiding the actual source of error.",
+      "source_hash": 18393602427683334704,
+      "context_hash": 13850559086269854782,
+      "translation": "이 매크로들에는 재정의된 위치를 제공할 수 없었기 때문에, 의도적으로 `panic!`을 호출한 함수들은 자신만의 위치를 제공할 수 없었고, 이는 실제 오류 발생지를 가려버렸습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Internally, `panic!()` now calls [`core::panic::Location::caller()`][wrapper] to find out where it was expanded.",
+      "source_hash": 281257105764544352,
+      "context_hash": 3199575689316239636,
+      "translation": "내부적으로 `panic!()`은 이제 자신이 어디에서 확장되었는지 알아내기 위해 [`core::panic::Location::caller()`][wrapper]를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "This function is itself annotated with `#[track_caller]` and wraps the [`caller_location`][intrinsic] compiler intrinsic implemented by rustc.",
+      "source_hash": 16529842957280511149,
+      "context_hash": 15875841086115006276,
+      "translation": "이 함수 자체에는 `#[track_caller]`가 어노테이션되어 있으며, rustc가 구현한 [`caller_location`][intrinsic] 컴파일러 intrinsic을 감싸고 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "This intrinsic is easiest explained in terms of how it works in a `const` context.",
+      "source_hash": 15520238305137007545,
+      "context_hash": 10844092040581896347,
+      "translation": "이 intrinsic은 `const` 컨텍스트에서 어떻게 동작하는지의 관점에서 설명하는 것이 가장 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Caller location in `const`",
+      "source_hash": 2703702266650203175,
+      "context_hash": 2801719197480103716,
+      "translation": "`const`에서의 호출자 위치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "There are two main phases to returning the caller location in a const context: walking up the stack to find the right location and allocating a const value to return.",
+      "source_hash": 4194254341033640286,
+      "context_hash": 9279281431665720550,
+      "translation": "const 컨텍스트에서 호출자 위치를 반환하는 데에는 두 가지 주요 단계가 있습니다: 올바른 위치를 찾기 위해 스택을 위로 거슬러 올라가는 단계와, 반환할 const 값을 할당하는 단계입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Finding the right `Location`",
+      "source_hash": 13975438526376490272,
+      "context_hash": 3271600944732055785,
+      "translation": "올바른 `Location` 찾기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "In a const context we \"walk up the stack\" from where the intrinsic is invoked, stopping when we reach the first function call in the stack which does *not* have the attribute.",
+      "source_hash": 14984619873593933323,
+      "context_hash": 9541169414564150040,
+      "translation": "const 컨텍스트에서는 intrinsic이 호출된 지점에서부터 \"스택을 거슬러 올라가며\", 스택 상에서 해당 속성을 가지고 있지 *않은* 첫 번째 함수 호출에 도달하면 멈춥니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "This walk is in [`InterpCx::find_closest_untracked_caller_location()`][const-find-closest].",
+      "source_hash": 10958898462799504296,
+      "context_hash": 4542743735962892522,
+      "translation": "이 거슬러 올라가는 과정은 [`InterpCx::find_closest_untracked_caller_location()`][const-find-closest]에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Starting at the bottom, we iterate up over stack [`Frame`][const-frame]s in the [`InterpCx::stack`][const-stack], calling [`InstanceKind::requires_caller_location`][requires-location] on the [`Instance`s from each `Frame`][frame-instance].",
+      "source_hash": 1293630335753820715,
+      "context_hash": 11284551512784636509,
+      "translation": "맨 아래부터 시작하여, [`InterpCx::stack`][const-stack] 내의 스택 [`Frame`][const-frame]들을 위로 순회하면서, [각 `Frame`의 `Instance`][frame-instance]에 대해 [`InstanceKind::requires_caller_location`][requires-location]을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "We stop once we find one that returns `false` and return the span of the *previous* frame which was the \"topmost\" tracked function.",
+      "source_hash": 5322763088605135626,
+      "context_hash": 8286403515146096069,
+      "translation": "`false`를 반환하는 것을 찾으면 멈추고, \"가장 위쪽\"에 있는 추적된 함수였던 *이전* 프레임의 span을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Allocating a static `Location`",
+      "source_hash": 10852306285984192998,
+      "context_hash": 7554440604789103025,
+      "translation": "정적 `Location` 할당하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Once we have a `Span`, we need to allocate static memory for the `Location`, which is performed by the [`TyCtxt::const_caller_location()`][const-location-query] query.",
+      "source_hash": 327715505721409353,
+      "context_hash": 12168999765232574297,
+      "translation": "`Span`을 얻고 나면, `Location`을 위한 정적 메모리를 할당해야 하며, 이는 [`TyCtxt::const_caller_location()`][const-location-query] 쿼리에 의해 수행됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "Internally this calls [`InterpCx::alloc_caller_location()`][alloc-location] and results in a unique [memory kind][location-memory-kind] (`MemoryKind::CallerLocation`).",
+      "source_hash": 4342057168670104890,
+      "context_hash": 11029319239294088170,
+      "translation": "내부적으로 이는 [`InterpCx::alloc_caller_location()`][alloc-location]을 호출하며, 그 결과 고유한 [메모리 종류][location-memory-kind](`MemoryKind::CallerLocation`)가 만들어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:2",
+      "source": "The SSA codegen backend is able to emit code for these same values, and we use this code there as well.",
+      "source_hash": 15788957296311619731,
+      "context_hash": 2084755461560662251,
+      "translation": "SSA 코드 생성 백엔드는 동일한 이 값들에 대해 코드를 내보낼 수 있으며, 우리는 그곳에서도 이 코드를 사용합니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Once our `Location` has been allocated in static memory, our intrinsic returns a reference to it.",
+      "source_hash": 12826410748192934741,
+      "context_hash": 1542156296835189175,
+      "translation": "`Location`이 정적 메모리에 할당되고 나면, 우리의 intrinsic은 그것에 대한 참조를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Generating code for `#[track_caller]` callees",
+      "source_hash": 13725693999508211264,
+      "context_hash": 6665619444569593724,
+      "translation": "`#[track_caller]` 피호출자를 위한 코드 생성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "To generate efficient code for a tracked function and its callers, we need to provide the same behavior from the intrinsic's point of view without having a stack to walk up at runtime.",
+      "source_hash": 504237287592281139,
+      "context_hash": 10831071811905630707,
+      "translation": "추적된 함수와 그 호출자들을 위해 효율적인 코드를 생성하려면, 런타임에 거슬러 올라갈 스택 없이도 intrinsic의 관점에서 동일한 동작을 제공해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "We invert the approach: as we grow the stack down we pass an additional argument to calls of tracked functions rather than walking up the stack when the intrinsic is called.",
+      "source_hash": 3615893046864416114,
+      "context_hash": 14073350911755778364,
+      "translation": "우리는 접근 방식을 뒤집습니다: intrinsic이 호출될 때 스택을 거슬러 올라가는 대신, 스택을 아래로 키워나가면서 추적된 함수 호출에 추가 인자를 전달합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "That additional argument can be returned wherever the caller location is queried.",
+      "source_hash": 17806763414784593745,
+      "context_hash": 7509999724353846610,
+      "translation": "그 추가 인자는 호출자 위치가 조회되는 어디에서든 반환될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "The argument we append is of type `&'static core::panic::Location<'static>`.",
+      "source_hash": 16280379548169320585,
+      "context_hash": 7514793573924616447,
+      "translation": "우리가 덧붙이는 인자는 `&'static core::panic::Location<'static>` 타입입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "A reference was chosen to avoid unnecessary copying because a pointer is a third the size of `std::mem::size_of::<core::panic::Location>() == 24` at time of writing.",
+      "source_hash": 11161301096616750752,
+      "context_hash": 17141754948678329130,
+      "translation": "참조가 선택된 이유는 불필요한 복사를 피하기 위함인데, 이 글을 쓰는 시점에 포인터는 `std::mem::size_of::<core::panic::Location>() == 24`의 3분의 1 크기이기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:59.249558Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "When generating a call to a function which is tracked, we pass the location argument the value of [`FunctionCx::get_caller_location`][fcx-get].",
+      "source_hash": 14033096575362605230,
+      "context_hash": 18019536482339157029,
+      "translation": "추적되는 함수에 대한 호출을 생성할 때, 위치 인자로 [`FunctionCx::get_caller_location`][fcx-get]의 값을 전달합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407670Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "If the calling function is tracked, `get_caller_location` returns the local in [`FunctionCx::caller_location`][fcx-location] which was populated by the current caller's caller.",
+      "source_hash": 344186225254674252,
+      "context_hash": 9778948587657443955,
+      "translation": "호출하는 함수가 추적되는 경우, `get_caller_location`은 현재 호출자의 호출자가 채워 넣은 [`FunctionCx::caller_location`][fcx-location] 내의 로컬 변수를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407671Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "In these cases the intrinsic \"returns\" a reference which was actually provided in an argument to its caller.",
+      "source_hash": 16641487524406492963,
+      "context_hash": 13508092747878464812,
+      "translation": "이러한 경우 이 내장 함수는 실제로는 자신의 호출자에게 인자로 제공된 참조를 \"반환\"합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407671Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "If the calling function is not tracked, `get_caller_location` allocates a `Location` static from the current `Span` and returns a reference to that.",
+      "source_hash": 15410276622547386483,
+      "context_hash": 5697547305696875446,
+      "translation": "호출하는 함수가 추적되지 않는 경우, `get_caller_location`은 현재 `Span`으로부터 `Location` 정적 변수를 할당하고 그것에 대한 참조를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407671Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "We more efficiently achieve the same behavior as a loop starting from the bottom by passing a single `&Location` value through the `caller_location` fields of multiple `FunctionCx`s as we grow the stack downward.",
+      "source_hash": 17561267014192218419,
+      "context_hash": 10904843634192857018,
+      "translation": "스택을 아래로 확장해 나가면서 단일 `&Location` 값을 여러 `FunctionCx`의 `caller_location` 필드를 통해 전달함으로써, 맨 아래에서 시작하는 루프와 동일한 동작을 더 효율적으로 달성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407671Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Codegen examples",
+      "source_hash": 9035629021145963370,
+      "context_hash": 6247824595980807400,
+      "translation": "코드 생성 예시",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:58.407672Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "What does this transformation look like in practice?",
+      "source_hash": 4048991831827642963,
+      "context_hash": 4927946960041816679,
+      "translation": "실제로 이 변환은 어떤 모습일까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407672Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:1",
+      "source": "Take this example which uses the new feature:",
+      "source_hash": 1641240678384662416,
+      "context_hash": 10073839582004151906,
+      "translation": "새로운 기능을 사용하는 다음 예시를 살펴봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407672Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "Here `print_caller()` appears to take no arguments, but we compile it to something like this:",
+      "source_hash": 11245257412899200736,
+      "context_hash": 6687262800416195587,
+      "translation": "여기서 `print_caller()`는 인자를 받지 않는 것처럼 보이지만, 실제로는 다음과 같이 컴파일됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407672Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Dynamic dispatch",
+      "source_hash": 2076309943497759422,
+      "context_hash": 4818365394170639683,
+      "translation": "동적 디스패치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407672Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "In codegen contexts we have to modify the callee ABI to pass this information down the stack, but the attribute expressly does *not* modify the type of the function.",
+      "source_hash": 15773891705318919410,
+      "context_hash": 7333169414023773432,
+      "translation": "코드 생성 컨텍스트에서는 이 정보를 스택 아래로 전달하기 위해 콜리(callee)의 ABI를 수정해야 하지만, 이 속성은 함수의 타입을 명시적으로 수정하지 *않습니다*.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:58.407672Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:1",
+      "source": "The ABI change must be transparent to type checking and remain sound in all uses.",
+      "source_hash": 12385081903334191850,
+      "context_hash": 17492932792458786633,
+      "translation": "ABI 변경은 타입 검사에 대해 투명해야 하며 모든 사용에서 안전성이 유지되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407673Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Direct calls to tracked functions will always know the full codegen flags for the callee and can generate appropriate code.",
+      "source_hash": 1785632901380998525,
+      "context_hash": 14971306205275036268,
+      "translation": "추적되는 함수에 대한 직접 호출은 항상 콜리에 대한 전체 코드 생성 플래그를 알고 있으므로 적절한 코드를 생성할 수 있습니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:58.407673Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:1",
+      "source": "Indirect callers won't have this information and it's not encoded in the type of the function pointer they call, so we generate a [`ReifyShim`] around the function whenever taking a pointer to it.",
+      "source_hash": 13407170814937712517,
+      "context_hash": 4947613326079212123,
+      "translation": "간접 호출자는 이 정보를 갖고 있지 않으며 이는 호출하는 함수 포인터의 타입에 인코딩되어 있지 않으므로, 함수에 대한 포인터를 취할 때마다 그 함수를 감싸는 [`ReifyShim`]을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407673Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:2",
+      "source": "This shim isn't able to report the actual location of the indirect call (the function's definition site is reported instead), but it prevents miscompilation and is probably the best we can do without modifying fully-stabilized type signatures.",
+      "source_hash": 13792847759397162495,
+      "context_hash": 17700495296743083020,
+      "translation": "이 쉼(shim)은 간접 호출의 실제 위치를 보고할 수 없으며(대신 함수의 정의 위치가 보고됩니다), 그러나 잘못된 컴파일을 방지하며 완전히 안정화된 타입 시그니처를 수정하지 않고 할 수 있는 최선의 방법일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407673Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "*Note:* We always emit a [`ReifyShim`] when taking a pointer to a tracked function.",
+      "source_hash": 2041110399912739408,
+      "context_hash": 10700081485307686024,
+      "translation": "*참고:* 추적되는 함수에 대한 포인터를 취할 때는 항상 [`ReifyShim`]을 내보냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407673Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "While the constraint here is imposed by codegen contexts, we don't know during MIR construction of the shim whether we'll be called in a const context (safe to ignore shim) or in a codegen context (unsafe to ignore shim).",
+      "source_hash": 4521291987003673196,
+      "context_hash": 11548657503249052125,
+      "translation": "여기서의 제약은 코드 생성 컨텍스트에 의해 부과되는 것이지만, MIR을 구성하는 동안에는 이 쉼이 const 컨텍스트에서 호출될지(쉼을 무시해도 안전함) 코드 생성 컨텍스트에서 호출될지(쉼을 무시하면 안전하지 않음) 알 수 없습니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:58.407673Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:2",
+      "source": "Even if we did know, the results from const and codegen contexts must agree.",
+      "source_hash": 2147721385793356125,
+      "context_hash": 13941136003292580716,
+      "translation": "설령 알고 있다 하더라도, const 컨텍스트와 코드 생성 컨텍스트의 결과는 일치해야 합니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:58.407674Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "The attribute",
+      "source_hash": 11040294139080031611,
+      "context_hash": 15754269771900812348,
+      "translation": "속성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407674Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The `#[track_caller]` attribute is checked alongside other codegen attributes to ensure the function:",
+      "source_hash": 7838125393504183391,
+      "context_hash": 11571712934663051636,
+      "translation": "`#[track_caller]` 속성은 다른 코드 생성 속성들과 함께 검사되어 다음 사항을 확인합니다:",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:58.407674Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "has the `\"Rust\"` ABI (as opposed to e.g., `\"C\"`)",
+      "source_hash": 3285730411200528817,
+      "context_hash": 9846067039376562317,
+      "translation": "(`\"C\"` 등과 달리) `\"Rust\"` ABI를 가지고 있음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407674Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "is not a closure",
+      "source_hash": 3799459219472031529,
+      "context_hash": 13515548082284421148,
+      "translation": "클로저가 아님",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407674Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "is not `#[naked]`",
+      "source_hash": 13474081390523761732,
+      "context_hash": 6066961666128150100,
+      "translation": "`#[naked]`가 아님",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407674Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "If the use is valid, we set [`CodegenFnAttrsFlags::TRACK_CALLER`][attrs-flags].",
+      "source_hash": 5402452746222924654,
+      "context_hash": 2777610807942707219,
+      "translation": "사용이 유효한 경우, [`CodegenFnAttrsFlags::TRACK_CALLER`][attrs-flags]를 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "This flag influences the return value of [`InstanceKind::requires_caller_location`][requires-location] which is in turn used in both const and codegen contexts to ensure correct propagation.",
+      "source_hash": 16473113064634369167,
+      "context_hash": 16961448199532529911,
+      "translation": "이 플래그는 [`InstanceKind::requires_caller_location`][requires-location]의 반환 값에 영향을 미치며, 이는 다시 const 컨텍스트와 코드 생성 컨텍스트 모두에서 올바른 전파를 보장하는 데 사용됩니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:08:58.407675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "Traits",
+      "source_hash": 16060467810620033047,
+      "context_hash": 6420150288689088895,
+      "translation": "트레이트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "When applied to trait method implementations, the attribute works as it does for regular functions.",
+      "source_hash": 12555179968680835932,
+      "context_hash": 3872427195859280870,
+      "translation": "트레이트 메서드 구현에 적용될 경우, 이 속성은 일반 함수에 적용될 때와 동일하게 동작합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:08:58.407675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "When applied to a trait method prototype, the attribute applies to all implementations of the method.",
+      "source_hash": 3290646833249317974,
+      "context_hash": 4848109992282068900,
+      "translation": "트레이트 메서드 원형에 적용될 경우, 이 속성은 해당 메서드의 모든 구현에 적용됩니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:08:58.407675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:1",
+      "source": "When applied to a default trait method implementation, the attribute takes effect on that implementation *and* any overrides.",
+      "source_hash": 10670009218683662417,
+      "context_hash": 17709347621075668237,
+      "translation": "기본 트레이트 메서드 구현에 적용될 경우, 이 속성은 해당 구현*과* 모든 오버라이드에 대해 효력을 발휘합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:08:58.407675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Examples:",
+      "source_hash": 5956079259256418663,
+      "context_hash": 5410309362565453093,
+      "translation": "예시:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407676Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Background/history",
+      "source_hash": 14868065076282617400,
+      "context_hash": 13375107488459703740,
+      "translation": "배경/역사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407676Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Broadly speaking, this feature's goal is to improve common Rust error messages without breaking stability guarantees, requiring modifications to end-user source, relying on platform-specific debug-info, or preventing user-defined types from having the same error-reporting benefits.",
+      "source_hash": 9653331957378747349,
+      "context_hash": 14163487924752443130,
+      "translation": "넓게 보면, 이 기능의 목표는 안정성 보장을 깨뜨리거나, 최종 사용자의 소스 코드를 수정할 것을 요구하거나, 플랫폼별 디버그 정보에 의존하거나, 사용자 정의 타입이 동일한 오류 보고 이점을 갖지 못하게 하지 않으면서 일반적인 Rust 오류 메시지를 개선하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:08:58.407676Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Improving the output of these panics has been a goal of proposals since at least mid-2016 (see [non-viable alternatives] in the approved RFC for details).",
+      "source_hash": 1123546071415600389,
+      "context_hash": 16491592535826134897,
+      "translation": "이러한 패닉의 출력을 개선하는 것은 적어도 2016년 중반부터 여러 제안의 목표였습니다(자세한 내용은 승인된 RFC의 [non-viable alternatives]를 참조하십시오).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:30.454959Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "It took two more years until RFC 2091 was approved, much of its [rationale] for this feature's design having been discovered through the discussion around several earlier proposals.",
+      "source_hash": 11604192748154912376,
+      "context_hash": 4539095765106397725,
+      "translation": "RFC 2091이 승인되기까지는 2년이 더 걸렸으며, 이 기능의 설계에 대한 [rationale]의 상당 부분은 이전 여러 제안을 둘러싼 논의를 통해 발견된 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:30.454959Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "The design in the original RFC limited itself to implementations that could be done inside the compiler at the time without significant refactoring.",
+      "source_hash": 2130579239986914556,
+      "context_hash": 17807672085778984593,
+      "translation": "원래 RFC의 설계는 당시 큰 리팩터링 없이 컴파일러 내부에서 구현할 수 있는 것으로 스스로를 제한했습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:30.454959Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "However in the year and a half between the approval of the RFC and the actual implementation work, a [revised design] was proposed and written up on the tracking issue.",
+      "source_hash": 3528356874411616791,
+      "context_hash": 18352115251341021629,
+      "translation": "하지만 RFC 승인과 실제 구현 작업 사이의 1년 반 동안, [revised design]이 제안되어 추적 이슈에 작성되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:30.454960Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:2",
+      "source": "During the course of implementing that, it was also discovered that an implementation was possible without modifying the number of arguments in a function's MIR, which would simplify later stages and unlock use in traits.",
+      "source_hash": 17970596739302919063,
+      "context_hash": 6856911339201597386,
+      "translation": "이를 구현하는 과정에서, 함수의 MIR에서 인수의 개수를 수정하지 않고도 구현이 가능하다는 것 또한 발견되었으며, 이는 이후 단계를 단순화하고 트레이트에서의 사용을 가능하게 했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:30.454960Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "Because the RFC's implementation strategy could not readily support traits, the semantics were not originally specified.",
+      "source_hash": 6190194792507155690,
+      "context_hash": 357118655660266143,
+      "translation": "RFC의 구현 전략이 트레이트를 쉽게 지원할 수 없었기 때문에, 시맨틱스는 원래 명시되지 않았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:30.454960Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "They have since been implemented following the path which seemed most correct to the author and reviewers.",
+      "source_hash": 7190838390500716718,
+      "context_hash": 14149017294656763371,
+      "translation": "이후로는 저자와 리뷰어들에게 가장 올바르다고 여겨진 방향을 따라 구현되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:30.454960Z",
+      "issues": []
+    }
+  ]
+}

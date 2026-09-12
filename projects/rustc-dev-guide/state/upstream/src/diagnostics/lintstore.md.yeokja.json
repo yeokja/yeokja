@@ -1,0 +1,506 @@
+{
+  "version": 1,
+  "source_hash": 10736341071194164145,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Lints",
+      "source_hash": 5606871805254974107,
+      "context_hash": 5802231897158456984,
+      "translation": "린트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340492Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This page documents some of the machinery around lint registration and how we run lints in the compiler.",
+      "source_hash": 8568503046777282137,
+      "context_hash": 18408108448451944132,
+      "translation": "이 페이지는 린트 등록을 둘러싼 메커니즘과 컴파일러에서 린트를 실행하는 방법에 대해 설명합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:00:09.340492Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "The [`LintStore`] is the central piece of infrastructure, around which everything rotates.",
+      "source_hash": 18431402126729053479,
+      "context_hash": 11630955959784014963,
+      "translation": "[`LintStore`]는 모든 것이 중심을 두고 도는 핵심 인프라입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340492Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "The `LintStore` is held as part of the [`Session`], and it gets populated with the list of lints shortly after the `Session` is created.",
+      "source_hash": 13057000093141664641,
+      "context_hash": 17301761645488349606,
+      "translation": "`LintStore`는 [`Session`]의 일부로 유지되며, `Session`이 생성된 직후 린트 목록으로 채워집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340492Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Lints vs. lint passes",
+      "source_hash": 12423910570816463449,
+      "context_hash": 11085421836306727714,
+      "translation": "린트 대 린트 패스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340492Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "There are two parts to the linting mechanism within the compiler: lints and lint passes.",
+      "source_hash": 213228353420841954,
+      "context_hash": 2341248741612981887,
+      "translation": "컴파일러 내의 린트 메커니즘에는 린트와 린트 패스라는 두 부분이 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Unfortunately, a lot of the documentation we have refers to both of these as just \"lints.\"",
+      "source_hash": 17993236233667624304,
+      "context_hash": 15096127435785539532,
+      "translation": "아쉽게도 저희가 가진 문서 중 많은 부분이 이 둘을 모두 그냥 \"린트\"라고 지칭합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "First, we have the lint declarations themselves, and this is where the name and default lint level and other metadata come from.",
+      "source_hash": 17759723284478418313,
+      "context_hash": 13997057076313677677,
+      "translation": "먼저 린트 선언 자체가 있는데, 이는 이름, 기본 린트 레벨, 그리고 기타 메타데이터가 나오는 곳입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "These are normally defined by way of the [`declare_lint!`] macro, which boils down to a static with type [`&rustc_lint_defs::Lint`] (although this may change in the future, as the macro is somewhat unwieldy to add new fields to, like all macros).",
+      "source_hash": 6487918439113938928,
+      "context_hash": 16306081279351130047,
+      "translation": "이는 일반적으로 [`declare_lint!`] 매크로를 통해 정의되며, 이는 결국 [`&rustc_lint_defs::Lint`] 타입의 정적 변수로 귀결됩니다(다만 모든 매크로가 그렇듯이 이 매크로는 새 필드를 추가하기가 다소 다루기 힘들기 때문에 이는 향후 바뀔 수도 있습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "We lint against direct declarations without the use of the macro.",
+      "source_hash": 17285707794606213676,
+      "context_hash": 13428640962569402971,
+      "translation": "저희는 매크로를 사용하지 않은 직접적인 선언에 대해 린트를 적용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Lint declarations don't carry any \"state\" - they are merely global identifiers and descriptions of lints.",
+      "source_hash": 17067427222750010671,
+      "context_hash": 18269322425004024559,
+      "translation": "린트 선언은 어떠한 \"상태\"도 지니지 않으며, 이는 단지 린트에 대한 전역 식별자와 설명일 뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "We assert at runtime that they are not registered twice (by lint name).",
+      "source_hash": 182681470348676054,
+      "context_hash": 11479486684579122711,
+      "translation": "저희는 런타임에 이들이(린트 이름 기준으로) 두 번 등록되지 않는지 단언합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Lint passes are the meat of any lint.",
+      "source_hash": 8270752263731341565,
+      "context_hash": 7027487891100938180,
+      "translation": "린트 패스는 모든 린트의 핵심입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "Notably, there is not a one-to-one relationship between lints and lint passes; a lint might not have any lint pass that emits it, it could have many, or just one -- the compiler doesn't track whether a pass is in any way associated with a particular lint, and frequently lints are emitted as part of other work (e.g., type checking, etc.).",
+      "source_hash": 9429974964843082396,
+      "context_hash": 15306173640917645548,
+      "translation": "특히 린트와 린트 패스 사이에는 일대일 관계가 존재하지 않습니다. 어떤 린트는 이를 발생시키는 린트 패스가 전혀 없을 수도 있고, 여러 개가 있을 수도 있으며, 단 하나만 있을 수도 있습니다 -- 컴파일러는 어떤 패스가 특정 린트와 어떤 식으로든 연관되어 있는지 추적하지 않으며, 종종 린트는 다른 작업(예: 타입 검사 등)의 일부로 발생됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Registration",
+      "source_hash": 12581034211891611423,
+      "context_hash": 17463831050945762265,
+      "translation": "등록",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "High-level overview",
+      "source_hash": 6704089882155639282,
+      "context_hash": 10587385933341144663,
+      "translation": "고수준 개요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "In [`rustc_interface::run_compiler`], the [`LintStore`] is created, and all lints are registered.",
+      "source_hash": 12860463976338246648,
+      "context_hash": 18225997614437346698,
+      "translation": "[`rustc_interface::run_compiler`]에서 [`LintStore`]가 생성되고 모든 린트가 등록됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "There are three 'sources' of lints:",
+      "source_hash": 14690280202838836457,
+      "context_hash": 16849506733070478162,
+      "translation": "린트에는 세 가지 '출처'가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340493Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "internal lints: lints only used by the rustc codebase",
+      "source_hash": 1836035296955836816,
+      "context_hash": 1510478906110020362,
+      "translation": "내부 린트: rustc 코드베이스에서만 사용되는 린트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "builtin lints: lints built into the compiler and not provided by some outside source",
+      "source_hash": 13053948685708025437,
+      "context_hash": 6065794180807709821,
+      "translation": "내장 린트: 컴파일러에 내장되어 있으며 외부 출처에서 제공되지 않는 린트",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "`rustc_interface::Config`[`register_lints`]: lints passed into the compiler during construction",
+      "source_hash": 9807642696780830858,
+      "context_hash": 5616576477108751831,
+      "translation": "`rustc_interface::Config`[`register_lints`]: 컴파일러 구성 중에 전달되는 린트",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Lints are registered via the [`LintStore::register_lint`] function.",
+      "source_hash": 2162257031617761039,
+      "context_hash": 16768454818959666364,
+      "translation": "린트는 [`LintStore::register_lint`] 함수를 통해 등록됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "This should happen just once for any lint, or an ICE will occur.",
+      "source_hash": 8152435501111316344,
+      "context_hash": 13968053466197291899,
+      "translation": "이는 어떤 린트에 대해서든 단 한 번만 일어나야 하며, 그렇지 않으면 ICE가 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Once the registration is complete, we \"freeze\" the lint store by placing it in an `Arc`.",
+      "source_hash": 7272556698626391802,
+      "context_hash": 16363625521647330389,
+      "translation": "등록이 완료되면 저희는 린트 스토어를 `Arc`에 담아 \"동결\"합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Lint passes are registered separately into one of the categories (pre-expansion, early, late, late module).",
+      "source_hash": 17360696942173231155,
+      "context_hash": 3881985495017562628,
+      "translation": "린트 패스는 (전개 전, 초기, 후기, 후기 모듈) 카테고리 중 하나로 별도로 등록됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "Passes are registered as a closure -- i.e., `impl Fn() -> Box<dyn X>`, where `dyn X` is either an early or late lint pass trait object.",
+      "source_hash": 9966719088723731639,
+      "context_hash": 1234861563489618379,
+      "translation": "패스는 클로저로 등록됩니다 -- 즉 `impl Fn() -> Box<dyn X>`이며, 여기서 `dyn X`는 초기 또는 후기 린트 패스 트레이트 객체 중 하나입니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:2",
+      "source": "When we run the lint passes, we run the closure and then invoke the lint pass methods.",
+      "source_hash": 16256556869910906094,
+      "context_hash": 2500678415735890044,
+      "translation": "저희가 린트 패스를 실행할 때는 클로저를 실행한 다음 린트 패스 메서드를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:3",
+      "source": "The lint pass methods take `&mut self` so they can keep track of state internally.",
+      "source_hash": 9513854019755292213,
+      "context_hash": 9936856055985163390,
+      "translation": "린트 패스 메서드는 내부적으로 상태를 추적할 수 있도록 `&mut self`를 받습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Internal lints",
+      "source_hash": 3905523673798433469,
+      "context_hash": 2553026162509275031,
+      "translation": "내부 린트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "These are lints used just by the compiler or drivers like `clippy`.",
+      "source_hash": 18129662966987754123,
+      "context_hash": 17251964647156740243,
+      "translation": "이는 컴파일러 자체나 `clippy` 같은 드라이버에서만 사용되는 린트입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:00:09.340494Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:1",
+      "source": "They can be found in [`rustc_lint::internal`].",
+      "source_hash": 6508129710059877594,
+      "context_hash": 2073202155894525878,
+      "translation": "이들은 [`rustc_lint::internal`]에서 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:00:09.340495Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "An example of such a lint is the check that lint passes are implemented using the `declare_lint_pass!` macro and not by hand.",
+      "source_hash": 13734858563591390844,
+      "context_hash": 13305153863398561560,
+      "translation": "그러한 린트의 한 예로, 린트 패스가 직접 구현되지 않고 `declare_lint_pass!` 매크로를 사용하여 구현되었는지 확인하는 검사가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709358Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:1",
+      "source": "This is accomplished with the `LINT_PASS_IMPL_WITHOUT_MACRO` lint.",
+      "source_hash": 1585655002534440970,
+      "context_hash": 14788007861688425063,
+      "translation": "이는 `LINT_PASS_IMPL_WITHOUT_MACRO` 린트를 통해 수행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709359Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Registration of these lints happens in the [`rustc_lint::register_internals`] function which is called when constructing a new lint store inside [`rustc_lint::new_lint_store`].",
+      "source_hash": 10300402028262307770,
+      "context_hash": 15707360071382749747,
+      "translation": "이러한 린트의 등록은 [`rustc_lint::new_lint_store`] 내부에서 새 린트 저장소를 생성할 때 호출되는 [`rustc_lint::register_internals`] 함수에서 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709359Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Builtin Lints",
+      "source_hash": 14289997604579209614,
+      "context_hash": 9200549781642432797,
+      "translation": "내장 린트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709359Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "These are primarily described in two places, `rustc_lint_defs::builtin` and `rustc_lint::builtin`.",
+      "source_hash": 15178893662577082421,
+      "context_hash": 16866670026020171901,
+      "translation": "이는 주로 `rustc_lint_defs::builtin`과 `rustc_lint::builtin` 두 곳에 설명되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "Often the first provides the definitions for the lints themselves, and the latter provides the lint pass definitions (and implementations), but this is not always true.",
+      "source_hash": 12847466297136388601,
+      "context_hash": 12884372379840378179,
+      "translation": "흔히 전자는 린트 자체의 정의를 제공하고 후자는 린트 패스의 정의(및 구현)를 제공하지만, 항상 그런 것은 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "The builtin lint registration happens in the [`rustc_lint::register_builtins`] function.",
+      "source_hash": 13442127201805484078,
+      "context_hash": 1587328870786842290,
+      "translation": "내장 린트의 등록은 [`rustc_lint::register_builtins`] 함수에서 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "Just like with internal lints, this happens inside of [`rustc_lint::new_lint_store`].",
+      "source_hash": 6876637630670203207,
+      "context_hash": 7162944719825685408,
+      "translation": "내부 린트와 마찬가지로, 이 역시 [`rustc_lint::new_lint_store`] 내부에서 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "Driver lints",
+      "source_hash": 2117348623151659047,
+      "context_hash": 11682380691701707162,
+      "translation": "드라이버 린트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "These are the lints provided by drivers via the `rustc_interface::Config` [`register_lints`] field, which is a callback.",
+      "source_hash": 15831984146844088111,
+      "context_hash": 3113643697114010717,
+      "translation": "이는 드라이버가 콜백인 `rustc_interface::Config`의 [`register_lints`] 필드를 통해 제공하는 린트입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:1",
+      "source": "Drivers should, if finding it already set, call the function currently set within the callback they add.",
+      "source_hash": 11613760804756505542,
+      "context_hash": 5900882635812345564,
+      "translation": "드라이버는 이미 설정되어 있는 것을 발견하면, 자신이 추가하는 콜백 내에서 현재 설정되어 있는 함수를 호출해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:2",
+      "source": "The best way for drivers to get access to this is by overriding the `Callbacks::config` function which gives them direct access to the `Config` structure.",
+      "source_hash": 6104775223670980965,
+      "context_hash": 8698132342881425172,
+      "translation": "드라이버가 이에 접근하는 가장 좋은 방법은 `Config` 구조체에 직접 접근할 수 있게 해 주는 `Callbacks::config` 함수를 재정의하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709360Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Compiler lint passes are combined into one pass",
+      "source_hash": 15204311630491467146,
+      "context_hash": 16693621701036722315,
+      "translation": "컴파일러 린트 패스는 하나의 패스로 결합됨",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:57:20.709361Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Within the compiler, for performance reasons, we usually do not register dozens of lint passes.",
+      "source_hash": 5076983179768209338,
+      "context_hash": 9374179876900452652,
+      "translation": "컴파일러 내부에서는 성능상의 이유로 보통 수십 개의 린트 패스를 등록하지 않습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:57:20.709361Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Instead, we have a single lint pass of each variety (e.g., `BuiltinCombinedLateLintModPass`) which will internally call all of the individual lint passes; this is because then we get the benefits of static over dynamic dispatch for each of the (often empty) trait methods.",
+      "source_hash": 17882550953932809903,
+      "context_hash": 13615550966684003412,
+      "translation": "대신, 각 종류마다 하나의 린트 패스(예: `BuiltinCombinedLateLintModPass`)를 두어 내부적으로 모든 개별 린트 패스를 호출하도록 합니다. 이는 (흔히 비어 있는) 각 트레이트 메서드에 대해 동적 디스패치 대신 정적 디스패치의 이점을 얻을 수 있기 때문입니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T00:57:20.709361Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Ideally, we'd not have to do this, since it adds to the complexity of understanding the code.",
+      "source_hash": 13060666953998727016,
+      "context_hash": 17858448226787986412,
+      "translation": "이상적으로는 이렇게 할 필요가 없어야 합니다. 코드 이해의 복잡성을 가중시키기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709362Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "However, with the current type-erased lint store approach, it is beneficial to do so for performance reasons.",
+      "source_hash": 2042623780464822575,
+      "context_hash": 17221479708702515050,
+      "translation": "그러나 현재의 타입 소거된 린트 저장소 방식에서는 성능상의 이유로 이렇게 하는 것이 유리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:20.709362Z",
+      "issues": []
+    }
+  ]
+}

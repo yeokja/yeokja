@@ -1,0 +1,830 @@
+{
+  "version": 1,
+  "source_hash": 8829332663892903465,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Canonicalization",
+      "source_hash": 9522077386209949478,
+      "context_hash": 5900432994549054679,
+      "translation": "정규화(Canonicalization)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309775Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "**NOTE**: FIXME: The content of this chapter has some overlap with [Next-gen trait solving Canonicalization chapter](../solve/canonicalization.md).",
+      "source_hash": 5197737465664083262,
+      "context_hash": 4620513720664713627,
+      "translation": "**참고**: FIXME: 이 장의 내용은 [차세대 트레이트 해결 정규화 장](../solve/canonicalization.md)과 일부 중복됩니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:18:25.309776Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "It is suggested to reorganize these contents in the future.",
+      "source_hash": 12140863863161481465,
+      "context_hash": 14333588934238225948,
+      "translation": "향후 이 내용들을 재구성할 것을 제안합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309776Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Canonicalization is the process of **isolating** an inference value from its context.",
+      "source_hash": 7697680539157744869,
+      "context_hash": 7030850936727464838,
+      "translation": "정규화는 추론 값을 그 문맥으로부터 **분리**하는 과정입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309776Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "It is a key part of implementing [canonical queries][cq], and you may wish to read the parent chapter to get more context.",
+      "source_hash": 11337362374516070399,
+      "context_hash": 3560923853388453122,
+      "translation": "이는 [정규 쿼리(canonical queries)][cq]를 구현하는 데 핵심적인 부분이며, 더 많은 맥락을 얻기 위해 상위 장을 읽어보는 것도 좋습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309776Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Canonicalization is really based on a very simple concept: every [inference variable](../type-inference.md#vars) is always in one of two states: either it is **unbound**, in which case we don't know yet what type it is, or it is **bound**, in which case we do.",
+      "source_hash": 1346108377272287264,
+      "context_hash": 14072057925192480646,
+      "translation": "정규화는 사실 매우 단순한 개념에 기반합니다: 모든 [추론 변수](../type-inference.md#vars)는 항상 두 상태 중 하나에 있습니다. 즉, **바인딩되지 않은(unbound)** 상태이면 아직 어떤 타입인지 모르는 것이고, **바인딩된(bound)** 상태이면 알고 있는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309776Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "So to isolate some data-structure T that contains types/regions from its environment, we just walk down and find the unbound variables that appear in T; those variables get replaced with \"canonical variables\", starting from zero and numbered in a fixed order (left to right, for the most part, but really it doesn't matter as long as it is consistent).",
+      "source_hash": 14299439844562872538,
+      "context_hash": 1430369953559818566,
+      "translation": "그래서 타입/영역을 포함하는 어떤 자료구조 T를 그 환경으로부터 분리하려면, 단순히 아래로 내려가면서 T에 나타나는 바인딩되지 않은 변수들을 찾으면 됩니다. 그 변수들은 \"정규 변수(canonical variables)\"로 치환되며, 0부터 시작하여 고정된 순서(대체로 왼쪽에서 오른쪽 순이지만, 일관성만 있으면 실제로는 상관없음)로 번호가 매겨집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309776Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "So, for example, if we have the type `X = (?T, ?U)`, where `?T` and `?U` are distinct, unbound inference variables, then the canonical form of `X` would be `(?0, ?1)`, where `?0` and `?1` represent these **canonical placeholders**.",
+      "source_hash": 6675231980359332868,
+      "context_hash": 17946856949929989995,
+      "translation": "예를 들어, `?T`와 `?U`가 서로 다른, 바인딩되지 않은 추론 변수일 때 타입 `X = (?T, ?U)`가 있다면, `X`의 정규 형태는 `(?0, ?1)`이 되며, 여기서 `?0`과 `?1`은 이러한 **정규 자리표시자(canonical placeholders)**를 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "Note that the type `Y = (?U, ?T)` also canonicalizes to `(?0, ?1)`.",
+      "source_hash": 8064219852135388616,
+      "context_hash": 7385540401265136431,
+      "translation": "타입 `Y = (?U, ?T)` 또한 `(?0, ?1)`로 정규화된다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:2",
+      "source": "But the type `Z = (?T, ?T)` would canonicalize to `(?0, ?0)` (as would `(?U, ?U)`).",
+      "source_hash": 1077782863079158516,
+      "context_hash": 7983738223842765414,
+      "translation": "그러나 타입 `Z = (?T, ?T)`는 `(?0, ?0)`으로 정규화됩니다(`(?U, ?U)`도 마찬가지).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:3",
+      "source": "In other words, the exact identity of the inference variables is not important – unless they are repeated.",
+      "source_hash": 1328781835858287066,
+      "context_hash": 6301221379319685787,
+      "translation": "다시 말해, 추론 변수의 정확한 정체는 중요하지 않습니다 – 단, 반복되는 경우는 예외입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "We use this to improve caching as well as to detect cycles and other things during trait resolution.",
+      "source_hash": 11895239717664665448,
+      "context_hash": 9355465030304592744,
+      "translation": "우리는 이를 활용하여 캐싱을 개선하고, 트레이트 해결 과정에서 순환 및 기타 사항을 감지합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:1",
+      "source": "Roughly speaking, the idea is that if two trait queries have the same canonical form, then they will get the same answer.",
+      "source_hash": 2149912959236908316,
+      "context_hash": 3015896194929531149,
+      "translation": "대략적으로 말하면, 두 트레이트 쿼리가 같은 정규 형태를 가지면 같은 답을 얻게 된다는 것이 그 아이디어입니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:2",
+      "source": "That answer will be expressed in terms of the canonical variables (`?0`, `?1`), which we can then map back to the original variables (`?T`, `?U`).",
+      "source_hash": 15057240082547710651,
+      "context_hash": 4776113936456372263,
+      "translation": "그 답은 정규 변수(`?0`, `?1`)로 표현되며, 이를 다시 원래 변수(`?T`, `?U`)로 매핑할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Canonicalizing the query",
+      "source_hash": 13654203655367505163,
+      "context_hash": 144606562143288255,
+      "translation": "쿼리 정규화하기",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:25.309777Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "To see how it works, imagine that we are asking to solve the following trait query: `?A: Foo<'static, ?B>`, where `?A` and `?B` are unbound.",
+      "source_hash": 16348854768810267295,
+      "context_hash": 5712024204008383637,
+      "translation": "어떻게 동작하는지 살펴보기 위해, 다음 트레이트 쿼리를 풀어달라고 요청한다고 상상해 봅시다: `?A: Foo<'static, ?B>`, 여기서 `?A`와 `?B`는 바인딩되지 않았습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리",
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:18:25.309778Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "This query contains two unbound variables, but it also contains the lifetime `'static`.",
+      "source_hash": 717002536212592504,
+      "context_hash": 305855760233856077,
+      "translation": "이 쿼리는 바인딩되지 않은 변수 두 개를 포함하지만, 라이프타임 `'static`도 포함하고 있습니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임",
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:25.309778Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "The trait system generally ignores all lifetimes and treats them equally, so when canonicalizing, we will *also* replace any [free lifetime](../appendix/background.md#free-vs-bound) with a canonical variable (Note that `'static` is actually a _free_ lifetime variable here.",
+      "source_hash": 16984364442157444060,
+      "context_hash": 10331256574533434709,
+      "translation": "트레이트 시스템은 일반적으로 모든 라이프타임을 무시하고 동일하게 취급하므로, 정규화할 때 [자유 라이프타임(free lifetime)](../appendix/background.md#free-vs-bound)도 *마찬가지로* 정규 변수로 치환합니다(여기서 `'static`은 사실 *자유(free)* 라이프타임 변수라는 점에 유의하십시오.",
+      "glossary_snapshot": {
+        "trait": "트레이트",
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:18:25.309779Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:3",
+      "source": "We are not considering it in the typing context of the whole program but only in the context of this trait reference.",
+      "source_hash": 5290311459481690767,
+      "context_hash": 11374792790978268785,
+      "translation": "프로그램 전체의 타이핑 문맥에서 이를 고려하는 것이 아니라, 이 트레이트 참조의 문맥에서만 고려합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:18:25.309779Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:4",
+      "source": "Mathematically, we are not quantifying over the whole program, but only this obligation).",
+      "source_hash": 17235302557845265671,
+      "context_hash": 709936015044257373,
+      "translation": "수학적으로 말하면, 프로그램 전체에 대해 정량화하는 것이 아니라 이 의무(obligation)에 대해서만 정량화합니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309780Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:5",
+      "source": "Therefore, we get the following result:",
+      "source_hash": 10973349933688604673,
+      "context_hash": 17324911274406499208,
+      "translation": "따라서 다음과 같은 결과를 얻습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309780Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Sometimes we write this differently, like so:",
+      "source_hash": 2169868638995004234,
+      "context_hash": 16077750386211765835,
+      "translation": "때로는 이를 다음과 같이 다르게 표기하기도 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309780Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "This `for<>` gives some information about each of the canonical variables within.",
+      "source_hash": 18048466803286097833,
+      "context_hash": 16984619631934944352,
+      "translation": "이 `for<>`는 그 안의 각 정규 변수에 대한 정보를 일부 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309780Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "In this case, each `T` indicates a type variable, so `?0` and `?2` are types; the `L` indicates a lifetime variable, so `?1` is a lifetime.",
+      "source_hash": 15815252374286843310,
+      "context_hash": 5792205495050511249,
+      "translation": "이 경우, 각 `T`는 타입 변수를 나타내므로 `?0`과 `?2`는 타입이고, `L`은 라이프타임 변수를 나타내므로 `?1`은 라이프타임입니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:18:25.309780Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "The `canonicalize` method *also* gives back a `CanonicalVarValues` array OV with the \"original values\" for each canonicalized variable:",
+      "source_hash": 17754169832117271738,
+      "context_hash": 2865646080480267232,
+      "translation": "`canonicalize` 메서드는 *또한* 정규화된 각 변수에 대한 \"원래 값\"을 담은 `CanonicalVarValues` 배열 OV를 돌려줍니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309781Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "We'll need this vector OV later, when we process the query response.",
+      "source_hash": 17368190178720579788,
+      "context_hash": 11243789734465616975,
+      "translation": "쿼리 응답을 처리할 때 이 벡터 OV가 나중에 필요합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:25.309781Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Executing the query",
+      "source_hash": 14346492389705555865,
+      "context_hash": 8463433603256992507,
+      "translation": "쿼리 실행하기",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:25.309782Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Once we've constructed the canonical query, we can try to solve it.",
+      "source_hash": 7519046721608438665,
+      "context_hash": 3939601887557994107,
+      "translation": "정규 쿼리를 구성한 후에는 이를 풀어보려 시도할 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:25.309782Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "To do so, we will wind up creating a fresh inference context and **instantiating** the canonical query in that context.",
+      "source_hash": 9259082207201272579,
+      "context_hash": 17251366380384933826,
+      "translation": "이를 위해, 결국 새로운 추론 문맥을 생성하고 그 문맥 안에서 정규 쿼리를 **인스턴스화**하게 됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:25.309782Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "The idea is that we create a substitution S from the canonical form containing a fresh inference variable (of suitable kind) for each canonical variable.",
+      "source_hash": 1881313449736269241,
+      "context_hash": 17395788784042091312,
+      "translation": "그 아이디어는 정규 형태로부터 각 정규 변수에 대해 (적절한 종류의) 새로운 추론 변수를 담은 치환 S를 만드는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309782Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:3",
+      "source": "So, for our example query:",
+      "source_hash": 15135432229492497308,
+      "context_hash": 9492784334066925387,
+      "translation": "그래서 우리의 예시 쿼리에 대해서는:",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:25.309782Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "the substitution S might be:",
+      "source_hash": 12853458293297042693,
+      "context_hash": 15792818739994212331,
+      "translation": "치환 S는 다음과 같을 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:25.309783Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "We can then replace the bound canonical variables (`?0`, etc) with these inference variables, yielding the following fully instantiated query:",
+      "source_hash": 955205829384544778,
+      "context_hash": 9972288145544817010,
+      "translation": "그런 다음 바운드된 정규 변수(`?0` 등)를 이러한 추론 변수로 대체하면 다음과 같이 완전히 인스턴스화된 쿼리를 얻습니다:",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687040Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Remember that substitution S though!",
+      "source_hash": 3849023756425684014,
+      "context_hash": 7269804740100288649,
+      "translation": "하지만 치환 S를 기억해 두십시오!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687040Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "We're going to need it later.",
+      "source_hash": 4601799258673193330,
+      "context_hash": 4416560538058905037,
+      "translation": "나중에 필요할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687040Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "OK, now that we have a fresh inference context and an instantiated query, we can go ahead and try to solve it.",
+      "source_hash": 14727873608131475647,
+      "context_hash": 2960204312975749993,
+      "translation": "이제 새로운 추론 컨텍스트와 인스턴스화된 쿼리가 생겼으니, 이를 해결해 봅시다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687041Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "The trait solver itself is explained in more detail in [another section](../solve/the-solver.md), but suffice to say that it will compute a [certainty value][cqqr] (`Proven` or `Ambiguous`) and have side-effects on the inference variables we've created.",
+      "source_hash": 16396484283451797277,
+      "context_hash": 11513920770069580875,
+      "translation": "트레이트 해결기 자체는 [다른 절](../solve/the-solver.md)에서 더 자세히 설명하지만, 여기서는 이것이 [확실성 값][cqqr](`Proven` 또는 `Ambiguous`)을 계산하고 우리가 만든 추론 변수에 부작용을 일으킨다는 정도만 알아 두면 충분합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:18:18.687041Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:2",
+      "source": "For example, if there were only one impl of `Foo`, like so:",
+      "source_hash": 15781124863746412738,
+      "context_hash": 12971391870418087556,
+      "translation": "예를 들어, 다음과 같이 `Foo`의 impl이 단 하나만 있다면:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687041Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "then we might wind up with a certainty value of `Proven`, as well as creating fresh inference variables `'?D` and `?E` (to represent the parameters on the impl) and unifying as follows:",
+      "source_hash": 9488898627772131744,
+      "context_hash": 6238815949959449687,
+      "translation": "다음과 같이 확실성 값으로 `Proven`을 얻는 동시에, 새로운 추론 변수 `'?D`와 `?E`를 생성하여(impl의 매개변수를 나타내기 위해) 다음과 같이 단일화하게 될 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "`'?B = '?D`",
+      "source_hash": 15868569804462544608,
+      "context_hash": 12756661969671872846,
+      "translation": "`'?B = '?D`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "`?A = Vec<?E>`",
+      "source_hash": 7369438971944353169,
+      "context_hash": 16663059128025227471,
+      "translation": "`?A = Vec<?E>`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "`?C = ?E`",
+      "source_hash": 7582154022677940240,
+      "context_hash": 13208113523856544025,
+      "translation": "`?C = ?E`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "We would also accumulate the region constraint `?E: '?D`, due to the where clause.",
+      "source_hash": 11189337690160096296,
+      "context_hash": 1892061656861536432,
+      "translation": "또한 where절로 인해 리전 제약 `?E: '?D`도 누적하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "In order to create our final query result, we have to \"lift\" these values out of the query's inference context and into something that can be reapplied in our original inference context.",
+      "source_hash": 13420799849364447536,
+      "context_hash": 8455459721748927375,
+      "translation": "최종 쿼리 결과를 만들기 위해서는, 이러한 값들을 쿼리의 추론 컨텍스트 밖으로 \"끌어올려\" 원래의 추론 컨텍스트에서 다시 적용할 수 있는 형태로 만들어야 합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "We do that by **re-applying canonicalization**, but to the **query result**.",
+      "source_hash": 8673173712280391028,
+      "context_hash": 13137096372981471246,
+      "translation": "이를 위해 **정규화를 재적용**하되, **쿼리 결과**에 대해 재적용합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Canonicalizing the query result",
+      "source_hash": 16238950813624506203,
+      "context_hash": 17128392135789346547,
+      "translation": "쿼리 결과 정규화하기",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687042Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "As discussed in [the parent section][cqqr], most trait queries wind up with a result that brings together a \"certainty value\" `certainty`, a result substitution `var_values`, and some region constraints.",
+      "source_hash": 17795693535270721465,
+      "context_hash": 18350411867242755730,
+      "translation": "[상위 절][cqqr]에서 논의했듯이, 대부분의 트레이트 쿼리는 \"확실성 값\" `certainty`, 결과 치환 `var_values`, 그리고 일부 리전 제약을 한데 모은 결과를 얻게 됩니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:18:18.687043Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "To create this, we wind up re-using the substitution S that we created when first instantiating our query.",
+      "source_hash": 17884393588225305907,
+      "context_hash": 5233773851084512700,
+      "translation": "이를 만들기 위해, 우리는 처음 쿼리를 인스턴스화할 때 만들었던 치환 S를 다시 사용하게 됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687043Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "To refresh your memory, we had a query",
+      "source_hash": 12210741033638880067,
+      "context_hash": 16556706629689315681,
+      "translation": "기억을 되살리기 위해, 우리에게는 다음과 같은 쿼리가 있었습니다",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687043Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "for which we made a substutition S:",
+      "source_hash": 2963061315720502043,
+      "context_hash": 10212026461762303572,
+      "translation": "이에 대해 다음과 같은 치환 S를 만들었습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687044Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "We then did some work which unified some of those variables with other things.",
+      "source_hash": 14804976869415364041,
+      "context_hash": 12553432471557925668,
+      "translation": "그런 다음 이러한 변수들 중 일부를 다른 것들과 단일화하는 작업을 수행했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687044Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "If we \"refresh\" S with the latest results, we get:",
+      "source_hash": 12698326956537151344,
+      "context_hash": 2938723786187643868,
+      "translation": "S를 최신 결과로 \"새로 고치면\" 다음을 얻습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687044Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "These are precisely the new values for the three input variables from our original query.",
+      "source_hash": 13093324729574221672,
+      "context_hash": 8663524663135366423,
+      "translation": "이것들은 원래 쿼리에서 세 개의 입력 변수에 대한 새로운 값들과 정확히 일치합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687044Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:1",
+      "source": "Note though that they include some new variables (like `?E`).",
+      "source_hash": 1241514937570686629,
+      "context_hash": 11349666299919824009,
+      "translation": "다만 여기에는 (`?E`와 같은) 새로운 변수들도 포함되어 있음에 주의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687044Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:2",
+      "source": "We can make those go away by canonicalizing again!",
+      "source_hash": 15438402411899237157,
+      "context_hash": 11537586347414864481,
+      "translation": "다시 정규화함으로써 이것들을 사라지게 만들 수 있습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687044Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:3",
+      "source": "We don't just canonicalize S, though, we canonicalize the whole query response QR:",
+      "source_hash": 13534768341456259811,
+      "context_hash": 18180752825222580854,
+      "translation": "다만 S만 정규화하는 것이 아니라, 전체 쿼리 응답 QR을 정규화합니다:",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687044Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "The result would be as follows:",
+      "source_hash": 5810051838934182767,
+      "context_hash": 13003568945401290856,
+      "translation": "결과는 다음과 같을 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687045Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "(One subtle point: when we canonicalize the query **result**, we do not use any special treatment for free lifetimes.",
+      "source_hash": 14420289393331126051,
+      "context_hash": 6911451383447457669,
+      "translation": "(한 가지 미묘한 점: 쿼리 **결과**를 정규화할 때는, 자유 라이프타임에 대해 특별한 처리를 하지 않습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687045Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "Note that both references to `'?D`, for example, were converted into the same canonical variable (`?1`).",
+      "source_hash": 1720649836010918877,
+      "context_hash": 1643915037207247720,
+      "translation": "예를 들어, `'?D`에 대한 두 참조 모두 동일한 정규 변수(`?1`)로 변환되었다는 점에 주목하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687045Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:2",
+      "source": "This is in contrast to the original query, where we canonicalized every free lifetime into a fresh canonical variable.)",
+      "source_hash": 12175670238240254206,
+      "context_hash": 2195891322222336320,
+      "translation": "이는 모든 자유 라이프타임을 각각 새로운 정규 변수로 정규화했던 원래 쿼리와는 대조적입니다.)",
+      "glossary_snapshot": {
+        "query": "쿼리",
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:18:18.687045Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "Now, this result must be reapplied in each context where needed.",
+      "source_hash": 13390829682126397122,
+      "context_hash": 5256742313469882373,
+      "translation": "이제 이 결과는 필요한 각 컨텍스트에서 다시 적용되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:18:18.687045Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Processing the canonicalized query result",
+      "source_hash": 9774117929429292824,
+      "context_hash": 4458343753764622458,
+      "translation": "정규화된 쿼리 결과 처리하기",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:18:18.687046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "In the previous section we produced a canonical query result.",
+      "source_hash": 11437343744461981552,
+      "context_hash": 1668733535833877095,
+      "translation": "이전 절에서 정규화된(canonical) 쿼리 결과를 만들어냈습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:10:37.268128Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "We now have to apply that result in our original context.",
+      "source_hash": 8545761057343587351,
+      "context_hash": 17936003234632836864,
+      "translation": "이제 그 결과를 원래의 맥락에 적용해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268130Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "If you recall, way back in the beginning, we were trying to prove this query:",
+      "source_hash": 1409800199143915436,
+      "context_hash": 13642541172345598009,
+      "translation": "기억하신다면, 맨 처음에 저희는 다음 쿼리를 증명하려 했습니다:",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:10:37.268131Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "We canonicalized that into this:",
+      "source_hash": 1390328112167438470,
+      "context_hash": 17179966488113768773,
+      "translation": "이를 정규화하면 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268132Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "and now we got back a canonical response:",
+      "source_hash": 1995042225675112731,
+      "context_hash": 13198099974307488706,
+      "translation": "그리고 이제 다음과 같은 정규화된 응답을 돌려받았습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268133Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "We now want to apply that response to our context.",
+      "source_hash": 14944498715137185333,
+      "context_hash": 1030210388631570967,
+      "translation": "이제 이 응답을 저희의 맥락에 적용하고자 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268133Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:1",
+      "source": "Conceptually, how we do that is to (a) instantiate each of the canonical variables in the result with a fresh inference variable, (b) unify the values in the result with the original values, and then (c) record the region constraints for later.",
+      "source_hash": 6662600381031965114,
+      "context_hash": 14920412684656993161,
+      "translation": "개념적으로 이를 수행하는 방법은 (a) 결과에 있는 각 정규화된 변수를 새로운 추론 변수로 인스턴스화하고, (b) 결과의 값들을 원래의 값들과 단일화(unify)한 다음, (c) 리전 제약 조건을 나중을 위해 기록하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268134Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:2",
+      "source": "Doing step (a) would yield a result of",
+      "source_hash": 12226677510320308898,
+      "context_hash": 4348205101688474657,
+      "translation": "단계 (a)를 수행하면 다음과 같은 결과가 나올 것입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268134Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Step (b) would then unify:",
+      "source_hash": 10756987711655076577,
+      "context_hash": 9969752234121173537,
+      "translation": "그런 다음 단계 (b)는 다음과 같이 단일화할 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268134Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "And finally the region constraint of `?C: 'static` would be recorded for later verification.",
+      "source_hash": 3725118740478539221,
+      "context_hash": 12061001817148502952,
+      "translation": "그리고 마지막으로 `?C: 'static`이라는 리전 제약 조건이 나중의 검증을 위해 기록될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268135Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "(What we *actually* do is a mildly optimized variant of that: Rather than eagerly instantiating all of the canonical values in the result with variables, we instead walk the vector of values, looking for cases where the value is just a canonical variable.",
+      "source_hash": 9207875637804969085,
+      "context_hash": 1205298548512857190,
+      "translation": "(**실제로**는 이보다 약간 최적화된 변형을 수행합니다: 결과에 있는 모든 정규 값을 변수로 즉시 인스턴스화하는 대신, 값의 벡터를 순회하면서 값이 단순한 정규 변수인 경우를 찾습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268135Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:1",
+      "source": "In our example, `values[2]` is `?C`, so that means we can deduce that `?C := ?B` and `'?D := 'static`.",
+      "source_hash": 10175075796815023180,
+      "context_hash": 13486075064913684980,
+      "translation": "저희 예시에서 `values[2]`는 `?C`이므로, 이는 `?C := ?B`이고 `'?D := 'static`임을 유추할 수 있다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268136Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:2",
+      "source": "This gives us a partial set of values.",
+      "source_hash": 4229360595151768909,
+      "context_hash": 7269581654949078413,
+      "translation": "이는 저희에게 부분적인 값들의 집합을 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268136Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:3",
+      "source": "Anything for which we do not find a value, we create an inference variable.)",
+      "source_hash": 8393523248428591375,
+      "context_hash": 10568388842422922192,
+      "translation": "값을 찾지 못한 것들에 대해서는 추론 변수를 생성합니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:10:37.268136Z",
+      "issues": []
+    }
+  ]
+}

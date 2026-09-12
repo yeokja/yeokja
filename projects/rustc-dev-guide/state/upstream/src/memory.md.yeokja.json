@@ -1,0 +1,426 @@
+{
+  "version": 1,
+  "source_hash": 4903346814943237621,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Memory management in rustc",
+      "source_hash": 4159565939441335227,
+      "context_hash": 3064539168469067937,
+      "translation": "rustc의 메모리 관리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136561Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Generally rustc tries to be pretty careful how it manages memory.",
+      "source_hash": 9506518038223253301,
+      "context_hash": 12758252986327130262,
+      "translation": "일반적으로 rustc는 메모리를 관리하는 방식에 있어 꽤 신중을 기하려 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136562Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "The compiler allocates _a lot_ of data structures throughout compilation, and if we are not careful, it will take a lot of time and space to do so.",
+      "source_hash": 16747484534988849404,
+      "context_hash": 16446550653838493926,
+      "translation": "컴파일러는 컴파일 전 과정에 걸쳐 _아주 많은_ 데이터 구조를 할당하며, 주의하지 않으면 그 과정에 많은 시간과 공간을 소모하게 됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:39.136562Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "One of the main way the compiler manages this is using [arena]s and [interning].",
+      "source_hash": 9928871786217687410,
+      "context_hash": 996411425920311211,
+      "translation": "컴파일러가 이를 관리하는 주된 방법 중 하나는 [아레나][arena]와 [인터닝][interning]을 사용하는 것입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:39.136562Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Arenas and  Interning",
+      "source_hash": 17498839379516839604,
+      "context_hash": 15535775076780327986,
+      "translation": "아레나와 인터닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136562Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Since A LOT of data structures are created during compilation, for performance reasons, we allocate them from a global memory pool.",
+      "source_hash": 15436111589219536555,
+      "context_hash": 12226272317728655158,
+      "translation": "컴파일 중에 아주 많은 데이터 구조가 생성되기 때문에, 성능상의 이유로 이들을 전역 메모리 풀에서 할당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Each are allocated once from a long-lived *arena*.",
+      "source_hash": 3322936447926474150,
+      "context_hash": 8158404538344017636,
+      "translation": "각각은 수명이 긴 *arena*(아레나)로부터 한 번씩 할당됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "This is called _arena allocation_.",
+      "source_hash": 10061687962417530453,
+      "context_hash": 13266848387885590249,
+      "translation": "이를 *아레나 할당*이라고 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:3",
+      "source": "This system reduces allocations/deallocations of memory.",
+      "source_hash": 14774101925100270673,
+      "context_hash": 13576785960467482053,
+      "translation": "이 시스템은 메모리의 할당/해제를 줄여줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:4",
+      "source": "It also allows for easy comparison of types (more on types [here](./ty.md)) for equality: for each interned type `X`, we implemented [`PartialEq` for X][peqimpl], so we can just compare pointers.",
+      "source_hash": 11586734311986215422,
+      "context_hash": 12836225062168830266,
+      "translation": "또한 타입의 동등성 비교(타입에 대한 자세한 내용은 [여기](./ty.md) 참고)를 쉽게 만들어 줍니다: 인터닝된 각 타입 `X`에 대해 [`PartialEq` for X][peqimpl]를 구현했으므로, 포인터만 비교하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:5",
+      "source": "The [`CtxtInterners`] type contains a bunch of maps of interned types and the arena itself.",
+      "source_hash": 4202287642711136399,
+      "context_hash": 10055623404909698490,
+      "translation": "[`CtxtInterners`] 타입은 인터닝된 타입들의 여러 맵과 아레나 자체를 포함합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Example: `ty::TyKind`",
+      "source_hash": 17667578201269450326,
+      "context_hash": 13441000291466152484,
+      "translation": "예시: `ty::TyKind`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Taking the example of [`ty::TyKind`] which represents a type in the compiler (you can read more [here](./ty.md)).",
+      "source_hash": 10076490465408586139,
+      "context_hash": 15500744654689809599,
+      "translation": "컴파일러에서 타입을 나타내는 [`ty::TyKind`]를 예로 들어보겠습니다(자세한 내용은 [여기](./ty.md)에서 확인할 수 있습니다).",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "Each time we want to construct a type, the compiler doesn’t naively allocate from the buffer.",
+      "source_hash": 14872639810925502525,
+      "context_hash": 1646151467728745485,
+      "translation": "타입을 생성하고자 할 때마다, 컴파일러는 단순하게 버퍼에서 할당하지 않습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:39.136563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "Instead, we check if that type was already constructed.",
+      "source_hash": 3023098897553598895,
+      "context_hash": 2121243290894816781,
+      "translation": "대신, 해당 타입이 이미 생성되었는지를 확인합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136564Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:3",
+      "source": "If it was, we just get the same pointer we had before, otherwise we make a fresh pointer.",
+      "source_hash": 311184354045069301,
+      "context_hash": 9244883289802001014,
+      "translation": "이미 생성되었다면 이전에 가지고 있던 것과 동일한 포인터를 얻고, 그렇지 않다면 새로운 포인터를 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136564Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:4",
+      "source": "With this schema, if we want to know if two types are the same, all we need to do is compare the pointers, which is efficient. [`ty::TyKind`] should never be constructed on the stack, and it would be unusable if done so.",
+      "source_hash": 283246742084645236,
+      "context_hash": 2094594968597591151,
+      "translation": "이 방식을 사용하면, 두 타입이 같은지 알고 싶을 때 포인터만 비교하면 되므로 효율적입니다. [`ty::TyKind`]는 절대 스택 위에 생성되어서는 안 되며, 그렇게 할 경우 사용할 수 없게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136564Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:5",
+      "source": "You always allocate them from this arena and you always intern them so they are unique.",
+      "source_hash": 14671288663680563203,
+      "context_hash": 10420245431882687983,
+      "translation": "항상 이 아레나로부터 할당하고, 항상 인터닝하여 고유하게 유지해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136564Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "At the beginning of the compilation we make a buffer and each time we need to allocate a type we use some of this memory buffer.",
+      "source_hash": 623795232418453011,
+      "context_hash": 15291733843913621472,
+      "translation": "컴파일 초기에 버퍼를 하나 만들고, 타입을 할당해야 할 때마다 이 메모리 버퍼의 일부를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "If we run out of space, we get another one.",
+      "source_hash": 16774399466789661743,
+      "context_hash": 8683241772398575615,
+      "translation": "공간이 부족해지면 새로운 버퍼를 하나 더 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "The lifetime of that buffer is `'tcx`.",
+      "source_hash": 14309421729828315868,
+      "context_hash": 15905238784994162287,
+      "translation": "해당 버퍼의 라이프타임은 `'tcx`입니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:04:39.136565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:3",
+      "source": "Our types are tied to that lifetime, so when compilation finishes, all the memory related to that buffer is freed, and our `'tcx` references would be invalid.",
+      "source_hash": 3742014825847596929,
+      "context_hash": 18147130646899758583,
+      "translation": "우리의 타입들은 이 라이프타임에 묶여 있으므로, 컴파일이 끝나면 그 버퍼와 관련된 모든 메모리가 해제되고, 우리의 `'tcx` 참조는 무효가 됩니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:04:39.136565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "In addition to types, there are a number of other arena-allocated data structures that you can allocate, and which are found in this module.",
+      "source_hash": 9020660337695191620,
+      "context_hash": 6503446209216732499,
+      "translation": "타입 외에도, 이 모듈에서 찾을 수 있는 아레나에 할당 가능한 여러 다른 데이터 구조들이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "Here are a few examples:",
+      "source_hash": 8072678462164423851,
+      "context_hash": 2192312374900795084,
+      "translation": "몇 가지 예시는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136566Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "[`GenericArgs`], allocated with [`mk_args`] – this will intern a slice of types, often used to specify the values to be substituted for generics args (e.g. `HashMap<i32, u32>` would be represented as a slice `&'tcx [tcx.types.i32, tcx.types.u32]`).",
+      "source_hash": 4261290268220199884,
+      "context_hash": 15026473063749794527,
+      "translation": "[`mk_args`]로 할당되는 [`GenericArgs`] – 이는 타입들의 슬라이스를 인터닝하며, 흔히 제네릭 인자에 대입될 값을 지정하는 데 사용됩니다(예를 들어, `HashMap<i32, u32>`는 슬라이스 `&'tcx [tcx.types.i32, tcx.types.u32]`로 표현됩니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136566Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "[`TraitRef`], typically passed by value – a **trait reference** consists of a reference to a trait along with its various type parameters (including `Self`), like `i32: Display` (here, the def-id would reference the `Display` trait, and the args would contain `i32`).",
+      "source_hash": 12692042857229065971,
+      "context_hash": 18305219076274078454,
+      "translation": "일반적으로 값으로 전달되는 [`TraitRef`] – **트레이트 참조**는 (`Self`를 포함한) 다양한 타입 매개변수와 함께 트레이트에 대한 참조로 구성되며, 예를 들어 `i32: Display`와 같습니다(여기서 def-id는 `Display` 트레이트를 참조하고, args는 `i32`를 포함합니다).",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:04:39.136566Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "Note that `def-id` is defined and discussed in depth in the [`AdtDef and DefId`] section.",
+      "source_hash": 8124129542238226253,
+      "context_hash": 7193944411254220626,
+      "translation": "`def-id`는 [`AdtDef and DefId`] 섹션에서 정의되고 자세히 다뤄진다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136566Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "[`Predicate`] defines something the trait system has to prove (see [traits] module).",
+      "source_hash": 15533374523834124424,
+      "context_hash": 3908169273623342676,
+      "translation": "[`Predicate`]는 트레이트 시스템이 증명해야 할 대상을 정의합니다([traits] 모듈 참고).",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:04:39.136566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "The `tcx` and how it uses lifetimes",
+      "source_hash": 7779746409949548416,
+      "context_hash": 6463108338961507416,
+      "translation": "`tcx`와 그것이 라이프타임을 사용하는 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The typing context (`tcx`) is the central data structure in the compiler.",
+      "source_hash": 14657185641239452040,
+      "context_hash": 9601640049159923374,
+      "translation": "타이핑 컨텍스트(`tcx`)는 컴파일러의 핵심 데이터 구조입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:39.136566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It is the context that you use to perform all manner of queries.",
+      "source_hash": 7332558747763715919,
+      "context_hash": 9439554036726677855,
+      "translation": "이는 모든 종류의 쿼리를 수행하는 데 사용하는 컨텍스트입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "The `struct` [`TyCtxt`] defines a reference to this shared context:",
+      "source_hash": 7391631646297586760,
+      "context_hash": 16855567099764556453,
+      "translation": "`struct` [`TyCtxt`]는 이 공유 컨텍스트에 대한 참조를 정의합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:39.136567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "As you can see, the `TyCtxt` type takes a lifetime parameter.",
+      "source_hash": 5304959768485763541,
+      "context_hash": 3352668101199039335,
+      "translation": "보시다시피 `TyCtxt` 타입은 라이프타임 매개변수를 받습니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T00:57:17.720437Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "When you see a reference with a lifetime like `'tcx`, you know that it refers to arena-allocated data (or data that lives as long as the arenas, anyhow).",
+      "source_hash": 10231318055300097408,
+      "context_hash": 16918312401023660171,
+      "translation": "`'tcx`와 같은 라이프타임이 있는 참조를 보게 되면, 이는 아레나에 할당된 데이터(또는 최소한 아레나만큼 오래 살아있는 데이터)를 가리킨다는 것을 알 수 있습니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T00:57:17.720437Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "A Note On Lifetimes",
+      "source_hash": 9255204621988108408,
+      "context_hash": 17028876674445026505,
+      "translation": "라이프타임에 대한 참고 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:17.720438Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The Rust compiler is a fairly large program containing lots of big data structures (e.g. the [Abstract Syntax Tree (AST)][ast], [High-Level Intermediate Representation (`HIR`)][hir], and the type system) and as such, arenas and references are heavily relied upon to minimize unnecessary memory use.",
+      "source_hash": 5465855016033119628,
+      "context_hash": 1945549252044128810,
+      "translation": "Rust 컴파일러는 수많은 큰 데이터 구조([추상 구문 트리(AST)][ast], [고수준 중간 표현(`HIR`)][hir], 타입 시스템 등)를 포함하는 상당히 큰 프로그램이며, 이 때문에 불필요한 메모리 사용을 최소화하기 위해 아레나와 참조에 크게 의존하고 있습니다.",
+      "glossary_snapshot": {
+        "intermediate representation": "중간 표현",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:57:17.720438Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "This manifests itself in the way people can plug into the compiler (i.e. the [driver](./rustc-driver/intro.md)), preferring a \"push\"-style API (callbacks) instead of the more Rust-ic \"pull\" style (think the `Iterator` trait).",
+      "source_hash": 731191993637594721,
+      "context_hash": 16079554561659639232,
+      "translation": "이는 사람들이 컴파일러에 연결하는 방식(즉, [드라이버](./rustc-driver/intro.md))에서도 드러나는데, Rust다운 \"풀\"(pull) 방식(`Iterator` 트레이트를 떠올려 보십시오) 대신 \"푸시\"(push) 방식의 API(콜백)를 선호합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T00:57:17.720439Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Thread-local storage and interning are used a lot through the compiler to reduce duplication while also preventing a lot of the ergonomic issues due to many pervasive lifetimes.",
+      "source_hash": 5169182124227634199,
+      "context_hash": 6860747839680064867,
+      "translation": "스레드 로컬 저장소와 인터닝은 컴파일러 전반에 걸쳐 많이 사용되어 중복을 줄이는 동시에, 널리 퍼져 있는 라이프타임으로 인한 여러 사용성 문제를 방지합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:57:17.720439Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "The [`rustc_middle::ty::tls`][tls] module is used to access these thread-locals, although you should rarely need to touch it.",
+      "source_hash": 6479583065929311174,
+      "context_hash": 10168768773529929350,
+      "translation": "[`rustc_middle::ty::tls`][tls] 모듈은 이러한 스레드 로컬에 접근하는 데 사용되지만, 이를 직접 다룰 필요는 거의 없을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:17.720440Z",
+      "issues": []
+    }
+  ]
+}

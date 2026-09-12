@@ -1,0 +1,2116 @@
+{
+  "version": 1,
+  "source_hash": 4095150014222858307,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Macro expansion",
+      "source_hash": 3372995448300261575,
+      "context_hash": 3463914307512931347,
+      "translation": "매크로 확장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919165Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Rust has a very powerful macro system.",
+      "source_hash": 762125565176205114,
+      "context_hash": 1063932142722403254,
+      "translation": "Rust는 매우 강력한 매크로 시스템을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919165Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "In the previous chapter, we saw how the parser sets aside macros to be expanded (using temporary [placeholders]).",
+      "source_hash": 16362931291137097597,
+      "context_hash": 6444907447633242995,
+      "translation": "이전 장에서는 파서가 확장될 매크로를 (임시 [placeholders]를 사용하여) 어떻게 따로 떼어놓는지 살펴보았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919165Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "This chapter is about the process of expanding those macros iteratively until we have a complete [*Abstract Syntax Tree* (AST)][ast] for our crate with no unexpanded macros (or a compile error).",
+      "source_hash": 11770100831484458131,
+      "context_hash": 16769963522522500683,
+      "translation": "이 장에서는 확장되지 않은 매크로가 없는 (또는 컴파일 오류가 발생하는) 완전한 크레이트용 [*추상 구문 트리* (AST)][ast]를 얻을 때까지 해당 매크로들을 반복적으로 확장하는 과정을 다룹니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:42.919165Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "First, we discuss the algorithm that expands and integrates macro output into ASTs.",
+      "source_hash": 203280921372709063,
+      "context_hash": 3928730275819183266,
+      "translation": "먼저, 매크로 출력을 AST로 확장하고 통합하는 알고리즘에 대해 논의합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Next, we take a look at how hygiene data is collected.",
+      "source_hash": 10571858151737692630,
+      "context_hash": 14049049233485600132,
+      "translation": "다음으로, 위생성(hygiene) 데이터가 어떻게 수집되는지 살펴봅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "Finally, we look at the specifics of expanding different types of macros.",
+      "source_hash": 11156084243854384163,
+      "context_hash": 12562610426969012335,
+      "translation": "마지막으로, 서로 다른 종류의 매크로를 확장하는 구체적인 방법을 살펴봅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Many of the algorithms and data structures described below are in [`rustc_expand`], with fundamental data structures in [`rustc_expand::base`][base].",
+      "source_hash": 10531496622570707011,
+      "context_hash": 5248197095408486510,
+      "translation": "아래에서 설명하는 알고리즘과 데이터 구조 대부분은 [`rustc_expand`]에 있으며, 기본적인 데이터 구조는 [`rustc_expand::base`][base]에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "Also of note, `cfg` and `cfg_attr` are treated specially from other macros, and are handled in [`rustc_expand::config`][cfg].",
+      "source_hash": 12591007911748172450,
+      "context_hash": 12702877007431755004,
+      "translation": "또한 주목할 점은, `cfg`와 `cfg_attr`은 다른 매크로와 달리 특별하게 취급되며 [`rustc_expand::config`][cfg]에서 처리됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Expansion and AST Integration",
+      "source_hash": 16075315561424598448,
+      "context_hash": 10470666439356626931,
+      "translation": "확장 및 AST 통합",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Firstly, expansion happens at the crate level.",
+      "source_hash": 6766411917620937242,
+      "context_hash": 8108889261368184725,
+      "translation": "첫째로, 확장은 크레이트 수준에서 일어납니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Given a raw source code for a crate, the compiler will produce a massive AST with all macros expanded, all modules inlined, etc. The primary entry point for this process is the [`MacroExpander::fully_expand_fragment`][fef] method.",
+      "source_hash": 10178645708768090571,
+      "context_hash": 17437208862066177064,
+      "translation": "크레이트의 원본 소스 코드가 주어지면, 컴파일러는 모든 매크로가 확장되고 모든 모듈이 인라인된 거대한 AST를 생성합니다. 이 과정의 주요 진입점은 [`MacroExpander::fully_expand_fragment`][fef] 메서드입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:42.919166Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "With few exceptions, we use this method on the whole crate (see [\"Eager Expansion\"](#eager-expansion) below for more detailed discussion of edge case expansion issues).",
+      "source_hash": 4810549811573676653,
+      "context_hash": 13428438889128047212,
+      "translation": "몇 가지 예외를 제외하면, 우리는 이 메서드를 크레이트 전체에 사용합니다 (경계 사례 확장 문제에 대한 더 자세한 논의는 아래의 [\"즉시 확장\"](#eager-expansion)을 참조하십시오).",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "At a high level, [`fully_expand_fragment`][fef] works in iterations.",
+      "source_hash": 579659125662601978,
+      "context_hash": 9091447611191754018,
+      "translation": "상위 수준에서 [`fully_expand_fragment`][fef]는 반복적으로 동작합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "We keep a queue of unresolved macro invocations (i.e. macros we haven't found the definition of yet).",
+      "source_hash": 1265336118455684374,
+      "context_hash": 13266439385023632776,
+      "translation": "우리는 아직 해결되지 않은 매크로 호출들(즉, 아직 정의를 찾지 못한 매크로들)의 큐를 유지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "We repeatedly try to pick a macro from the queue, resolve it, expand it, and integrate it back.",
+      "source_hash": 16749975479046268164,
+      "context_hash": 3189946147842212494,
+      "translation": "우리는 큐에서 매크로를 선택하고, 해결하고, 확장하고, 다시 통합하는 과정을 반복적으로 시도합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:3",
+      "source": "If we can't make progress in an iteration, this represents a compile error.",
+      "source_hash": 14355922865427132079,
+      "context_hash": 7728183589717159191,
+      "translation": "한 번의 반복에서 진전을 이룰 수 없다면, 이는 컴파일 오류를 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:4",
+      "source": "Here is the [algorithm][original]:",
+      "source_hash": 11072937799454329797,
+      "context_hash": 18217112922624165925,
+      "translation": "다음은 [알고리즘][original]입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Initialize a `queue` of unresolved macros.",
+      "source_hash": 14110808172547125268,
+      "context_hash": 1606471743903435435,
+      "translation": "해결되지 않은 매크로들의 `queue`를 초기화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Repeat until `queue` is empty (or we make no progress, which is an error):",
+      "source_hash": 9285756172771150107,
+      "context_hash": 9734376500370583020,
+      "translation": "`queue`가 비거나 (혹은 진전이 없어 오류가 발생할 때까지) 반복합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919167Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "[Resolve](./name-resolution.md) imports in our partially built crate as much as possible.",
+      "source_hash": 9949120169418308265,
+      "context_hash": 10897290601841344709,
+      "translation": "부분적으로 구축된 크레이트에서 가능한 한 많은 임포트를 [해결(resolve)](./name-resolution.md)합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Collect as many macro [`Invocation`s][inv] as possible from our partially built crate (`fn`-like, attributes, derives) and add them to the queue.",
+      "source_hash": 12544873638584291010,
+      "context_hash": 15537402029247387029,
+      "translation": "부분적으로 구축된 크레이트에서 가능한 한 많은 매크로 [`Invocation`][inv]들(`fn`형, 속성, derive)을 수집하여 큐에 추가합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Dequeue the first element and attempt to resolve it.",
+      "source_hash": 5500578761293332637,
+      "context_hash": 17616436721085324466,
+      "translation": "첫 번째 요소를 디큐하여 해결을 시도합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "If it's resolved:",
+      "source_hash": 9917573650128576038,
+      "context_hash": 5011265684976355373,
+      "translation": "해결이 되었다면:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "Run the macro's expander function that consumes a [`TokenStream`] or AST and produces a [`TokenStream`] or [`AstFragment`] (depending on the macro kind). (A [`TokenStream`] is a collection of [`TokenTree`s][tt], each of which are a token (punctuation, identifier, or literal) or a delimited group (anything inside `()`/`[]`/`{}`)).",
+      "source_hash": 8770791369411592891,
+      "context_hash": 13286777526229181738,
+      "translation": "[`TokenStream`] 또는 AST를 소비하여 (매크로 종류에 따라) [`TokenStream`] 또는 [`AstFragment`]를 생성하는 매크로의 확장기 함수를 실행합니다. ([`TokenStream`]은 [`TokenTree`][tt]들의 모음이며, 각각은 토큰(구두점, 식별자, 리터럴) 또는 구분된 그룹(`()`/`[]`/`{}` 안에 있는 모든 것)입니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "At this point, we know everything about the macro itself and can call [`set_expn_data`] to fill in its properties in the global data; that is the [hygiene] data associated with [`ExpnId`] (see [Hygiene][hybelow] below).",
+      "source_hash": 8668934253013443990,
+      "context_hash": 8988709879416032138,
+      "translation": "이 시점에서, 우리는 매크로 자체에 대한 모든 것을 알고 있으므로 [`set_expn_data`]를 호출하여 전역 데이터에 그 속성을 채울 수 있습니다. 그것이 바로 [`ExpnId`]와 연관된 [위생성(hygiene)] 데이터입니다 (아래의 [위생성][hybelow] 참조).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Integrate that piece of AST into the currently-existing though partially-built AST.",
+      "source_hash": 17145174887684785857,
+      "context_hash": 11964859209753872612,
+      "translation": "그 AST 조각을 현재 존재하는, 그러나 부분적으로 구축된 AST에 통합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "This is essentially where the \"token-like mass\" becomes a proper set-in-stone AST with side-tables.",
+      "source_hash": 13063845042079500205,
+      "context_hash": 8328374849782017090,
+      "translation": "이는 본질적으로 \"토큰 덩어리\"가 사이드 테이블을 갖춘 확정된 AST로 변모하는 지점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919168Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:2",
+      "source": "It happens as follows:",
+      "source_hash": 9818269183401128582,
+      "context_hash": 8594624830747459208,
+      "translation": "이는 다음과 같이 일어납니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919169Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "If the macro produces tokens (e.g. a proc macro), we parse into an AST, which may produce parse errors.",
+      "source_hash": 15050800431338833891,
+      "context_hash": 15657265125411944443,
+      "translation": "매크로가 토큰을 생성하는 경우(예: 프로시저 매크로), 우리는 이를 AST로 파싱하며, 이 과정에서 파싱 오류가 발생할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919169Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "During expansion, we create [`SyntaxContext`]s (hierarchy 2) (see [Hygiene][hybelow] below).",
+      "source_hash": 9060077638054890707,
+      "context_hash": 6405863493087781117,
+      "translation": "확장 도중, 우리는 [`SyntaxContext`](계층 2)를 생성합니다 (아래의 [위생성][hybelow] 참조).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919169Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "These two passes happen one after another on every AST fragment freshly expanded from a macro:",
+      "source_hash": 17980131100308343853,
+      "context_hash": 1813087854026974491,
+      "translation": "매크로에서 새로 확장된 모든 AST 조각에 대해 다음의 두 단계가 차례로 일어납니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:42.919169Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "[`NodeId`]s are assigned by [`InvocationCollector`].",
+      "source_hash": 11266974022824231372,
+      "context_hash": 500879019084104277,
+      "translation": "[`NodeId`]는 [`InvocationCollector`]에 의해 할당됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640415Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:1",
+      "source": "This also collects new macro calls from this new AST piece and adds them to the queue.",
+      "source_hash": 2937729894372656021,
+      "context_hash": 6694496266366074782,
+      "translation": "이는 또한 이 새 AST 조각에서 새로운 매크로 호출을 수집하여 큐에 추가합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640416Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "[`DefCollector`] creates [\"Def paths\"][defpath], assigns the corresponding [`DefId`]s, and also builds the reduced graph (putting names into modules from the resolver's point of view).",
+      "source_hash": 10219928043810721711,
+      "context_hash": 14121327512449143040,
+      "translation": "[`DefCollector`]는 [\"Def 경로\"][defpath]를 생성하고, 그에 해당하는 [`DefId`]를 할당하며, (리졸버의 관점에서 모듈에 이름을 넣는) 축소된 그래프도 구축합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640416Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "After expanding a single macro and integrating its output, continue to the next iteration of [`fully_expand_fragment`][fef].",
+      "source_hash": 13381933235000378600,
+      "context_hash": 2227396638352730732,
+      "translation": "하나의 매크로를 확장하고 그 출력을 통합한 후에는, [`fully_expand_fragment`][fef]의 다음 반복으로 계속 진행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640416Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "If it's not resolved:",
+      "source_hash": 16459943885237300509,
+      "context_hash": 8597327146021352793,
+      "translation": "해결되지 않은 경우:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640416Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "Put the macro back in the queue.",
+      "source_hash": 1760958451475128105,
+      "context_hash": 3412568025103982002,
+      "translation": "매크로를 다시 큐에 넣으십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "Continue to next iteration...",
+      "source_hash": 18058341997954799314,
+      "context_hash": 44943962214356040,
+      "translation": "다음 반복으로 계속 진행합니다...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "Error Recovery",
+      "source_hash": 16829388068409005742,
+      "context_hash": 18118168313954165538,
+      "translation": "오류 복구",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "If we make no progress in an iteration we have reached a compilation error (e.g. an undefined macro).",
+      "source_hash": 2975709468776707645,
+      "context_hash": 4638679645105075974,
+      "translation": "어떤 반복에서 진전이 없다면 컴파일 오류(예: 정의되지 않은 매크로)에 도달한 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:1",
+      "source": "We attempt to recover from failures (i.e. unresolved macros or imports) with the intent of generating diagnostics.",
+      "source_hash": 13412919113240550187,
+      "context_hash": 11625060317217038348,
+      "translation": "진단을 생성할 목적으로 (해결되지 않은 매크로나 임포트 같은) 실패로부터 복구를 시도합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:2",
+      "source": "Failure recovery happens by expanding unresolved macros into [`ExprKind::Err`][err] and allows compilation to continue past the first error so that `rustc` can report more errors than just the original failure.",
+      "source_hash": 18111128340326918430,
+      "context_hash": 341091614870642393,
+      "translation": "실패 복구는 해결되지 않은 매크로를 [`ExprKind::Err`][err]로 확장함으로써 이루어지며, `rustc`가 최초의 실패뿐만 아니라 더 많은 오류를 보고할 수 있도록 컴파일이 첫 번째 오류를 지나서도 계속되게 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "Name Resolution",
+      "source_hash": 3840710907311276770,
+      "context_hash": 13805321313387500603,
+      "translation": "이름 해결",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "Notice that name resolution is involved here: we need to resolve imports and macro names in the above algorithm.",
+      "source_hash": 13909717203114223037,
+      "context_hash": 3393190471772526685,
+      "translation": "여기에는 이름 해결이 관여한다는 점에 유의하십시오: 위 알고리즘에서 임포트와 매크로 이름을 해결해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:1",
+      "source": "This is done in [`rustc_resolve::macros`][mresolve], which resolves macro paths, validates those resolutions, and reports various errors (e.g. \"not found\", \"found, but it's unstable\", \"expected x, found y\").",
+      "source_hash": 10219061249639978726,
+      "context_hash": 5602664869040868022,
+      "translation": "이는 [`rustc_resolve::macros`][mresolve]에서 이루어지며, 이곳에서 매크로 경로를 해결하고, 그 해결 결과를 검증하며, 다양한 오류(예: \"찾을 수 없음\", \"찾았지만 불안정함\", \"x를 예상했으나 y를 발견함\")를 보고합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:2",
+      "source": "However, we don't try to resolve other names yet.",
+      "source_hash": 976736295345290320,
+      "context_hash": 11010936881657456791,
+      "translation": "그러나 다른 이름들은 아직 해결하려고 시도하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:3",
+      "source": "This happens later, as we will see in the chapter: [Name Resolution](./name-resolution.md).",
+      "source_hash": 8331992681161404290,
+      "context_hash": 15490312594654035813,
+      "translation": "이는 나중에 [이름 해결](./name-resolution.md) 장에서 보게 될 것처럼 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "Eager Expansion",
+      "source_hash": 13220927543389118207,
+      "context_hash": 11425579176322623490,
+      "translation": "즉시 확장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "_Eager expansion_ means we expand the arguments of a macro invocation before the macro invocation itself.",
+      "source_hash": 3313833918859295399,
+      "context_hash": 15568623752160548719,
+      "translation": "*즉시 확장*은 매크로 호출 자체보다 먼저 매크로 호출의 인자를 확장하는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:1",
+      "source": "This is implemented only for a few special built-in macros that expect literals; expanding arguments first for some of these macro results in a smoother user experience.",
+      "source_hash": 1922834604212899528,
+      "context_hash": 11061267628331960692,
+      "translation": "이는 리터럴을 기대하는 몇몇 특수한 내장 매크로에 대해서만 구현되어 있으며, 이러한 매크로 중 일부는 인자를 먼저 확장하는 것이 더 매끄러운 사용자 경험을 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:2",
+      "source": "As an example, consider the following:",
+      "source_hash": 8635708979241761595,
+      "context_hash": 794649002084920518,
+      "translation": "예를 들어, 다음을 살펴봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "A lazy-expansion would expand `foo!` first.",
+      "source_hash": 7433366822012561344,
+      "context_hash": 7343579370406328848,
+      "translation": "지연 확장(lazy-expansion)은 `foo!`를 먼저 확장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:1",
+      "source": "An eager-expansion would expand `bar!` first.",
+      "source_hash": 5699747603341567161,
+      "context_hash": 15402422075398134268,
+      "translation": "즉시 확장(eager-expansion)은 `bar!`를 먼저 확장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:0",
+      "source": "Eager-expansion is not a generally available feature of Rust.",
+      "source_hash": 8561962018399122684,
+      "context_hash": 6151757566527711778,
+      "translation": "즉시 확장은 Rust에서 일반적으로 사용 가능한 기능이 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:1",
+      "source": "Implementing eager-expansion more generally would be challenging, so we implement it for a few special built-in macros for the sake of user-experience.",
+      "source_hash": 852096114038750935,
+      "context_hash": 16148975918114010870,
+      "translation": "즉시 확장을 더 일반적으로 구현하는 것은 어려울 것이므로, 사용자 경험을 위해 몇몇 특수한 내장 매크로에 대해서만 이를 구현합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:2",
+      "source": "The built-in macros are implemented in [`rustc_builtin_macros`], along with some other early code generation facilities like injection of standard library imports or generation of test harness.",
+      "source_hash": 4721158682880855516,
+      "context_hash": 11344213052897199178,
+      "translation": "내장 매크로는 [`rustc_builtin_macros`]에 구현되어 있으며, 표준 라이브러리 임포트 삽입이나 테스트 하니스 생성과 같은 다른 초기 코드 생성 기능들도 함께 구현되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:3",
+      "source": "There are some additional helpers for building AST fragments in [`rustc_expand::build`][reb].",
+      "source_hash": 16378833772001972322,
+      "context_hash": 16769479718528155691,
+      "translation": "AST 조각을 구축하기 위한 추가적인 헬퍼들이 [`rustc_expand::build`][reb]에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:4",
+      "source": "Eager-expansion generally performs a subset of the things that lazy (normal) expansion does.",
+      "source_hash": 11376951166349637785,
+      "context_hash": 13151364191904708785,
+      "translation": "즉시 확장은 일반적으로 지연(일반) 확장이 수행하는 작업의 부분집합을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:5",
+      "source": "It is done by invoking [`fully_expand_fragment`][fef] on only part of a crate (as opposed to the whole crate, like we normally do).",
+      "source_hash": 12271932567732379051,
+      "context_hash": 2857529590533797275,
+      "translation": "이는 (보통 그러하듯이 크레이트 전체가 아니라) 크레이트의 일부에 대해서만 [`fully_expand_fragment`][fef]를 호출함으로써 이루어집니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "Other Data Structures",
+      "source_hash": 12005861698239552551,
+      "context_hash": 12602907479867576177,
+      "translation": "그 밖의 데이터 구조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:31/seg:0",
+      "source": "Here are some other notable data structures involved in expansion and integration:",
+      "source_hash": 3620215715330805222,
+      "context_hash": 17963193551182284243,
+      "translation": "확장과 통합에 관여하는 그 밖의 주목할 만한 데이터 구조들은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:0",
+      "source": "[`ResolverExpand`] - a `trait` used to break crate dependencies.",
+      "source_hash": 11102776750051317452,
+      "context_hash": 17661030247256201320,
+      "translation": "[`ResolverExpand`] - 크레이트 의존성을 끊는 데 사용되는 `trait`입니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:40.640419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:1",
+      "source": "This allows the resolver services to be used in [`rustc_ast`], despite [`rustc_resolve`] and pretty much everything else depending on [`rustc_ast`].",
+      "source_hash": 4458032403923027501,
+      "context_hash": 9368980003132984808,
+      "translation": "이는 [`rustc_resolve`]와 사실상 다른 모든 것이 [`rustc_ast`]에 의존함에도 불구하고, 리졸버 서비스가 [`rustc_ast`]에서 사용될 수 있게 해줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:40.640420Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:0",
+      "source": "[`ExtCtxt`]/[`ExpansionData`] - holds various intermediate expansion infrastructure data.",
+      "source_hash": 1949895471705981870,
+      "context_hash": 14701750811904213400,
+      "translation": "[`ExtCtxt`]/[`ExpansionData`] - 다양한 확장 관련 중간 인프라 데이터를 보관합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932564Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:34/seg:0",
+      "source": "[`Annotatable`] - a piece of AST that can be an attribute target, almost the same thing as [`AstFragment`] except for types and patterns that can be produced by macros but cannot be annotated with attributes.",
+      "source_hash": 3574841042262842279,
+      "context_hash": 8171714132992477226,
+      "translation": "[`Annotatable`] - 속성의 대상이 될 수 있는 AST 조각으로, [`AstFragment`]와 거의 동일하지만 매크로에 의해 생성될 수는 있으나 속성으로 어노테이션할 수는 없는 타입과 패턴은 제외됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:35/seg:0",
+      "source": "[`MacResult`] - a \"polymorphic\" AST fragment, something that can turn into a different [`AstFragment`] depending on its [`AstFragmentKind`] (i.e. an item, expression, pattern, etc).",
+      "source_hash": 11557920458781400047,
+      "context_hash": 12652791902976026507,
+      "translation": "[`MacResult`] - \"다형적인\" AST 조각으로, [`AstFragmentKind`](즉, 아이템, 표현식, 패턴 등)에 따라 서로 다른 [`AstFragment`]로 변할 수 있는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932565Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Hygiene and Hierarchies",
+      "source_hash": 8001784835459878034,
+      "context_hash": 16381828210490189144,
+      "translation": "위생성과 계층 구조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932565Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "If you have ever used the C/C++ preprocessor macros, you know that there are some annoying and hard-to-debug gotchas!",
+      "source_hash": 15991119579789412124,
+      "context_hash": 3472271477660108099,
+      "translation": "C/C++ 전처리기 매크로를 사용해 본 적이 있다면, 성가시고 디버깅하기 어려운 함정이 있다는 것을 알고 있을 것입니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932565Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "For example, consider the following C code:",
+      "source_hash": 8580909460357908164,
+      "context_hash": 4500508761836183234,
+      "translation": "예를 들어, 다음 C 코드를 살펴봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932565Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Most people avoid writing C like this – and for good reason: it doesn't compile.",
+      "source_hash": 2744542284214813313,
+      "context_hash": 8415167936762351775,
+      "translation": "대부분의 사람들은 이런 식으로 C 코드를 작성하는 것을 피하는데, 여기에는 타당한 이유가 있습니다: 이 코드는 컴파일되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932565Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "The `struct Bar` defined by the macro clashes names with the `struct Bar` defined in the code.",
+      "source_hash": 17713296520379639028,
+      "context_hash": 14879930078776084755,
+      "translation": "매크로에 의해 정의된 `struct Bar`가 코드에 정의된 `struct Bar`와 이름이 충돌합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932565Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "Consider also the following example:",
+      "source_hash": 10712213598871376351,
+      "context_hash": 16374098603562336922,
+      "translation": "다음 예시도 살펴봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Do you see the problem?",
+      "source_hash": 7471387674455155099,
+      "context_hash": 13578064662143435592,
+      "translation": "문제가 보입니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "We wanted to generate a call `foo(22, 0)`, but instead we got `foo(0, 0)` because the macro defined its own `y`!",
+      "source_hash": 3536049103583399345,
+      "context_hash": 10392232070594452346,
+      "translation": "`foo(22, 0)`라는 호출을 생성하고자 했지만, 대신 매크로가 자신만의 `y`를 정의했기 때문에 `foo(0, 0)`을 얻게 되었습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "These are both examples of _macro hygiene_ issues. _Hygiene_ relates to how to handle names defined _within a macro_.",
+      "source_hash": 7621489251413910954,
+      "context_hash": 17393943087160808192,
+      "translation": "이 두 가지 모두 *매크로 위생성* 문제의 예시입니다. *위생성*은 *매크로 내에서* 정의된 이름을 어떻게 처리할지에 관한 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "In particular, a hygienic macro system prevents errors due to names introduced within a macro.",
+      "source_hash": 2137684750531782619,
+      "context_hash": 12979196033851887778,
+      "translation": "특히, 위생적인 매크로 시스템은 매크로 내에서 도입된 이름으로 인한 오류를 방지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:2",
+      "source": "Rust macros are hygienic in that they do not allow one to write the sorts of bugs above.",
+      "source_hash": 8253005050584936207,
+      "context_hash": 851582556487242886,
+      "translation": "Rust의 매크로는 위와 같은 종류의 버그를 작성할 수 없게 한다는 점에서 위생적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "At a high level, hygiene within the Rust compiler is accomplished by keeping track of the context where a name is introduced and used.",
+      "source_hash": 17988677574879035954,
+      "context_hash": 9023106376903033294,
+      "translation": "높은 수준에서 보면, Rust 컴파일러 내의 위생성은 이름이 도입되고 사용되는 컨텍스트를 추적함으로써 달성됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "We can then disambiguate names based on that context.",
+      "source_hash": 2139185529718313954,
+      "context_hash": 8850374173733685538,
+      "translation": "그러면 그 컨텍스트를 기반으로 이름을 명확히 구분할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:2",
+      "source": "Future iterations of the macro system will allow greater control to the macro author to use that context.",
+      "source_hash": 4852830959684483515,
+      "context_hash": 7926908064571252564,
+      "translation": "매크로 시스템의 향후 반복 작업에서는 매크로 작성자가 해당 컨텍스트를 사용할 수 있도록 더 큰 제어권을 부여할 예정입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:3",
+      "source": "For example, a macro author may want to introduce a new name to the context where the macro was called.",
+      "source_hash": 14391604994241561931,
+      "context_hash": 16626915218080592101,
+      "translation": "예를 들어, 매크로 작성자는 매크로가 호출된 컨텍스트에 새로운 이름을 도입하고 싶어할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:4",
+      "source": "Alternately, the macro author may be defining a variable for use only within the macro (i.e. it should not be visible outside the macro).",
+      "source_hash": 10584173456158879422,
+      "context_hash": 9365174586118974994,
+      "translation": "또는, 매크로 작성자가 매크로 내에서만 사용할 변수를 정의하는 경우도 있습니다(즉, 매크로 외부에서는 보이지 않아야 합니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "The context is attached to AST nodes.",
+      "source_hash": 13917485656151115644,
+      "context_hash": 4227106087136954832,
+      "translation": "컨텍스트는 AST 노드에 부착됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "All AST nodes generated by macros have context attached.",
+      "source_hash": 8917259304589851665,
+      "context_hash": 15593661006587485288,
+      "translation": "매크로에 의해 생성된 모든 AST 노드에는 컨텍스트가 부착되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:2",
+      "source": "Additionally, there may be other nodes that have context attached, such as some desugared syntax (non-macro-expanded nodes are considered to just have the \"root\" context, as described below).",
+      "source_hash": 12817139017586684098,
+      "context_hash": 2285455648475330635,
+      "translation": "추가로, 일부 탈설탕화된(desugared) 구문과 같이 컨텍스트가 부착된 다른 노드도 있을 수 있습니다(매크로로 확장되지 않은 노드는 아래에서 설명하는 대로 단순히 \"루트\" 컨텍스트를 가진 것으로 간주됩니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:3",
+      "source": "Throughout the compiler, we use [`rustc_span::Span`s][span] to refer to code locations.",
+      "source_hash": 1183695756703041205,
+      "context_hash": 11504120006971198334,
+      "translation": "컴파일러 전반에서, 코드 위치를 나타내기 위해 [`rustc_span::Span`][span]을 사용합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:4",
+      "source": "This struct also has hygiene information attached to it, as we will see later.",
+      "source_hash": 578299458088161040,
+      "context_hash": 4401217910462122690,
+      "translation": "이 구조체에도 나중에 살펴보게 될 위생성 정보가 부착되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Because macros invocations and definitions can be nested, the syntax context of a node must be a hierarchy.",
+      "source_hash": 6783603393116375736,
+      "context_hash": 11104485278798509187,
+      "translation": "매크로 호출과 정의는 중첩될 수 있기 때문에, 노드의 구문 컨텍스트는 계층 구조를 이루어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "For example, if we expand a macro and there is another macro invocation or definition in the generated output, then the syntax context should reflect the nesting.",
+      "source_hash": 11528666542089177426,
+      "context_hash": 11479044676711691303,
+      "translation": "예를 들어, 매크로를 확장했을 때 생성된 출력물 안에 또 다른 매크로 호출이나 정의가 있다면, 구문 컨텍스트는 그 중첩 구조를 반영해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "However, it turns out that there are actually a few types of context we may want to track for different purposes.",
+      "source_hash": 15172928672018924442,
+      "context_hash": 7705420691847183045,
+      "translation": "그러나 실제로는 서로 다른 목적을 위해 추적하고자 하는 컨텍스트의 유형이 몇 가지 있는 것으로 밝혀졌습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "Thus, there are not just one but _three_ expansion hierarchies that together comprise the hygiene information for a crate.",
+      "source_hash": 7143634271908022651,
+      "context_hash": 18436582391547140900,
+      "translation": "따라서 크레이트의 위생성 정보를 함께 구성하는 확장 계층 구조는 하나가 아니라 *세 가지*입니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "All of these hierarchies need some sort of \"macro ID\" to identify individual elements in the chain of expansions.",
+      "source_hash": 13981706765888873042,
+      "context_hash": 17313639587722357002,
+      "translation": "이러한 계층 구조 모두는 확장 사슬 내의 개별 요소를 식별하기 위해 일종의 \"매크로 ID\"를 필요로 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:1",
+      "source": "This ID is [`ExpnId`].",
+      "source_hash": 15832734572705969941,
+      "context_hash": 14307377711591976361,
+      "translation": "이 ID가 바로 [`ExpnId`]입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:2",
+      "source": "All macros receive an integer ID, assigned continuously starting from 0 as we discover new macro calls.",
+      "source_hash": 6032807401352527087,
+      "context_hash": 12303507598272361166,
+      "translation": "모든 매크로는 새로운 매크로 호출을 발견할 때마다 0부터 연속적으로 할당되는 정수 ID를 받습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:3",
+      "source": "All hierarchies start at [`ExpnId::root`][rootid], which is its own parent.",
+      "source_hash": 1581803555508804034,
+      "context_hash": 13026956125532737930,
+      "translation": "모든 계층 구조는 그 자체가 자신의 부모인 [`ExpnId::root`][rootid]에서 시작합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:43.932568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "The [`rustc_span::hygiene`][hy] crate contains all of the hygiene-related algorithms (with the exception of some hacks in [`Resolver::resolve_crate_root`][hacks]) and structures related to hygiene and expansion that are kept in global data.",
+      "source_hash": 4396577611272559038,
+      "context_hash": 5363855986186779325,
+      "translation": "[`rustc_span::hygiene`][hy] 크레이트는 위생(hygiene)과 관련된 모든 알고리즘([`Resolver::resolve_crate_root`][hacks]에 있는 일부 편법을 제외하고)과 전역 데이터에 유지되는 위생 및 확장 관련 구조체를 포함합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:45.485479Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "The actual hierarchies are stored in [`HygieneData`][hd].",
+      "source_hash": 12953193943304597344,
+      "context_hash": 4823543165765300310,
+      "translation": "실제 계층 구조는 [`HygieneData`][hd]에 저장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485479Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "This is a global piece of data containing hygiene and expansion info that can be accessed from any [`Ident`] without any context.",
+      "source_hash": 11418238419211850923,
+      "context_hash": 11086972508426315559,
+      "translation": "이것은 어떠한 컨텍스트 없이도 모든 [`Ident`]에서 접근할 수 있는 위생 및 확장 정보를 담고 있는 전역 데이터입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485479Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "The Expansion Order Hierarchy",
+      "source_hash": 5016617965032813505,
+      "context_hash": 3516451294662989326,
+      "translation": "확장 순서 계층 구조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485480Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "The first hierarchy tracks the order of expansions, i.e., when a macro invocation is in the output of another macro.",
+      "source_hash": 16408333558218646124,
+      "context_hash": 34853460794703086,
+      "translation": "첫 번째 계층 구조는 확장의 순서, 즉 하나의 매크로 호출이 다른 매크로의 출력물 안에 있을 때를 추적합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485480Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Here, the children in the hierarchy will be the \"innermost\" tokens.",
+      "source_hash": 699307203032157490,
+      "context_hash": 5791510858272964702,
+      "translation": "여기서 계층 구조상의 자식은 \"가장 안쪽\"에 있는 토큰이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485480Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "The [`ExpnData`] struct itself contains a subset of properties from both macro definition and macro call available through global data. [`ExpnData::parent`][edp] tracks the child-to-parent link in this hierarchy.",
+      "source_hash": 9994055395249714071,
+      "context_hash": 6430435295144429591,
+      "translation": "[`ExpnData`] 구조체 자체는 전역 데이터를 통해 이용 가능한 매크로 정의와 매크로 호출 양쪽의 속성 일부를 포함합니다. [`ExpnData::parent`][edp]는 이 계층 구조에서 자식-부모 관계를 추적합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485480Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "For example:",
+      "source_hash": 4114854479619665730,
+      "context_hash": 8109350396378202357,
+      "translation": "예를 들면:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485480Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "In this code, the AST nodes that are finally generated would have hierarchy `root -> id(foo) -> id(println)`.",
+      "source_hash": 16796039444552223367,
+      "context_hash": 2609633886082437187,
+      "translation": "이 코드에서 최종적으로 생성되는 AST 노드는 `root -> id(foo) -> id(println)`이라는 계층 구조를 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485480Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "The Macro Definition Hierarchy",
+      "source_hash": 3649719749866702600,
+      "context_hash": 8671886511339175327,
+      "translation": "매크로 정의 계층 구조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485480Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "The second hierarchy tracks the order of macro definitions, i.e., when we are expanding one macro another macro definition is revealed in its output.",
+      "source_hash": 17439158848045951033,
+      "context_hash": 13095312209009637092,
+      "translation": "두 번째 계층 구조는 매크로 정의의 순서, 즉 하나의 매크로를 확장하는 동안 다른 매크로 정의가 그 출력물에 드러날 때를 추적합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:1",
+      "source": "This one is a bit tricky and more complex than the other two hierarchies.",
+      "source_hash": 7764956464784442203,
+      "context_hash": 2995754834131012444,
+      "translation": "이것은 다소 까다로우며 다른 두 계층 구조보다 더 복잡합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "[`SyntaxContext`][sc] represents a whole chain in this hierarchy via an ID. [`SyntaxContextData`][scd] contains data associated with the given [`SyntaxContext`][sc]; mostly it is a cache for results of filtering that chain in different ways. [`SyntaxContextData::parent`][scdp] is the child-to-parent link here, and [`SyntaxContextData::outer_expns`][scdoe] are individual elements in the chain.",
+      "source_hash": 6199969296883388796,
+      "context_hash": 16650455839037333635,
+      "translation": "[`SyntaxContext`][sc]는 ID를 통해 이 계층 구조 안의 전체 체인을 나타냅니다. [`SyntaxContextData`][scd]는 주어진 [`SyntaxContext`][sc]와 연관된 데이터를 담고 있는데, 대부분은 그 체인을 다양한 방식으로 필터링한 결과에 대한 캐시입니다. [`SyntaxContextData::parent`][scdp]는 여기서의 자식-부모 관계이며, [`SyntaxContextData::outer_expns`][scdoe]는 체인 안의 개별 요소들입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:1",
+      "source": "The \"chaining-operator\" is [`SyntaxContext::apply_mark`][am] in compiler code.",
+      "source_hash": 8894144109558130607,
+      "context_hash": 9996135167401949653,
+      "translation": "컴파일러 코드에서 \"체이닝 연산자\"는 [`SyntaxContext::apply_mark`][am]입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "A [`Span`][span], mentioned above, is actually just a compact representation of a code location and [`SyntaxContext`][sc].",
+      "source_hash": 15947937620463245562,
+      "context_hash": 13667109869306091199,
+      "translation": "위에서 언급한 [`Span`][span]은 실제로는 코드 위치와 [`SyntaxContext`][sc]를 압축하여 표현한 것에 불과합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:1",
+      "source": "Likewise, an [`Ident`] is just an interned [`Symbol`] + `Span` (i.e. an interned string + hygiene data).",
+      "source_hash": 10885143708096557278,
+      "context_hash": 8426355686351293149,
+      "translation": "마찬가지로 [`Ident`]는 인턴된 [`Symbol`] + `Span`(즉, 인턴된 문자열 + 위생 데이터)에 불과합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "For built-in macros, we use the context: [`SyntaxContext::empty().apply_mark(expn_id)`], and such macros are considered to be defined at the hierarchy root.",
+      "source_hash": 12976555416930374670,
+      "context_hash": 3850689992262293038,
+      "translation": "내장 매크로의 경우 [`SyntaxContext::empty().apply_mark(expn_id)`] 컨텍스트를 사용하며, 이러한 매크로는 계층 구조의 루트에서 정의된 것으로 간주됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:1",
+      "source": "We do the same for `proc macro`s because we haven't implemented cross-crate hygiene yet.",
+      "source_hash": 8124241622454439176,
+      "context_hash": 13046988276902418518,
+      "translation": "아직 크레이트 간 위생을 구현하지 않았기 때문에 `proc macro`에 대해서도 동일하게 처리합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:45.485481Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "If the token had context `X` before being produced by a macro then after being produced by the macro it has context `X -> macro_id`.",
+      "source_hash": 12583068293394482474,
+      "context_hash": 2958039406743838257,
+      "translation": "어떤 토큰이 매크로에 의해 생성되기 전에 컨텍스트 `X`를 가지고 있었다면, 매크로에 의해 생성된 후에는 컨텍스트 `X -> macro_id`를 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485482Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:1",
+      "source": "Here are some examples:",
+      "source_hash": 15242618763408483285,
+      "context_hash": 16915741707731563631,
+      "translation": "다음은 몇 가지 예시입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485482Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Example 0:",
+      "source_hash": 13029007688712383111,
+      "context_hash": 2688664381659072360,
+      "translation": "예시 0:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485482Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "Here `ident` which initially has context [`SyntaxContext::root`][scr] has context `ROOT -> id(m)` after it's produced by `m`.",
+      "source_hash": 16073920151764482410,
+      "context_hash": 3760151932723699258,
+      "translation": "여기서 처음에 컨텍스트 [`SyntaxContext::root`][scr]를 가지고 있던 `ident`는 `m`에 의해 생성된 후 컨텍스트 `ROOT -> id(m)`을 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485482Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "Example 1:",
+      "source_hash": 17621007693122859614,
+      "context_hash": 5991229722334434994,
+      "translation": "예시 1:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485482Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "In this example the `ident` has context `ROOT` initially, then `ROOT -> id(m)` after the first expansion, then `ROOT -> id(m) -> id(n)`.",
+      "source_hash": 4974116555792677804,
+      "context_hash": 2246847518847256106,
+      "translation": "이 예시에서 `ident`는 처음에 `ROOT` 컨텍스트를 가지며, 첫 번째 확장 후에는 `ROOT -> id(m)`, 그다음에는 `ROOT -> id(m) -> id(n)`을 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485482Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "Example 2:",
+      "source_hash": 3347909702014755873,
+      "context_hash": 2032527883500789801,
+      "translation": "예시 2:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "Note that these chains are not entirely determined by their last element, in other words [`ExpnId`] is not isomorphic to [`SyntaxContext`][sc].",
+      "source_hash": 10737613918631705771,
+      "context_hash": 13410396547128035557,
+      "translation": "이러한 체인은 마지막 요소만으로 완전히 결정되지 않는다는 점, 다시 말해 [`ExpnId`]가 [`SyntaxContext`][sc]와 동형(isomorphic)이 아니라는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:35/seg:0",
+      "source": "After all expansions, `foo` has context `ROOT -> id(n)` and `bar` has context `ROOT -> id(m) -> id(n)`.",
+      "source_hash": 4144168887186132200,
+      "context_hash": 16999763741944857611,
+      "translation": "모든 확장이 끝난 후, `foo`는 컨텍스트 `ROOT -> id(n)`을 가지며 `bar`는 컨텍스트 `ROOT -> id(m) -> id(n)`을 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "Currently this hierarchy for tracking macro definitions is subject to the so-called [\"context transplantation hack\"][hack].",
+      "source_hash": 5093667416462710516,
+      "context_hash": 340326484577822281,
+      "translation": "현재 매크로 정의를 추적하는 이 계층 구조는 이른바 [\"컨텍스트 이식 편법(context transplantation hack)\"][hack]의 영향을 받고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:1",
+      "source": "Modern (i.e. experimental) macros have stronger hygiene than the legacy \"Macros By Example\" (MBE) system which can result in weird interactions between the two.",
+      "source_hash": 12349135944742251075,
+      "context_hash": 5411080472308569873,
+      "translation": "현대(즉, 실험적인) 매크로는 기존의 \"예제 기반 매크로(Macros By Example, MBE)\" 시스템보다 더 강력한 위생을 가지고 있어, 두 시스템 사이에 이상한 상호작용이 발생할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:2",
+      "source": "The hack is intended to make things \"just work\" for now.",
+      "source_hash": 6448893420976333472,
+      "context_hash": 7825137254495975977,
+      "translation": "이 편법은 당분간 상황이 \"그럭저럭 잘 작동하도록\" 만들기 위한 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:37/seg:0",
+      "source": "The Call-site Hierarchy",
+      "source_hash": 9920968364157567203,
+      "context_hash": 4669999045140098892,
+      "translation": "호출 지점 계층 구조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "The third and final hierarchy tracks the location of macro invocations.",
+      "source_hash": 17138561820153396500,
+      "context_hash": 13542846498765257891,
+      "translation": "세 번째이자 마지막 계층 구조는 매크로 호출의 위치를 추적합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:45.485483Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "In this hierarchy [`ExpnData::call_site`][callsite] is the `child -> parent` link.",
+      "source_hash": 11401479882081096470,
+      "context_hash": 3579478056976211453,
+      "translation": "이 계층 구조에서 [`ExpnData::call_site`][callsite]는 `child -> parent` 링크입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361969Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "Here is an example:",
+      "source_hash": 5227657095248684974,
+      "context_hash": 14738757037700496846,
+      "translation": "다음은 예시입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361969Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "For the `baz` AST node in the final output, the expansion-order hierarchy is `ROOT -> id(foo) -> id(bar) -> baz`, while the call-site hierarchy is `ROOT -> baz`.",
+      "source_hash": 1026919704818187742,
+      "context_hash": 17046581039983484020,
+      "translation": "최종 출력에서 `baz` AST 노드에 대해, 확장 순서 계층 구조는 `ROOT -> id(foo) -> id(bar) -> baz`이며, 호출 지점 계층 구조는 `ROOT -> baz`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:0",
+      "source": "Macro Backtraces",
+      "source_hash": 12908257531902377984,
+      "context_hash": 4655456836425093190,
+      "translation": "매크로 백트레이스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:0",
+      "source": "Macro backtraces are implemented in [`rustc_span`] using the hygiene machinery in [`rustc_span::hygiene`][hy].",
+      "source_hash": 8321645995891374138,
+      "context_hash": 4856108993900479148,
+      "translation": "매크로 백트레이스는 [`rustc_span::hygiene`][hy]에 있는 하이진 메커니즘을 사용하여 [`rustc_span`]에 구현되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Producing Macro Output",
+      "source_hash": 6238362570956862490,
+      "context_hash": 7566300317679827317,
+      "translation": "매크로 출력 생성하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Above, we saw how the output of a macro is integrated into the AST for a crate, and we also saw how the hygiene data for a crate is generated.",
+      "source_hash": 9343646299620144615,
+      "context_hash": 11844626705249234352,
+      "translation": "위에서 매크로의 출력이 크레이트의 AST에 통합되는 방식을 살펴보았고, 크레이트의 하이진 데이터가 생성되는 방식도 살펴보았습니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "But how do we actually produce the output of a macro?",
+      "source_hash": 16219636250910149937,
+      "context_hash": 10906295072343503674,
+      "translation": "하지만 매크로의 출력은 실제로 어떻게 생성될까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "It depends on the type of macro.",
+      "source_hash": 16756202384171754294,
+      "context_hash": 11702096047637434995,
+      "translation": "이는 매크로의 종류에 따라 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "There are two types of macros in Rust:",
+      "source_hash": 11210430613335248281,
+      "context_hash": 18157820345718022684,
+      "translation": "Rust에는 두 가지 종류의 매크로가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "`macro_rules!` macros (a.k.a. \"Macros By Example\" (MBE)), and,",
+      "source_hash": 2393546707027503318,
+      "context_hash": 8141368279127059951,
+      "translation": "`macro_rules!` 매크로(일명 \"예시에 의한 매크로\"(MBE)), 그리고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "procedural macros (proc macros); including custom derives.",
+      "source_hash": 5185088380334904776,
+      "context_hash": 15847197140415665265,
+      "translation": "절차적 매크로(proc 매크로); 커스텀 derive를 포함합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "During the parsing phase, the normal Rust parser will set aside the contents of macros and their invocations.",
+      "source_hash": 7873221234170714434,
+      "context_hash": 5528145683386455078,
+      "translation": "파싱 단계 동안, 일반 Rust 파서는 매크로와 그 호출의 내용을 따로 남겨둡니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "Later, macros are expanded using these portions of the code.",
+      "source_hash": 12908011396211431833,
+      "context_hash": 14297887132012107416,
+      "translation": "이후, 이 코드 부분들을 사용하여 매크로가 확장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Some important data structures/interfaces here:",
+      "source_hash": 1264461496722172311,
+      "context_hash": 14783005161862961062,
+      "translation": "여기서 중요한 데이터 구조/인터페이스는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361970Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "[`SyntaxExtension`] - a lowered macro representation, contains its expander function, which transforms a [`TokenStream`] or AST into another [`TokenStream`] or AST + some additional data like stability, or a list of unstable features allowed inside the macro.",
+      "source_hash": 1581419937030282352,
+      "context_hash": 7981464620155467509,
+      "translation": "[`SyntaxExtension`] - 하위 수준으로 낮춰진 매크로 표현으로, 확장자(expander) 함수를 포함합니다. 이 함수는 [`TokenStream`]이나 AST를 또 다른 [`TokenStream`]이나 AST로 변환하며, 안정성 여부나 매크로 내부에서 허용되는 불안정 기능 목록 같은 추가 데이터도 함께 담고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "[`SyntaxExtensionKind`] - expander functions may have several different signatures (take one token stream, or two, or a piece of AST, etc).",
+      "source_hash": 2028055364843724160,
+      "context_hash": 8288282925082170437,
+      "translation": "[`SyntaxExtensionKind`] - 확장기 함수는 여러 가지 다른 시그니처를 가질 수 있습니다(토큰 스트림 하나 또는 둘, 또는 AST 조각 등을 받는 식).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "This is an `enum` that lists them.",
+      "source_hash": 2336265807072174921,
+      "context_hash": 6607392924030950056,
+      "translation": "이는 이러한 것들을 나열한 `enum`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "[`BangProcMacro`]/[`TTMacroExpander`]/[`AttrProcMacro`]/[`MultiItemModifier`] - `trait`s representing the expander function signatures.",
+      "source_hash": 1775122071407886647,
+      "context_hash": 5935932552631443982,
+      "translation": "[`BangProcMacro`]/[`TTMacroExpander`]/[`AttrProcMacro`]/[`MultiItemModifier`] - 확장자 함수 시그니처를 나타내는 `trait`들입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Macros By Example",
+      "source_hash": 11299209014273928370,
+      "context_hash": 332765741715562401,
+      "translation": "예시에 의한 매크로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "MBEs have their own parser distinct from the Rust parser.",
+      "source_hash": 11636984519156027886,
+      "context_hash": 17532796915704815948,
+      "translation": "MBE는 Rust 파서와는 별개의 자체 파서를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "When macros are expanded, we may invoke the MBE parser to parse and expand a macro.",
+      "source_hash": 5929266264085041614,
+      "context_hash": 1091121378496662870,
+      "translation": "매크로가 확장될 때, MBE 파서를 호출하여 매크로를 파싱하고 확장할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "The MBE parser, in turn, may call the Rust parser when it needs to bind a metavariable (e.g. `$my_expr`) while parsing the contents of a macro invocation.",
+      "source_hash": 9881464319892558596,
+      "context_hash": 14062688866020226514,
+      "translation": "MBE 파서는 다시, 매크로 호출의 내용을 파싱하는 중에 메타변수(예: `$my_expr`)를 바인딩해야 할 때 Rust 파서를 호출할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:3",
+      "source": "The code for macro expansion is in [`compiler/rustc_expand/src/mbe/`][code_dir].",
+      "source_hash": 1246913109487700724,
+      "context_hash": 7285160368356368522,
+      "translation": "매크로 확장을 위한 코드는 [`compiler/rustc_expand/src/mbe/`][code_dir]에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361971Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Example",
+      "source_hash": 1513857641461741027,
+      "context_hash": 14030360875526638275,
+      "translation": "예시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:48.361972Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Here `$mvar` is called a _metavariable_.",
+      "source_hash": 13578507732309196611,
+      "context_hash": 9720724185085311107,
+      "translation": "여기서 `$mvar`는 *메타변수*라고 불립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917111Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "Unlike normal variables, rather than binding to a value _at runtime_, a metavariable binds _at compile time_ to a tree of _tokens_.",
+      "source_hash": 9786120100905984736,
+      "context_hash": 7983932157230129408,
+      "translation": "일반 변수와 달리, 메타변수는 *런타임*에 값에 바인딩되는 것이 아니라 *컴파일 타임*에 *토큰*의 트리에 바인딩됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:2",
+      "source": "A _token_ is a single \"unit\" of the grammar, such as an identifier (e.g. `foo`) or punctuation (e.g. `=>`).",
+      "source_hash": 17629347676026317993,
+      "context_hash": 930068983289319840,
+      "translation": "*토큰*은 식별자(예: `foo`)나 구두점(예: `=>`)과 같은 문법의 단일 \"단위\"입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:3",
+      "source": "There are also other special tokens, such as `EOF`, which itself indicates that there are no more tokens.",
+      "source_hash": 1011866214080857318,
+      "context_hash": 8608164677162257547,
+      "translation": "`EOF`와 같은 다른 특수 토큰도 있는데, 이는 그 자체로 더 이상 토큰이 없음을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:4",
+      "source": "There are token trees resulting from the paired parentheses-like characters (`(`...`)`, `[`...`]`, and `{`...`}`) – they include the open and close and all the tokens in between (Rust requires that parentheses-like characters be balanced).",
+      "source_hash": 12672809094141370921,
+      "context_hash": 7552681657647838188,
+      "translation": "짝을 이루는 괄호류 문자(`(`...`)`, `[`...`]`, `{`...`}`)에서 비롯되는 토큰 트리도 있는데, 이는 여는 것과 닫는 것, 그리고 그 사이의 모든 토큰을 포함합니다(Rust는 괄호류 문자가 균형을 이룰 것을 요구합니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:5",
+      "source": "Having macro expansion operate on token streams rather than the raw bytes of a source-file abstracts away a lot of complexity.",
+      "source_hash": 5693526100779366450,
+      "context_hash": 4901399632626741754,
+      "translation": "매크로 확장이 소스 파일의 원시 바이트가 아니라 토큰 스트림에 대해 동작하도록 하는 것은 많은 복잡성을 추상화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:6",
+      "source": "The macro expander (and much of the rest of the compiler) doesn't consider the exact line and column of some syntactic construct in the code; it considers which constructs are used in the code.",
+      "source_hash": 4611374753035100421,
+      "context_hash": 9031474356940818300,
+      "translation": "매크로 확장기(그리고 컴파일러의 나머지 대부분)는 코드 내 어떤 구문 구조의 정확한 줄과 열을 고려하지 않으며, 코드에서 어떤 구조가 사용되는지를 고려합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:7",
+      "source": "Using tokens allows us to care about _what_ without worrying about _where_.",
+      "source_hash": 15203833225809405618,
+      "context_hash": 6517862806733312652,
+      "translation": "토큰을 사용하면 *어디서*를 걱정하지 않고 *무엇을*에만 신경 쓸 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:8",
+      "source": "For more information about tokens, see the [Parsing][parsing] chapter of this book.",
+      "source_hash": 15977709169652827205,
+      "context_hash": 14934676529825813474,
+      "translation": "토큰에 대한 더 자세한 정보는 이 책의 [파싱][parsing] 장을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "The process of expanding the macro invocation into the syntax tree `println!(\"{}\", foo)` and then expanding the syntax tree into a call to `Display::fmt` is one common example of _macro expansion_.",
+      "source_hash": 12963029376509310224,
+      "context_hash": 11559640787108943275,
+      "translation": "매크로 호출을 구문 트리 `println!(\"{}\", foo)`로 확장한 다음, 그 구문 트리를 `Display::fmt` 호출로 확장하는 과정이 *매크로 확장*의 흔한 예시 중 하나입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "The MBE parser",
+      "source_hash": 17192944512984024648,
+      "context_hash": 11554465303343728493,
+      "translation": "MBE 파서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "There are two parts to MBE expansion done by the macro parser:",
+      "source_hash": 11847949941595048514,
+      "context_hash": 10244629650588440783,
+      "translation": "매크로 파서가 수행하는 MBE 확장에는 두 부분이 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "parsing the definition, and,",
+      "source_hash": 3457959080460425372,
+      "context_hash": 1431168217502651450,
+      "translation": "정의를 파싱하는 것과,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917112Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "parsing the invocations.",
+      "source_hash": 4947995971951375437,
+      "context_hash": 5503033368561991464,
+      "translation": "호출을 파싱하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "We think of the MBE parser as a nondeterministic finite automaton (NFA) based regex parser since it uses an algorithm similar in spirit to the [Earley parsing algorithm](https://en.wikipedia.org/wiki/Earley_parser).",
+      "source_hash": 14806840449059479507,
+      "context_hash": 9677634408438704486,
+      "translation": "[Earley 파싱 알고리즘](https://en.wikipedia.org/wiki/Earley_parser)과 정신적으로 유사한 알고리즘을 사용하기 때문에, MBE 파서를 비결정적 유한 오토마타(NFA) 기반 정규식 파서로 생각합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:1",
+      "source": "The macro parser is defined in [`compiler/rustc_expand/src/mbe/macro_parser.rs`][code_mp].",
+      "source_hash": 9945713723273917400,
+      "context_hash": 3091913447452459023,
+      "translation": "매크로 파서는 [`compiler/rustc_expand/src/mbe/macro_parser.rs`][code_mp]에 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "The interface of the macro parser is as follows (this is slightly simplified):",
+      "source_hash": 10164067933253156303,
+      "context_hash": 4482085660637275764,
+      "translation": "매크로 파서의 인터페이스는 다음과 같습니다(약간 단순화한 것입니다):",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "We use these items in macro parser:",
+      "source_hash": 17800477910082145346,
+      "context_hash": 12741041984129145830,
+      "translation": "매크로 파서에서는 다음 항목들을 사용합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "a `parser` variable is a reference to the state of a normal Rust parser, including the token stream and parsing session.",
+      "source_hash": 15078136580919942262,
+      "context_hash": 6340962726546159158,
+      "translation": "`parser` 변수는 토큰 스트림과 파싱 세션을 포함한 일반 Rust 파서의 상태에 대한 참조입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "The token stream is what we are about to ask the MBE parser to parse.",
+      "source_hash": 2812149571071405018,
+      "context_hash": 17031983646149445567,
+      "translation": "토큰 스트림은 우리가 MBE 파서에게 파싱을 요청하려는 대상입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:2",
+      "source": "We will consume the raw stream of tokens and output a binding of metavariables to corresponding token trees.",
+      "source_hash": 11516635296048385028,
+      "context_hash": 9919985199841317973,
+      "translation": "우리는 원시 토큰 스트림을 소비하여 메타변수를 해당 토큰 트리에 바인딩한 결과를 출력할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:3",
+      "source": "The parsing session can be used to report parser errors.",
+      "source_hash": 15133750453236929033,
+      "context_hash": 343386531616909424,
+      "translation": "파싱 세션은 파서 오류를 보고하는 데 사용될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "a `matcher` variable is a sequence of [`MatcherLoc`]s that we want to match the token stream against.",
+      "source_hash": 11864603769444513713,
+      "context_hash": 14406298923587038742,
+      "translation": "`matcher` 변수는 토큰 스트림을 대조하고자 하는 [`MatcherLoc`]들의 시퀀스입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:1",
+      "source": "They're converted from the original token trees in the macro's definition before matching.",
+      "source_hash": 16435187805983067721,
+      "context_hash": 4989198002744412516,
+      "translation": "이들은 대조 전에 매크로 정의의 원래 토큰 트리로부터 변환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "In the analogy of a regex parser, the token stream is the input and we are matching it against the pattern defined by matcher.",
+      "source_hash": 14905978935176550352,
+      "context_hash": 7115689173332735220,
+      "translation": "정규식 파서에 비유하면, 토큰 스트림은 입력이며 우리는 이를 matcher가 정의하는 패턴과 대조하고 있는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:1",
+      "source": "Using our examples, the token stream could be the stream of tokens containing the inside of the example invocation `print foo`, while matcher might be the sequence of token (trees) `print $mvar:ident`.",
+      "source_hash": 3420201273264571715,
+      "context_hash": 1752942118067634837,
+      "translation": "예시를 사용하면, 토큰 스트림은 예시 호출 `print foo`의 내부를 담은 토큰들의 스트림일 수 있고, matcher는 토큰(트리)의 시퀀스 `print $mvar:ident`일 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "The output of the parser is a [`ParseResult`], which indicates which of three cases has occurred:",
+      "source_hash": 15895897019369423321,
+      "context_hash": 2425094327420240686,
+      "translation": "파서의 출력은 [`ParseResult`]이며, 이는 세 가지 경우 중 어떤 것이 발생했는지를 나타냅니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "**Success**: the token stream matches the given matcher and we have produced a binding from metavariables to the corresponding token trees.",
+      "source_hash": 7590985901014499127,
+      "context_hash": 9897190425471521698,
+      "translation": "**성공**: 토큰 스트림이 주어진 matcher와 일치하며, 메타변수에서 해당 토큰 트리로의 바인딩을 생성했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "**Failure**: the token stream does not match matcher and results in an error message such as \"No rule expected token ...\".",
+      "source_hash": 4228188637949066595,
+      "context_hash": 10271698110727127525,
+      "translation": "**실패**: 토큰 스트림이 matcher와 일치하지 않으며, \"No rule expected token ...\"과 같은 오류 메시지가 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917113Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "**Error**: some fatal error has occurred _in the parser_.",
+      "source_hash": 14824297566941390896,
+      "context_hash": 1970855553210148281,
+      "translation": "**오류**: *파서 내부에서* 어떤 치명적인 오류가 발생했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917114Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:1",
+      "source": "For example, this happens if there is more than one pattern match, since that indicates the macro is ambiguous.",
+      "source_hash": 11347244005394651341,
+      "context_hash": 7125138248444285741,
+      "translation": "예를 들어, 패턴 일치가 두 개 이상 존재하는 경우 이런 일이 발생하는데, 이는 매크로가 모호함을 나타내기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917114Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "The full interface is defined [here][code_parse_int].",
+      "source_hash": 15200153929615903632,
+      "context_hash": 17866787804176032577,
+      "translation": "전체 인터페이스는 [여기][code_parse_int]에 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:51.917114Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "The macro parser does pretty much exactly the same as a normal regex parser with one exception: in order to parse different types of metavariables, such as `ident`, `block`, `expr`, etc., the macro parser must call back to the normal Rust parser.",
+      "source_hash": 14768364327715908381,
+      "context_hash": 9191771840808592926,
+      "translation": "매크로 파서는 일반적인 정규식 파서와 거의 정확히 동일하게 동작하지만 한 가지 예외가 있습니다: `ident`, `block`, `expr` 등과 같은 다양한 종류의 메타변수를 파싱하기 위해서는 매크로 파서가 일반 Rust 파서를 다시 호출해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185178Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "The code to parse macro definitions is in [`compiler/rustc_expand/src/mbe/macro_rules.rs`][code_mr].",
+      "source_hash": 4772691832996062130,
+      "context_hash": 18167334375521390225,
+      "translation": "매크로 정의를 파싱하는 코드는 [`compiler/rustc_expand/src/mbe/macro_rules.rs`][code_mr]에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185179Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:1",
+      "source": "For more information about the macro parser's implementation, see the comments in [`compiler/rustc_expand/src/mbe/macro_parser.rs`][code_mp].",
+      "source_hash": 8649462356670291071,
+      "context_hash": 4903705809394816783,
+      "translation": "매크로 파서의 구현에 대한 더 자세한 내용은 [`compiler/rustc_expand/src/mbe/macro_parser.rs`][code_mp]의 주석을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185179Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "Using our example, we would try to match the token stream `print foo` from the invocation against the matchers `print $mvar:ident` and `print twice $mvar:ident` that we previously extracted from the rules in the macro definition.",
+      "source_hash": 2627341986333601705,
+      "context_hash": 17159740975720975905,
+      "translation": "우리의 예시를 사용하면, 호출로부터 얻은 토큰 스트림 `print foo`를 매크로 정의의 규칙들에서 앞서 추출한 매처인 `print $mvar:ident`와 `print twice $mvar:ident`에 대해 매칭을 시도하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185179Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:1",
+      "source": "When the macro parser comes to a place in the current matcher where it needs to match a _non-terminal_ (e.g. `$mvar:ident`), it calls back to the normal Rust parser to get the contents of that non-terminal.",
+      "source_hash": 3682237752220518742,
+      "context_hash": 17901359115799823799,
+      "translation": "매크로 파서가 현재 매처 내에서 *비단말(non-terminal)*(예: `$mvar:ident`)을 매칭해야 하는 지점에 이르면, 해당 비단말의 내용을 얻기 위해 일반 Rust 파서를 다시 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185179Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:2",
+      "source": "In this case, the Rust parser would look for an `ident` token, which it finds (`foo`) and returns to the macro parser.",
+      "source_hash": 10053850378008840006,
+      "context_hash": 8438599924799790441,
+      "translation": "이 경우, Rust 파서는 `ident` 토큰을 찾게 되고, 이를 찾으면(`foo`) 매크로 파서에게 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185179Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:3",
+      "source": "Then, the macro parser continues parsing.",
+      "source_hash": 163916233747178673,
+      "context_hash": 7372773539124712056,
+      "translation": "그런 다음, 매크로 파서는 파싱을 계속 진행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185179Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "Note that exactly one of the matchers from the various rules should match the invocation; if there is more than one match, the parse is ambiguous, while if there are no matches at all, there is a syntax error.",
+      "source_hash": 10447817985172264932,
+      "context_hash": 9635779732086061714,
+      "translation": "다양한 규칙들 중 정확히 하나의 매처만이 해당 호출과 매칭되어야 한다는 점에 유의하십시오. 만약 매칭되는 것이 두 개 이상이면 파싱이 모호해지며, 전혀 매칭되는 것이 없으면 구문 오류가 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185180Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:0",
+      "source": "Assuming exactly one rule matches, macro expansion will then *transcribe* the right-hand side of the rule, substituting the values of any matches it captured when matching against the left-hand side.",
+      "source_hash": 6817965047116332173,
+      "context_hash": 9187559381839218276,
+      "translation": "정확히 하나의 규칙만 매칭된다고 가정하면, 매크로 확장은 좌변과 매칭하는 과정에서 포착한 매칭 값들을 치환하여 해당 규칙의 우변을 *전사(transcribe)*합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185180Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Procedural Macros",
+      "source_hash": 2732158916832921542,
+      "context_hash": 10373841640973889609,
+      "translation": "절차적 매크로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185180Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Procedural macros are also expanded during parsing.",
+      "source_hash": 4417520170425426464,
+      "context_hash": 6671322050553288452,
+      "translation": "절차적 매크로 또한 파싱 중에 확장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185180Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "However, rather than having a parser in the compiler, proc macros are implemented as custom, third-party crates.",
+      "source_hash": 8860728137927178460,
+      "context_hash": 12192535529188525261,
+      "translation": "그러나 컴파일러 내에 파서를 두는 대신, 절차적 매크로는 사용자 정의된 서드파티 크레이트로 구현됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:01:54.185180Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:2",
+      "source": "The compiler will compile the proc macro crate and specially annotated functions in them (i.e. the proc macro itself), passing them a stream of tokens.",
+      "source_hash": 14227288114735334056,
+      "context_hash": 12769899051235010671,
+      "translation": "컴파일러는 절차적 매크로 크레이트와 그 안에 특별히 표시된 함수들(즉, 절차적 매크로 자체)을 컴파일하고, 이들에게 토큰 스트림을 전달합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:01:54.185180Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:3",
+      "source": "A proc macro can then transform the token stream and output a new token stream, which is synthesized into the AST.",
+      "source_hash": 2470965747177765505,
+      "context_hash": 14506482557909918298,
+      "translation": "그러면 절차적 매크로는 토큰 스트림을 변환하여 새로운 토큰 스트림을 출력할 수 있으며, 이는 AST로 합성됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "The token stream type used by proc macros is _stable_, so `rustc` does not use it internally.",
+      "source_hash": 17949213050270792048,
+      "context_hash": 14409818480092202986,
+      "translation": "절차적 매크로가 사용하는 토큰 스트림 타입은 *안정적(stable)*이므로, `rustc`는 내부적으로 이를 사용하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "The compiler's (unstable) token stream is defined in [`rustc_ast::tokenstream::TokenStream`][rustcts].",
+      "source_hash": 16346425128510459040,
+      "context_hash": 3388116736500331792,
+      "translation": "컴파일러의 (불안정한) 토큰 스트림은 [`rustc_ast::tokenstream::TokenStream`][rustcts]에 정의되어 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:2",
+      "source": "This is converted into the stable [`proc_macro::TokenStream`][stablets] and back in [`rustc_expand::proc_macro`][pm] and [`rustc_expand::proc_macro_server`][pms].",
+      "source_hash": 14844800162371072089,
+      "context_hash": 7633184940252527995,
+      "translation": "이것은 안정적인 [`proc_macro::TokenStream`][stablets]으로 변환되며, [`rustc_expand::proc_macro`][pm]와 [`rustc_expand::proc_macro_server`][pms]에서 다시 반대로 변환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:3",
+      "source": "Since the Rust ABI is currently unstable, we use the C ABI for this conversion.",
+      "source_hash": 3839802078316137368,
+      "context_hash": 16933691342575491439,
+      "translation": "Rust ABI가 현재 불안정하기 때문에, 이 변환에는 C ABI를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Custom Derive",
+      "source_hash": 18240790410158497664,
+      "context_hash": 15847482245885628167,
+      "translation": "사용자 정의 파생(Custom Derive)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "Custom derives are a special type of proc macro.",
+      "source_hash": 4552849456526974354,
+      "context_hash": 2580183447557557577,
+      "translation": "사용자 정의 파생은 절차적 매크로의 특수한 종류입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "Macros By Example and Macros 2.0",
+      "source_hash": 13187461332069142516,
+      "context_hash": 4882963645313627770,
+      "translation": "예제 기반 매크로(Macros By Example)와 매크로 2.0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185181Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "There is an legacy and mostly undocumented effort to improve the MBE system by giving it more hygiene-related features, better scoping and visibility rules, etc. Internally this uses the same machinery as today's MBEs with some additional syntactic sugar and are allowed to be in namespaces.",
+      "source_hash": 12095557383167733232,
+      "context_hash": 10717294830066162492,
+      "translation": "MBE 시스템을 개선하여 더 많은 위생 관련 기능과 더 나은 스코프 및 가시성 규칙 등을 부여하려는 레거시이자 대부분 문서화되지 않은 노력이 있습니다. 내부적으로 이는 오늘날의 MBE와 동일한 메커니즘을 사용하되 일부 추가적인 구문적 편의(syntactic sugar)가 더해져 있으며, 네임스페이스 안에 위치하는 것이 허용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:54.185182Z",
+      "issues": []
+    }
+  ]
+}

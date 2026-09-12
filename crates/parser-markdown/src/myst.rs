@@ -969,13 +969,13 @@ mod tests {
     }
 
     #[test]
-    fn html_blocks_stay_verbatim() {
+    fn html_tags_stay_verbatim_while_prose_is_translated() {
         let source = "Before.\n\n<div class=\"x\">\nraw\n</div>\n\nAfter.\n";
         let doc = MystParser.parse(source);
-        assert_eq!(sources(&doc), ["Before.", "After."]);
+        assert_eq!(sources(&doc), ["Before.", "raw", "After."]);
         assert_eq!(
             translate_all(source, bracket),
-            "[Before.]\n\n<div class=\"x\">\nraw\n</div>\n\n[After.]\n"
+            "[Before.]\n\n<div class=\"x\">\n[raw]\n</div>\n\n[After.]\n"
         );
     }
 

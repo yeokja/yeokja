@@ -1,0 +1,753 @@
+{
+  "version": 1,
+  "source_hash": 8231429495530869899,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Inline assembly",
+      "source_hash": 15781809384253142747,
+      "context_hash": 1550075017305294471,
+      "translation": "인라인 어셈블리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463104Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Overview",
+      "source_hash": 11777448466030057203,
+      "context_hash": 4194731063692789164,
+      "translation": "개요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463104Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Inline assembly in rustc mostly revolves around taking an `asm!` macro invocation and plumbing it through all of the compiler layers down to LLVM codegen.",
+      "source_hash": 15007879689577930777,
+      "context_hash": 5786518611759860618,
+      "translation": "rustc에서 인라인 어셈블리는 대부분 `asm!` 매크로 호출을 받아 이를 모든 컴파일러 계층을 거쳐 LLVM 코드 생성까지 전달하는 작업을 중심으로 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:12:38.463104Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Throughout the various stages, an `InlineAsm` generally consists of 3 components:",
+      "source_hash": 2037844643143776194,
+      "context_hash": 4643452077856135104,
+      "translation": "여러 단계에 걸쳐, `InlineAsm`은 일반적으로 3가지 구성 요소로 이루어집니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "The template string, which is stored as an array of `InlineAsmTemplatePiece`.",
+      "source_hash": 12852321967495646349,
+      "context_hash": 11898365579862067033,
+      "translation": "`InlineAsmTemplatePiece`의 배열로 저장되는 템플릿 문자열입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "Each piece represents either a literal or a placeholder for an operand (just like format strings).",
+      "source_hash": 12067740946011817057,
+      "context_hash": 9151101063059815620,
+      "translation": "각 조각은 (형식 문자열과 마찬가지로) 리터럴 또는 오퍼랜드에 대한 플레이스홀더 중 하나를 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "The list of operands to the `asm!` (`in`, `[late]out`, `in[late]out`, `sym`, `const`).",
+      "source_hash": 16899365126383979685,
+      "context_hash": 17477252401397508504,
+      "translation": "`asm!`에 대한 오퍼랜드 목록입니다 (`in`, `[late]out`, `in[late]out`, `sym`, `const`).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "These are represented differently at each stage of lowering, but follow a common pattern:",
+      "source_hash": 7708544664493591448,
+      "context_hash": 16180285311272386302,
+      "translation": "이들은 하강(lowering)의 각 단계마다 다르게 표현되지만, 공통된 패턴을 따릅니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "`in`, `out`, and `inout` all have an associated register class (`reg`) or explicit register (`\"eax\"`).",
+      "source_hash": 2594181805966617430,
+      "context_hash": 1656520804853725606,
+      "translation": "`in`, `out`, `inout`은 모두 연관된 레지스터 클래스(`reg`) 또는 명시적 레지스터(`\"eax\"`)를 가집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "`inout` has 2 forms: one with a single expression that is both read from and written to, and one with two separate expressions for the input and output parts.",
+      "source_hash": 7084049385683386048,
+      "context_hash": 12477601392057480549,
+      "translation": "`inout`은 2가지 형태를 가집니다: 읽기와 쓰기 모두에 사용되는 단일 표현식을 가지는 형태와, 입력과 출력 부분에 대해 별도의 두 표현식을 가지는 형태입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "`out` and `inout` have a `late` flag (`lateout` / `inlateout`) to indicate that the register allocator is allowed to reuse an input register for this output.",
+      "source_hash": 12155277441284576078,
+      "context_hash": 289632962781090429,
+      "translation": "`out`과 `inout`은 `late` 플래그(`lateout` / `inlateout`)를 가지며, 이는 레지스터 할당기가 이 출력에 대해 입력 레지스터를 재사용할 수 있음을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "`out` and the split variant of `inout` allow `_` to be specified for an output, which means that the output is discarded.",
+      "source_hash": 11000805261137723575,
+      "context_hash": 18368062195365176198,
+      "translation": "`out`과 `inout`의 분리된 변형은 출력에 대해 `_`를 지정할 수 있도록 허용하며, 이는 출력이 폐기됨을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "This is used to allocate scratch registers for assembly code.",
+      "source_hash": 15782364194785098519,
+      "context_hash": 4843648769780581840,
+      "translation": "이는 어셈블리 코드를 위한 스크래치 레지스터를 할당하는 데 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "`const` refers to an anonymous constants, and generally works like an inline const.",
+      "source_hash": 4081057391473024948,
+      "context_hash": 4523720208241408242,
+      "translation": "`const`는 익명 상수를 가리키며, 일반적으로 인라인 상수처럼 동작합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "`sym` is a bit special since it only accepts a path expression, which must point to a `static` or a `fn`.",
+      "source_hash": 17479894118343159766,
+      "context_hash": 16103186826920116335,
+      "translation": "`sym`은 경로 표현식만을 받아들인다는 점에서 다소 특이하며, 이 경로는 반드시 `static` 또는 `fn`을 가리켜야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "The options set at the end of the `asm!` macro.",
+      "source_hash": 3748203390234672888,
+      "context_hash": 13990951939870066177,
+      "translation": "`asm!` 매크로의 끝에 설정되는 옵션들입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463105Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "The only ones that are of particular interest to rustc are `NORETURN` which makes `asm!` return `!` instead of `()`, and `RAW` which disables format string parsing.",
+      "source_hash": 9189351825054954685,
+      "context_hash": 6070756333626965748,
+      "translation": "rustc에서 특히 관심을 가지는 것은 `asm!`이 `()` 대신 `!`를 반환하도록 하는 `NORETURN`과, 형식 문자열 파싱을 비활성화하는 `RAW`뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:2",
+      "source": "The remaining options are mostly passed through to LLVM with little processing.",
+      "source_hash": 1625402700097555621,
+      "context_hash": 6525900718366354339,
+      "translation": "나머지 옵션들은 대부분 별다른 처리 없이 LLVM으로 그대로 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "AST",
+      "source_hash": 2898004629751195084,
+      "context_hash": 16673612823532416877,
+      "translation": "AST",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "`InlineAsm` is represented as an expression in the AST with the [`ast::InlineAsm` type][inline_asm_ast].",
+      "source_hash": 6417714750303344340,
+      "context_hash": 17681488435359700811,
+      "translation": "`InlineAsm`은 AST에서 [`ast::InlineAsm` 타입][inline_asm_ast]을 가진 표현식으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The `asm!` macro is implemented in `rustc_builtin_macros` and outputs an `InlineAsm` AST node.",
+      "source_hash": 6437365933490482242,
+      "context_hash": 10262376620552833804,
+      "translation": "`asm!` 매크로는 `rustc_builtin_macros`에 구현되어 있으며, `InlineAsm` AST 노드를 출력합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "The template string is parsed using `fmt_macros`, positional and named operands are resolved to explicit operand indices.",
+      "source_hash": 7337009309261114146,
+      "context_hash": 6061699653432952587,
+      "translation": "템플릿 문자열은 `fmt_macros`를 사용하여 파싱되며, 위치 기반 및 이름 기반 오퍼랜드는 명시적인 오퍼랜드 인덱스로 해석됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "Since target information is not available to macro invocations, validation of the registers and register classes is deferred to AST lowering.",
+      "source_hash": 4412865673345729306,
+      "context_hash": 8915252845652841950,
+      "translation": "대상(target) 정보는 매크로 호출 시점에 사용할 수 없기 때문에, 레지스터 및 레지스터 클래스의 검증은 AST 하강(lowering) 단계로 미뤄집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "HIR",
+      "source_hash": 2476380819578422370,
+      "context_hash": 420686384717438124,
+      "translation": "HIR",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`InlineAsm` is represented as an expression in the HIR with the [`hir::InlineAsm` type][inline_asm_hir].",
+      "source_hash": 15169946795108709760,
+      "context_hash": 10454558016957882692,
+      "translation": "`InlineAsm`은 HIR에서 [`hir::InlineAsm` 타입][inline_asm_hir]을 가진 표현식으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "AST lowering is where `InlineAsmRegOrRegClass` is converted from `Symbol`s to an actual register or register class.",
+      "source_hash": 6804694570021932648,
+      "context_hash": 333236820623476583,
+      "translation": "AST 하강(lowering) 단계에서 `InlineAsmRegOrRegClass`가 `Symbol`에서 실제 레지스터 또는 레지스터 클래스로 변환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "If any modifiers are specified for a template string placeholder, these are validated against the set allowed for that operand type.",
+      "source_hash": 15530382132264694758,
+      "context_hash": 16947031775687223927,
+      "translation": "템플릿 문자열 플레이스홀더에 대해 수정자(modifier)가 지정된 경우, 이는 해당 오퍼랜드 유형에 허용된 집합에 대해 검증됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:2",
+      "source": "Finally, explicit registers for inputs and outputs are checked for conflicts (same register used for different operands).",
+      "source_hash": 8491230611319265165,
+      "context_hash": 7427731649270026791,
+      "translation": "마지막으로, 입력 및 출력에 대한 명시적 레지스터는 충돌(서로 다른 오퍼랜드에 동일한 레지스터가 사용됨) 여부를 검사받습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Type checking",
+      "source_hash": 1757544352493598497,
+      "context_hash": 9160510547619020103,
+      "translation": "타입 검사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:38.463106Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Each register class has an allowlist of types that it may be used with.",
+      "source_hash": 9044917641773380553,
+      "context_hash": 11063182492978243719,
+      "translation": "각 레지스터 클래스는 사용할 수 있는 타입의 허용 목록을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273890Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "After the types of all operands have been determined, the `intrinsicck` pass will check that these types are in the allowlist.",
+      "source_hash": 17376986113718016170,
+      "context_hash": 6219255199050163167,
+      "translation": "모든 피연산자의 타입이 결정된 후, `intrinsicck` 패스는 이러한 타입이 허용 목록에 있는지 검사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "It also checks that split `inout` operands have compatible types and that `const` operands are integers or floats.",
+      "source_hash": 4274652850996990637,
+      "context_hash": 6264918527964196537,
+      "translation": "또한 분할된 `inout` 피연산자가 호환 가능한 타입을 가지는지, 그리고 `const` 피연산자가 정수 또는 부동소수점인지 검사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:3",
+      "source": "Suggestions are emitted where needed if a template modifier should be used for an operand based on the type that was passed into it.",
+      "source_hash": 13331687466970697396,
+      "context_hash": 37195010653494892,
+      "translation": "피연산자에 전달된 타입을 기준으로 템플릿 수정자를 사용해야 하는 경우, 필요한 곳에 제안이 표시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "THIR",
+      "source_hash": 7182152150051125641,
+      "context_hash": 10056750758487726418,
+      "translation": "THIR",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "`InlineAsm` is represented as an expression in the THIR with the [`InlineAsmExpr` type][inline_asm_thir].",
+      "source_hash": 4951237488065816596,
+      "context_hash": 1241679836895691786,
+      "translation": "`InlineAsm`은 THIR에서 [`InlineAsmExpr` 타입][inline_asm_thir]을 가진 표현식으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "The only significant change compared to HIR is that `Sym` has been lowered to either a `SymFn` whose `expr` is a `Literal` ZST of the `fn`, or a `SymStatic` which points to the `DefId` of a `static`.",
+      "source_hash": 6746917188071841819,
+      "context_hash": 6866783356830316557,
+      "translation": "HIR과 비교했을 때 유일한 중요한 변경 사항은 `Sym`이 `fn`의 `Literal` ZST를 `expr`로 가지는 `SymFn`으로 낮춰지거나, `static`의 `DefId`를 가리키는 `SymStatic`으로 낮춰졌다는 점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "MIR",
+      "source_hash": 4979396044953417904,
+      "context_hash": 11682881064269852529,
+      "translation": "MIR",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "`InlineAsm` is represented as a `Terminator` in the MIR with the [`TerminatorKind::InlineAsm` variant][inline_asm_mir]",
+      "source_hash": 12522282399313498431,
+      "context_hash": 5683932360204230883,
+      "translation": "`InlineAsm`은 MIR에서 [`TerminatorKind::InlineAsm` variant][inline_asm_mir]를 가진 `Terminator`로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "As part of THIR lowering, `InOut` and `SplitInOut` operands are lowered to a split form with a separate `in_value` and `out_place`.",
+      "source_hash": 8702912334475377537,
+      "context_hash": 9986021237367108457,
+      "translation": "THIR 낮추기의 일부로, `InOut`과 `SplitInOut` 피연산자는 별도의 `in_value`와 `out_place`를 가진 분할 형태로 낮춰집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273891Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Semantically, the `InlineAsm` terminator is similar to the `Call` terminator except that it has multiple output places where a `Call` only has a single return place output.",
+      "source_hash": 4968443739950059167,
+      "context_hash": 6522626026043371863,
+      "translation": "의미론적으로, `InlineAsm` 종결자는 `Call` 종결자와 유사하지만, `Call`이 단 하나의 반환 위치 출력만 가지는 것과 달리 여러 출력 위치를 가진다는 점이 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Codegen",
+      "source_hash": 11484737299333323521,
+      "context_hash": 13266637833683847075,
+      "translation": "코드 생성",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Operands are lowered one more time before being passed to LLVM codegen.",
+      "source_hash": 2182666299753807044,
+      "context_hash": 6989135733522130658,
+      "translation": "피연산자는 LLVM 코드 생성으로 전달되기 전에 한 번 더 낮춰집니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "This is represented by the [`InlineAsmOperandRef` type][inline_asm_codegen] from `rustc_codegen_ssa`.",
+      "source_hash": 17630783014327320993,
+      "context_hash": 15045362731437880549,
+      "translation": "이는 `rustc_codegen_ssa`의 [`InlineAsmOperandRef` 타입][inline_asm_codegen]으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "The operands are lowered to LLVM operands and constraint codes as follows:",
+      "source_hash": 2408178975150677126,
+      "context_hash": 4186575440014804853,
+      "translation": "피연산자는 다음과 같이 LLVM 피연산자와 제약 코드로 낮춰집니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "`out` and the output part of `inout` operands are added first, as required by LLVM.",
+      "source_hash": 7714968279172221661,
+      "context_hash": 3284895800389147555,
+      "translation": "LLVM에서 요구하는 대로, `out`과 `inout` 오퍼랜드의 출력 부분이 먼저 추가됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "Late output operands have a `=` prefix added to their constraint code, and non-late output operands have a `=&` prefix added to their constraint code.",
+      "source_hash": 765467178722627443,
+      "context_hash": 13026758133878319010,
+      "translation": "늦은(late) 출력 오퍼랜드는 제약 코드에 `=` 접두사가 붙고, 늦지 않은 출력 오퍼랜드는 제약 코드에 `=&` 접두사가 붙습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "`in` operands are added normally.",
+      "source_hash": 15021042702111383766,
+      "context_hash": 18171676305069329075,
+      "translation": "`in` 피연산자는 정상적으로 추가됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273892Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "`inout` operands are tied to the matching output operand.",
+      "source_hash": 15965136520945060330,
+      "context_hash": 1705518640237615359,
+      "translation": "`inout` 피연산자는 일치하는 출력 피연산자와 연결됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "`sym` operands are passed as function pointers or pointers, using the `\"s\"` constraint.",
+      "source_hash": 7000250141200526020,
+      "context_hash": 14750925261745857807,
+      "translation": "`sym` 피연산자는 `\"s\"` 제약을 사용하여 함수 포인터 또는 포인터로 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "`const` operands are formatted to a string and directly inserted in the template string.",
+      "source_hash": 7860190699521725934,
+      "context_hash": 5235428852554074729,
+      "translation": "`const` 피연산자는 문자열로 형식화되어 템플릿 문자열에 직접 삽입됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "The template string is converted to LLVM form:",
+      "source_hash": 14033478591912901414,
+      "context_hash": 2716260008160881913,
+      "translation": "템플릿 문자열은 LLVM 형식으로 변환됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "`$` characters are escaped as `$$`.",
+      "source_hash": 17300229580345336332,
+      "context_hash": 8397452262202485348,
+      "translation": "`$` 문자는 `$$`로 이스케이프됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "`const` operands are converted to strings and inserted directly.",
+      "source_hash": 11333432255040387050,
+      "context_hash": 5614167364681035392,
+      "translation": "`const` 피연산자는 문자열로 변환되어 직접 삽입됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "Placeholders are formatted as `${X:M}`, where `X` is the operand index and `M` is the modifier character.",
+      "source_hash": 5240310268439746331,
+      "context_hash": 2523848382225667838,
+      "translation": "플레이스홀더는 `${X:M}` 형식으로 표현되며, 여기서 `X`는 피연산자 인덱스이고 `M`은 수정자 문자입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:1",
+      "source": "Modifiers are converted from the Rust form to the LLVM form.",
+      "source_hash": 2265763312624714293,
+      "context_hash": 3318259358095090481,
+      "translation": "수정자는 Rust 형식에서 LLVM 형식으로 변환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "The various options are converted to clobber constraints or LLVM attributes; refer to the [RFC] for more details.",
+      "source_hash": 4172948893053951053,
+      "context_hash": 1293547928726222276,
+      "translation": "다양한 옵션들은 클로버 제약 또는 LLVM 속성으로 변환됩니다. 자세한 내용은 [RFC]를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "Note that LLVM is sometimes rather picky about what types it accepts for certain constraint codes so we sometimes need to insert conversions to/from a supported type.",
+      "source_hash": 3592839479362767366,
+      "context_hash": 4818161182317016752,
+      "translation": "LLVM은 특정 제약 코드에 대해 허용하는 타입에 있어 때때로 상당히 까다롭기 때문에, 지원되는 타입으로/에서 변환을 삽입해야 할 때가 있다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:1",
+      "source": "See the target-specific ISelLowering.cpp files in LLVM for details of what types are supported for each register class.",
+      "source_hash": 16815540292962665792,
+      "context_hash": 10099242828479553725,
+      "translation": "각 레지스터 클래스에 대해 어떤 타입이 지원되는지에 대한 자세한 내용은 LLVM의 타겟별 ISelLowering.cpp 파일을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Adding support for new architectures",
+      "source_hash": 11762867158913714280,
+      "context_hash": 4531924146198473122,
+      "translation": "새로운 아키텍처에 대한 지원 추가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Adding inline assembly support to an architecture is mostly a matter of defining the registers and register classes for that architecture.",
+      "source_hash": 16720782158703000992,
+      "context_hash": 13879001376739440193,
+      "translation": "아키텍처에 인라인 어셈블리 지원을 추가하는 것은 대체로 해당 아키텍처에 대한 레지스터와 레지스터 클래스를 정의하는 작업입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273893Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "All the definitions for register classes are located in `compiler/rustc_target/asm/`.",
+      "source_hash": 12693208419373724215,
+      "context_hash": 5142227302301012313,
+      "translation": "레지스터 클래스에 대한 모든 정의는 `compiler/rustc_target/asm/`에 위치해 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:12:49.273894Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "Additionally you will need to implement lowering of these register classes to LLVM constraint codes in `compiler/rustc_codegen_llvm/asm.rs`.",
+      "source_hash": 9693554911475161498,
+      "context_hash": 6697795724711210893,
+      "translation": "또한 `compiler/rustc_codegen_llvm/asm.rs`에서 이러한 레지스터 클래스를 LLVM 제약 조건 코드로 낮추는(lowering) 작업을 구현해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805850Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "When adding a new architecture, make sure to cross-reference with the LLVM source code:",
+      "source_hash": 18019982741184888204,
+      "context_hash": 9231542507852607606,
+      "translation": "새로운 아키텍처를 추가할 때는 LLVM 소스 코드를 반드시 대조 확인해야 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805850Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "LLVM has restrictions on which types can be used with a particular constraint code.",
+      "source_hash": 13507413491744323710,
+      "context_hash": 8218679039384647110,
+      "translation": "LLVM은 특정 제약 조건 코드와 함께 사용할 수 있는 타입에 제한을 두고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805850Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:1",
+      "source": "Refer to the `getRegForInlineAsmConstraint` function in `lib/Target/${ARCH}/${ARCH}ISelLowering.cpp`.",
+      "source_hash": 14799871057220164873,
+      "context_hash": 7276368927707196837,
+      "translation": "`lib/Target/${ARCH}/${ARCH}ISelLowering.cpp`에 있는 `getRegForInlineAsmConstraint` 함수를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805851Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "LLVM reserves certain registers for its internal use, which causes them to not be saved/restored properly around inline assembly blocks.",
+      "source_hash": 608037431308775428,
+      "context_hash": 10304098617876144457,
+      "translation": "LLVM은 특정 레지스터를 내부용으로 예약해 두는데, 이로 인해 인라인 어셈블리 블록 주변에서 이러한 레지스터가 제대로 저장/복원되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805851Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:1",
+      "source": "These registers are listed in the `getReservedRegs` function in `lib/Target/${ARCH}/${ARCH}RegisterInfo.cpp`.",
+      "source_hash": 9477268507350457878,
+      "context_hash": 15279752914003972035,
+      "translation": "이러한 레지스터는 `lib/Target/${ARCH}/${ARCH}RegisterInfo.cpp`에 있는 `getReservedRegs` 함수에 나열되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805851Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:2",
+      "source": "Any \"conditionally\" reserved register, such as the frame/base pointer, must always be treated as reserved for Rust purposes because we can't know ahead of time whether a function will require a frame/base pointer.",
+      "source_hash": 3396561939362536834,
+      "context_hash": 11504985046654772041,
+      "translation": "프레임/베이스 포인터와 같이 \"조건부로\" 예약되는 레지스터는, 함수가 프레임/베이스 포인터를 필요로 할지 미리 알 수 없기 때문에 Rust의 목적상 항상 예약된 것으로 취급해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805851Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Tests",
+      "source_hash": 14977554177499230361,
+      "context_hash": 13381830708315466237,
+      "translation": "테스트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805851Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Various tests for inline assembly are available:",
+      "source_hash": 11679674960287267472,
+      "context_hash": 10551727320491328769,
+      "translation": "인라인 어셈블리에 대한 다양한 테스트를 이용할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805851Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "`tests/assembly-llvm/asm`",
+      "source_hash": 2458405903886558721,
+      "context_hash": 9710600913266188604,
+      "translation": "`tests/assembly-llvm/asm`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805852Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "`tests/ui/asm`",
+      "source_hash": 8527173071346912718,
+      "context_hash": 4438957503100719388,
+      "translation": "`tests/ui/asm`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805852Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "`tests/codegen-llvm/asm-*`",
+      "source_hash": 3485970168758434259,
+      "context_hash": 1644913831513088596,
+      "translation": "`tests/codegen-llvm/asm-*`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805852Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "Every architecture supported by inline assembly must have exhaustive tests in `tests/assembly-llvm/asm` which test all combinations of register classes and types.",
+      "source_hash": 586447943804656249,
+      "context_hash": 1346055523843772482,
+      "translation": "인라인 어셈블리가 지원하는 모든 아키텍처는 `tests/assembly-llvm/asm`에 레지스터 클래스와 타입의 모든 조합을 테스트하는 철저한 테스트를 갖추어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:07:40.805852Z",
+      "issues": []
+    }
+  ]
+}

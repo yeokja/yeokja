@@ -1,0 +1,632 @@
+{
+  "version": 1,
+  "source_hash": 5563928115087402619,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Dataflow Analysis",
+      "source_hash": 11434666817541991648,
+      "context_hash": 2664436876129856114,
+      "translation": "데이터플로우 분석",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "If you work on the MIR, you will frequently come across various flavors of [dataflow analysis]. `rustc` uses dataflow to find uninitialized variables, determine what variables are live across a generator `yield` statement, and compute which `Place`s are borrowed at a given point in the control-flow graph.",
+      "source_hash": 11222442301353395076,
+      "context_hash": 5950662057110568334,
+      "translation": "MIR 작업을 하다 보면 다양한 종류의 [dataflow analysis]를 자주 접하게 됩니다. `rustc`는 초기화되지 않은 변수를 찾고, 제너레이터 `yield` 문에 걸쳐 살아 있는 변수를 판별하며, 제어 흐름 그래프의 특정 지점에서 어떤 `Place`가 빌려지는지 계산하기 위해 데이터플로우를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Dataflow analysis is a fundamental concept in modern compilers, and knowledge of the subject will be helpful to prospective contributors.",
+      "source_hash": 2779197501631300490,
+      "context_hash": 9832959549511513597,
+      "translation": "데이터플로우 분석은 현대 컴파일러의 근본적인 개념이며, 이 주제에 대한 지식은 기여를 희망하는 분들에게 도움이 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "However, this documentation is not a general introduction to dataflow analysis.",
+      "source_hash": 9313617123936248066,
+      "context_hash": 11335581418997269710,
+      "translation": "하지만 이 문서는 데이터플로우 분석에 대한 일반적인 소개가 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "It is merely a description of the framework used to define these analyses in `rustc`.",
+      "source_hash": 11265196276187375197,
+      "context_hash": 8552746320590638286,
+      "translation": "이 문서는 `rustc`에서 이러한 분석을 정의하는 데 사용되는 프레임워크에 대한 설명일 뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "It assumes that the reader is familiar with the core ideas as well as some basic terminology, such as \"transfer function\", \"fixpoint\" and \"lattice\".",
+      "source_hash": 1570111352691640857,
+      "context_hash": 13892126298151752294,
+      "translation": "독자가 \"전이 함수(transfer function)\", \"고정점(fixpoint)\", \"격자(lattice)\"와 같은 기본 용어뿐만 아니라 핵심 개념에도 익숙하다고 가정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:3",
+      "source": "If you're unfamiliar with these terms, or if you want a quick refresher, [*Static Program Analysis*] is an excellent and freely available textbook.",
+      "source_hash": 7956603693722574277,
+      "context_hash": 13914280847239039096,
+      "translation": "이러한 용어에 익숙하지 않거나 간단히 복습하고 싶다면, [*Static Program Analysis*]는 무료로 볼 수 있는 훌륭한 교재입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:4",
+      "source": "For those who prefer audiovisual learning, we previously recommended a series of short lectures by the Goethe University Frankfurt on YouTube, but it has since been deleted.",
+      "source_hash": 10809886413917170448,
+      "context_hash": 8899446610150652200,
+      "translation": "시청각 학습을 선호하는 분들을 위해 이전에는 Goethe University Frankfurt에서 제작한 유튜브 짧은 강의 시리즈를 추천했으나, 이후 삭제되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:5",
+      "source": "See [this PR][pr-1295] for the context and [this comment][pr-1295-comment] for the alternative lectures.",
+      "source_hash": 12532352278995720054,
+      "context_hash": 11885960905940237369,
+      "translation": "배경 설명은 [this PR][pr-1295]를, 대체 강의는 [this comment][pr-1295-comment]를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Defining a Dataflow Analysis",
+      "source_hash": 4641061515033294331,
+      "context_hash": 9497388887896384641,
+      "translation": "데이터플로우 분석 정의하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A dataflow analysis is defined by the [`Analysis`] trait.",
+      "source_hash": 14778016599628981877,
+      "context_hash": 12019120224063296227,
+      "translation": "데이터플로우 분석은 [`Analysis`] 트레이트로 정의됩니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "In addition to the type of the dataflow state, this trait defines the initial value of that state at entry to each block, as well as the direction of the analysis, either forward or backward.",
+      "source_hash": 18185009318618125171,
+      "context_hash": 5752103441035080120,
+      "translation": "이 트레이트는 데이터플로우 상태의 타입 외에도, 각 블록 진입 시점의 상태 초기값과 분석의 방향(정방향 또는 역방향)을 정의합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "The domain of your dataflow analysis must be a [lattice] (strictly speaking a join-semilattice) with a well-behaved `join` operator.",
+      "source_hash": 4636721485681660124,
+      "context_hash": 16857505039196568884,
+      "translation": "데이터플로우 분석의 도메인은 잘 정의된 `join` 연산자를 가진 [lattice](엄밀히 말하면 조인 반격자)여야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:3",
+      "source": "See documentation for the [`lattice`] module, as well as the [`JoinSemiLattice`] trait, for more information.",
+      "source_hash": 13895441923167691676,
+      "context_hash": 7953122188401810113,
+      "translation": "자세한 내용은 [`lattice`] 모듈과 [`JoinSemiLattice`] 트레이트의 문서를 참고하십시오.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Transfer Functions and Effects",
+      "source_hash": 7927423925988960150,
+      "context_hash": 18209350496644944911,
+      "translation": "전이 함수와 효과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "The dataflow framework in `rustc` allows each statement (and terminator) inside a basic block to define its own transfer function.",
+      "source_hash": 3563064157390528193,
+      "context_hash": 14340373889925580513,
+      "translation": "`rustc`의 데이터플로우 프레임워크는 기본 블록 내 각 문(statement)(및 종결자)이 자체적인 전이 함수를 정의할 수 있도록 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "For brevity, these individual transfer functions are known as \"effects\".",
+      "source_hash": 1480414979032987950,
+      "context_hash": 1528579067822821789,
+      "translation": "간결함을 위해 이러한 개별 전이 함수를 \"효과(effect)\"라고 부릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "Each effect is applied successively in dataflow order, and together they define the transfer function for the entire basic block.",
+      "source_hash": 4035956522266158146,
+      "context_hash": 16172747906347128497,
+      "translation": "각 효과는 데이터플로우 순서에 따라 차례로 적용되며, 이들이 합쳐져 전체 기본 블록에 대한 전이 함수를 정의합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:3",
+      "source": "It's also possible to define an effect for particular outgoing edges of some terminators (e.g. [`apply_call_return_effect`] for the `success` edge of a `Call` terminator).",
+      "source_hash": 5184169271117438556,
+      "context_hash": 12420417790236756468,
+      "translation": "일부 종결자의 특정 나가는 엣지에 대해서도 효과를 정의할 수 있습니다(예: `Call` 종결자의 `success` 엣지에 대한 [`apply_call_return_effect`]).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:4",
+      "source": "Collectively, these are referred to as \"per-edge effects\".",
+      "source_hash": 1200212999472141681,
+      "context_hash": 1546580896422404705,
+      "translation": "이를 통틀어 \"엣지별 효과(per-edge effects)\"라고 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320689Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "\"Before\" Effects",
+      "source_hash": 13312581081904266820,
+      "context_hash": 2669661593734362112,
+      "translation": "\"이전(Before)\" 효과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Observant readers of the documentation may notice that there are actually *two* possible effects for each statement and terminator, the \"before\" effect and the unprefixed (or \"primary\") effect.",
+      "source_hash": 7739846114088008868,
+      "context_hash": 12913418857177781349,
+      "translation": "문서를 주의 깊게 읽는 독자라면 각 문과 종결자에 대해 실제로 *두 가지* 가능한 효과, 즉 \"이전(before)\" 효과와 접두어가 없는(또는 \"주(primary)\") 효과가 있다는 점을 알아차렸을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "The \"before\" effects are applied immediately before the unprefixed effect **regardless of the direction of the analysis**.",
+      "source_hash": 16049019582988176317,
+      "context_hash": 10260536187860608305,
+      "translation": "\"이전\" 효과는 **분석 방향과 관계없이** 접두어 없는 효과 바로 직전에 적용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "In other words, a backward analysis will apply the \"before\" effect and then the \"primary\" effect when computing the transfer function for a basic block, just like a forward analysis.",
+      "source_hash": 2479798982553385568,
+      "context_hash": 16581419608305121830,
+      "translation": "다시 말해, 역방향 분석에서도 정방향 분석과 마찬가지로 기본 블록의 전이 함수를 계산할 때 \"이전\" 효과를 적용한 다음 \"주\" 효과를 적용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The vast majority of analyses should use only the unprefixed effects: Having multiple effects for each statement makes it difficult for consumers to know where they should be looking.",
+      "source_hash": 13998252578243246646,
+      "context_hash": 4258074825963035617,
+      "translation": "대부분의 분석은 접두어 없는 효과만 사용해야 합니다. 각 문에 대해 여러 효과를 두면 사용하는 쪽에서 어디를 봐야 할지 파악하기 어려워집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "However, the \"before\" variants can be useful in some scenarios, such as when the effect of the right-hand side of an assignment statement must be considered separately from the left-hand side.",
+      "source_hash": 2382527620637598823,
+      "context_hash": 10863536432596519608,
+      "translation": "하지만 대입 문의 우변에 대한 효과를 좌변과 별도로 고려해야 하는 경우와 같이, 일부 상황에서는 \"이전\" 변형이 유용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Convergence",
+      "source_hash": 13136767138041607139,
+      "context_hash": 11482441120387474486,
+      "translation": "수렴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "Your analysis must converge to \"fixpoint\", otherwise it will run forever.",
+      "source_hash": 5656584255785492905,
+      "context_hash": 11976993358613829184,
+      "translation": "여러분의 분석은 \"고정점(fixpoint)\"에 수렴해야 하며, 그렇지 않으면 무한히 실행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "Converging to fixpoint is just another way of saying \"reaching equilibrium\".",
+      "source_hash": 7681666927931183143,
+      "context_hash": 15757551096079870824,
+      "translation": "고정점에 수렴한다는 것은 \"평형 상태에 도달한다\"는 것을 달리 표현한 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "In order to reach equilibrium, your analysis must obey some laws.",
+      "source_hash": 9786311570538166842,
+      "context_hash": 5485434047364254387,
+      "translation": "평형 상태에 도달하려면 분석이 몇 가지 법칙을 따라야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:3",
+      "source": "One of the laws it must obey is that the bottom value[^bottom-purpose] joined with some other value equals the second value.",
+      "source_hash": 11489227339011039165,
+      "context_hash": 15097266729058749175,
+      "translation": "그 법칙 중 하나는 바닥값[^bottom-purpose]과 다른 값을 join하면 그 다른 값과 같아진다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:4",
+      "source": "Or, as an equation:",
+      "source_hash": 8768679218293090066,
+      "context_hash": 4864181954615528280,
+      "translation": "즉, 방정식으로 표현하면 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.320690Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "*bottom* join *x* = *x*",
+      "source_hash": 9769962709539801667,
+      "context_hash": 10915115209864758731,
+      "translation": "*bottom* join *x* = *x*",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386275Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "Another law is that your analysis must have a \"top value\" such that",
+      "source_hash": 6391321803364315468,
+      "context_hash": 12454684740758838458,
+      "translation": "또 다른 법칙은 여러분의 분석이 다음을 만족하는 \"top 값\"을 가져야 한다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386276Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "*top* join *x* = *top*",
+      "source_hash": 1506220308887226266,
+      "context_hash": 14009880746447597941,
+      "translation": "*top* join *x* = *top*",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386276Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "Having a top value ensures that your semilattice has a finite height, and the law state above ensures that once the dataflow state reaches top, it will no longer change (the fixpoint will be top).",
+      "source_hash": 128347787072229185,
+      "context_hash": 5793027116188880757,
+      "translation": "top 값을 갖는 것은 여러분의 semilattice가 유한한 높이를 가짐을 보장하며, 위에서 언급한 법칙은 데이터플로 상태가 top에 도달하면 더 이상 변하지 않음을 보장합니다(고정점이 top이 됩니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386277Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "The bottom value's primary purpose is as the initial dataflow state.",
+      "source_hash": 3129246598659286477,
+      "context_hash": 8999135712023192036,
+      "translation": "bottom 값의 주된 목적은 초기 데이터플로 상태로 사용되는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386277Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "Each basic block's entry state is initialized to bottom before the analysis starts.",
+      "source_hash": 8965835741407876406,
+      "context_hash": 7256966058317432792,
+      "translation": "각 기본 블록의 진입 상태는 분석이 시작되기 전에 bottom으로 초기화됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386278Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "A Brief Example",
+      "source_hash": 16567231264172137984,
+      "context_hash": 17734492333268220035,
+      "translation": "간단한 예시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386278Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "This section provides a brief example of a simple data-flow analysis at a high level.",
+      "source_hash": 5921656744768924558,
+      "context_hash": 6125523917625371577,
+      "translation": "이 절에서는 간단한 데이터플로 분석을 고수준에서 간략히 예시로 보여줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386278Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It doesn't explain everything you need to know, but hopefully it will make the rest of this page clearer.",
+      "source_hash": 18301183673658629178,
+      "context_hash": 4848587800297928532,
+      "translation": "여러분이 알아야 할 모든 것을 설명하지는 않지만, 이 페이지의 나머지 부분을 좀 더 명확하게 이해하는 데 도움이 되길 바랍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386278Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Let's say we want to do a simple analysis to find if `mem::transmute` may have been called by a certain point in the program.",
+      "source_hash": 9838501472459477580,
+      "context_hash": 18223485896120555388,
+      "translation": "프로그램의 특정 지점까지 `mem::transmute`가 호출되었을 수 있는지 알아내는 간단한 분석을 하고 싶다고 가정해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386279Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Our analysis domain will just be a `bool` that records whether `transmute` has been called so far.",
+      "source_hash": 4142989274209550756,
+      "context_hash": 14779328188985560206,
+      "translation": "저희의 분석 도메인은 지금까지 `transmute`가 호출되었는지를 기록하는 단순한 `bool`이 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386279Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "The bottom value will be `false`, since by default `transmute` has not been called.",
+      "source_hash": 8594459630069942392,
+      "context_hash": 12653830459245856957,
+      "translation": "bottom 값은 `false`가 될 것인데, 기본적으로 `transmute`가 호출되지 않았기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386279Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:3",
+      "source": "The top value will be `true`, since our analysis is done as soon as we determine that `transmute` has been called.",
+      "source_hash": 9235572665560340748,
+      "context_hash": 1898394139306869706,
+      "translation": "top 값은 `true`가 될 것인데, `transmute`가 호출되었음을 확인하는 즉시 저희의 분석이 종료되기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386279Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:4",
+      "source": "Our join operator will just be the boolean OR (`||`) operator.",
+      "source_hash": 17658526155174587377,
+      "context_hash": 16887034768596088098,
+      "translation": "저희의 join 연산자는 단순히 불리언 OR(`||`) 연산자가 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386279Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:5",
+      "source": "We use OR and not AND because of this case:",
+      "source_hash": 6012909736961641367,
+      "context_hash": 18068809876671449991,
+      "translation": "저희가 AND가 아니라 OR을 사용하는 이유는 다음과 같은 경우 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386279Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Inspecting the Results of a Dataflow Analysis",
+      "source_hash": 14272926183902790931,
+      "context_hash": 14038515208019326847,
+      "translation": "데이터플로 분석 결과 검사하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386280Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Once you have constructed an analysis, you must call `iterate_to_fixpoint` which will return a `Results`, which contains the dataflow state at fixpoint upon entry of each block.",
+      "source_hash": 15607473700894468422,
+      "context_hash": 16033895597740324524,
+      "translation": "분석을 구성했다면, `iterate_to_fixpoint`를 호출해야 하며, 이는 각 블록의 진입 시점에서의 고정점 데이터플로 상태를 담은 `Results`를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386280Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Once you have a `Results`, you can inspect the dataflow state at fixpoint at any point in the CFG.",
+      "source_hash": 13137430805445260427,
+      "context_hash": 11439747278374268820,
+      "translation": "`Results`를 얻은 후에는 CFG의 어느 지점에서든 고정점에서의 데이터플로 상태를 검사할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386280Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "If you only need the state at a few locations (e.g., each `Drop` terminator) use a [`ResultsCursor`].",
+      "source_hash": 15715224200652239423,
+      "context_hash": 3589945234274813801,
+      "translation": "몇몇 위치(예: 각 `Drop` 종결자)에서의 상태만 필요하다면 [`ResultsCursor`]를 사용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386280Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:3",
+      "source": "If you need the state at *every* location, a [`ResultsVisitor`] will be more efficient.",
+      "source_hash": 13729229334847949442,
+      "context_hash": 12432695187962873004,
+      "translation": "*모든* 위치에서의 상태가 필요하다면 [`ResultsVisitor`]가 더 효율적일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386280Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "For example, the following code uses a [`ResultsVisitor`]...",
+      "source_hash": 435200329264319578,
+      "context_hash": 14331668473706827253,
+      "translation": "예를 들어, 다음 코드는 [`ResultsVisitor`]를 사용합니다...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386280Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "whereas this code uses [`ResultsCursor`]:",
+      "source_hash": 17003887148559480353,
+      "context_hash": 2807859946235925368,
+      "translation": "반면 이 코드는 [`ResultsCursor`]를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386281Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Graphviz Diagrams",
+      "source_hash": 14850030118870821817,
+      "context_hash": 12079836483185192778,
+      "translation": "Graphviz 다이어그램",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386281Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "When the results of a dataflow analysis are not what you expect, it often helps to visualize them.",
+      "source_hash": 3631279536614384878,
+      "context_hash": 9891544901182924551,
+      "translation": "데이터플로 분석의 결과가 예상과 다를 때는 그 결과를 시각화해 보는 것이 흔히 도움이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386281Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "This can be done with the `-Z dump-mir` flags described in [Debugging MIR].",
+      "source_hash": 4786134481112754579,
+      "context_hash": 7519666852998478927,
+      "translation": "이는 [Debugging MIR]에서 설명된 `-Z dump-mir` 플래그로 수행할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386281Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:2",
+      "source": "Start with `-Z dump-mir=F -Z dump-mir-dataflow`, where `F` is either \"all\" or the name of the MIR body you are interested in.",
+      "source_hash": 10238981490953543858,
+      "context_hash": 10304497467655905109,
+      "translation": "`-Z dump-mir=F -Z dump-mir-dataflow`로 시작하십시오. 여기서 `F`는 \"all\"이거나 여러분이 관심 있는 MIR 본문의 이름입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386281Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "These `.dot` files will be saved in your `mir_dump` directory and will have the [`NAME`] of the analysis (e.g. `maybe_inits`) as part of their filename.",
+      "source_hash": 6868348328934062409,
+      "context_hash": 6018895459730813592,
+      "translation": "이러한 `.dot` 파일들은 `mir_dump` 디렉터리에 저장되며, 파일 이름의 일부로 해당 분석의 [`NAME`](예: `maybe_inits`)을 포함합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386281Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:1",
+      "source": "Each visualization will display the full dataflow state at entry and exit of each block, as well as any changes that occur in each statement and terminator.",
+      "source_hash": 4436477228635931459,
+      "context_hash": 9068305156818828713,
+      "translation": "각 시각화는 각 블록의 진입 및 종료 시점에서의 전체 데이터플로 상태와, 각 문장 및 종결자에서 발생하는 모든 변화를 표시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386282Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:2",
+      "source": "See the example below:",
+      "source_hash": 2702726896520678800,
+      "context_hash": 16948830465658367032,
+      "translation": "아래 예시를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386282Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "![A graphviz diagram for a dataflow analysis](../img/dataflow-graphviz-example.png)",
+      "source_hash": 8956961976254664010,
+      "context_hash": 9848641168552135595,
+      "translation": "![데이터플로 분석에 대한 graphviz 다이어그램](../img/dataflow-graphviz-example.png)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:45.386283Z",
+      "issues": []
+    }
+  ]
+}

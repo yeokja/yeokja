@@ -1,0 +1,1244 @@
+{
+  "version": 1,
+  "source_hash": 10875082236077354179,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "The MIR (Mid-level IR)",
+      "source_hash": 4464158972730232869,
+      "context_hash": 7155613672675546684,
+      "translation": "MIR (중급 IR)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "MIR is Rust's _Mid-level Intermediate Representation_.",
+      "source_hash": 13003914599232826174,
+      "context_hash": 5559593057524869649,
+      "translation": "MIR은 러스트의 *Mid-level Intermediate Representation*(중급 중간 표현)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "It is constructed from [HIR](../hir.md).",
+      "source_hash": 9116358833809902826,
+      "context_hash": 9919175051276934027,
+      "translation": "[HIR](../hir.md)로부터 구성됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "MIR was introduced in [RFC 1211].",
+      "source_hash": 18420904893857869578,
+      "context_hash": 1067212260077567088,
+      "translation": "MIR은 [RFC 1211]에서 도입되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:3",
+      "source": "It is a radically simplified form of Rust that is used for certain flow-sensitive safety checks – notably the borrow checker! – and also for optimization and code generation.",
+      "source_hash": 9888758049045693993,
+      "context_hash": 4722382650842869291,
+      "translation": "이는 러스트를 극도로 단순화한 형태로, 특정 흐름 민감 안전성 검사 – 특히 빌림 검사기! – 뿐만 아니라 최적화와 코드 생성에도 사용됩니다.",
+      "glossary_snapshot": {
+        "borrow checker": "빌림 검사기"
+      },
+      "translated_at": "2026-09-12T01:04:23.351191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "If you'd like a very high-level introduction to MIR, as well as some of the compiler concepts that it relies on (such as control-flow graphs and desugaring), you may enjoy the [rust-lang blog post that introduced MIR][blog].",
+      "source_hash": 8452618844245934277,
+      "context_hash": 17227434340086269151,
+      "translation": "MIR에 대한 매우 고수준의 소개와, MIR이 의존하는 몇 가지 컴파일러 개념(예: 제어 흐름 그래프와 탈설탕화)을 알고 싶다면, [MIR을 소개한 rust-lang 블로그 포스트][blog]를 즐겁게 읽으실 수 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:23.351191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Introduction to MIR",
+      "source_hash": 810022352111056849,
+      "context_hash": 9542383460995707772,
+      "translation": "MIR 소개",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "MIR is defined in the [`compiler/rustc_middle/src/mir/`][mir] module, but much of the code that manipulates it is found in [`compiler/rustc_mir_build`][mirmanip_build], [`compiler/rustc_mir_transform`][mirmanip_transform], and [`compiler/rustc_mir_dataflow`][mirmanip_dataflow].",
+      "source_hash": 9498259778913411179,
+      "context_hash": 16899659179902716514,
+      "translation": "MIR은 [`compiler/rustc_middle/src/mir/`][mir] 모듈에 정의되어 있지만, 이를 조작하는 코드의 상당 부분은 [`compiler/rustc_mir_build`][mirmanip_build], [`compiler/rustc_mir_transform`][mirmanip_transform], [`compiler/rustc_mir_dataflow`][mirmanip_dataflow]에서 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Some of the key characteristics of MIR are:",
+      "source_hash": 12837240286312606266,
+      "context_hash": 16593107334257017280,
+      "translation": "MIR의 주요 특징은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "It is based on a [control-flow graph][cfg].",
+      "source_hash": 669359969408432095,
+      "context_hash": 1222312912606744200,
+      "translation": "[제어 흐름 그래프][cfg]를 기반으로 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "It does not have nested expressions.",
+      "source_hash": 4077002528364633835,
+      "context_hash": 3828238876296143133,
+      "translation": "중첩된 표현식을 갖지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "All types in MIR are fully explicit.",
+      "source_hash": 4249418318054636025,
+      "context_hash": 17299684128679314917,
+      "translation": "MIR의 모든 타입은 완전히 명시적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Key MIR vocabulary",
+      "source_hash": 7073472634814126985,
+      "context_hash": 7177277284539069039,
+      "translation": "MIR의 주요 용어",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "This section introduces the key concepts of MIR, summarized here:",
+      "source_hash": 17172745684500978030,
+      "context_hash": 6289748749144736735,
+      "translation": "이 절에서는 MIR의 핵심 개념을 소개하며, 여기에 요약되어 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "**Basic blocks**: units of the control-flow graph, consisting of:",
+      "source_hash": 17498789055754128909,
+      "context_hash": 4855077421383977230,
+      "translation": "**기본 블록(Basic block)**: 제어 흐름 그래프의 단위로, 다음으로 구성됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "**statements:** actions with one successor",
+      "source_hash": 9341175431813847565,
+      "context_hash": 16374172789558268528,
+      "translation": "**구문(statement):** 후속자가 하나인 동작",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "**terminators:** actions with potentially multiple successors; always at the end of a block",
+      "source_hash": 7363509711914578075,
+      "context_hash": 5095863126647185342,
+      "translation": "**종결자(terminator):** 후속자가 여러 개일 수 있는 동작으로, 항상 블록의 끝에 위치합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351192Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "(if you're not familiar with the term *basic block*, see the [background chapter][cfg])",
+      "source_hash": 13962541516688427371,
+      "context_hash": 5065671748258234089,
+      "translation": "(*basic block*이라는 용어에 익숙하지 않다면 [배경 지식 장][cfg]을 참고하십시오)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "**Locals:** Memory locations allocated on the stack (conceptually, at least), such as function arguments, local variables, and temporaries.",
+      "source_hash": 10857542682595845167,
+      "context_hash": 2735975677739684800,
+      "translation": "**로컬(Locals):** 스택에 할당된(적어도 개념적으로는) 메모리 위치로, 함수 인자, 지역 변수, 임시 값 등이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "These are identified by an index, written with a leading underscore, like `_1`.",
+      "source_hash": 7496015413394516700,
+      "context_hash": 5037292553713950408,
+      "translation": "이들은 인덱스로 식별되며, `_1`과 같이 앞에 밑줄을 붙여 표기됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:2",
+      "source": "There is also a special \"local\" (`_0`) allocated to store the return value.",
+      "source_hash": 7476997200966631473,
+      "context_hash": 590386493343171119,
+      "translation": "반환 값을 저장하기 위해 할당된 특별한 \"로컬\"(`_0`)도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "**Places:** expressions that identify a location in memory, like `_1` or `_1.f`.",
+      "source_hash": 16659336860284647654,
+      "context_hash": 13510976086461963337,
+      "translation": "**위치(Places):** `_1`이나 `_1.f`처럼 메모리상의 위치를 식별하는 표현식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "**Rvalues:** expressions that produce a value.",
+      "source_hash": 2793820778418756656,
+      "context_hash": 6859511436193753801,
+      "translation": "**우측값(Rvalues):** 값을 생성하는 표현식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "The \"R\" stands for the fact that these are the \"right-hand side\" of an assignment.",
+      "source_hash": 16375553473608517655,
+      "context_hash": 7335767254911548990,
+      "translation": "\"R\"은 이들이 대입문의 \"우변(right-hand side)\"이라는 사실을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "**Operands:** the arguments to an rvalue, which can either be a constant (like `22`) or a place (like `_1`).",
+      "source_hash": 11607248089409297216,
+      "context_hash": 12641218815895425207,
+      "translation": "**피연산자(Operands):** rvalue의 인자로, 상수(예: `22`)이거나 위치(예: `_1`)일 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351193Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "You can get a feeling for how MIR is constructed by translating simple programs into MIR and reading the pretty printed output.",
+      "source_hash": 3779610715043779648,
+      "context_hash": 9479130851946243678,
+      "translation": "간단한 프로그램을 MIR로 변환하고 예쁘게 출력된 결과를 읽어봄으로써 MIR이 어떻게 구성되는지 감을 잡을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351194Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "In fact, the playground makes this easy, since it supplies a MIR button that will show you the MIR for your program.",
+      "source_hash": 4128782928551217138,
+      "context_hash": 12353627489800923347,
+      "translation": "실제로 플레이그라운드는 이를 쉽게 해주는데, 프로그램의 MIR을 보여주는 MIR 버튼을 제공하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351194Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:2",
+      "source": "Try putting this program into play (or [clicking on this link][sample-play]), and then clicking the \"MIR\" button on the top:",
+      "source_hash": 17636144828693018544,
+      "context_hash": 10223998088437001585,
+      "translation": "이 프로그램을 실행해 보거나([이 링크를 클릭][sample-play]) 상단의 \"MIR\" 버튼을 클릭해 보십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351194Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "You should see something like:",
+      "source_hash": 9269975052631405299,
+      "context_hash": 11438594656984957692,
+      "translation": "다음과 같은 결과를 보게 될 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:23.351194Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "This is the MIR format for the `main` function.",
+      "source_hash": 13849948659759806627,
+      "context_hash": 8467978991564399920,
+      "translation": "이것은 `main` 함수에 대한 MIR 형식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680626Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:1",
+      "source": "MIR shown by above link is optimized.",
+      "source_hash": 10780498935991674292,
+      "context_hash": 900263447456155440,
+      "translation": "위 링크에서 보여주는 MIR은 최적화된 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680626Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:2",
+      "source": "Some statements like `StorageLive` are removed in optimization.",
+      "source_hash": 16057788726042051205,
+      "context_hash": 1184737616876637658,
+      "translation": "`StorageLive`와 같은 일부 구문은 최적화 과정에서 제거됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680626Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:3",
+      "source": "This happens because the compiler notices the value is never accessed in the code.",
+      "source_hash": 16984732387044102368,
+      "context_hash": 17372171096912518640,
+      "translation": "이는 컴파일러가 코드에서 해당 값이 전혀 접근되지 않는다는 것을 알아차리기 때문에 발생합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:4",
+      "source": "We can use `rustc [filename].rs -Z mir-opt-level=0 --emit mir` to view unoptimized MIR.",
+      "source_hash": 527579407615461985,
+      "context_hash": 9633897147428554639,
+      "translation": "최적화되지 않은 MIR을 보려면 `rustc [filename].rs -Z mir-opt-level=0 --emit mir`을 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:5",
+      "source": "This requires the nightly toolchain.",
+      "source_hash": 9522698017163137156,
+      "context_hash": 6103481991853526410,
+      "translation": "이를 위해서는 nightly 툴체인이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "**Variable declarations.** If we drill in a bit, we'll see it begins with a bunch of variable declarations.",
+      "source_hash": 2148897188107368361,
+      "context_hash": 11126865084274601527,
+      "translation": "**변수 선언.** 조금 더 깊이 들어가 보면, 여러 변수 선언으로 시작하는 것을 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "They look like this:",
+      "source_hash": 11234473195969116513,
+      "context_hash": 5341096506002940211,
+      "translation": "이는 다음과 같은 모습입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "You can see that variables in MIR don't have names, they have indices, like `_0` or `_1`.",
+      "source_hash": 14309942877587440136,
+      "context_hash": 11557728735435971515,
+      "translation": "MIR의 변수는 이름이 없고 `_0`이나 `_1`과 같은 인덱스를 가진다는 것을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:1",
+      "source": "We also intermingle the user's variables (e.g., `_1`) with temporary values (e.g., `_2` or `_3`).",
+      "source_hash": 3570342726387797150,
+      "context_hash": 15973890465467700957,
+      "translation": "또한 사용자의 변수(예: `_1`)와 임시 값(예: `_2`나 `_3`)이 서로 뒤섞여 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:2",
+      "source": "You can tell apart user-defined variables because they have debuginfo associated to them (see below).",
+      "source_hash": 16365532165155525999,
+      "context_hash": 13193903378315222664,
+      "translation": "사용자 정의 변수는 이에 연결된 디버그 정보를 가지고 있기 때문에 구별할 수 있습니다(아래 참조).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "**User variable debuginfo.** Below the variable declarations, we find the only hint that `_1` represents a user variable:",
+      "source_hash": 16326109971983037147,
+      "context_hash": 13546865100414974506,
+      "translation": "**사용자 변수 디버그 정보.** 변수 선언 아래에서, `_1`이 사용자 변수를 나타낸다는 유일한 단서를 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "Each `debug <Name> => <Place>;` annotation describes a named user variable, and where (i.e. the place) a debugger can find the data of that variable.",
+      "source_hash": 14166665742381089404,
+      "context_hash": 7097693594232232737,
+      "translation": "각각의 `debug <Name> => <Place>;` 주석은 이름이 붙은 사용자 변수와, 디버거가 해당 변수의 데이터를 찾을 수 있는 위치(즉 장소)를 설명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:1",
+      "source": "Here the mapping is trivial, but optimizations may complicate the place, or lead to multiple user variables sharing the same place.",
+      "source_hash": 6792828544612421742,
+      "context_hash": 10350443128010517637,
+      "translation": "여기서는 이 매핑이 단순하지만, 최적화로 인해 장소가 복잡해지거나 여러 사용자 변수가 같은 장소를 공유하게 될 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:2",
+      "source": "Additionally, closure captures are described using the same system, and so they're complicated even without optimizations, e.g.: `debug x => (*((*_1).0: &T));`.",
+      "source_hash": 3359525892371738231,
+      "context_hash": 16526942996406373319,
+      "translation": "또한 클로저 캡처도 같은 방식으로 설명되므로, 최적화가 없더라도 다음과 같이 복잡해질 수 있습니다: `debug x => (*((*_1).0: &T));`.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "The \"scope\" blocks (e.g., `scope 1 { .. }`) describe the lexical structure of the source program (which names were in scope when), so any part of the program annotated with `// in scope 0` would be missing `vec`, if you were stepping through the code in a debugger, for example.",
+      "source_hash": 9241696542653132082,
+      "context_hash": 12234314202414976403,
+      "translation": "\"scope\" 블록(예: `scope 1 { .. }`)은 원본 프로그램의 어휘적 구조(어느 시점에 어떤 이름이 스코프 안에 있었는지)를 설명합니다. 따라서 `// in scope 0`으로 주석이 달린 프로그램의 어느 부분에서든, 예를 들어 디버거로 코드를 한 줄씩 실행하고 있다면 `vec`이 보이지 않을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "**Basic blocks.** Reading further, we see our first **basic block** (naturally it may look slightly different when you view it, and I am ignoring some of the comments):",
+      "source_hash": 10633335242616277055,
+      "context_hash": 15943487373426205227,
+      "translation": "**기본 블록.** 더 읽어 나가면, 첫 번째 **기본 블록**을 보게 됩니다(자연히 여러분이 직접 볼 때는 다소 다르게 보일 수 있으며, 저는 일부 주석을 생략하고 있습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "A basic block is defined by a series of **statements** and a final **terminator**.",
+      "source_hash": 3896526193144807379,
+      "context_hash": 1178702582154049780,
+      "translation": "기본 블록은 일련의 **구문**과 마지막 **종결자**로 정의됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:1",
+      "source": "In this case, there is one statement:",
+      "source_hash": 2445437475820629297,
+      "context_hash": 1570625725998161023,
+      "translation": "이 경우에는 구문이 하나 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "This statement indicates that the variable `_1` is \"live\", meaning that it may be used later – this will persist until we encounter a `StorageDead(_1)` statement, which indicates that the variable `_1` is done being used.",
+      "source_hash": 12637545826203070751,
+      "context_hash": 12724418754959296925,
+      "translation": "이 구문은 변수 `_1`이 \"살아있다(live)\"는 것을 나타내며, 이는 이후에 사용될 수도 있다는 의미입니다. 이 상태는 변수 `_1`의 사용이 끝났음을 나타내는 `StorageDead(_1)` 구문을 만날 때까지 지속됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:1",
+      "source": "These \"storage statements\" are used by LLVM to allocate stack space.",
+      "source_hash": 18355879185028858160,
+      "context_hash": 1419460798249713283,
+      "translation": "이러한 \"저장소 구문(storage statement)\"은 LLVM이 스택 공간을 할당하는 데 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "The **terminator** of the block `bb0` is the call to `Vec::new`:",
+      "source_hash": 11828950649399177011,
+      "context_hash": 10243615971173669076,
+      "translation": "블록 `bb0`의 **종결자**는 `Vec::new` 호출입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "Terminators are different from statements because they can have more than one successor – that is, control may flow to different places.",
+      "source_hash": 897714034836774212,
+      "context_hash": 15665190488034331672,
+      "translation": "종결자는 구문과 달리 둘 이상의 후속 블록을 가질 수 있습니다. 즉, 제어 흐름이 서로 다른 곳으로 이동할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:1",
+      "source": "Function calls like the call to `Vec::new` are always terminators because of the possibility of unwinding, although in the case of `Vec::new` we are able to see that indeed unwinding is not possible, and hence we list only one successor block, `bb2`.",
+      "source_hash": 17271067522170572876,
+      "context_hash": 17272613789224561891,
+      "translation": "`Vec::new` 호출과 같은 함수 호출은 언와인딩(unwinding)의 가능성 때문에 항상 종결자가 됩니다. 다만 `Vec::new`의 경우에는 실제로 언와인딩이 불가능하다는 것을 알 수 있으므로, 후속 블록으로 `bb2` 하나만 나열되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "If we look ahead to `bb2`, we will see it looks like this:",
+      "source_hash": 5090382715093469360,
+      "context_hash": 16880189715700057518,
+      "translation": "앞서 `bb2`를 살펴보면, 다음과 같은 모습임을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "Here there are two statements: another `StorageLive`, introducing the `_3` temporary, and then an assignment:",
+      "source_hash": 17995546123699356307,
+      "context_hash": 3560569628377291222,
+      "translation": "여기에는 두 개의 구문이 있습니다: 임시값 `_3`을 도입하는 또 다른 `StorageLive`, 그리고 이어지는 할당문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "Assignments in general have the form:",
+      "source_hash": 7421355072491747697,
+      "context_hash": 15125054509566555240,
+      "translation": "할당문은 일반적으로 다음과 같은 형태를 가집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "A place is an expression like `_3`, `_3.f` or `*_3` – it denotes a location in memory.",
+      "source_hash": 1725441825328887276,
+      "context_hash": 16300986996722008666,
+      "translation": "장소(place)는 `_3`, `_3.f`, `*_3`과 같은 표현식으로, 메모리 상의 위치를 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:1",
+      "source": "An **Rvalue** is an expression that creates a value: in this case, the rvalue is a mutable borrow expression, which looks like `&mut <Place>`.",
+      "source_hash": 4569292793011323693,
+      "context_hash": 12743663059697440233,
+      "translation": "**Rvalue**는 값을 생성하는 표현식입니다. 이 경우 rvalue는 `&mut <Place>`와 같은 형태의 가변 빌림(mutable borrow) 표현식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:2",
+      "source": "So we can kind of define a grammar for rvalues like so:",
+      "source_hash": 806901115767187635,
+      "context_hash": 17695691927803300514,
+      "translation": "따라서 우리는 rvalue에 대한 문법을 대략 다음과 같이 정의할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:28.680628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "As you can see from this grammar, rvalues cannot be nested – they can only reference places and constants.",
+      "source_hash": 18346022695145278180,
+      "context_hash": 2415187945709975766,
+      "translation": "이 문법에서 알 수 있듯이, rvalue는 중첩될 수 없으며 – place와 상수만을 참조할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:1",
+      "source": "Moreover, when you use a place, we indicate whether we are **copying it** (which requires that the place have a type `T` where `T: Copy`) or **moving it** (which works for a place of any type).",
+      "source_hash": 13177722860585473196,
+      "context_hash": 17380128645039943523,
+      "translation": "또한 place를 사용할 때는 우리가 **그것을 복사하는지**(이는 place가 `T: Copy`를 만족하는 타입 `T`를 가져야 함을 요구합니다) 아니면 **그것을 이동하는지**(이는 어떤 타입의 place에도 적용됩니다)를 표시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:2",
+      "source": "So, for example, if we had the expression `x = a + b + c` in Rust, that would get compiled to two statements and a temporary:",
+      "source_hash": 13937923609263646858,
+      "context_hash": 3788244363387319812,
+      "translation": "그래서 예를 들어 Rust에서 `x = a + b + c`라는 표현식이 있었다면, 이는 두 개의 문(statement)과 하나의 임시 변수로 컴파일될 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "([Try it and see][play-abc], though you may want to do release mode to skip over the overflow checks.)",
+      "source_hash": 3695816346376858799,
+      "context_hash": 3244442858248865374,
+      "translation": "([직접 시도해 보십시오][play-abc], 다만 오버플로우 검사를 건너뛰려면 릴리스 모드를 사용하는 것이 좋습니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "MIR data types",
+      "source_hash": 3044748961073188098,
+      "context_hash": 13885970203643178195,
+      "translation": "MIR 데이터 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The MIR data types are defined in the [`compiler/rustc_middle/src/mir/`][mir] module.",
+      "source_hash": 10646566035430667599,
+      "context_hash": 7213226888074584743,
+      "translation": "MIR 데이터 타입은 [`compiler/rustc_middle/src/mir/`][mir] 모듈에 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Each of the key concepts mentioned in the previous section maps in a fairly straightforward way to a Rust type.",
+      "source_hash": 12102585170330252460,
+      "context_hash": 7555912427556293722,
+      "translation": "앞 절에서 언급된 각 핵심 개념은 상당히 직관적인 방식으로 Rust 타입에 대응됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "The main MIR data type is [`Body`].",
+      "source_hash": 6092872394648617847,
+      "context_hash": 15189856606387145092,
+      "translation": "주요 MIR 데이터 타입은 [`Body`]입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "It contains the data for a single function (along with sub-instances of Mir for \"promoted constants\", but [you can read about those below](#promoted-constants)).",
+      "source_hash": 4882528183640682834,
+      "context_hash": 1859805592668889303,
+      "translation": "이는 단일 함수에 대한 데이터를 담고 있습니다(또한 \"승격된 상수(promoted constants)\"에 대한 Mir의 하위 인스턴스도 포함하는데, [이에 대해서는 아래에서 읽어보실 수 있습니다](#promoted-constants)).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "**Basic blocks**: The basic blocks are stored in the field [`Body::basic_blocks`][basicblocks]; this is a vector of [`BasicBlockData`] structures.",
+      "source_hash": 5709053031427594116,
+      "context_hash": 14962671384941595160,
+      "translation": "**기본 블록(Basic blocks)**: 기본 블록은 [`Body::basic_blocks`][basicblocks] 필드에 저장되며, 이는 [`BasicBlockData`] 구조체들의 벡터입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "Nobody ever references a basic block directly: instead, we pass around [`BasicBlock`] values, which are [newtype'd] indices into this vector.",
+      "source_hash": 3780011207248948770,
+      "context_hash": 9126276186272382855,
+      "translation": "누구도 기본 블록을 직접 참조하지 않습니다: 대신 우리는 이 벡터에 대한 [뉴타입화된][newtype'd] 인덱스인 [`BasicBlock`] 값을 주고받습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "**Statements** are represented by the type [`Statement`].",
+      "source_hash": 8320179435062123490,
+      "context_hash": 15883531902310394271,
+      "translation": "**문(Statements)**은 [`Statement`] 타입으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "**Terminators** are represented by the [`Terminator`].",
+      "source_hash": 15094011258122917867,
+      "context_hash": 8185955214024100489,
+      "translation": "**종결자(Terminators)**는 [`Terminator`]로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "**Locals** are represented by a [newtype'd] index type [`Local`].",
+      "source_hash": 15231393976700927283,
+      "context_hash": 13706078666748576790,
+      "translation": "**로컬(Locals)**은 [뉴타입화된][newtype'd] 인덱스 타입인 [`Local`]로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "The data for a local variable is found in the [`Body::local_decls`][localdecls] vector.",
+      "source_hash": 7265708125810804557,
+      "context_hash": 12301258834583370766,
+      "translation": "로컬 변수에 대한 데이터는 [`Body::local_decls`][localdecls] 벡터에서 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:2",
+      "source": "There is also a special constant [`RETURN_PLACE`] identifying the special \"local\" representing the return value.",
+      "source_hash": 3916720381271611775,
+      "context_hash": 1925948743576606027,
+      "translation": "또한 반환값을 나타내는 특별한 \"로컬\"을 식별하는 특별한 상수 [`RETURN_PLACE`]도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "**Places** are identified by the struct [`Place`].",
+      "source_hash": 15711952714703480710,
+      "context_hash": 8248687174339323303,
+      "translation": "**Place**는 [`Place`] 구조체로 식별됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:1",
+      "source": "There are a few fields:",
+      "source_hash": 4137139448226694117,
+      "context_hash": 17346534226563930735,
+      "translation": "몇 가지 필드가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Local variables like `_1`",
+      "source_hash": 16298564573686002524,
+      "context_hash": 14398381324024473815,
+      "translation": "`_1`과 같은 로컬 변수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "**Projections**, which are fields or other things that \"project out\" from a base place.",
+      "source_hash": 7098792808252262667,
+      "context_hash": 17365203737690785301,
+      "translation": "**프로젝션(Projections)**은 기본 place로부터 \"밖으로 투사(project out)\"되는 필드나 다른 요소들입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:1",
+      "source": "These are represented by the [newtype'd] type [`ProjectionElem`].",
+      "source_hash": 8711947838465554171,
+      "context_hash": 16417743508025437017,
+      "translation": "이들은 [뉴타입화된][newtype'd] 타입인 [`ProjectionElem`]으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:2",
+      "source": "So e.g. the place `_1.f` is a projection, with `f` being the \"projection element\" and `_1` being the base path. `*_1` is also a projection, with the `*` being represented by the [`ProjectionElem::Deref`] element.",
+      "source_hash": 17055388628919481089,
+      "context_hash": 17373928426163853599,
+      "translation": "예를 들어 place `_1.f`는 프로젝션이며, `f`가 \"프로젝션 요소\"이고 `_1`이 기본 경로입니다. `*_1` 역시 프로젝션이며, `*`는 [`ProjectionElem::Deref`] 요소로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "**Rvalues** are represented by the enum [`Rvalue`].",
+      "source_hash": 16710525436115911861,
+      "context_hash": 8036106440605432750,
+      "translation": "**Rvalue**는 [`Rvalue`] 열거형으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "**Operands** are represented by the enum [`Operand`].",
+      "source_hash": 14601605240882438435,
+      "context_hash": 8677310785710798427,
+      "translation": "**Operand**는 [`Operand`] 열거형으로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Representing constants",
+      "source_hash": 2945759071520437897,
+      "context_hash": 1273652680816816215,
+      "translation": "상수 표현하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "When code has reached the MIR stage, constants can generally come in two forms: *MIR constants* ([`mir::Constant`]) and *type system constants* ([`ty::Const`]).",
+      "source_hash": 1792990395735218050,
+      "context_hash": 8190551000176162197,
+      "translation": "코드가 MIR 단계에 도달했을 때, 상수는 일반적으로 두 가지 형태로 나타날 수 있습니다: *MIR 상수*([`mir::Constant`])와 *타입 시스템 상수*([`ty::Const`])입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "MIR constants are used as operands: in `x + CONST`, `CONST` is a MIR constant; similarly, in `x + 2`, `2` is a MIR constant.",
+      "source_hash": 5867538180770870940,
+      "context_hash": 10768610536943116725,
+      "translation": "MIR 상수는 operand로 사용됩니다: `x + CONST`에서 `CONST`는 MIR 상수이며, 마찬가지로 `x + 2`에서 `2`는 MIR 상수입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "Type system constants are used in the type system, in particular for array lengths but also for const generics.",
+      "source_hash": 14130618751962725043,
+      "context_hash": 17853754950109818862,
+      "translation": "타입 시스템 상수는 타입 시스템 내에서, 특히 배열 길이뿐만 아니라 const generic에도 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Generally, both kinds of constants can be \"unevaluated\" or \"already evaluated\".",
+      "source_hash": 6461651995218996706,
+      "context_hash": 2707784401826278754,
+      "translation": "일반적으로 두 종류의 상수 모두 \"평가되지 않은\" 상태이거나 \"이미 평가된\" 상태일 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "An unevaluated constant simply stores the `DefId` of what needs to be evaluated to compute this result.",
+      "source_hash": 7657172852980172720,
+      "context_hash": 9963530006837304618,
+      "translation": "평가되지 않은 상수는 이 결과를 계산하기 위해 평가되어야 할 대상의 `DefId`를 단순히 저장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607977Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:2",
+      "source": "An evaluated constant (a \"value\") has already been computed; their representation differs between type system constants and MIR constants: MIR constants evaluate to a `mir::ConstValue`; type system constants evaluate to a `ty::ValTree`.",
+      "source_hash": 12158798772608298938,
+      "context_hash": 3680369578772818708,
+      "translation": "평가된 상수(\"값\")는 이미 계산이 완료된 것입니다; 이들의 표현 방식은 타입 시스템 상수와 MIR 상수 간에 다릅니다: MIR 상수는 `mir::ConstValue`로 평가되며, 타입 시스템 상수는 `ty::ValTree`로 평가됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:29.607977Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Type system constants have some more variants to support const generics: they can refer to local const generic parameters, and they are subject to inference.",
+      "source_hash": 6515042152807242561,
+      "context_hash": 11985560591631660599,
+      "translation": "타입 시스템 상수는 const 제네릭을 지원하기 위해 몇 가지 변형을 더 가지고 있습니다: 지역 const 제네릭 매개변수를 참조할 수 있으며, 타입 추론의 대상이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459423Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "Furthermore, the `mir::Constant::Ty` variant lets us use an arbitrary type system constant as a MIR constant; this happens whenever a const generic parameter is used as an operand.",
+      "source_hash": 395016968989930117,
+      "context_hash": 17992265276635202892,
+      "translation": "또한 `mir::Constant::Ty` 변형은 임의의 타입 시스템 상수를 MIR 상수로 사용할 수 있게 해줍니다; 이는 const 제네릭 매개변수가 피연산자로 사용될 때마다 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459424Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "MIR constant values",
+      "source_hash": 4433149491911910502,
+      "context_hash": 3562723171876264077,
+      "translation": "MIR 상수 값",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459424Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "In general, a MIR constant value (`mir::ConstValue`) was computed by evaluating some constant the user wrote.",
+      "source_hash": 803014789624603152,
+      "context_hash": 2506758352249595015,
+      "translation": "일반적으로 MIR 상수 값(`mir::ConstValue`)은 사용자가 작성한 어떤 상수를 평가하여 계산되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459424Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "This [const evaluation](../const-eval.md) produces a very low-level representation of the result in terms of individual bytes.",
+      "source_hash": 13178658811592403264,
+      "context_hash": 16535674714321818215,
+      "translation": "이 [상수 평가](../const-eval.md)는 결과를 개별 바이트 단위로 나타내는 매우 저수준의 표현을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459424Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:2",
+      "source": "We call this an \"indirect\" constant (`mir::ConstValue::Indirect`) since the value is stored in-memory.",
+      "source_hash": 8239003956562686852,
+      "context_hash": 4281947803373224901,
+      "translation": "값이 메모리에 저장되기 때문에 이를 \"간접\" 상수(`mir::ConstValue::Indirect`)라고 부릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459424Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "However, storing everything in-memory would be awfully inefficient.",
+      "source_hash": 13368540171250280354,
+      "context_hash": 12449320247534821489,
+      "translation": "하지만 모든 것을 메모리에 저장하는 것은 매우 비효율적일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459424Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "Hence there are some other variants in `mir::ConstValue` that can represent certain simple and common values more efficiently.",
+      "source_hash": 4527476061202971647,
+      "context_hash": 7914464055024731015,
+      "translation": "따라서 `mir::ConstValue`에는 특정 단순하고 흔한 값을 더 효율적으로 나타낼 수 있는 다른 변형들이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:2",
+      "source": "In particular, everything that can be directly written as a literal in Rust (integers, floats, chars, bools, but also `\"string literals\"` and `b\"byte string literals\"`) has an optimized variant that avoids the full overhead of the in-memory representation.",
+      "source_hash": 15942554732573834001,
+      "context_hash": 18128091799359343458,
+      "translation": "특히 Rust에서 리터럴로 직접 작성할 수 있는 모든 것(정수, 부동소수점, 문자, 불리언뿐만 아니라 `\"문자열 리터럴\"`과 `b\"바이트 문자열 리터럴\"`)은 메모리 내 표현의 전체 오버헤드를 피하는 최적화된 변형을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "ValTrees",
+      "source_hash": 15684347965283030535,
+      "context_hash": 9911465582104563058,
+      "translation": "ValTree",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "An evaluated type system constant is a \"valtree\".",
+      "source_hash": 939565461370282382,
+      "context_hash": 1222112485323451485,
+      "translation": "평가된 타입 시스템 상수는 \"valtree\"입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:1",
+      "source": "The `ty::ValTree` datastructure allows us to represent",
+      "source_hash": 7591233873879097664,
+      "context_hash": 5059927810102449309,
+      "translation": "`ty::ValTree` 자료구조를 통해 다음을 표현할 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "arrays,",
+      "source_hash": 6173878901542783536,
+      "context_hash": 15917637405679257271,
+      "translation": "배열,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "many structs,",
+      "source_hash": 2716182748989977476,
+      "context_hash": 8447780475969623546,
+      "translation": "많은 구조체,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "tuples,",
+      "source_hash": 15141142270568094510,
+      "context_hash": 1188579530725265929,
+      "translation": "튜플,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "enums and,",
+      "source_hash": 2151662232092865395,
+      "context_hash": 16113861288601580192,
+      "translation": "열거형, 그리고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "most primitives.",
+      "source_hash": 12395044956075657773,
+      "context_hash": 8086088043987218582,
+      "translation": "대부분의 기본 타입.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "The most important rule for this representation is that every value must be uniquely represented.",
+      "source_hash": 11944321829522443374,
+      "context_hash": 18091559136183766564,
+      "translation": "이 표현에서 가장 중요한 규칙은 모든 값이 고유하게 표현되어야 한다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459425Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:1",
+      "source": "In other words, a specific value must only be representable in one specific way.",
+      "source_hash": 15021655061693881040,
+      "context_hash": 17663219831162065640,
+      "translation": "다시 말해, 특정 값은 오직 하나의 특정 방식으로만 표현 가능해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:2",
+      "source": "For example, there is only one way to represent an array of two integers as a `ValTree`: `Branch([Leaf(first_int), Leaf(second_int)])`.",
+      "source_hash": 9940164481863425783,
+      "context_hash": 12044423712025878157,
+      "translation": "예를 들어, 두 정수로 이루어진 배열을 `ValTree`로 표현하는 방법은 오직 하나뿐입니다: `Branch([Leaf(first_int), Leaf(second_int)])`.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:3",
+      "source": "Even though theoretically a `[u32; 2]` could be encoded in a `u64` and thus just be a `Leaf(bits_of_two_u32)`, that is not a legal construction of `ValTree` (and is very complex to do, so it is unlikely anyone is tempted to do so).",
+      "source_hash": 14936052960186968711,
+      "context_hash": 8475870689957768717,
+      "translation": "이론적으로는 `[u32; 2]`를 `u64`로 인코딩하여 단순히 `Leaf(bits_of_two_u32)`로 만들 수 있지만, 이는 `ValTree`의 합법적인 구성이 아닙니다(그리고 실행하기에도 매우 복잡하므로 누군가 그렇게 하려는 유혹을 받을 가능성은 낮습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "These rules also mean that some values are not representable.",
+      "source_hash": 6065667615667274677,
+      "context_hash": 13777246609192767430,
+      "translation": "이러한 규칙은 또한 일부 값은 표현할 수 없다는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "There can be no `union`s in type level constants, as it is not clear how they should be represented, because their active variant is unknown.",
+      "source_hash": 12083462041579842863,
+      "context_hash": 14120197082899343463,
+      "translation": "타입 수준 상수에는 `union`이 존재할 수 없는데, 이는 활성 변형(active variant)을 알 수 없기 때문에 어떻게 표현해야 할지 명확하지 않기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:2",
+      "source": "Similarly, there is no way to represent raw pointers as addresses are unknown at compile-time, and thus we cannot make any assumptions about them.",
+      "source_hash": 3491663802419628453,
+      "context_hash": 4961230978610946005,
+      "translation": "마찬가지로, 컴파일 타임에는 주소를 알 수 없기 때문에 원시 포인터를 표현할 방법이 없으며, 따라서 그것들에 대해 어떠한 가정도 할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:3",
+      "source": "References on the other hand *can* be represented, as equality for references is defined as equality on their value, so we ignore their address and just look at the backing value.",
+      "source_hash": 14696126433643327113,
+      "context_hash": 3028760048138664946,
+      "translation": "반면 참조는 표현될 *수* 있는데, 참조에 대한 동등성은 그 값에 대한 동등성으로 정의되기 때문에 주소는 무시하고 뒷받침하는 값만 살펴보면 되기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:4",
+      "source": "We must make sure that the pointer values of the references are not observable at compile time.",
+      "source_hash": 945145792267570087,
+      "context_hash": 13614480493692105426,
+      "translation": "참조의 포인터 값이 컴파일 타임에 관찰되지 않도록 반드시 보장해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:5",
+      "source": "We thus encode `&42` exactly like `42`.",
+      "source_hash": 6339086800807200844,
+      "context_hash": 17766786805684769046,
+      "translation": "따라서 `&42`는 `42`와 정확히 동일하게 인코딩합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:6",
+      "source": "Any conversion from valtree back to a MIR constant value must reintroduce an actual indirection.",
+      "source_hash": 12069450111379295284,
+      "context_hash": 7053534540760011730,
+      "translation": "valtree에서 MIR 상수 값으로 다시 변환할 때는 반드시 실제 간접 참조를 다시 도입해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459426Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:7",
+      "source": "At codegen time, the addresses may be deduplicated between multiple uses or not, entirely depending on arbitrary optimization choices.",
+      "source_hash": 5652620890274648343,
+      "context_hash": 761797197526898749,
+      "translation": "코드 생성 시점에는, 여러 사용처 간에 주소가 중복 제거될 수도 있고 아닐 수도 있으며, 이는 전적으로 임의의 최적화 선택에 달려 있습니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:04:36.459427Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "As a consequence, all decoding of `ValTree` must happen by matching on the type first and making decisions depending on that.",
+      "source_hash": 13746920891006867919,
+      "context_hash": 14797971108165138133,
+      "translation": "결과적으로, `ValTree`의 모든 디코딩은 먼저 타입에 대해 매칭을 수행하고 그에 따라 결정을 내리는 방식으로 이루어져야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459427Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:1",
+      "source": "The value itself gives no useful information without the type that belongs to it.",
+      "source_hash": 4213138049705256753,
+      "context_hash": 8802085868526295829,
+      "translation": "값 자체는 그것에 속하는 타입 없이는 유용한 정보를 전혀 제공하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459427Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "Promoted constants",
+      "source_hash": 140992057541347526,
+      "context_hash": 3957401984188014716,
+      "translation": "승격된 상수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:36.459427Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "See the const-eval WG's [docs on promotion](https://github.com/rust-lang/const-eval/blob/master/promotion.md).",
+      "source_hash": 13937451738230857181,
+      "context_hash": 2331290155550029376,
+      "translation": "const-eval WG의 [승격 관련 문서](https://github.com/rust-lang/const-eval/blob/master/promotion.md)를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:01:12.941259Z",
+      "issues": []
+    }
+  ]
+}

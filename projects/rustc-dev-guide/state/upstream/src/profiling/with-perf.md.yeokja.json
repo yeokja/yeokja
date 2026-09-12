@@ -1,0 +1,1172 @@
+{
+  "version": 1,
+  "source_hash": 17184643943884280623,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Profiling with perf",
+      "source_hash": 1093617630090573894,
+      "context_hash": 12350845090468348191,
+      "translation": "perf를 이용한 프로파일링",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862708Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This is a guide for how to profile rustc with [perf](https://perf.wiki.kernel.org/index.php/Main_Page).",
+      "source_hash": 13263746554471949740,
+      "context_hash": 795895706791092401,
+      "translation": "이 문서는 [perf](https://perf.wiki.kernel.org/index.php/Main_Page)를 이용해 rustc를 프로파일링하는 방법에 대한 가이드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Initial steps",
+      "source_hash": 2533530990178124755,
+      "context_hash": 11934445937836817297,
+      "translation": "초기 단계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Get a clean checkout of rust-lang/rust",
+      "source_hash": 6197707652689765886,
+      "context_hash": 17153122315409604116,
+      "translation": "rust-lang/rust를 깨끗하게 체크아웃합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Set the following settings in your `bootstrap.toml`:",
+      "source_hash": 15461213104695492363,
+      "context_hash": 9785687981894291427,
+      "translation": "`bootstrap.toml`에 다음 설정을 지정합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "`rust.debuginfo-level = 1` - enables line debuginfo",
+      "source_hash": 12143263312504490639,
+      "context_hash": 18172758412328970651,
+      "translation": "`rust.debuginfo-level = 1` - 라인 디버그 정보를 활성화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "leave `build.allocator` unset - lets you do memory use profiling with valgrind",
+      "source_hash": 2938469569140516263,
+      "context_hash": 2446901281238570906,
+      "translation": "`build.allocator`는 설정하지 않은 채로 둡니다 - valgrind로 메모리 사용량 프로파일링을 할 수 있게 해줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "leave everything else the defaults",
+      "source_hash": 15668301896906855310,
+      "context_hash": 11995057347123052480,
+      "translation": "나머지는 모두 기본값으로 둡니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Run `./x build` to get a full build",
+      "source_hash": 8144492813906484047,
+      "context_hash": 15056412340462426023,
+      "translation": "`./x build`를 실행하여 전체 빌드를 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Make a rustup toolchain pointing to that result",
+      "source_hash": 13186925934361519143,
+      "context_hash": 2479080621043137643,
+      "translation": "그 결과물을 가리키는 rustup 툴체인을 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "see [the \"build and run\" section for instructions][b-a-r]",
+      "source_hash": 162344529445879255,
+      "context_hash": 11486960934414011731,
+      "translation": "안내는 [\"빌드하고 실행하기\" 절][b-a-r]을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Gathering a perf profile",
+      "source_hash": 4892195257717125025,
+      "context_hash": 8805073180097785716,
+      "translation": "perf 프로파일 수집하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862709Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "perf is an excellent tool on Linux that can be used to gather and analyze all kinds of information.",
+      "source_hash": 2030681785165154203,
+      "context_hash": 6877020388454952787,
+      "translation": "perf는 Linux에서 온갖 종류의 정보를 수집하고 분석하는 데 사용할 수 있는 훌륭한 도구입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It is mostly used to figure out where a program spends its time.",
+      "source_hash": 16482122249081885715,
+      "context_hash": 13733491762944000541,
+      "translation": "주로 프로그램이 시간을 어디에 소비하는지 파악하는 데 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "It can also be used for other sorts of events, though, like cache misses and so forth.",
+      "source_hash": 892306947620123774,
+      "context_hash": 6973624449141002392,
+      "translation": "하지만 캐시 미스 등 다른 종류의 이벤트에도 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The basics",
+      "source_hash": 14914387882215601474,
+      "context_hash": 542274105542104021,
+      "translation": "기본 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The basic `perf` command is this:",
+      "source_hash": 7655395365950585923,
+      "context_hash": 7487433165994200766,
+      "translation": "기본적인 `perf` 명령은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The `-F99` tells perf to sample at 99 Hz, which avoids generating too much data for longer runs.",
+      "source_hash": 9427195662007633557,
+      "context_hash": 18365251180940326819,
+      "translation": "`-F99`는 perf에게 99Hz로 샘플링하라고 지시하는데, 이는 실행 시간이 긴 경우 너무 많은 데이터가 생성되는 것을 방지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "99 Hz is often chosen because it is unlikely to be in lockstep with other periodic activity.",
+      "source_hash": 13443787217755548430,
+      "context_hash": 9457721453488969724,
+      "translation": "99Hz가 자주 선택되는 이유는 다른 주기적인 활동과 박자가 맞을 가능성이 낮기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "The `--call-graph dwarf` tells perf to get call-graph information from debuginfo, which is accurate.",
+      "source_hash": 4613090466145035741,
+      "context_hash": 16732087822701055883,
+      "translation": "`--call-graph dwarf`는 perf에게 디버그 정보로부터 콜 그래프 정보를 얻으라고 지시하는데, 이는 정확합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "The `XXX` is the command you want to profile.",
+      "source_hash": 16832844691999755498,
+      "context_hash": 5300316149148513939,
+      "translation": "`XXX`는 프로파일링하려는 명령입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:2",
+      "source": "So, for example, you might do:",
+      "source_hash": 5856296619350295143,
+      "context_hash": 11702562013575653095,
+      "translation": "예를 들어 다음과 같이 할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "to run `cargo` -- here `<toolchain>` should be the name of the toolchain you made in the beginning.",
+      "source_hash": 6125099071779141999,
+      "context_hash": 7357429888753185157,
+      "translation": "`cargo`를 실행하기 위한 것입니다 -- 여기서 `<toolchain>`은 처음에 만든 툴체인의 이름이어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "But there are some things to be aware of:",
+      "source_hash": 14241325473840108761,
+      "context_hash": 17064008053319629746,
+      "translation": "다만 유의할 점이 몇 가지 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "You probably don't want to profile the time spent building dependencies.",
+      "source_hash": 1015382568988646688,
+      "context_hash": 1622042535986166428,
+      "translation": "의존성을 빌드하는 데 걸리는 시간은 프로파일링하고 싶지 않을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862711Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "So something like `cargo build; cargo clean --package $crate` may be helpful",
+      "source_hash": 15565880665417189036,
+      "context_hash": 8468055942578657702,
+      "translation": "`cargo build; cargo clean --package $crate`와 같은 방식이 도움이 될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862711Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Though usually I just do `touch src/lib.rs` and rebuild instead =)",
+      "source_hash": 13473522889873684345,
+      "context_hash": 13253317032290810350,
+      "translation": "하지만 저는 보통 그냥 `touch src/lib.rs`를 하고 다시 빌드합니다 =)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862711Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "You probably don't want incremental messing about with your profile.",
+      "source_hash": 2717601160037973638,
+      "context_hash": 11271604415231095140,
+      "translation": "프로파일에 incremental이 개입하는 것도 원치 않을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862711Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:1",
+      "source": "So something like `CARGO_INCREMENTAL=0` can be helpful.",
+      "source_hash": 3518477802107158303,
+      "context_hash": 7028941329307154987,
+      "translation": "`CARGO_INCREMENTAL=0`과 같은 방식이 도움이 될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862711Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "In case to avoid the issue of `addr2line xxx/elf: could not read first record` when reading collected data from `cargo`, you may need use the latest version of `addr2line`:",
+      "source_hash": 17955911043067848742,
+      "context_hash": 14959347421335233725,
+      "translation": "`cargo`에서 수집한 데이터를 읽을 때 `addr2line xxx/elf: could not read first record` 문제를 피하려면, 최신 버전의 `addr2line`을 사용해야 할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862711Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Gathering a perf profile from a `perf.rust-lang.org` test",
+      "source_hash": 8108220848631479526,
+      "context_hash": 11524993986107161199,
+      "translation": "`perf.rust-lang.org` 테스트로부터 perf 프로파일 수집하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:55.862711Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Often we want to analyze a specific test from `perf.rust-lang.org`.",
+      "source_hash": 1436295132826348658,
+      "context_hash": 15427995031981954094,
+      "translation": "종종 `perf.rust-lang.org`에서 특정 테스트를 분석하고 싶을 때가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649987Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "The easiest way to do that is to use the [rustc-perf] benchmarking suite, this approach is described [here](with-rustc-perf.md).",
+      "source_hash": 4778910799299837284,
+      "context_hash": 9644330722487233439,
+      "translation": "이를 수행하는 가장 쉬운 방법은 [rustc-perf] 벤치마킹 도구 모음을 사용하는 것이며, 이 방법은 [여기](with-rustc-perf.md)에서 설명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "Instead of using the benchmark suite CLI, you can also profile the benchmarks manually.",
+      "source_hash": 9110756969700198471,
+      "context_hash": 16146440256744160945,
+      "translation": "벤치마크 도구 모음의 CLI를 사용하는 대신, 벤치마크를 수동으로 프로파일링할 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:1",
+      "source": "First, you need to clone the [rustc-perf] repository:",
+      "source_hash": 8462806167786423084,
+      "context_hash": 3238794211293302109,
+      "translation": "먼저, [rustc-perf] 저장소를 클론해야 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "and then find the source code of the test that you want to profile.",
+      "source_hash": 11378761648180103986,
+      "context_hash": 12730246980366267776,
+      "translation": "그런 다음 프로파일링하려는 테스트의 소스 코드를 찾으십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:1",
+      "source": "Sources for the tests are found in [the `collector/compile-benchmarks` directory][compile-time dir] and [the `collector/runtime-benchmarks` directory][runtime dir].",
+      "source_hash": 1134766495457464252,
+      "context_hash": 16498669879085028551,
+      "translation": "테스트의 소스는 [`collector/compile-benchmarks` 디렉터리][compile-time dir]와 [`collector/runtime-benchmarks` 디렉터리][runtime dir]에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:2",
+      "source": "So let's go into the directory of a specific test; we'll use `clap-rs` as an example:",
+      "source_hash": 9988684428788946324,
+      "context_hash": 7015258934212411056,
+      "translation": "그러면 특정 테스트의 디렉터리로 들어갑시다; 여기서는 `clap-rs`를 예시로 사용하겠습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "In this case, let's say we want to profile the `cargo check` performance.",
+      "source_hash": 1588080111358817793,
+      "context_hash": 7221333802300861960,
+      "translation": "이 경우, `cargo check`의 성능을 프로파일링하고 싶다고 가정합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:1",
+      "source": "In that case, I would first run some basic commands to build the dependencies:",
+      "source_hash": 4365216704551007392,
+      "context_hash": 17189875523587256891,
+      "translation": "그런 경우, 저라면 먼저 의존성을 빌드하기 위해 몇 가지 기본 명령을 실행하겠습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "(Again, `<toolchain>` should be replaced with the name of the toolchain we made in the first step.)",
+      "source_hash": 9855310245416386782,
+      "context_hash": 10869606871321014753,
+      "translation": "(다시 말하지만, `<toolchain>`은 첫 번째 단계에서 만든 툴체인의 이름으로 대체해야 합니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "Next: we want record the execution time for *just* the clap-rs crate, running cargo check.",
+      "source_hash": 11477851498528401509,
+      "context_hash": 9168100155065000268,
+      "translation": "다음으로: cargo check를 실행하면서 *오직* clap-rs 크레이트만의 실행 시간을 기록하고 싶습니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:1",
+      "source": "I tend to use `cargo rustc` for this, since it also allows me to add explicit flags, which we'll do later on.",
+      "source_hash": 11227923749840609448,
+      "context_hash": 6177822272859351218,
+      "translation": "저는 이를 위해 `cargo rustc`를 사용하는 편인데, 이는 나중에 사용할 명시적인 플래그를 추가할 수 있게 해주기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649988Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Note that final command: it's a doozy!",
+      "source_hash": 4772869584214019625,
+      "context_hash": 9513683799370164260,
+      "translation": "마지막 명령을 주목하십시오: 꽤 복잡합니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:1",
+      "source": "It uses the `cargo rustc` command, which executes rustc with (potentially) additional options; the `--profile check` and `--lib` options specify that we are doing a `cargo check` execution, and that this is a library (not a binary).",
+      "source_hash": 14103656638794250478,
+      "context_hash": 10091847564656048626,
+      "translation": "이는 `cargo rustc` 명령을 사용하는데, 이 명령은 (필요에 따라) 추가 옵션과 함께 rustc를 실행합니다; `--profile check`와 `--lib` 옵션은 우리가 `cargo check` 실행을 하고 있으며 이것이 라이브러리(바이너리가 아님)임을 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "At this point, we can use `perf` tooling to analyze the results.",
+      "source_hash": 15129250536769062920,
+      "context_hash": 1002744729915477641,
+      "translation": "이 시점에서, `perf` 도구를 사용해 결과를 분석할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:1",
+      "source": "For example:",
+      "source_hash": 4114854479619665730,
+      "context_hash": 12974611189170931695,
+      "translation": "예를 들면:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "This opens up an interactive TUI program.",
+      "source_hash": 6968598594826942101,
+      "context_hash": 14678440720935291652,
+      "translation": "이는 대화형 TUI 프로그램을 엽니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:1",
+      "source": "In simple cases, that can be helpful.",
+      "source_hash": 11863668644388693134,
+      "context_hash": 5897319217907645303,
+      "translation": "간단한 경우에는 이것이 도움이 될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:2",
+      "source": "For more detailed examination, the [`perf-focus` tool][pf] can be helpful; it is covered below.",
+      "source_hash": 3765240102788158662,
+      "context_hash": 7247780596881073450,
+      "translation": "더 상세한 검토를 위해서는 [`perf-focus` 도구][pf]가 도움이 될 수 있습니다; 이는 아래에서 다룹니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "**A note of caution.** Each of the rustc-perf tests is its own special snowflake.",
+      "source_hash": 2467426634956233663,
+      "context_hash": 829486234862983073,
+      "translation": "**주의 사항.** rustc-perf의 각 테스트는 저마다의 특별한 개성을 지니고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:1",
+      "source": "In particular, some of them are not libraries, in which case you would want to do `touch src/main.rs` and avoid passing `--lib`.",
+      "source_hash": 4769236866367902755,
+      "context_hash": 15643782627148860134,
+      "translation": "특히, 그중 일부는 라이브러리가 아니며, 이 경우에는 `touch src/main.rs`를 수행하고 `--lib`를 전달하지 않아야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:2",
+      "source": "I'm not sure how best to tell which test is which to be honest.",
+      "source_hash": 16672996198911191461,
+      "context_hash": 14118140489419117611,
+      "translation": "솔직히 말해 어떤 테스트가 어떤 것인지 가장 잘 구분하는 방법은 저도 확실하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "Gathering NLL data",
+      "source_hash": 252013164898573272,
+      "context_hash": 7168631841278446636,
+      "translation": "NLL 데이터 수집하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "If you want to profile an NLL run, you can just pass extra options to the `cargo rustc` command, like so:",
+      "source_hash": 12248605163762917788,
+      "context_hash": 17905478945783924097,
+      "translation": "NLL 실행을 프로파일링하고 싶다면, 다음과 같이 `cargo rustc` 명령에 추가 옵션을 전달하기만 하면 됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Analyzing a perf profile with `perf focus`",
+      "source_hash": 11910422424360633330,
+      "context_hash": 6148192585999423453,
+      "translation": "`perf focus`로 perf 프로파일 분석하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Once you've gathered a perf profile, we want to get some information about it.",
+      "source_hash": 15227645250578024793,
+      "context_hash": 3438518718371225872,
+      "translation": "perf 프로파일을 수집했다면, 이에 대한 정보를 얻고 싶을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649989Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "For this, I personally use [perf focus][pf].",
+      "source_hash": 3534661259944335960,
+      "context_hash": 14463050796029865883,
+      "translation": "이를 위해 저는 개인적으로 [perf focus][pf]를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649990Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "It's a kind of simple but useful tool that lets you answer queries like:",
+      "source_hash": 3389821905490362489,
+      "context_hash": 4380768169226893065,
+      "translation": "이는 다음과 같은 쿼리에 답할 수 있게 해주는 일종의 간단하지만 유용한 도구입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649990Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "\"how much time was spent in function F\" (no matter where it was called from)",
+      "source_hash": 3723605342798084449,
+      "context_hash": 17269666459996429220,
+      "translation": "\"함수 F에서 얼마나 많은 시간이 소요되었는가\" (어디에서 호출되었는지와 무관하게)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649990Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "\"how much time was spent in function F when it was called from G\"",
+      "source_hash": 17612814587262688366,
+      "context_hash": 1757289349257640403,
+      "translation": "\"함수 F가 G에서 호출되었을 때 얼마나 많은 시간이 소요되었는가\"",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649990Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "\"how much time was spent in function F *excluding* time spent in G\"",
+      "source_hash": 7574220684268342468,
+      "context_hash": 8638972340103463564,
+      "translation": "\"G에서 소요된 시간을 *제외하고* 함수 F에서 얼마나 많은 시간이 소요되었는가\"",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649990Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "\"what functions does F call and how much time does it spend in them\"",
+      "source_hash": 17019856334942216426,
+      "context_hash": 10458714003718102460,
+      "translation": "\"F가 어떤 함수들을 호출하며 그 안에서 얼마나 많은 시간을 소요하는가\"",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:59.649990Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "To understand how it works, you have to know just a bit about perf.",
+      "source_hash": 1972876820390111385,
+      "context_hash": 12728851136842183340,
+      "translation": "작동 방식을 이해하려면 perf에 대해 약간 알아야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "Basically, perf works by *sampling* your process on a regular basis (or whenever some event occurs).",
+      "source_hash": 12401700633872024105,
+      "context_hash": 14283200679751882725,
+      "translation": "기본적으로 perf는 일정한 주기로 (또는 특정 이벤트가 발생할 때마다) 프로세스를 *샘플링*하는 방식으로 작동합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:2",
+      "source": "For each sample, perf gathers a backtrace. `perf focus` lets you write a regular expression that tests which functions appear in that backtrace, and then tells you which percentage of samples had a backtrace that met the regular expression.",
+      "source_hash": 13950117534948542092,
+      "context_hash": 16989003102351717021,
+      "translation": "각 샘플마다 perf는 백트레이스를 수집합니다. `perf focus`를 사용하면 해당 백트레이스에 어떤 함수들이 나타나는지 검사하는 정규 표현식을 작성할 수 있으며, 이를 통해 해당 정규 표현식을 만족하는 백트레이스를 가진 샘플의 비율을 알려줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:3",
+      "source": "It's probably easiest to explain by walking through how I would analyze NLL performance.",
+      "source_hash": 2430134079170896304,
+      "context_hash": 11077221319402607210,
+      "translation": "제가 NLL 성능을 어떻게 분석하는지 직접 살펴보는 방식으로 설명하는 것이 가장 쉬울 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Installing `perf-focus`",
+      "source_hash": 11097086685102393667,
+      "context_hash": 10103932605762021062,
+      "translation": "`perf-focus` 설치하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "You can install perf-focus using `cargo install`:",
+      "source_hash": 6963260851180979232,
+      "context_hash": 8694211244226859256,
+      "translation": "`cargo install`을 사용하여 perf-focus를 설치할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Example: How much time is spent in MIR borrowck?",
+      "source_hash": 4885654023594162154,
+      "context_hash": 6109382425812332187,
+      "translation": "예제: MIR borrowck에서 얼마나 많은 시간이 소요되는가?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "Let's say we've gathered the NLL data for a test.",
+      "source_hash": 5091584326474027392,
+      "context_hash": 6927728575637435764,
+      "translation": "테스트에 대한 NLL 데이터를 수집했다고 가정해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "We'd like to know how much time it is spending in the MIR borrow-checker.",
+      "source_hash": 313127775692607846,
+      "context_hash": 14580180347034295066,
+      "translation": "MIR 빌림 검사기에서 얼마나 많은 시간을 소비하고 있는지 알고 싶습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:2",
+      "source": "The \"main\" function of the MIR borrowck is called `do_mir_borrowck`, so we can do this command:",
+      "source_hash": 1932860276067211185,
+      "context_hash": 10801464561076954307,
+      "translation": "MIR borrowck의 \"메인\" 함수는 `do_mir_borrowck`라고 불리므로 다음 명령을 실행할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "The `'{do_mir_borrowck}'` argument is called the **matcher**.",
+      "source_hash": 6759670978224155153,
+      "context_hash": 7670992241794242120,
+      "translation": "`'{do_mir_borrowck}'` 인자는 **매처**라고 불립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:1",
+      "source": "It specifies the test to be applied on the backtrace.",
+      "source_hash": 14630412613566915498,
+      "context_hash": 12109734978259017776,
+      "translation": "이것은 백트레이스에 적용할 테스트를 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:2",
+      "source": "In this case, the `{X}` indicates that there must be *some* function on the backtrace that meets the regular expression `X`.",
+      "source_hash": 15118448712583585570,
+      "context_hash": 3051178447046704465,
+      "translation": "이 경우 `{X}`는 백트레이스에 정규 표현식 `X`를 만족하는 *어떤* 함수가 존재해야 함을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:3",
+      "source": "In this case, that regex is just the name of the function we want (in fact, it's a subset of the name; the full name includes a bunch of other stuff, like the module path).",
+      "source_hash": 2262730854103166365,
+      "context_hash": 13278389589846261226,
+      "translation": "이 경우 그 정규식은 단지 우리가 원하는 함수의 이름입니다 (사실 이것은 이름의 부분 집합입니다; 전체 이름에는 모듈 경로와 같은 여러 다른 요소들이 포함되어 있습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:4",
+      "source": "In this mode, perf-focus just prints out the percentage of samples where `do_mir_borrowck` was on the stack: in this case, 29%.",
+      "source_hash": 12010702630297840837,
+      "context_hash": 15277706421760024418,
+      "translation": "이 모드에서 perf-focus는 `do_mir_borrowck`가 스택에 있었던 샘플의 비율만 출력합니다: 이 경우 29%입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "**A note about c++filt.** To get the data from `perf`, `perf focus` currently executes `perf script` (perhaps there is a better way...).",
+      "source_hash": 4454011864146974046,
+      "context_hash": 5037491710335922463,
+      "translation": "**c++filt에 대한 참고 사항.** `perf`로부터 데이터를 얻기 위해 `perf focus`는 현재 `perf script`를 실행합니다 (더 나은 방법이 있을지도 모르겠습니다...).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:1",
+      "source": "I've sometimes found that `perf script` outputs C++ mangled names.",
+      "source_hash": 1618542382244134358,
+      "context_hash": 6386447972776919787,
+      "translation": "때때로 `perf script`가 C++ 맹글링된 이름을 출력하는 것을 발견했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:2",
+      "source": "This is annoying.",
+      "source_hash": 15333890662115463206,
+      "context_hash": 8985018759637819310,
+      "translation": "이것은 꽤 불편합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:3",
+      "source": "You can tell by running `perf script | head` yourself — if you see names like `5rustc6middle` instead of `rustc::middle`, then you have the same problem.",
+      "source_hash": 17485985767509820536,
+      "context_hash": 5526603260096035192,
+      "translation": "직접 `perf script | head`를 실행해 보면 확인할 수 있습니다 — `rustc::middle` 대신 `5rustc6middle`과 같은 이름이 보인다면, 같은 문제를 겪고 있는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:4",
+      "source": "You can solve this by doing:",
+      "source_hash": 13309426074003650886,
+      "context_hash": 1736115696717481383,
+      "translation": "다음과 같이 하면 이 문제를 해결할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "This will pipe the output from `perf script` through `c++filt` and should mostly convert those names into a more friendly format.",
+      "source_hash": 3759834589809762842,
+      "context_hash": 7030493322332704773,
+      "translation": "이것은 `perf script`의 출력을 `c++filt`로 파이프하여 대부분의 이름을 더 읽기 쉬운 형식으로 변환해 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:1",
+      "source": "The `--from-stdin` flag to `perf focus` tells it to get its data from stdin, rather than executing `perf focus`.",
+      "source_hash": 6653100980284924048,
+      "context_hash": 3312140196195889307,
+      "translation": "`perf focus`의 `--from-stdin` 플래그는 `perf focus`를 실행하는 대신 표준 입력으로부터 데이터를 가져오도록 지시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:2",
+      "source": "We should make this more convenient (at worst, maybe add a `c++filt` option to `perf focus`, or just always use it — it's pretty harmless).",
+      "source_hash": 15959867093690183751,
+      "context_hash": 5418872481439442752,
+      "translation": "이것을 좀 더 편리하게 만들어야 합니다 (최악의 경우라도, `perf focus`에 `c++filt` 옵션을 추가하거나 아예 항상 사용하도록 하는 방법을 고려해 볼 수 있습니다 — 이는 거의 해롭지 않습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "Example: How much time does MIR borrowck spend solving traits?",
+      "source_hash": 1141662585187504967,
+      "context_hash": 10385623731100703292,
+      "translation": "예제: MIR borrowck는 트레이트를 해결하는 데 얼마나 많은 시간을 소비하는가?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "Perhaps we'd like to know how much time MIR borrowck spends in the trait checker.",
+      "source_hash": 12848186445829269839,
+      "context_hash": 7243952595844357265,
+      "translation": "MIR borrowck가 트레이트 검사기에서 얼마나 많은 시간을 소비하는지 알고 싶을 수도 있습니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:1",
+      "source": "We can ask this using a more complex regex:",
+      "source_hash": 10171997865626772862,
+      "context_hash": 1115507034895646057,
+      "translation": "더 복잡한 정규식을 사용하여 이를 질문할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "Here we used the `..` operator to ask \"how often do we have `do_mir_borrowck` on the stack and then, later, some function whose name begins with `rustc::traits`?\" (basically, code in that module).",
+      "source_hash": 17849112776359302356,
+      "context_hash": 1204541897540950507,
+      "translation": "여기서 우리는 `..` 연산자를 사용하여 \"스택에 `do_mir_borrowck`가 있고 그 이후에 이름이 `rustc::traits`로 시작하는 함수가 얼마나 자주 있는가?\" (기본적으로 해당 모듈 내의 코드)를 질문했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:1",
+      "source": "It turns out the answer is \"almost never\" — only 12 samples fit that description (if you ever see *no* samples, that often indicates your query is messed up).",
+      "source_hash": 5903480203828874263,
+      "context_hash": 15022781943534378281,
+      "translation": "결과적으로 답은 \"거의 없음\"입니다 — 단 12개의 샘플만이 그 조건에 맞았습니다 (만약 샘플이 *전혀* 없는 경우를 보게 된다면, 이는 쿼리가 잘못되었다는 것을 나타내는 경우가 많습니다).",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:05.499260Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "If you're curious, you can find out exactly which samples by using the `--print-match` option.",
+      "source_hash": 12792655135608862341,
+      "context_hash": 3716360478217089272,
+      "translation": "궁금하다면 `--print-match` 옵션을 사용하여 정확히 어떤 샘플들이 해당하는지 알아낼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499261Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:1",
+      "source": "This will print out the full backtrace for each sample.",
+      "source_hash": 3680759877696305379,
+      "context_hash": 3652140452420369441,
+      "translation": "이것은 각 샘플에 대한 전체 백트레이스를 출력합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499261Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:2",
+      "source": "The `|` at the front of the line indicates the part that the regular expression matched.",
+      "source_hash": 10002907771304978480,
+      "context_hash": 18012137770598127648,
+      "translation": "줄 앞의 `|`는 정규 표현식이 일치한 부분을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499261Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Example: Where does MIR borrowck spend its time?",
+      "source_hash": 1330108342502538744,
+      "context_hash": 2805191297317854200,
+      "translation": "예제: MIR borrowck는 어디에서 시간을 소비하는가?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:05.499261Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "Often we want to do more \"explorational\" queries.",
+      "source_hash": 10160436572038755973,
+      "context_hash": 1512584882384632534,
+      "translation": "종종 좀 더 \"탐색적인\" 쿼리를 하고 싶을 때가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552575Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:1",
+      "source": "Like, we know that MIR borrowck is 29% of the time, but where does that time get spent?",
+      "source_hash": 15179569765958620763,
+      "context_hash": 16889288244190246433,
+      "translation": "예를 들어, MIR borrowck이 전체 시간의 29%를 차지한다는 것은 알지만, 그 시간이 어디에서 소비되는지는 알 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552576Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:2",
+      "source": "For that, the `--tree-callees` option is often the best tool.",
+      "source_hash": 6659962028169331815,
+      "context_hash": 6564881724524049968,
+      "translation": "이를 위해서는 `--tree-callees` 옵션이 대개 가장 좋은 도구입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552576Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:3",
+      "source": "You usually also want to give `--tree-min-percent` or `--tree-max-depth`.",
+      "source_hash": 15455178400792667599,
+      "context_hash": 6122437309175781211,
+      "translation": "보통 `--tree-min-percent`나 `--tree-max-depth`도 함께 지정하는 것이 좋습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552576Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:4",
+      "source": "The result looks like this:",
+      "source_hash": 1212783710276531631,
+      "context_hash": 1795010969984514413,
+      "translation": "결과는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552576Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "What happens with `--tree-callees` is that",
+      "source_hash": 13784738624013736097,
+      "context_hash": 16239370877436939043,
+      "translation": "`--tree-callees`로 일어나는 일은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552576Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:0",
+      "source": "we find each sample matching the regular expression",
+      "source_hash": 12311742070438404386,
+      "context_hash": 2896911073645720796,
+      "translation": "정규 표현식과 일치하는 각 샘플을 찾습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552576Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:27/seg:0",
+      "source": "we look at the code that occurs *after* the regex match and try to build up a call tree",
+      "source_hash": 13232496053837425974,
+      "context_hash": 14597212146737768118,
+      "translation": "정규식 일치 *이후*에 나오는 코드를 살펴보고 호출 트리를 구축하려 시도합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552576Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:28/seg:0",
+      "source": "The `--tree-min-percent 3` option says \"only show me things that take more than 3% of the time\".",
+      "source_hash": 14658744683588548729,
+      "context_hash": 14609278578225882435,
+      "translation": "`--tree-min-percent 3` 옵션은 \"전체 시간의 3% 이상을 차지하는 것만 보여 달라\"는 의미입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:28/seg:1",
+      "source": "Without this, the tree often gets really noisy and includes random stuff like the innards of malloc. `--tree-max-depth` can be useful too, it just limits how many levels we print.",
+      "source_hash": 8732831962800982089,
+      "context_hash": 11756169182542540540,
+      "translation": "이 옵션이 없으면 트리가 매우 지저분해지고 malloc 내부와 같은 무작위 항목들이 포함되는 경우가 많습니다. `--tree-max-depth` 또한 유용할 수 있는데, 이는 단순히 출력할 레벨 수를 제한합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:29/seg:0",
+      "source": "For each line, we display the percent of time in that function altogether (\"total\") and the percent of time spent in **just that function and not some callee of that function** (self).",
+      "source_hash": 17267649980258223958,
+      "context_hash": 6979469450544364424,
+      "translation": "각 줄에서는 해당 함수 전체에서 소비된 시간의 비율(\"total\")과 **그 함수의 호출 대상이 아니라 오직 그 함수 자체에서만** 소비된 시간의 비율(self)을 표시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:29/seg:1",
+      "source": "Usually \"total\" is the more interesting number, but not always.",
+      "source_hash": 1153965080669415899,
+      "context_hash": 321980776181970194,
+      "translation": "보통은 \"total\"이 더 흥미로운 값이지만, 항상 그런 것은 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:30/seg:0",
+      "source": "Relative percentages",
+      "source_hash": 12935652604330500380,
+      "context_hash": 3624902418849879495,
+      "translation": "상대적 비율",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:31/seg:0",
+      "source": "By default, all in perf-focus are relative to the **total program execution**.",
+      "source_hash": 10417398018537662953,
+      "context_hash": 6305659476777661964,
+      "translation": "기본적으로 perf-focus의 모든 값은 **전체 프로그램 실행**을 기준으로 한 상대값입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:31/seg:1",
+      "source": "This is useful to help you keep perspective — often as we drill down to find hot spots, we can lose sight of the fact that, in terms of overall program execution, this \"hot spot\" is actually not important.",
+      "source_hash": 14106396394225229284,
+      "context_hash": 1995320375809629923,
+      "translation": "이는 관점을 유지하는 데 도움이 되어 유용합니다 — 흔히 핫스팟을 찾기 위해 파고들다 보면, 전체 프로그램 실행 관점에서 이 \"핫스팟\"이 사실상 중요하지 않다는 사실을 놓치기 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:31/seg:2",
+      "source": "It also ensures that percentages between different queries are easily compared against one another.",
+      "source_hash": 6872146225360369216,
+      "context_hash": 11010661446944400353,
+      "translation": "또한 서로 다른 쿼리 간의 비율을 쉽게 비교할 수 있도록 보장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:32/seg:0",
+      "source": "That said, sometimes it's useful to get relative percentages, so `perf focus` offers a `--relative` option.",
+      "source_hash": 7603424095836540337,
+      "context_hash": 12805690185864453393,
+      "translation": "그렇긴 하지만, 때로는 상대적인 비율을 얻는 것이 유용하기 때문에 `perf focus`는 `--relative` 옵션을 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552577Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:32/seg:1",
+      "source": "In this case, the percentages are listed only for samples that match (vs all samples).",
+      "source_hash": 10867493637301501881,
+      "context_hash": 9328601053119849168,
+      "translation": "이 경우, 비율은 (전체 샘플이 아니라) 일치하는 샘플에 대해서만 표시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552578Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:32/seg:2",
+      "source": "So for example we could get our percentages relative to the borrowck itself like so:",
+      "source_hash": 6762124418720196081,
+      "context_hash": 11500578728825401826,
+      "translation": "예를 들어, 다음과 같이 borrowck 자체를 기준으로 한 상대적 비율을 구할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552578Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:34/seg:0",
+      "source": "Here you see that `compute_regions` came up as \"47% total\" — that means that 47% of `do_mir_borrowck` is spent in that function.",
+      "source_hash": 6912591477002049250,
+      "context_hash": 9431566473559280242,
+      "translation": "여기서 `compute_regions`가 \"47% total\"로 나타난 것을 볼 수 있는데, 이는 `do_mir_borrowck`의 47%가 해당 함수에서 소비된다는 의미입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552578Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:34/seg:1",
+      "source": "Before, we saw 20% — that's because `do_mir_borrowck` itself is only 43% of the total time (and `.47 * .43 = .20`).",
+      "source_hash": 16606202989821238046,
+      "context_hash": 16531979813171777046,
+      "translation": "이전에는 20%로 나타났는데, 이는 `do_mir_borrowck` 자체가 전체 시간의 43%에 불과하기 때문입니다(즉, `.47 * .43 = .20`).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:57:57.552578Z",
+      "issues": []
+    }
+  ]
+}

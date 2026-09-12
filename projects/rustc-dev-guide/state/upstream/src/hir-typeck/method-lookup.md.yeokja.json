@@ -1,0 +1,538 @@
+{
+  "version": 1,
+  "source_hash": 12197087089552917437,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Method lookup",
+      "source_hash": 1478905448674632613,
+      "context_hash": 1028482950110879394,
+      "translation": "메서드 조회",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024264Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Method lookup can be rather complex due to the interaction of a number of factors, such as self types, autoderef, trait lookup, etc. This file provides an overview of the process.",
+      "source_hash": 17669395360367662051,
+      "context_hash": 13316253854659893604,
+      "translation": "메서드 조회는 self 타입, 자동 역참조, 트레이트 조회 등 여러 요인의 상호작용으로 인해 상당히 복잡할 수 있습니다. 이 파일은 그 과정에 대한 개요를 제공합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:02:03.024265Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "More detailed notes are in the code itself, naturally.",
+      "source_hash": 11286463385690850533,
+      "context_hash": 18005194494090503384,
+      "translation": "더 자세한 내용은 당연히 코드 자체에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024265Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "One way to think of method lookup is that we convert an expression of the form `receiver.method(...)` into a more explicit [fully-qualified syntax][] (formerly called [UFCS][]):",
+      "source_hash": 16324373944323142186,
+      "context_hash": 11682657094690232025,
+      "translation": "메서드 조회를 생각하는 한 가지 방법은, `receiver.method(...)` 형태의 표현식을 더 명시적인 [완전 정규화 문법][](이전에는 [UFCS][]라고 불렸음)으로 변환하는 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024265Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "`Trait::method(ADJ(receiver), ...)` for a trait call",
+      "source_hash": 10292377633856113422,
+      "context_hash": 3379359430979696348,
+      "translation": "트레이트 호출의 경우 `Trait::method(ADJ(receiver), ...)`",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:02:03.024265Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "`ReceiverType::method(ADJ(receiver), ...)` for an inherent method call",
+      "source_hash": 4795859203111089395,
+      "context_hash": 6938583769843024223,
+      "translation": "고유 메서드 호출의 경우 `ReceiverType::method(ADJ(receiver), ...)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024265Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "Here `ADJ` is some kind of adjustment, which is typically a series of autoderefs and then possibly an autoref (e.g., `&**receiver`).",
+      "source_hash": 2127437425270758872,
+      "context_hash": 8289966485078482347,
+      "translation": "여기서 `ADJ`는 일종의 조정으로, 일반적으로 일련의 자동 역참조와 그 뒤를 잇는 선택적인 자동 참조(예: `&**receiver`)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:1",
+      "source": "However we sometimes do other adjustments and coercions along the way, in particular unsizing (e.g., converting from `[T; n]` to `[T]`).",
+      "source_hash": 16225392477149673436,
+      "context_hash": 12601682405061534945,
+      "translation": "그러나 때로는 그 과정에서 다른 조정과 강제 변환도 수행하는데, 특히 크기 비고정화(unsizing)가 그렇습니다(예: `[T; n]`에서 `[T]`로 변환).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "Method lookup is divided into two major phases:",
+      "source_hash": 18204054124022538685,
+      "context_hash": 11961302786197411917,
+      "translation": "메서드 조회는 두 가지 주요 단계로 나뉩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "Probing ([`probe.rs`][probe]).",
+      "source_hash": 3396980814085410491,
+      "context_hash": 282734145049136108,
+      "translation": "탐색 ([`probe.rs`][probe]).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:1",
+      "source": "The probe phase is when we decide what method to call and how to adjust the receiver.",
+      "source_hash": 11964150424293290870,
+      "context_hash": 4504955450287210275,
+      "translation": "탐색 단계는 어떤 메서드를 호출할지와 리시버를 어떻게 조정할지를 결정하는 단계입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "Confirmation ([`confirm.rs`][confirm]).",
+      "source_hash": 13574054496063690995,
+      "context_hash": 6698114728688040121,
+      "translation": "확정 ([`confirm.rs`][confirm]).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:1",
+      "source": "The confirmation phase \"applies\" this selection, updating the side-tables, unifying type variables, and otherwise doing side-effectful things.",
+      "source_hash": 1914838676218071048,
+      "context_hash": 6487794136842049935,
+      "translation": "확정 단계는 이 선택을 \"적용\"하여, 부가 테이블(side-table)을 갱신하고, 타입 변수를 통합하며, 그 외의 부작용이 있는 작업들을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "One reason for this division is to be more amenable to caching.",
+      "source_hash": 4540869894213550145,
+      "context_hash": 9584718594345494861,
+      "translation": "이렇게 나누는 이유 중 하나는 캐싱에 더 적합하게 만들기 위해서입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:1",
+      "source": "The probe phase produces a \"pick\" (`probe::Pick`), which is designed to be cacheable across method-call sites.",
+      "source_hash": 11743124100216316677,
+      "context_hash": 6966524643557007707,
+      "translation": "탐색 단계는 메서드 호출 지점 간에 캐싱 가능하도록 설계된 \"선택\"(`probe::Pick`)을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:2",
+      "source": "Therefore, it does not include inference variables or other information.",
+      "source_hash": 12427548242759675821,
+      "context_hash": 16082272170931870129,
+      "translation": "따라서 여기에는 추론 변수나 다른 정보가 포함되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024266Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The Probe phase",
+      "source_hash": 18099080502970680861,
+      "context_hash": 2850628322422167830,
+      "translation": "탐색 단계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Steps",
+      "source_hash": 15898536257626885477,
+      "context_hash": 15425355706098361838,
+      "translation": "단계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "The first thing that the probe phase does is to create a series of *steps*.",
+      "source_hash": 1039524140708418951,
+      "context_hash": 13129956664183208053,
+      "translation": "탐색 단계가 가장 먼저 하는 일은 일련의 *단계*를 만드는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "This is done by progressively dereferencing the receiver type until it cannot be deref'd anymore, as well as applying an optional \"unsize\" step.",
+      "source_hash": 10587371699104535697,
+      "context_hash": 279862630140388833,
+      "translation": "이는 리시버 타입을 더 이상 역참조할 수 없을 때까지 점진적으로 역참조하고, 선택적인 \"비고정화(unsize)\" 단계를 적용함으로써 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "So if the receiver has type `Rc<Box<[T; 3]>>`, this might yield:",
+      "source_hash": 13369374932624550151,
+      "context_hash": 12079330190568797258,
+      "translation": "따라서 리시버의 타입이 `Rc<Box<[T; 3]>>`이면, 다음과 같은 결과가 나올 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "`Rc<Box<[T; 3]>>`",
+      "source_hash": 12349635968596354241,
+      "context_hash": 8578659576314909487,
+      "translation": "`Rc<Box<[T; 3]>>`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "`Box<[T; 3]>`",
+      "source_hash": 6256876944148468029,
+      "context_hash": 8473848124811673819,
+      "translation": "`Box<[T; 3]>`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "`[T; 3]`",
+      "source_hash": 7123910672217191973,
+      "context_hash": 16451907259795115122,
+      "translation": "`[T; 3]`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "`[T]`",
+      "source_hash": 5848874878807466556,
+      "context_hash": 2051444272480628961,
+      "translation": "`[T]`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Candidate assembly",
+      "source_hash": 7169200844096267773,
+      "context_hash": 14615952989473536311,
+      "translation": "후보 조립",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "We then search along those steps to create a list of *candidates*.",
+      "source_hash": 5563131445563409689,
+      "context_hash": 1114584935905505622,
+      "translation": "그런 다음 이러한 단계들을 따라 탐색하여 *후보*들의 목록을 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024267Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "A `Candidate` is a method item that might plausibly be the method being invoked.",
+      "source_hash": 2229611503191866190,
+      "context_hash": 12277361171743605962,
+      "translation": "`Candidate`는 호출되는 메서드일 가능성이 있는 메서드 항목입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024268Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "For each candidate, we'll derive a \"transformed self type\" that takes into account explicit self.",
+      "source_hash": 14813805426173079550,
+      "context_hash": 6064774948610857664,
+      "translation": "각 후보에 대해, 명시적인 self를 고려한 \"변환된 self 타입\"을 도출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024268Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "Candidates are grouped into two kinds, inherent and extension.",
+      "source_hash": 5304241069853606699,
+      "context_hash": 16687536592240160791,
+      "translation": "후보는 고유(inherent)와 확장(extension)이라는 두 가지 종류로 분류됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:03.024268Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "**Inherent candidates** are those that are derived from the type of the receiver itself.",
+      "source_hash": 9399725921705243154,
+      "context_hash": 11965895160134054586,
+      "translation": "**고유 후보(inherent candidates)**는 수신자 자신의 타입에서 파생되는 후보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410184Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:1",
+      "source": "So, if you have a receiver of some nominal type `Foo` (e.g., a struct), any methods defined within an impl like `impl Foo` are inherent methods.",
+      "source_hash": 278611085720478071,
+      "context_hash": 6019220522780160863,
+      "translation": "따라서 어떤 명목 타입 `Foo`(예: 구조체)의 수신자를 가지고 있다면, `impl Foo`와 같은 impl 내에 정의된 모든 메서드는 고유 메서드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410185Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:2",
+      "source": "Nothing needs to be imported to use an inherent method; they are associated with the type itself.",
+      "source_hash": 10032219741619832365,
+      "context_hash": 500113436033818475,
+      "translation": "고유 메서드를 사용하는 데는 아무것도 임포트할 필요가 없습니다; 이들은 해당 타입 자체와 연관됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410186Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:3",
+      "source": "Note that inherent impls can only be defined in the same crate as the type itself.",
+      "source_hash": 15149187951409412156,
+      "context_hash": 17223471388930733682,
+      "translation": "고유 impl은 해당 타입 자체와 같은 크레이트 내에서만 정의될 수 있음에 유의하십시오.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T00:59:50.410186Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "**Extension candidates** are derived from imported traits.",
+      "source_hash": 600869310968348680,
+      "context_hash": 12253866820671978130,
+      "translation": "**확장 후보(extension candidates)**는 임포트된 트레이트에서 파생됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410188Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:1",
+      "source": "If I have the trait `ToString` imported, and I call `to_string()` as a method, then we will list the `to_string()` definition in each impl of `ToString` as a candidate.",
+      "source_hash": 8564470466186109182,
+      "context_hash": 9020248137472943339,
+      "translation": "`ToString` 트레이트를 임포트한 상태에서 `to_string()`을 메서드로 호출한다면, `ToString`의 각 impl에 있는 `to_string()` 정의를 후보로 나열하게 됩니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T00:59:50.410188Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:2",
+      "source": "These kinds of method calls are called \"extension methods\".",
+      "source_hash": 12550677576739564215,
+      "context_hash": 5665371557168123260,
+      "translation": "이러한 종류의 메서드 호출을 \"확장 메서드(extension method)\"라고 부릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410188Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "So, let's continue our example.",
+      "source_hash": 13898823792980516845,
+      "context_hash": 17532725687785975884,
+      "translation": "그럼 예시를 계속 이어가 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410188Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "Imagine that we were calling a method `foo` with the receiver `Rc<Box<[T; 3]>>` and there is a trait `Foo` that defines it with `&self` for the type `Rc<U>` as well as a method on the type `Box` that defines `foo` but with `&mut self`.",
+      "source_hash": 17240795714839527428,
+      "context_hash": 17911650757829117810,
+      "translation": "수신자 `Rc<Box<[T; 3]>>`로 `foo`라는 메서드를 호출하고 있다고 가정하고, 타입 `Rc<U>`에 대해 `&self`로 이를 정의하는 트레이트 `Foo`가 있으며, 동시에 타입 `Box`에도 `&mut self`로 `foo`를 정의하는 메서드가 있다고 해봅시다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T00:59:50.410189Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:2",
+      "source": "Then we might have two candidates:",
+      "source_hash": 7977849788995874494,
+      "context_hash": 11110254175897779315,
+      "translation": "그러면 다음과 같이 두 개의 후보를 가질 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410189Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "`&Rc<U>` as an extension candidate",
+      "source_hash": 8383161499164534590,
+      "context_hash": 17443296796162513950,
+      "translation": "확장 후보로서의 `&Rc<U>`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410189Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "`&mut Box<U>` as an inherent candidate",
+      "source_hash": 18199152836759303173,
+      "context_hash": 2548325932062231868,
+      "translation": "고유 후보로서의 `&mut Box<U>`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410190Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "Candidate search",
+      "source_hash": 3651838868519625814,
+      "context_hash": 10829420595757279785,
+      "translation": "후보 탐색",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410190Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "Finally, to actually pick the method, we will search down the steps, trying to match the receiver type against the candidate types.",
+      "source_hash": 18242176730396668292,
+      "context_hash": 4427014063252869515,
+      "translation": "마지막으로, 실제로 메서드를 선택하기 위해 단계를 따라 내려가며 수신자 타입을 후보 타입과 매칭시켜 봅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410190Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:1",
+      "source": "At each step, we also consider an auto-ref and auto-mut-ref to see whether that makes any of the candidates match.",
+      "source_hash": 17711212549931338086,
+      "context_hash": 1688975113932553794,
+      "translation": "각 단계에서는 오토레퍼런스(auto-ref)와 오토뮤트레퍼런스(auto-mut-ref)도 고려하여 이것이 후보 중 어느 것과 매칭되는지 확인합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410190Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:2",
+      "source": "For each resulting receiver type, we consider inherent candidates before extension candidates.",
+      "source_hash": 6810626036814615821,
+      "context_hash": 2476208968297230128,
+      "translation": "결과로 나온 각 수신자 타입에 대해, 확장 후보보다 고유 후보를 먼저 고려합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410190Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:3",
+      "source": "If there are multiple matching candidates in a group, we report an error, except that multiple impls of the same trait are treated as a single match.",
+      "source_hash": 16158281510163161497,
+      "context_hash": 15906532032464265919,
+      "translation": "같은 그룹 내에 매칭되는 후보가 여러 개 있으면 오류를 보고하지만, 같은 트레이트의 여러 impl은 하나의 매칭으로 취급되는 예외가 있습니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T00:59:50.410190Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:4",
+      "source": "Otherwise we pick the first match we find.",
+      "source_hash": 10988519960118480486,
+      "context_hash": 3113882243354057809,
+      "translation": "그렇지 않다면 처음으로 찾은 매칭을 선택합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "In the case of our example, the first step is `Rc<Box<[T; 3]>>`, which does not itself match any candidate.",
+      "source_hash": 7901930875617155227,
+      "context_hash": 4807111520572575793,
+      "translation": "우리 예시의 경우, 첫 번째 단계는 `Rc<Box<[T; 3]>>`인데, 이 자체로는 어떤 후보와도 매칭되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:1",
+      "source": "But when we autoref it, we get the type `&Rc<Box<[T; 3]>>` which matches `&Rc<U>`.",
+      "source_hash": 4607702132991761763,
+      "context_hash": 13736075635115081647,
+      "translation": "하지만 이를 오토레퍼런스하면 `&Rc<Box<[T; 3]>>` 타입이 되어 `&Rc<U>`와 매칭됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:2",
+      "source": "We would then recursively consider all where-clauses that appear on the impl: if those match (or we cannot rule out that they do), then this is the method we would pick.",
+      "source_hash": 8569851431736464036,
+      "context_hash": 2241967816102062833,
+      "translation": "그런 다음 우리는 해당 impl에 나타나는 모든 where절을 재귀적으로 고려할 것입니다: 만약 그것들이 매칭된다면(또는 매칭되지 않는다고 배제할 수 없다면), 이것이 바로 우리가 선택할 메서드가 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410192Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:3",
+      "source": "Otherwise, we would continue down the series of steps.",
+      "source_hash": 9379398139526980532,
+      "context_hash": 10526789732485746946,
+      "translation": "그렇지 않다면, 우리는 나머지 단계들을 계속 진행할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:50.410192Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,1920 @@
+{
+  "version": 1,
+  "source_hash": 5236600319939271030,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Debugging support in the Rust compiler",
+      "source_hash": 13424148646439639149,
+      "context_hash": 535593544482713996,
+      "translation": "Rust 컴파일러의 디버깅 지원",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:41.681481Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This document explains the state of debugging tools support in the Rust compiler (rustc).",
+      "source_hash": 9127551488836332477,
+      "context_hash": 18439976964326787776,
+      "translation": "이 문서는 Rust 컴파일러(rustc)의 디버깅 도구 지원 현황을 설명합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:41.681481Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "It gives an overview of GDB, LLDB, WinDbg/CDB, as well as infrastructure around Rust compiler to debug Rust code.",
+      "source_hash": 15150586257702366929,
+      "context_hash": 3516730670457775022,
+      "translation": "GDB, LLDB, WinDbg/CDB에 대한 개요와 함께 Rust 코드를 디버깅하기 위한 Rust 컴파일러 주변 인프라를 다룹니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:41.681482Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "If you want to learn how to debug the Rust compiler itself, see [Debugging the Compiler].",
+      "source_hash": 6429887333682470685,
+      "context_hash": 1417807629104829105,
+      "translation": "Rust 컴파일러 자체를 디버깅하는 방법을 알고 싶다면 [Debugging the Compiler]를 참조하십시오.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:41.681482Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "The material is gathered from the video, [Tom Tromey discusses debugging support in rustc].",
+      "source_hash": 5109605162962362687,
+      "context_hash": 9904504269589732390,
+      "translation": "이 자료는 [Tom Tromey discusses debugging support in rustc] 영상에서 수집한 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681482Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Preliminaries",
+      "source_hash": 6868080742140731662,
+      "context_hash": 6530184089801850959,
+      "translation": "사전 지식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681482Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Debuggers",
+      "source_hash": 3820857788042930086,
+      "context_hash": 9513421219747943596,
+      "translation": "디버거",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681482Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "According to Wikipedia",
+      "source_hash": 18117309400768404065,
+      "context_hash": 16400507851060679351,
+      "translation": "위키피디아에 따르면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681482Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "A [debugger or debugging tool] is a computer program that is used to test and debug other programs (the \"target\" program).",
+      "source_hash": 13402533549817615549,
+      "context_hash": 1108065459161462914,
+      "translation": "[디버거 또는 디버깅 도구]는 다른 프로그램(즉 \"대상\" 프로그램)을 테스트하고 디버그하는 데 사용되는 컴퓨터 프로그램입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Writing a debugger from scratch for a language requires a lot of work, especially if debuggers have to be supported on various platforms.",
+      "source_hash": 5072317735201897632,
+      "context_hash": 177158353983072197,
+      "translation": "언어를 위한 디버거를 처음부터 작성하는 것은, 특히 여러 플랫폼에서 디버거를 지원해야 하는 경우 많은 작업을 필요로 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "GDB and LLDB, however, can be extended to support debugging a language.",
+      "source_hash": 1229346816740181300,
+      "context_hash": 14578493521608647520,
+      "translation": "그러나 GDB와 LLDB는 언어 디버깅을 지원하도록 확장할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "This is the path that Rust has chosen.",
+      "source_hash": 6086200254854994234,
+      "context_hash": 794139703494342668,
+      "translation": "이것이 Rust가 선택한 방식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:3",
+      "source": "This document's main goal is to document the said debuggers support in Rust compiler.",
+      "source_hash": 16392714204392876018,
+      "context_hash": 9619726444951695215,
+      "translation": "이 문서의 주요 목표는 Rust 컴파일러에서의 앞서 언급한 디버거 지원을 문서화하는 것입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "DWARF",
+      "source_hash": 10493194260667048382,
+      "context_hash": 1939749507017702976,
+      "translation": "DWARF",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "According to the [DWARF] standard website",
+      "source_hash": 14187845102359544716,
+      "context_hash": 251394500498365844,
+      "translation": "[DWARF] 표준 웹사이트에 따르면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "DWARF is a debugging file format used by many compilers and debuggers to support source level debugging.",
+      "source_hash": 4187980192553658677,
+      "context_hash": 17872281393986365876,
+      "translation": "DWARF는 많은 컴파일러와 디버거가 소스 수준 디버깅을 지원하기 위해 사용하는 디버깅 파일 형식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "It addresses the requirements of a number of procedural languages, such as C, C++, and Fortran, and is designed to be extensible to other languages.",
+      "source_hash": 1958837772450744628,
+      "context_hash": 2970993440564811374,
+      "translation": "이는 C, C++, Fortran과 같은 여러 절차적 언어의 요구 사항을 다루며, 다른 언어로 확장할 수 있도록 설계되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "DWARF is architecture independent and applicable to any processor or operating system.",
+      "source_hash": 11919148147040422453,
+      "context_hash": 1772855573402524691,
+      "translation": "DWARF는 아키텍처에 독립적이며 모든 프로세서나 운영체제에 적용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:3",
+      "source": "It is widely used on Unix, Linux and other operating systems, as well as in stand-alone environments.",
+      "source_hash": 8457810952486781032,
+      "context_hash": 1831815335670343116,
+      "translation": "이는 Unix, Linux 및 기타 운영체제뿐만 아니라 독립 실행형 환경에서도 널리 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "DWARF reader is a program that consumes the DWARF format and creates debugger compatible output.",
+      "source_hash": 4584864920317234350,
+      "context_hash": 8907890470522093057,
+      "translation": "DWARF 리더는 DWARF 형식을 소비하여 디버거와 호환되는 출력을 생성하는 프로그램입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "This program may live in the compiler itself.",
+      "source_hash": 2567284711408342553,
+      "context_hash": 1180953348612833419,
+      "translation": "이 프로그램은 컴파일러 자체에 존재할 수 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "DWARF uses a data structure called Debugging Information Entry (DIE) which stores the information as \"tags\" to denote functions, variables etc., e.g., `DW_TAG_variable`, `DW_TAG_pointer_type`, `DW_TAG_subprogram` etc. You can also invent your own tags and attributes.",
+      "source_hash": 1903456124492164320,
+      "context_hash": 9454443732968011231,
+      "translation": "DWARF는 디버깅 정보 엔트리(DIE)라고 불리는 데이터 구조를 사용하는데, 이는 함수, 변수 등을 나타내기 위해 정보를 \"태그\"로 저장합니다. 예를 들어 `DW_TAG_variable`, `DW_TAG_pointer_type`, `DW_TAG_subprogram` 등이 있습니다. 여러분만의 태그와 속성을 새로 만들 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "CodeView/PDB",
+      "source_hash": 2375236807882795971,
+      "context_hash": 10338951433277876366,
+      "translation": "CodeView/PDB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "[PDB] (Program Database) is a file format created by Microsoft that contains debug information.",
+      "source_hash": 2920572711837565115,
+      "context_hash": 6574767824557324416,
+      "translation": "[PDB](Program Database)는 마이크로소프트가 만든, 디버그 정보를 담고 있는 파일 형식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:1",
+      "source": "PDBs can be consumed by debuggers such as WinDbg/CDB and other tools to display debug information.",
+      "source_hash": 17798939736421878031,
+      "context_hash": 10208320135231843395,
+      "translation": "PDB는 WinDbg/CDB와 같은 디버거 및 기타 도구에서 디버그 정보를 표시하기 위해 소비될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:2",
+      "source": "A PDB contains multiple streams that describe debug information about a specific binary such as types, symbols, and source files used to compile the given binary.",
+      "source_hash": 2698256005210216953,
+      "context_hash": 2589802062428669147,
+      "translation": "PDB는 주어진 바이너리를 컴파일하는 데 사용된 타입, 심볼, 소스 파일 등 특정 바이너리에 대한 디버그 정보를 설명하는 여러 스트림을 포함합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:3",
+      "source": "CodeView is another format which defines the structure of [symbol records] and [type records] that appear within PDB streams.",
+      "source_hash": 982759343325790266,
+      "context_hash": 6574867689536240389,
+      "translation": "CodeView는 PDB 스트림 내에 나타나는 [symbol records]와 [type records]의 구조를 정의하는 또 다른 형식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Supported debuggers",
+      "source_hash": 49796823222958389,
+      "context_hash": 11250409553793339187,
+      "translation": "지원되는 디버거",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681484Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "GDB",
+      "source_hash": 2824908265012751802,
+      "context_hash": 2458933284980126051,
+      "translation": "GDB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681485Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Rust expression parser",
+      "source_hash": 8540862301397647781,
+      "context_hash": 11196015157492553378,
+      "translation": "Rust 표현식 파서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:41.681485Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "To be able to show debug output, we need an expression parser.",
+      "source_hash": 4937385736004233134,
+      "context_hash": 17773957879607849450,
+      "translation": "디버그 출력을 표시할 수 있으려면 표현식 파서가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484584Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "This (GDB) expression parser is written in [Bison], and can parse only a subset of Rust expressions.",
+      "source_hash": 3534196717019396924,
+      "context_hash": 3521506475356591445,
+      "translation": "이 (GDB) 표현식 파서는 [Bison]으로 작성되었으며, Rust 표현식의 일부만 파싱할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484584Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "GDB parser was written from scratch and has no relation to any other parser, including that of rustc.",
+      "source_hash": 8272545208162281303,
+      "context_hash": 54629869445679617,
+      "translation": "GDB 파서는 처음부터 새로 작성되었으며, rustc의 파서를 포함하여 다른 어떤 파서와도 관련이 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484584Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "GDB has Rust-like value and type output.",
+      "source_hash": 17103868217132173561,
+      "context_hash": 1681770181582004686,
+      "translation": "GDB는 Rust와 유사한 값 및 타입 출력을 갖고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484584Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "It can print values and types in a way that look like Rust syntax in the output.",
+      "source_hash": 9603882843507828770,
+      "context_hash": 12538710267999054608,
+      "translation": "값과 타입을 출력에서 Rust 구문처럼 보이는 방식으로 출력할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484584Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:2",
+      "source": "Or when you print a type as [ptype] in GDB, it also looks like Rust source code.",
+      "source_hash": 5393263404023477223,
+      "context_hash": 1945820905986680480,
+      "translation": "또는 GDB에서 [ptype]으로 타입을 출력할 때도 Rust 소스 코드처럼 보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484584Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:3",
+      "source": "Checkout the documentation in the [manual for GDB/Rust].",
+      "source_hash": 792174290553083810,
+      "context_hash": 4581079164907101982,
+      "translation": "[manual for GDB/Rust]의 문서를 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Parser extensions",
+      "source_hash": 5190317261461108687,
+      "context_hash": 17944053037652061884,
+      "translation": "파서 확장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Expression parser has a couple of extensions in it to facilitate features that you cannot do with Rust.",
+      "source_hash": 5192749199460687105,
+      "context_hash": 14387172469892173636,
+      "translation": "표현식 파서에는 Rust로 할 수 없는 기능들을 지원하기 위한 몇 가지 확장이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "Some limitations are listed in the [manual for GDB/Rust].",
+      "source_hash": 12206064510909020048,
+      "context_hash": 13625008797707403967,
+      "translation": "일부 제약 사항은 [manual for GDB/Rust]에 나열되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:2",
+      "source": "There is some special code in the DWARF reader in GDB to support the extensions.",
+      "source_hash": 17017857596660169992,
+      "context_hash": 7200250880313488332,
+      "translation": "이 확장들을 지원하기 위해 GDB의 DWARF 리더에는 특별한 코드가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "A couple of examples of DWARF reader support needed are as follows:",
+      "source_hash": 17810660872026354815,
+      "context_hash": 17026313560734090591,
+      "translation": "필요한 DWARF 리더 지원의 몇 가지 예는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Enum: Needed for support for enum types.",
+      "source_hash": 3767305828476450672,
+      "context_hash": 13477198269261847868,
+      "translation": "Enum: 열거형 타입 지원을 위해 필요합니다. Rust 컴파일러는 enum에 대한 정보를 DWARF에 기록하고, GDB는 태그 필드가 어디에 있는지, 태그 필드가 존재하는지, 또는 태그 슬롯이 0이 아닌 값 최적화와 공유되는지 등을 이해하기 위해 DWARF를 읽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "The Rust compiler writes the information about enum into DWARF, and GDB reads the DWARF to understand where is the tag field, or if there is a tag field, or if the tag slot is shared with non-zero optimization etc.",
+      "source_hash": 2876483859458186520,
+      "context_hash": 18364950727771250555,
+      "translation": "Rust 컴파일러는 enum에 대한 정보를 DWARF에 기록하고, GDB는 태그 필드가 어디에 있는지, 태그 필드가 존재하는지, 또는 태그 슬롯이 0이 아닌 값 최적화와 공유되는지 등을 이해하기 위해 DWARF를 읽습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Dissect trait objects: DWARF extension where the trait object's description in the DWARF also points to a stub description of the corresponding vtable which in turn points to the concrete type for which this trait object exists.",
+      "source_hash": 13893091406054785816,
+      "context_hash": 12518764635855336875,
+      "translation": "Dissect trait objects: 트레이트 객체의 DWARF상 설명이 해당 vtable의 스텁 설명도 가리키고, 이 스텁 설명이 다시 이 트레이트 객체가 존재하는 구체적인 타입을 가리키는 DWARF 확장입니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:06:43.484585Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "This means that you can do a `print *object` for that trait object, and GDB will understand how to find the correct type of the payload in the trait object.",
+      "source_hash": 3788425760705754423,
+      "context_hash": 3556896224878340677,
+      "translation": "이는 해당 트레이트 객체에 대해 `print *object`를 실행할 수 있음을 의미하며, GDB는 트레이트 객체 내 페이로드의 올바른 타입을 찾는 방법을 이해합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "**TODO**: Figure out if the following should be mentioned in the GDB-Rust document rather than this guide page so there is no duplication.",
+      "source_hash": 11143795340472858633,
+      "context_hash": 11675685786165809137,
+      "translation": "**TODO**: 중복을 피하기 위해 다음 내용을 이 가이드 페이지가 아니라 GDB-Rust 문서에서 언급해야 하는지 확인해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "This is regarding the following comments:",
+      "source_hash": 4713425997977311531,
+      "context_hash": 3383001947593919574,
+      "translation": "이는 다음 댓글들과 관련이 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "[This comment by Tom](https://github.com/rust-lang/rustc-dev-guide/pull/316#discussion_r284027340)",
+      "source_hash": 166503095340517701,
+      "context_hash": 12473185480904693237,
+      "translation": "[Tom의 이 댓글](https://github.com/rust-lang/rustc-dev-guide/pull/316#discussion_r284027340)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "gdb's Rust extensions and limitations are documented in the gdb manual: https://sourceware.org/gdb/onlinedocs/gdb/Rust.html -- however, this neglects to mention that gdb convenience variables and registers follow the gdb $ convention, and that the Rust parser implements the gdb @ extension.",
+      "source_hash": 5697357315165471478,
+      "context_hash": 4281373989904794320,
+      "translation": "gdb의 Rust 확장 기능과 제약 사항은 gdb 매뉴얼에 문서화되어 있습니다: https://sourceware.org/gdb/onlinedocs/gdb/Rust.html -- 다만 이는 gdb의 편의 변수와 레지스터가 gdb의 $ 규칙을 따른다는 점과, Rust 파서가 gdb의 @ 확장을 구현한다는 점을 언급하지 않고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "[This question by Aman](https://github.com/rust-lang/rustc-dev-guide/pull/316#discussion_r285401353)",
+      "source_hash": 15702228996916290560,
+      "context_hash": 16129381625745561473,
+      "translation": "[Aman의 이 질문](https://github.com/rust-lang/rustc-dev-guide/pull/316#discussion_r285401353)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "@tromey do you think we should mention this part in the GDB-Rust document rather than this document so there is no duplication etc.?",
+      "source_hash": 7155721385231708875,
+      "context_hash": 4821050192573667611,
+      "translation": "@tromey 중복을 피하기 위해 이 부분을 이 문서가 아니라 GDB-Rust 문서에서 언급해야 한다고 생각하십니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "LLDB",
+      "source_hash": 10280842402396456504,
+      "context_hash": 10997783972471909618,
+      "translation": "LLDB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Rust expression parser",
+      "source_hash": 8540862301397647781,
+      "context_hash": 11982961552121279246,
+      "translation": "Rust 표현식 파서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "This expression parser is written in C++.",
+      "source_hash": 15252062000136183154,
+      "context_hash": 3957861990469588670,
+      "translation": "이 표현식 파서는 C++로 작성되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:1",
+      "source": "It is a type of [Recursive Descent parser].",
+      "source_hash": 11062041837123514628,
+      "context_hash": 10056065144133989688,
+      "translation": "이는 [Recursive Descent parser]의 일종입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484586Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:2",
+      "source": "It implements slightly less of the Rust language than GDB.",
+      "source_hash": 11890269316789215695,
+      "context_hash": 12389946488606893602,
+      "translation": "GDB보다 Rust 언어를 다소 적게 구현하고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484587Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:3",
+      "source": "LLDB has Rust-like value and type output.",
+      "source_hash": 12142846815211312317,
+      "context_hash": 18123808373168063398,
+      "translation": "LLDB는 Rust와 유사한 값 및 타입 출력을 갖고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484587Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Developer notes",
+      "source_hash": 17627903286246354423,
+      "context_hash": 10154293033319814401,
+      "translation": "개발자 노트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484587Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "LLDB has a plugin architecture but that does not work for language support.",
+      "source_hash": 2778218102010061652,
+      "context_hash": 3476445059247902732,
+      "translation": "LLDB는 플러그인 아키텍처를 갖고 있지만, 이는 언어 지원에는 작동하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484587Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "GDB generally works better on Linux.",
+      "source_hash": 7639609516946938065,
+      "context_hash": 10995214907048149054,
+      "translation": "GDB는 일반적으로 Linux에서 더 잘 작동합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484587Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "WinDbg/CDB",
+      "source_hash": 14816892153409966583,
+      "context_hash": 16216088281454671290,
+      "translation": "WinDbg/CDB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.484587Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "Microsoft provides [Windows Debugging Tools] such as the Windows Debugger (WinDbg) and the Console Debugger (CDB) which both support debugging programs written in Rust.",
+      "source_hash": 9412734728093204624,
+      "context_hash": 179639594395967272,
+      "translation": "Microsoft는 Rust로 작성된 프로그램의 디버깅을 모두 지원하는 Windows 디버거(WinDbg)와 콘솔 디버거(CDB) 등의 [Windows Debugging Tools]를 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816546Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:1",
+      "source": "These debuggers parse the debug info for a binary from the `PDB`, if available, to construct a visualization to serve up in the debugger.",
+      "source_hash": 11048282973389867533,
+      "context_hash": 15878661688711794635,
+      "translation": "이러한 디버거들은 가능한 경우 `PDB`로부터 바이너리의 디버그 정보를 파싱하여 디버거에서 제공할 시각화를 구성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816546Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Natvis",
+      "source_hash": 7999705943735488443,
+      "context_hash": 7796985349228343230,
+      "translation": "Natvis",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816546Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "Both WinDbg and CDB support defining and viewing custom visualizations for any given type within the debugger using the Natvis framework.",
+      "source_hash": 17566306406058093431,
+      "context_hash": 12643098735245122650,
+      "translation": "WinDbg와 CDB는 모두 Natvis 프레임워크를 사용하여 디버거 내에서 임의의 타입에 대한 사용자 정의 시각화를 정의하고 볼 수 있도록 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816547Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:1",
+      "source": "The Rust compiler defines a set of Natvis files that define custom visualizations for a subset of types in the standard libraries such as, `std`, `core`, and `alloc`.",
+      "source_hash": 13248304743153592035,
+      "context_hash": 13851733395678312293,
+      "translation": "Rust 컴파일러는 `std`, `core`, `alloc`과 같은 표준 라이브러리 내 타입의 일부에 대한 사용자 정의 시각화를 정의하는 Natvis 파일 집합을 정의합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:50.816547Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:2",
+      "source": "These Natvis files are embedded into `PDBs` generated by the `*-pc-windows-msvc` target triples to automatically enable these custom visualizations when debugging.",
+      "source_hash": 7102252325175651107,
+      "context_hash": 15082697506630797234,
+      "translation": "이러한 Natvis 파일들은 `*-pc-windows-msvc` 대상 트리플이 생성하는 `PDB`에 내장되어, 디버깅 시 이러한 사용자 정의 시각화가 자동으로 활성화되도록 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816547Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:3",
+      "source": "This default can be overridden by setting the `strip` rustc flag to either `debuginfo` or `symbols`.",
+      "source_hash": 10328233013309756005,
+      "context_hash": 4220901212172123295,
+      "translation": "이 기본 동작은 `strip` rustc 플래그를 `debuginfo` 또는 `symbols`로 설정하여 재정의할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816547Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Rust has support for embedding Natvis files for crates outside of the standard libraries by using the `#[debugger_visualizer]` attribute.",
+      "source_hash": 12881319064471069007,
+      "context_hash": 6432889471035111139,
+      "translation": "Rust는 `#[debugger_visualizer]` 속성을 사용하여 표준 라이브러리 외부의 크레이트에 대한 Natvis 파일 내장을 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:1",
+      "source": "For more details on how to embed debugger visualizers, please refer to the section on the [`debugger_visualizer` attribute].",
+      "source_hash": 12914729923961492182,
+      "context_hash": 15196251877915676814,
+      "translation": "디버거 시각화 도구를 내장하는 방법에 대한 자세한 내용은 [`debugger_visualizer` attribute] 절을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "DWARF and `rustc`",
+      "source_hash": 3970278950047431801,
+      "context_hash": 18213796340506628687,
+      "translation": "DWARF와 `rustc`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "[DWARF] is the standard way compilers generate debugging information that debuggers read.",
+      "source_hash": 14552467617638742941,
+      "context_hash": 1499529931520219250,
+      "translation": "[DWARF]는 디버거가 읽는 디버깅 정보를 컴파일러가 생성하는 표준 방식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "It is _the_ debugging format on macOS and Linux.",
+      "source_hash": 1660957451084859740,
+      "context_hash": 17171116536101735391,
+      "translation": "macOS와 Linux에서는 *바로 그* 디버깅 형식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "It is a multi-language and extensible format, and is mostly good enough for Rust's purposes.",
+      "source_hash": 3328663221414220921,
+      "context_hash": 12895692634476482067,
+      "translation": "이는 다중 언어를 지원하고 확장 가능한 형식이며, Rust의 목적에는 대체로 충분합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:3",
+      "source": "Hence, the current implementation reuses DWARF's concepts.",
+      "source_hash": 11059430445294408611,
+      "context_hash": 12990530687242809066,
+      "translation": "따라서 현재 구현은 DWARF의 개념을 재사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:4",
+      "source": "This is true even if some of the concepts in DWARF do not align with Rust semantically because, generally, there can be some kind of mapping between the two.",
+      "source_hash": 5294630095563788224,
+      "context_hash": 9477140644275403036,
+      "translation": "DWARF의 일부 개념이 Rust와 의미적으로 맞지 않더라도, 일반적으로 둘 사이에는 어떤 형태의 대응 관계가 존재할 수 있기 때문에 이는 사실입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "We have some DWARF extensions that the Rust compiler emits and the debuggers understand that are _not_ in the DWARF standard.",
+      "source_hash": 12901293951899082848,
+      "context_hash": 13960510998447138262,
+      "translation": "DWARF 표준에는 *없는* 몇 가지 DWARF 확장을 Rust 컴파일러가 방출하며, 디버거는 이를 이해합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Rust compiler will emit DWARF for a virtual table, and this `vtable` object will have a `DW_AT_containing_type` that points to the real type.",
+      "source_hash": 17627661077362617281,
+      "context_hash": 11792331270936717590,
+      "translation": "Rust 컴파일러는 가상 테이블에 대한 DWARF를 방출하며, 이 `vtable` 객체는 실제 타입을 가리키는 `DW_AT_containing_type`을 가집니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:50.816548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "This lets debuggers dissect a trait object pointer to correctly find the payload.",
+      "source_hash": 16961416447989242432,
+      "context_hash": 6723944460514160685,
+      "translation": "이를 통해 디버거는 트레이트 객체 포인터를 분석하여 페이로드를 올바르게 찾을 수 있습니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:06:50.816549Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "Here is an example of such a DIE, from a test case in the gdb repository:",
+      "source_hash": 16127593199229393671,
+      "context_hash": 12827344642212028516,
+      "translation": "다음은 gdb 저장소의 테스트 케이스에서 가져온 그러한 DIE의 예입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816549Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "The other extension is that the Rust compiler can emit a tagless discriminated union.",
+      "source_hash": 12115600889024302048,
+      "context_hash": 13306690684560521114,
+      "translation": "또 다른 확장은 Rust 컴파일러가 태그 없는 판별 유니온(tagless discriminated union)을 방출할 수 있다는 것입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:50.816549Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "See [DWARF feature request] for this item.",
+      "source_hash": 9163693127733214842,
+      "context_hash": 18133384036436603132,
+      "translation": "이 항목에 대해서는 [DWARF feature request]를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816549Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Current limitations of DWARF",
+      "source_hash": 3568764442153610018,
+      "context_hash": 2771452644495841966,
+      "translation": "DWARF의 현재 한계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816550Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Traits - require a bigger change than normal to DWARF, on how to represent Traits in DWARF.",
+      "source_hash": 12615894007898701066,
+      "context_hash": 2440310052105394256,
+      "translation": "트레이트 - DWARF에서 트레이트를 어떻게 표현할지에 대해 통상적인 것보다 더 큰 변경이 DWARF에 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816550Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "DWARF provides no way to differentiate between Structs and Tuples.",
+      "source_hash": 15963449163800855358,
+      "context_hash": 8278334329357424787,
+      "translation": "DWARF는 구조체와 튜플을 구별할 방법을 제공하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816550Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "Rust compiler emits fields with `__0` and debuggers look for a sequence of such names to overcome this limitation.",
+      "source_hash": 13139005489755290597,
+      "context_hash": 9684051427284198747,
+      "translation": "Rust 컴파일러는 `__0` 필드를 방출하며, 디버거는 이러한 이름의 시퀀스를 찾아 이 제한을 극복합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:50.816550Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:2",
+      "source": "For example, in this case the debugger would look at a field via `x.__0` instead of `x.0`.",
+      "source_hash": 2743894776015328495,
+      "context_hash": 7974638525125816914,
+      "translation": "예를 들어, 이 경우 디버거는 `x.0` 대신 `x.__0`을 통해 필드를 조회하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816550Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:3",
+      "source": "This is resolved via the Rust parser in the debugger so now you can do `x.0`.",
+      "source_hash": 4614109410405108761,
+      "context_hash": 14506382480006897497,
+      "translation": "이는 디버거의 Rust 파서를 통해 해결되므로 이제는 `x.0`을 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816550Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "DWARF relies on debuggers to know some information about platform ABI.",
+      "source_hash": 2162190338426619664,
+      "context_hash": 8194439217847775634,
+      "translation": "DWARF는 플랫폼 ABI에 관한 일부 정보를 디버거가 알고 있다는 것에 의존합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816550Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:1",
+      "source": "Rust does not do that all the time.",
+      "source_hash": 10380647613932297318,
+      "context_hash": 394927211739573111,
+      "translation": "Rust는 항상 그렇게 하지는 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816551Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Developer notes",
+      "source_hash": 17627903286246354423,
+      "context_hash": 11159927184184812729,
+      "translation": "개발자 노트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816551Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "This section is from the talk about certain aspects of development.",
+      "source_hash": 11233061753727226302,
+      "context_hash": 12242509113096916674,
+      "translation": "이 절은 개발의 특정 측면에 관한 발표 내용에서 가져온 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816551Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "What is missing",
+      "source_hash": 18434715678646639991,
+      "context_hash": 4914028472229298632,
+      "translation": "빠져 있는 것",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:50.816551Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Code signing for LLDB debug server on macOS",
+      "source_hash": 16165799780059989259,
+      "context_hash": 7587988270346970449,
+      "translation": "macOS에서 LLDB 디버그 서버를 위한 코드 서명",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642772Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "According to Wikipedia, [System Integrity Protection] is",
+      "source_hash": 11181356548484712665,
+      "context_hash": 3541110389638790986,
+      "translation": "위키백과에 따르면, [System Integrity Protection]은",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642772Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "System Integrity Protection (SIP, sometimes referred to as rootless) is a security feature of Apple's macOS operating system introduced in OS X El Capitan.",
+      "source_hash": 8082422679194687655,
+      "context_hash": 13044787988388485867,
+      "translation": "System Integrity Protection(SIP, 때로는 rootless라고도 함)은 OS X El Capitan에서 도입된 애플 macOS 운영체제의 보안 기능입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642772Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "It comprises a number of mechanisms that are enforced by the kernel.",
+      "source_hash": 16741742547432829247,
+      "context_hash": 15534044496795835072,
+      "translation": "이는 커널에 의해 강제되는 여러 메커니즘으로 구성됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:2",
+      "source": "A centerpiece is the protection of system-owned files and directories against modifications by processes without a specific \"entitlement\", even when executed by the root user or a user with root privileges (sudo).",
+      "source_hash": 13810214728238601064,
+      "context_hash": 7079194518114413379,
+      "translation": "핵심은 root 사용자 또는 root 권한을 가진 사용자(sudo)에 의해 실행되더라도, 특정 \"권한(entitlement)\"이 없는 프로세스에 의한 수정으로부터 시스템 소유 파일 및 디렉터리를 보호하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "It prevents processes using `ptrace` syscall.",
+      "source_hash": 16754998411916809758,
+      "context_hash": 9295314799847857317,
+      "translation": "이는 프로세스가 `ptrace` 시스템 호출을 사용하는 것을 막습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "If a process wants to use `ptrace` it has to be code signed.",
+      "source_hash": 10348605073057958186,
+      "context_hash": 14811327703949109966,
+      "translation": "프로세스가 `ptrace`를 사용하려면 코드 서명이 되어 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "The certificate that signs it has to be trusted on your machine.",
+      "source_hash": 17661058062378966808,
+      "context_hash": 1829524808242121260,
+      "translation": "이를 서명하는 인증서는 사용자의 기기에서 신뢰되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "See [Apple developer documentation for System Integrity Protection].",
+      "source_hash": 3641420809126625285,
+      "context_hash": 6904601446084428574,
+      "translation": "[Apple developer documentation for System Integrity Protection]를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "We may need to sign up with Apple and get the keys to do this signing.",
+      "source_hash": 4041084332496858591,
+      "context_hash": 3612711084725510417,
+      "translation": "이 서명을 하려면 Apple에 등록하고 키를 받아야 할 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "Tom has looked into if Mozilla cannot do this because it is at the maximum number of keys it is allowed to sign.",
+      "source_hash": 7545550866406967809,
+      "context_hash": 6116006223579428167,
+      "translation": "Tom은 Mozilla가 서명할 수 있는 키의 최대 개수에 도달해서 이를 할 수 없는 것은 아닌지 조사했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:2",
+      "source": "Tom does not know if Mozilla could get more keys.",
+      "source_hash": 9674189060734664666,
+      "context_hash": 8427576143704304186,
+      "translation": "Tom은 Mozilla가 키를 더 받을 수 있는지는 알지 못합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642773Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "Alternatively, Tom suggests that maybe a Rust legal entity is needed to get the keys via Apple.",
+      "source_hash": 13706353739792233271,
+      "context_hash": 3446614633147709417,
+      "translation": "대안으로, Tom은 Apple을 통해 키를 받으려면 Rust 법인이 필요할 수도 있다고 제안합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "This problem is not technical in nature.",
+      "source_hash": 3442645637702916470,
+      "context_hash": 170265850683166168,
+      "translation": "이 문제는 기술적인 성격의 문제가 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:2",
+      "source": "If we had such a key, we could sign GDB as well and ship that.",
+      "source_hash": 268073214475503857,
+      "context_hash": 15483554848229913044,
+      "translation": "그런 키가 있다면, GDB도 서명해서 함께 배포할 수 있을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "DWARF and Traits",
+      "source_hash": 14458855416637178700,
+      "context_hash": 17222129956869026572,
+      "translation": "DWARF와 트레이트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Rust traits are not emitted into DWARF at all.",
+      "source_hash": 15116085774861376018,
+      "context_hash": 8949786805698292133,
+      "translation": "Rust의 트레이트는 DWARF에 전혀 방출되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:1",
+      "source": "The impact of this is calling a method `x.method()` does not work as-is.",
+      "source_hash": 2793400974420927510,
+      "context_hash": 7105246619116818804,
+      "translation": "이로 인한 영향은 `x.method()`와 같은 메서드 호출이 있는 그대로는 동작하지 않는다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:2",
+      "source": "The reason being that method is implemented by a trait, as opposed to a type.",
+      "source_hash": 17840639290606543937,
+      "context_hash": 2752997477432324335,
+      "translation": "그 이유는 해당 메서드가 타입이 아니라 트레이트에 의해 구현되어 있기 때문입니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:3",
+      "source": "That information is not present, so finding trait methods is missing.",
+      "source_hash": 10333873308153312248,
+      "context_hash": 9808426803586683180,
+      "translation": "그 정보가 존재하지 않기 때문에, 트레이트 메서드를 찾는 것이 불가능합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:06:43.642774Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "DWARF has a notion of interface types (possibly added for Java).",
+      "source_hash": 16133825257692499791,
+      "context_hash": 18270442200400814559,
+      "translation": "DWARF에는 인터페이스 타입이라는 개념이 있습니다(아마도 Java를 위해 추가된 것으로 보입니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:1",
+      "source": "Tom's idea was to use this interface type as traits.",
+      "source_hash": 18177008323017260114,
+      "context_hash": 4503641082783676246,
+      "translation": "Tom의 아이디어는 이 인터페이스 타입을 트레이트로 사용하는 것이었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "DWARF only deals with concrete names, not the reference types.",
+      "source_hash": 15182751552329787539,
+      "context_hash": 8786011875425183372,
+      "translation": "DWARF는 오직 구체적인 이름만 다루며, 참조 타입은 다루지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:1",
+      "source": "So, a given implementation of a trait for a type would be one of these interfaces (`DW_tag_interface` type).",
+      "source_hash": 14842502668897051221,
+      "context_hash": 3542010398851289191,
+      "translation": "따라서, 어떤 타입에 대한 트레이트의 특정 구현은 이러한 인터페이스(`DW_tag_interface` 타입) 중 하나가 될 것입니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:2",
+      "source": "Also, the type for which it is implemented would describe all the interfaces this type implements.",
+      "source_hash": 8595921945357667306,
+      "context_hash": 16210440900920639777,
+      "translation": "또한, 그것이 구현된 타입은 해당 타입이 구현하는 모든 인터페이스를 기술하게 될 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:3",
+      "source": "This requires a DWARF extension.",
+      "source_hash": 10315682686628159969,
+      "context_hash": 2778222693883132664,
+      "translation": "이를 위해서는 DWARF 확장이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Issue on GitHub: [https://github.com/rust-lang/rust/issues/33014]",
+      "source_hash": 1095229760713562214,
+      "context_hash": 16547657104172723842,
+      "translation": "GitHub 이슈: [https://github.com/rust-lang/rust/issues/33014]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Typical process for a Debug Info change (LLVM)",
+      "source_hash": 7381781777283074744,
+      "context_hash": 5213448121934721777,
+      "translation": "디버그 정보 변경(LLVM)을 위한 일반적인 절차",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:43.642775Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "LLVM has Debug Info (DI) builders.",
+      "source_hash": 17576331296170397516,
+      "context_hash": 10298770612383161904,
+      "translation": "LLVM은 디버그 정보(Debug Info, DI) 빌더를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795466Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "This is the primary thing that Rust calls into.",
+      "source_hash": 15960518624722045140,
+      "context_hash": 9137740733387327755,
+      "translation": "이것이 Rust가 호출하는 주요 대상입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795467Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:2",
+      "source": "This is why we need to change LLVM first because that is emitted first and not DWARF directly.",
+      "source_hash": 11280746346265015315,
+      "context_hash": 12588663139750511562,
+      "translation": "DWARF로 직접 방출되는 것이 아니라 이것이 먼저 방출되기 때문에 LLVM을 먼저 변경해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795467Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:3",
+      "source": "This is a kind of metadata that you construct and hand-off to LLVM.",
+      "source_hash": 5245393845461957043,
+      "context_hash": 14953015251571188079,
+      "translation": "이것은 여러분이 구성하여 LLVM에 넘겨주는 일종의 메타데이터입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795467Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:4",
+      "source": "For the Rustc/LLVM hand-off, some LLVM DI builder methods are called to construct representation of a type.",
+      "source_hash": 11947015119692687206,
+      "context_hash": 15494559307299668622,
+      "translation": "Rustc/LLVM 간의 전달을 위해, 어떤 타입의 표현을 구성하기 위해 일부 LLVM DI 빌더 메서드가 호출됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795467Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "The steps of this process are as follows:",
+      "source_hash": 11309573658963155198,
+      "context_hash": 7847689551340439988,
+      "translation": "이 과정의 단계는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795467Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "LLVM needs changing.",
+      "source_hash": 1259854481089886348,
+      "context_hash": 9394316747409929528,
+      "translation": "LLVM을 변경해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795467Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "LLVM does not emit Interface types at all, so this needs to be implemented in LLVM first.",
+      "source_hash": 13383348966032400192,
+      "context_hash": 14374101593139148498,
+      "translation": "LLVM은 Interface 타입을 전혀 방출하지 않으므로, 이를 먼저 LLVM에 구현해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "Get sign off on LLVM maintainers that this is a good idea.",
+      "source_hash": 17569510496226405855,
+      "context_hash": 16661679115067292584,
+      "translation": "이것이 좋은 아이디어라는 LLVM 관리자들의 승인을 받으십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "Change the DWARF extension.",
+      "source_hash": 9261153046967254345,
+      "context_hash": 7631301759434665683,
+      "translation": "DWARF 확장을 변경하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "Update the debuggers.",
+      "source_hash": 2860336027542748090,
+      "context_hash": 12190259891178540394,
+      "translation": "디버거를 업데이트하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Update DWARF readers, expression evaluators.",
+      "source_hash": 15091256863256654272,
+      "context_hash": 16340199498914534422,
+      "translation": "DWARF 리더와 표현식 평가기를 업데이트하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Update Rust compiler.",
+      "source_hash": 13939981151709809104,
+      "context_hash": 16856430882780730728,
+      "translation": "Rust 컴파일러를 업데이트하십시오.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "Change it to emit this new information.",
+      "source_hash": 10242068020874220049,
+      "context_hash": 1184751234631868204,
+      "translation": "이 새로운 정보를 방출하도록 변경하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "Procedural macro stepping",
+      "source_hash": 16913249221636687703,
+      "context_hash": 16245383941159409209,
+      "translation": "절차적 매크로 스테핑",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "A deeply profound question is that how do you actually debug a procedural macro?",
+      "source_hash": 1379836496742923571,
+      "context_hash": 6786470997996927924,
+      "translation": "매우 심오한 질문은 절차적 매크로를 실제로 어떻게 디버깅하느냐는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:1",
+      "source": "What is the location you emit for a macro expansion?",
+      "source_hash": 17822043746953016205,
+      "context_hash": 13353114884415143538,
+      "translation": "매크로 확장에 대해 어떤 위치를 방출해야 합니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:2",
+      "source": "Consider some of the following cases -",
+      "source_hash": 15457445045241518443,
+      "context_hash": 9234313802460848242,
+      "translation": "다음의 몇 가지 경우를 고려해 보십시오 -",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795468Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "You can emit location of the invocation of the macro.",
+      "source_hash": 15918853654401067685,
+      "context_hash": 1648302764623477303,
+      "translation": "매크로 호출의 위치를 방출할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "You can emit the location of the definition of the macro.",
+      "source_hash": 9982031527766213772,
+      "context_hash": 1737322404648077176,
+      "translation": "매크로 정의의 위치를 방출할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "You can emit locations of the content of the macro.",
+      "source_hash": 11155431612845719582,
+      "context_hash": 9939062918667365974,
+      "translation": "매크로 내용의 위치를 방출할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "RFC: [https://github.com/rust-lang/rfcs/pull/2117]",
+      "source_hash": 5939642009125981556,
+      "context_hash": 14200244759193552182,
+      "translation": "RFC: [https://github.com/rust-lang/rfcs/pull/2117]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "Focus is to let macros decide what to do.",
+      "source_hash": 3827839089149141491,
+      "context_hash": 4687817874023436664,
+      "translation": "초점은 매크로가 무엇을 할지 스스로 결정하도록 하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:1",
+      "source": "This can be achieved by having some kind of attribute that lets the macro tell the compiler where the line marker should be.",
+      "source_hash": 6783711309420802852,
+      "context_hash": 16083391121882891444,
+      "translation": "이는 매크로가 라인 마커가 어디에 있어야 하는지를 컴파일러에게 알려줄 수 있는 일종의 속성(attribute)을 둠으로써 달성할 수 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:2",
+      "source": "This affects where you set the breakpoints and what happens when you step it.",
+      "source_hash": 13210551212856259977,
+      "context_hash": 18371958663977090211,
+      "translation": "이는 중단점을 설정하는 위치와 스테핑할 때 일어나는 일에 영향을 미칩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Source file checksums in debug info",
+      "source_hash": 11678251348813713563,
+      "context_hash": 2506373233110586916,
+      "translation": "디버그 정보 내 소스 파일 체크섬",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Both DWARF and CodeView (PDB) support embedding a cryptographic hash of each source file that contributed to the associated binary.",
+      "source_hash": 18249350462144683723,
+      "context_hash": 6405219537728715185,
+      "translation": "DWARF와 CodeView(PDB) 모두 관련 바이너리에 기여한 각 소스 파일의 암호화 해시를 임베드하는 것을 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "The cryptographic hash can be used by a debugger to verify that the source file matches the executable.",
+      "source_hash": 161924888154875733,
+      "context_hash": 17126453467236618461,
+      "translation": "암호화 해시는 디버거가 소스 파일이 실행 파일과 일치하는지 검증하는 데 사용될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795469Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "If the source file does not match, the debugger can provide a warning to the user.",
+      "source_hash": 15928256677286757121,
+      "context_hash": 4173027580886518401,
+      "translation": "소스 파일이 일치하지 않는 경우, 디버거는 사용자에게 경고를 제공할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795470Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "The hash can also be used to prove that a given source file has not been modified since it was used to compile an executable.",
+      "source_hash": 9787297183045786652,
+      "context_hash": 18417612180948388474,
+      "translation": "이 해시는 또한 주어진 소스 파일이 실행 파일을 컴파일하는 데 사용된 이후로 수정되지 않았음을 증명하는 데에도 사용될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795470Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "Because MD5 and SHA1 both have demonstrated vulnerabilities, using SHA256 is recommended for this application.",
+      "source_hash": 5260047051336430077,
+      "context_hash": 17049480483834443832,
+      "translation": "MD5와 SHA1 모두 취약점이 입증되었으므로, 이 용도에는 SHA256을 사용하는 것이 권장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:45.795470Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "The Rust compiler stores the hash for each source file in the corresponding `SourceFile` in the `SourceMap`.",
+      "source_hash": 1656297859540524810,
+      "context_hash": 12855367063661008601,
+      "translation": "Rust 컴파일러는 각 소스 파일의 해시를 `SourceMap` 내의 해당 `SourceFile`에 저장합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:55.348771Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "The hashes of input files to external crates are stored in `rlib` metadata.",
+      "source_hash": 18092707912517083800,
+      "context_hash": 255755147609790287,
+      "translation": "외부 크레이트의 입력 파일에 대한 해시는 `rlib` 메타데이터에 저장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348772Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "A default hashing algorithm is set in the target specification.",
+      "source_hash": 13535872917480014150,
+      "context_hash": 6307777940217325694,
+      "translation": "기본 해싱 알고리즘은 타겟 명세에서 설정됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348772Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:1",
+      "source": "This allows the target to specify the best hash available, since not all targets support all hash algorithms.",
+      "source_hash": 14498346488566343319,
+      "context_hash": 5675707645152165181,
+      "translation": "이를 통해 타겟은 사용 가능한 최선의 해시를 지정할 수 있습니다. 모든 타겟이 모든 해시 알고리즘을 지원하는 것은 아니기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348772Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "The hashing algorithm for a target can also be overridden with the `-Z source-file-checksum=` command-line option.",
+      "source_hash": 7518905356734373368,
+      "context_hash": 1647317900637383846,
+      "translation": "타겟의 해싱 알고리즘은 `-Z source-file-checksum=` 명령줄 옵션으로 재정의할 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348772Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "DWARF 5",
+      "source_hash": 14542636765917028353,
+      "context_hash": 10661968636917053712,
+      "translation": "DWARF 5",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "DWARF version 5 supports embedding an MD5 hash to validate the source file version in use.",
+      "source_hash": 15632200465848925701,
+      "context_hash": 3303189764404823184,
+      "translation": "DWARF 버전 5는 사용 중인 소스 파일 버전을 검증하기 위해 MD5 해시를 내장하는 것을 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:1",
+      "source": "DWARF 5 - Section 6.2.4.1 opcode DW_LNCT_MD5",
+      "source_hash": 1516066219744308272,
+      "context_hash": 7199896864741046923,
+      "translation": "DWARF 5 - 6.2.4.1절 opcode DW_LNCT_MD5",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "LLVM",
+      "source_hash": 17354166187802774726,
+      "context_hash": 13781408074914678666,
+      "translation": "LLVM",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "LLVM IR supports MD5 and SHA1 (and SHA256 in LLVM 11+) source file checksums in the DIFile node.",
+      "source_hash": 16286943303103333371,
+      "context_hash": 5971613779154629467,
+      "translation": "LLVM IR은 DIFile 노드에서 MD5와 SHA1(LLVM 11+에서는 SHA256도) 소스 파일 체크섬을 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "[LLVM DIFile documentation](https://llvm.org/docs/LangRef.html#difile)",
+      "source_hash": 5924756465777236573,
+      "context_hash": 15491435589361957586,
+      "translation": "[LLVM DIFile 문서](https://llvm.org/docs/LangRef.html#difile)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "Microsoft Visual C++ Compiler /ZH option",
+      "source_hash": 6309148687677601841,
+      "context_hash": 712388021258898718,
+      "translation": "Microsoft Visual C++ 컴파일러 /ZH 옵션",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "The MSVC compiler supports embedding MD5, SHA1, or SHA256 hashes in the PDB using the `/ZH` compiler option.",
+      "source_hash": 7986660422593799129,
+      "context_hash": 4574461740334781118,
+      "translation": "MSVC 컴파일러는 `/ZH` 컴파일러 옵션을 사용하여 PDB에 MD5, SHA1, 또는 SHA256 해시를 내장하는 것을 지원합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:55.348773Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "[MSVC /ZH documentation](https://docs.microsoft.com/en-us/cpp/build/reference/zh)",
+      "source_hash": 9530246296887749087,
+      "context_hash": 4485341220113187558,
+      "translation": "[MSVC /ZH 문서](https://docs.microsoft.com/en-us/cpp/build/reference/zh)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "Clang",
+      "source_hash": 493248666982838524,
+      "context_hash": 1673536634938496597,
+      "translation": "Clang",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "Clang always embeds an MD5 checksum, though this does not appear in documentation.",
+      "source_hash": 6626316945526605325,
+      "context_hash": 5115837535952012252,
+      "translation": "Clang은 항상 MD5 체크섬을 내장하지만, 이는 문서에는 나타나지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Future work",
+      "source_hash": 10900524879751445774,
+      "context_hash": 7450067967627541236,
+      "translation": "향후 작업",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Name mangling changes",
+      "source_hash": 17606997681386789017,
+      "context_hash": 12076125055814308915,
+      "translation": "이름 맹글링 변경",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "New demangler in `libiberty` (gcc source tree).",
+      "source_hash": 4630311789370701429,
+      "context_hash": 6256731128016699645,
+      "translation": "`libiberty`(gcc 소스 트리)의 새로운 디맹글러.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "New demangler in LLVM or LLDB.",
+      "source_hash": 9537841713184644841,
+      "context_hash": 7150190479457196835,
+      "translation": "LLVM 또는 LLDB의 새로운 디맹글러.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "**TODO**: Check the location of the demangler source. [#1157](https://github.com/rust-lang/rustc-dev-guide/issues/1157)",
+      "source_hash": 9510522165142456507,
+      "context_hash": 15296717940037472901,
+      "translation": "**TODO**: 디맹글러 소스의 위치를 확인하십시오. [#1157](https://github.com/rust-lang/rustc-dev-guide/issues/1157)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348774Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Reuse Rust compiler for expressions",
+      "source_hash": 17911744224581160314,
+      "context_hash": 17720690633037192673,
+      "translation": "표현식을 위해 Rust 컴파일러 재사용",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:55.348775Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "This is an important idea because debuggers by and large do not try to implement type inference.",
+      "source_hash": 10220044291562200795,
+      "context_hash": 8846411064634231980,
+      "translation": "디버거는 대체로 타입 추론을 구현하려 하지 않기 때문에 이는 중요한 아이디어입니다.",
+      "glossary_snapshot": {
+        "type inference": "타입 추론"
+      },
+      "translated_at": "2026-09-12T01:06:55.348775Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:1",
+      "source": "You need to be much more explicit when you type into the debugger than your actual source code.",
+      "source_hash": 8842554385263922566,
+      "context_hash": 11078839799374748652,
+      "translation": "디버거에 입력할 때는 실제 소스 코드보다 훨씬 더 명시적이어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348775Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:2",
+      "source": "So, you cannot just copy and paste an expression from your source code to debugger and expect the same answer, but this would be nice.",
+      "source_hash": 5406183173157500630,
+      "context_hash": 225958295337456478,
+      "translation": "그래서 소스 코드의 표현식을 그대로 복사해서 디버거에 붙여넣고 같은 답을 기대할 수는 없지만, 그렇게 된다면 좋을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348775Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:3",
+      "source": "This can be helped by using compiler.",
+      "source_hash": 2735657319981483344,
+      "context_hash": 5980093109051918867,
+      "translation": "컴파일러를 사용함으로써 이를 도울 수 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:06:55.348775Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "It is certainly doable, but it is a large project.",
+      "source_hash": 2473868577032051961,
+      "context_hash": 8212073359382875221,
+      "translation": "확실히 가능하지만, 큰 프로젝트입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348776Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:1",
+      "source": "You certainly need a bridge to the debugger because the debugger alone has access to the memory.",
+      "source_hash": 4850203417496107242,
+      "context_hash": 18436839646389572085,
+      "translation": "디버거만이 메모리에 접근할 수 있기 때문에 디버거로의 다리가 반드시 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348776Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:2",
+      "source": "Both GDB (gcc) and LLDB (clang) have this feature.",
+      "source_hash": 14267762266624499258,
+      "context_hash": 16119200115335824311,
+      "translation": "GDB(gcc)와 LLDB(clang) 모두 이 기능을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348776Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:3",
+      "source": "LLDB uses Clang to compile code to JIT and GDB can do the same with GCC.",
+      "source_hash": 10639970020851607659,
+      "context_hash": 7217567591160373350,
+      "translation": "LLDB는 Clang을 사용하여 코드를 JIT로 컴파일하며, GDB도 GCC로 동일한 작업을 할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:06:55.348776Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "Both debuggers expression evaluation implement both a superset and a subset of Rust.",
+      "source_hash": 17590378851301784776,
+      "context_hash": 1842348860418281168,
+      "translation": "두 디버거의 표현식 평가는 러스트의 상위 집합이자 하위 집합을 모두 구현합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:03:19.991070Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:1",
+      "source": "They implement just the expression language, but they also add some extensions like GDB has convenience variables.",
+      "source_hash": 6539767883760803527,
+      "context_hash": 9789348254811231749,
+      "translation": "이들은 표현식 언어만 구현하는 것이 아니라, GDB의 편의 변수(convenience variables)와 같은 확장 기능도 일부 추가합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:03:19.991070Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:2",
+      "source": "Therefore, if you are taking this route, then you not only need to do this bridge, but may have to add some mode to let the compiler understand some extensions.",
+      "source_hash": 7469120355520857624,
+      "context_hash": 6385934210713970203,
+      "translation": "따라서 이 방식을 택한다면, 이러한 다리 역할을 수행해야 할 뿐만 아니라, 컴파일러가 일부 확장 기능을 이해할 수 있도록 어떤 모드를 추가해야 할 수도 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:03:19.991070Z",
+      "issues": []
+    }
+  ]
+}

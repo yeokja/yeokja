@@ -1,0 +1,1598 @@
+{
+  "version": 1,
+  "source_hash": 9402588608577347847,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "The `ty` module: representing types",
+      "source_hash": 10754131018482470799,
+      "context_hash": 5861960123014961377,
+      "translation": "`ty` 모듈: 타입 표현하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924932Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "The `ty` module defines how the Rust compiler represents types internally.",
+      "source_hash": 11203972009100294491,
+      "context_hash": 10876895313878896581,
+      "translation": "`ty` 모듈은 러스트 컴파일러가 내부적으로 타입을 표현하는 방식을 정의합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:14:11.924933Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "It also defines the *typing context* (`tcx` or `TyCtxt`), which is the central data structure in the compiler.",
+      "source_hash": 2345069313912015057,
+      "context_hash": 7594423694486074613,
+      "translation": "또한 컴파일러의 중심 데이터 구조인 *타이핑 컨텍스트*(`tcx` 또는 `TyCtxt`)도 정의합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:14:11.924933Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "`ty::Ty`",
+      "source_hash": 15433183403416238110,
+      "context_hash": 17385513755161679572,
+      "translation": "`ty::Ty`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924933Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "When we talk about how rustc represents types, we usually refer to a type called `Ty`.",
+      "source_hash": 14888810305591465644,
+      "context_hash": 10799709426339311805,
+      "translation": "rustc가 타입을 어떻게 표현하는지 이야기할 때, 우리는 보통 `Ty`라는 타입을 가리킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924933Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "There are quite a few modules and types for `Ty` in the compiler ([Ty documentation][ty]).",
+      "source_hash": 16823658616105095508,
+      "context_hash": 12816871386369799105,
+      "translation": "컴파일러에는 `Ty`를 위한 상당히 많은 모듈과 타입이 존재합니다([Ty 문서][ty]).",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:14:11.924933Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "The specific `Ty` we are referring to is [`rustc_middle::ty::Ty`][ty_ty] (and not [`rustc_hir::Ty`][hir_ty]).",
+      "source_hash": 4049039647900018788,
+      "context_hash": 10861351249575232742,
+      "translation": "우리가 가리키는 구체적인 `Ty`는 [`rustc_middle::ty::Ty`][ty_ty]이며([`rustc_hir::Ty`][hir_ty]가 아닙니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "The distinction is important, so we will discuss it first before going into the details of `ty::Ty`.",
+      "source_hash": 7463296510210539114,
+      "context_hash": 11751268008295239575,
+      "translation": "이 구분은 중요하므로, `ty::Ty`의 세부 사항을 다루기 전에 먼저 논의하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "`rustc_hir::Ty` vs `ty::Ty`",
+      "source_hash": 1708489840993060146,
+      "context_hash": 4241914399094942080,
+      "translation": "`rustc_hir::Ty` 대 `ty::Ty`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The HIR in rustc can be thought of as the high-level intermediate representation.",
+      "source_hash": 6605875113910697981,
+      "context_hash": 5359889946333865499,
+      "translation": "rustc의 HIR은 고수준 중간 표현으로 생각할 수 있습니다.",
+      "glossary_snapshot": {
+        "intermediate representation": "중간 표현"
+      },
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It is more or less the AST (see [this chapter](hir.md)) as it represents the syntax that the user wrote, and is obtained after parsing and some *desugaring*.",
+      "source_hash": 6918243362712990571,
+      "context_hash": 15317555397195676640,
+      "translation": "이는 사용자가 작성한 구문을 표현하며 파싱과 일부 *디슈가링*을 거쳐 얻어진다는 점에서 거의 AST([이 장](hir.md) 참고)와 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "It has a representation of types, but in reality it reflects more of what the user wrote, that is, what they wrote so as to represent that type.",
+      "source_hash": 4163680572267873245,
+      "context_hash": 2229632009927867349,
+      "translation": "HIR은 타입 표현을 가지고 있지만, 실제로는 사용자가 작성한 것, 즉 해당 타입을 표현하기 위해 그들이 작성한 내용을 더 많이 반영합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "In contrast, `ty::Ty` represents the semantics of a type, that is, the *meaning* of what the user wrote.",
+      "source_hash": 15066454840468535697,
+      "context_hash": 14337781272424375962,
+      "translation": "반면 `ty::Ty`는 타입의 의미론, 즉 사용자가 작성한 것의 *의미*를 표현합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "For example, `rustc_hir::Ty` would record the fact that a user used the name `u32` twice in their program, but the `ty::Ty` would record the fact that both usages refer to the same type.",
+      "source_hash": 10094834106169984227,
+      "context_hash": 16102088667841436672,
+      "translation": "예를 들어, `rustc_hir::Ty`는 사용자가 프로그램에서 `u32`라는 이름을 두 번 사용했다는 사실을 기록하지만, `ty::Ty`는 두 사용이 모두 동일한 타입을 가리킨다는 사실을 기록합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "**Example: `fn foo(x: u32) → u32 { x }`**",
+      "source_hash": 6533169175147144564,
+      "context_hash": 8784499598820311316,
+      "translation": "**예시: `fn foo(x: u32) → u32 { x }`**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "In this function, we see that `u32` appears twice.",
+      "source_hash": 8816739069069094235,
+      "context_hash": 7993532203149774634,
+      "translation": "이 함수에서 `u32`가 두 번 나타나는 것을 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "We know that that is the same type, i.e. the function takes an argument and returns an argument of the same type, but from the point of view of the HIR, there would be two distinct type instances because these are occurring in two different places in the program.",
+      "source_hash": 17889764943561387958,
+      "context_hash": 9370560175402625481,
+      "translation": "우리는 그것이 동일한 타입, 즉 함수가 인자를 받아 같은 타입의 인자를 반환한다는 것을 알고 있지만, HIR의 관점에서는 이들이 프로그램 내 서로 다른 두 위치에서 발생하기 때문에 서로 다른 두 개의 타입 인스턴스가 존재하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:2",
+      "source": "That is, they have two different [`Span`s][span] (locations).",
+      "source_hash": 14647240595248086476,
+      "context_hash": 7709743553253411612,
+      "translation": "즉, 이들은 서로 다른 두 개의 [`Span`][span](위치)을 가집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924934Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "**Example: `fn foo(x: &u32) -> &u32`**",
+      "source_hash": 7508431333548283181,
+      "context_hash": 4891912990772802533,
+      "translation": "**예시: `fn foo(x: &u32) -> &u32`**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "In addition, HIR might have information left out.",
+      "source_hash": 3366561622016194149,
+      "context_hash": 2982660895384246155,
+      "translation": "게다가 HIR에는 정보가 빠져 있을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "This type `&u32` is incomplete, since in the full Rust type there is actually a lifetime, but we didn’t need to write those lifetimes.",
+      "source_hash": 8693704922854263576,
+      "context_hash": 8212338477296027081,
+      "translation": "이 `&u32`라는 타입은 불완전한데, 완전한 러스트 타입에는 실제로 라이프타임이 존재하지만 그 라이프타임들을 작성할 필요가 없었기 때문입니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:2",
+      "source": "There are also some elision rules that insert information.",
+      "source_hash": 10145436625181012421,
+      "context_hash": 11331751096615304558,
+      "translation": "정보를 채워 넣는 몇 가지 생략 규칙도 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:3",
+      "source": "The result may look like `fn foo<'a>(x: &'a u32) -> &'a u32`.",
+      "source_hash": 4727811591301083203,
+      "context_hash": 8934097198116699320,
+      "translation": "그 결과는 `fn foo<'a>(x: &'a u32) -> &'a u32`처럼 보일 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "In the HIR level, these things are not spelled out and you can say the picture is rather incomplete.",
+      "source_hash": 17497232184810095651,
+      "context_hash": 11415023563373802364,
+      "translation": "HIR 수준에서는 이러한 것들이 명시되어 있지 않으며, 그림이 다소 불완전하다고 말할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "However, at the `ty::Ty` level, these details are added and it is complete.",
+      "source_hash": 9716558813751170685,
+      "context_hash": 14637384394627137360,
+      "translation": "하지만 `ty::Ty` 수준에서는 이러한 세부 사항들이 추가되어 완전해집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:2",
+      "source": "Moreover, we will have exactly one `ty::Ty` for a given type, like `u32`, and that `ty::Ty` is used for all `u32`s in the whole program, not a specific usage, unlike `rustc_hir::Ty`.",
+      "source_hash": 3896345472938304825,
+      "context_hash": 11092845173084557156,
+      "translation": "게다가 `u32`와 같은 주어진 타입에 대해서는 정확히 하나의 `ty::Ty`만 가지게 되며, 그 `ty::Ty`는 `rustc_hir::Ty`와 달리 특정 사용처가 아니라 프로그램 전체의 모든 `u32`에 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Here is a summary:",
+      "source_hash": 12707784915552298835,
+      "context_hash": 13017134354607110774,
+      "translation": "요약하면 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "[`rustc_hir::Ty`][hir_ty]",
+      "source_hash": 9030360757808280781,
+      "context_hash": 9599324801054835474,
+      "translation": "[`rustc_hir::Ty`][hir_ty]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "[`ty::Ty`][ty_ty]",
+      "source_hash": 15472468908030341711,
+      "context_hash": 6878495777299345436,
+      "translation": "[`ty::Ty`][ty_ty]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Describe the *syntax* of a type: what the user wrote (with some desugaring).",
+      "source_hash": 5532266857708830667,
+      "context_hash": 8498132439086471516,
+      "translation": "타입의 *구문*을 기술합니다: 사용자가 작성한 것(일부 디슈가링 포함).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Describe the *semantics* of a type: the meaning of what the user wrote.",
+      "source_hash": 6308099977873603987,
+      "context_hash": 1792147663443774126,
+      "translation": "타입의 *의미론*을 기술합니다: 사용자가 작성한 것의 의미.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Each `rustc_hir::Ty` has its own spans corresponding to the appropriate place in the program.",
+      "source_hash": 5882457524032823960,
+      "context_hash": 5683589716110733557,
+      "translation": "각 `rustc_hir::Ty`는 프로그램 내 해당 위치에 대응하는 자체 스팬을 가집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:11.924935Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Doesn’t correspond to a single place in the user’s program.",
+      "source_hash": 1996501649709468654,
+      "context_hash": 5262772623876318106,
+      "translation": "사용자 프로그램의 단일 위치에 대응하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "`rustc_hir::Ty` has generics and lifetimes; however, some of those lifetimes are special markers like [`LifetimeKind::Implicit`][implicit].",
+      "source_hash": 5289059353119959454,
+      "context_hash": 4418160366950883786,
+      "translation": "`rustc_hir::Ty`는 제네릭과 라이프타임을 가지고 있지만, 이러한 라이프타임 중 일부는 [`LifetimeKind::Implicit`][implicit]와 같은 특수 마커입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "`ty::Ty` has the full type, including generics and lifetimes, even if the user left them out",
+      "source_hash": 7291197786911004615,
+      "context_hash": 11452817261263655315,
+      "translation": "`ty::Ty`는 사용자가 제네릭과 라이프타임을 생략했더라도 이를 포함한 전체 타입을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "`fn foo(x: u32) -> u32 { }` - Two `rustc_hir::Ty` representing each usage of `u32`, each has its own `Span`s, and `rustc_hir::Ty` doesn’t tell us that both are the same type",
+      "source_hash": 17555972084632669970,
+      "context_hash": 14826919842589668600,
+      "translation": "`fn foo(x: u32) -> u32 { }` - `u32`의 각 사용을 나타내는 두 개의 `rustc_hir::Ty`가 있으며, 각각 고유한 `Span`을 가지고, `rustc_hir::Ty`는 둘이 같은 타입이라는 것을 알려주지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "`fn foo(x: u32) -> u32 { }` - One `ty::Ty` for all instances of `u32` throughout the program, and `ty::Ty` tells us that both usages of `u32` mean the same type.",
+      "source_hash": 15391541812109364965,
+      "context_hash": 16845947919883859313,
+      "translation": "`fn foo(x: u32) -> u32 { }` - 프로그램 전체에서 `u32`의 모든 인스턴스에 대해 하나의 `ty::Ty`가 있으며, `ty::Ty`는 `u32`의 두 사용이 같은 타입을 의미한다는 것을 알려줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "`fn foo(x: &u32) -> &u32 { }` - Two `rustc_hir::Ty` again.",
+      "source_hash": 12189109265628827644,
+      "context_hash": 1667892968883904035,
+      "translation": "`fn foo(x: &u32) -> &u32 { }` - 다시 두 개의 `rustc_hir::Ty`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:1",
+      "source": "Lifetimes for the references show up in the `rustc_hir::Ty`s using a special marker, [`LifetimeKind::Implicit`][implicit].",
+      "source_hash": 4598360734683073836,
+      "context_hash": 15607031142705606076,
+      "translation": "참조에 대한 라이프타임은 [`LifetimeKind::Implicit`][implicit]라는 특수 마커를 사용하여 `rustc_hir::Ty`에 나타납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "`fn foo(x: &u32) -> &u32 { }`- A single `ty::Ty`.",
+      "source_hash": 14909979600839258653,
+      "context_hash": 5968250181772928078,
+      "translation": "`fn foo(x: &u32) -> &u32 { }` - 하나의 `ty::Ty`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:1",
+      "source": "The `ty::Ty` has the hidden lifetime param.",
+      "source_hash": 16554529055626541455,
+      "context_hash": 4712215419622671637,
+      "translation": "`ty::Ty`는 숨겨진 라이프타임 매개변수를 가지고 있습니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:14:19.695628Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "**Order**",
+      "source_hash": 18098468809939885838,
+      "context_hash": 13976270331864687983,
+      "translation": "**순서**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695629Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "HIR is built directly from the AST, so it happens before any `ty::Ty` is produced.",
+      "source_hash": 6230941749347064133,
+      "context_hash": 6087252315242929795,
+      "translation": "HIR은 AST로부터 직접 만들어지므로, 이는 어떤 `ty::Ty`가 생성되기 전에 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695629Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:1",
+      "source": "After HIR is built, some basic type inference and type checking is done.",
+      "source_hash": 6610776757046629928,
+      "context_hash": 9618572047160917745,
+      "translation": "HIR이 만들어진 후, 기본적인 타입 추론과 타입 검사가 수행됩니다.",
+      "glossary_snapshot": {
+        "type inference": "타입 추론"
+      },
+      "translated_at": "2026-09-12T01:14:19.695629Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:2",
+      "source": "During the type inference, we figure out what the `ty::Ty` of everything is and we also check if the type of something is ambiguous.",
+      "source_hash": 2132584769576649079,
+      "context_hash": 4734913052593451839,
+      "translation": "타입 추론 중에 우리는 모든 것의 `ty::Ty`가 무엇인지 파악하며, 어떤 것의 타입이 모호한지도 확인합니다.",
+      "glossary_snapshot": {
+        "type inference": "타입 추론"
+      },
+      "translated_at": "2026-09-12T01:14:19.695629Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:3",
+      "source": "The `ty::Ty` is then used for type checking while making sure everything has the expected type.",
+      "source_hash": 8775518320988103368,
+      "context_hash": 964444904214045844,
+      "translation": "이후 `ty::Ty`는 모든 것이 예상된 타입을 가지도록 확인하는 타입 검사에 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695629Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:4",
+      "source": "The [`hir_ty_lowering` module][hir_ty_lowering] is where the code responsible for lowering a `rustc_hir::Ty` to a `ty::Ty` is located.",
+      "source_hash": 8713597623596832167,
+      "context_hash": 14438243234799150496,
+      "translation": "[`hir_ty_lowering` 모듈][hir_ty_lowering]은 `rustc_hir::Ty`를 `ty::Ty`로 낮추는 작업을 담당하는 코드가 위치한 곳입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695629Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:5",
+      "source": "The main routine used is `lower_ty`.",
+      "source_hash": 15122430163978972927,
+      "context_hash": 11607532604621205898,
+      "translation": "사용되는 주요 루틴은 `lower_ty`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695629Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:6",
+      "source": "This occurs during the type-checking phase, but also in other parts of the compiler that want to ask questions like \"what argument types does this function expect?\"",
+      "source_hash": 17771765738105194989,
+      "context_hash": 12783456187719199187,
+      "translation": "이는 타입 검사 단계에서 발생하지만, \"이 함수가 기대하는 인자 타입은 무엇인가?\"와 같은 질문을 하고자 하는 컴파일러의 다른 부분에서도 발생합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "**How semantics drive the two instances of `Ty`**",
+      "source_hash": 8279266989940940743,
+      "context_hash": 17869684469089859627,
+      "translation": "**의미론이 `Ty`의 두 인스턴스를 어떻게 이끄는가**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "You can think of HIR as the perspective of the type information that assumes the least.",
+      "source_hash": 15520052694713498103,
+      "context_hash": 16885589434211944602,
+      "translation": "HIR을 타입 정보에 대해 가장 적게 가정하는 관점으로 생각할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:1",
+      "source": "We assume two things are distinct until they are proven to be the same thing.",
+      "source_hash": 2791189563248689605,
+      "context_hash": 13880822621811583651,
+      "translation": "우리는 두 가지가 같은 것으로 증명되기 전까지는 서로 다르다고 가정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:2",
+      "source": "In other words, we know less about them, so we should assume less about them.",
+      "source_hash": 2764796570682689363,
+      "context_hash": 7866339286726560606,
+      "translation": "다시 말해, 우리는 그것들에 대해 더 적게 알고 있으므로 더 적게 가정해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "They are syntactically two strings: `\"u32\"` at line N column 20 and `\"u32\"` at line N column 35.",
+      "source_hash": 14818684639622832016,
+      "context_hash": 8945823754691635164,
+      "translation": "이들은 구문적으로 두 개의 문자열입니다: N번째 줄 20번째 열의 `\"u32\"`와 N번째 줄 35번째 열의 `\"u32\"`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:1",
+      "source": "We don’t know that they are the same yet.",
+      "source_hash": 2586329261600381417,
+      "context_hash": 17537176648929148154,
+      "translation": "우리는 아직 이들이 같은지 알지 못합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:2",
+      "source": "So, in the HIR we treat them as if they are different.",
+      "source_hash": 8261269611837546447,
+      "context_hash": 16470869993966773496,
+      "translation": "그래서 HIR에서는 이들을 서로 다른 것처럼 취급합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:3",
+      "source": "Later, we determine that they semantically are the same type and that’s the `ty::Ty` we use.",
+      "source_hash": 13803332338170535107,
+      "context_hash": 6774141785236377144,
+      "translation": "이후 우리는 이들이 의미론적으로 같은 타입이라는 것을 결정하며, 그것이 바로 우리가 사용하는 `ty::Ty`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Consider another example: `fn foo<T>(x: T) -> u32`.",
+      "source_hash": 637154904301481050,
+      "context_hash": 4772564608508067132,
+      "translation": "또 다른 예시를 생각해 봅시다: `fn foo<T>(x: T) -> u32`.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:1",
+      "source": "Suppose that someone invokes `foo::<u32>(0)`.",
+      "source_hash": 6632890704502148083,
+      "context_hash": 11053978218509719496,
+      "translation": "누군가 `foo::<u32>(0)`을 호출한다고 가정해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:2",
+      "source": "This means that `T` and `u32` (in this invocation) actually turns out to be the same type, so we would eventually end up with the same `ty::Ty` in the end, but we have distinct `rustc_hir::Ty`. (This is a bit over-simplified, though, since during type checking, we would check the function generically and would still have a `T` distinct from `u32`.",
+      "source_hash": 17974813918897066790,
+      "context_hash": 4577677119544498191,
+      "translation": "이는 `T`와 `u32`(이 호출에서)가 실제로 같은 타입임을 의미하므로, 결국에는 같은 `ty::Ty`로 귀결되지만, 서로 다른 `rustc_hir::Ty`를 가지고 있습니다. (다만 이는 다소 단순화된 것인데, 타입 검사 중에는 함수를 제네릭하게 검사하므로 `T`는 여전히 `u32`와 구별될 것이기 때문입니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:3",
+      "source": "Later, when doing code generation, we would always be handling \"monomorphized\" (fully substituted) versions of each function, and hence we would know what `T` represents (and specifically that it is `u32`).)",
+      "source_hash": 16366657100691585955,
+      "context_hash": 1730597582970621543,
+      "translation": "이후 코드 생성을 할 때는 항상 각 함수의 \"단형화된\"(완전히 치환된) 버전을 다루게 되므로, `T`가 무엇을 나타내는지(구체적으로 그것이 `u32`라는 것을) 알게 됩니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695630Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "Here is one more example:",
+      "source_hash": 3561118257109794374,
+      "context_hash": 330439465377407968,
+      "translation": "여기 한 가지 예시가 더 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:19.695631Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "Here the type `X` will vary depending on context, clearly.",
+      "source_hash": 1395766847232756141,
+      "context_hash": 6028011291229554582,
+      "translation": "여기서 타입 `X`는 문맥에 따라 달라질 것이 분명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554383Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:1",
+      "source": "If you look at the `rustc_hir::Ty`, you will get back that `X` is an alias in both cases (though it will be mapped via name resolution to distinct aliases).",
+      "source_hash": 10753676619274195693,
+      "context_hash": 14436999904362472248,
+      "translation": "`rustc_hir::Ty`를 살펴보면, 두 경우 모두 `X`가 별칭임을 알 수 있습니다(다만 이름 해석을 거쳐 서로 다른 별칭으로 매핑됩니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554383Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:2",
+      "source": "But if you look at the `ty::Ty` signature, it will be either `fn(u32) -> u32` or `fn(i32) -> i32` (with type aliases fully expanded).",
+      "source_hash": 1010986416069690343,
+      "context_hash": 6478924843413593527,
+      "translation": "하지만 `ty::Ty` 시그니처를 살펴보면, `fn(u32) -> u32` 또는 `fn(i32) -> i32` 중 하나가 됩니다(타입 별칭이 완전히 전개된 상태로).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554383Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "`ty::Ty` implementation",
+      "source_hash": 8045929949329995145,
+      "context_hash": 3883040187667218231,
+      "translation": "`ty::Ty` 구현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554383Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "[`rustc_middle::ty::Ty`][ty_ty] is actually a wrapper around [`Interned<WithCachedTypeInfo<TyKind>>`][tykind].",
+      "source_hash": 14572926236126260975,
+      "context_hash": 12392129409121361505,
+      "translation": "[`rustc_middle::ty::Ty`][ty_ty]는 실제로는 [`Interned<WithCachedTypeInfo<TyKind>>`][tykind]를 감싸는 래퍼입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554383Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "You can ignore `Interned` in general; you will basically never access it explicitly.",
+      "source_hash": 7673051755017061936,
+      "context_hash": 5355330276215114334,
+      "translation": "`Interned`는 일반적으로 무시해도 됩니다. 여러분이 이를 명시적으로 다룰 일은 사실상 없을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554383Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "We always hide them within `Ty` and skip over it via `Deref` impls or methods. `TyKind` is a big enum with variants to represent many different Rust types (e.g. primitives, references, algebraic data types, generics, lifetimes, etc). `WithCachedTypeInfo` has a few cached values like `flags` and `outer_exclusive_binder`.",
+      "source_hash": 7283044944913228123,
+      "context_hash": 16899325837347136405,
+      "translation": "우리는 항상 이를 `Ty` 안에 숨기고, `Deref` 구현이나 메서드를 통해 건너뜁니다. `TyKind`는 다양한 러스트 타입(예: 원시 타입, 참조, 대수적 데이터 타입, 제네릭, 라이프타임 등)을 나타내는 배리언트를 가진 큰 열거형입니다. `WithCachedTypeInfo`는 `flags`와 `outer_exclusive_binder` 같은 캐싱된 값을 몇 가지 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:3",
+      "source": "They are convenient hacks for efficiency and summarize information about the type that we may want to know, but they don’t come into the picture as much here.",
+      "source_hash": 16615072147787263905,
+      "context_hash": 8425118356709589392,
+      "translation": "이들은 효율성을 위한 편리한 기법으로서 우리가 알고 싶어할 만한 타입에 관한 정보를 요약해 주지만, 여기서는 크게 관련되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:4",
+      "source": "Finally, [`Interned`](./memory.md) allows the `ty::Ty` to be a thin pointer-like type.",
+      "source_hash": 12067258675781608274,
+      "context_hash": 8128273993733827216,
+      "translation": "마지막으로, [`Interned`](./memory.md)는 `ty::Ty`가 얇은 포인터와 같은 타입이 되도록 해줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:5",
+      "source": "This allows us to do cheap comparisons for equality, along with the other benefits of interning.",
+      "source_hash": 888003420307493891,
+      "context_hash": 8690933371279194721,
+      "translation": "이는 인터닝의 다른 이점들과 더불어, 저렴한 비용으로 동등성 비교를 할 수 있게 해줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Allocating and working with types",
+      "source_hash": 11836789621601705053,
+      "context_hash": 10803615493450274403,
+      "translation": "타입 할당 및 다루기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "To allocate a new type, you can use the various `new_*` methods defined on [`Ty`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/ty/struct.Ty.html).",
+      "source_hash": 12256641125286375150,
+      "context_hash": 6615994447668985703,
+      "translation": "새 타입을 할당하려면, [`Ty`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/ty/struct.Ty.html)에 정의된 다양한 `new_*` 메서드를 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "These have names that correspond mostly to the various kinds of types.",
+      "source_hash": 13042789924262386636,
+      "context_hash": 17435287846887740577,
+      "translation": "이 메서드들의 이름은 대체로 다양한 종류의 타입에 대응됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "For example:",
+      "source_hash": 4114854479619665730,
+      "context_hash": 15805103480296585008,
+      "translation": "예를 들면:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "These methods all return a `Ty<'tcx>` – note that the lifetime you get back is the lifetime of the arena that this `tcx` has access to.",
+      "source_hash": 5144169263384190924,
+      "context_hash": 12672803583245770837,
+      "translation": "이 메서드들은 모두 `Ty<'tcx>`를 반환합니다 — 반환받는 라이프타임은 이 `tcx`가 접근할 수 있는 아레나의 라이프타임임에 유의하십시오.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "Types are always canonicalized and interned (so we never allocate exactly the same type twice).",
+      "source_hash": 913579322568668902,
+      "context_hash": 5679005644220796793,
+      "translation": "타입은 항상 정규화되고 인터닝됩니다(따라서 정확히 동일한 타입을 두 번 할당하는 일은 결코 없습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "You can also find various common types in the `tcx` itself by accessing its fields: `tcx.types.bool`, `tcx.types.char`, etc. (See [`CommonTypes`] for more.)",
+      "source_hash": 8072332499185135275,
+      "context_hash": 1413180604723313727,
+      "translation": "또한 `tcx.types.bool`, `tcx.types.char` 등과 같이 `tcx` 자체의 필드에 접근하여 다양한 공통 타입을 찾을 수도 있습니다(자세한 내용은 [`CommonTypes`]를 참고하십시오).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Comparing types",
+      "source_hash": 7438632733658355847,
+      "context_hash": 11856149699546902873,
+      "translation": "타입 비교",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Because types are interned, it is possible to compare them for equality efficiently using `==` – however, this is almost never what you want to do unless you happen to be hashing and looking for duplicates.",
+      "source_hash": 11816407731877089054,
+      "context_hash": 11213558229385838228,
+      "translation": "타입은 인터닝되어 있기 때문에 `==`를 사용하여 효율적으로 동등성을 비교하는 것이 가능합니다 — 하지만 해싱을 하면서 중복을 찾는 경우가 아니라면 이는 여러분이 원하는 바가 거의 아닐 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554384Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "This is because often in Rust there are multiple ways to represent the same type, particularly once inference is involved.",
+      "source_hash": 6362355893070313180,
+      "context_hash": 976691174257465338,
+      "translation": "이는 러스트에서 흔히 동일한 타입을 표현하는 여러 방법이 존재하기 때문이며, 특히 타입 추론이 관여하는 경우 더욱 그렇습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "For example, the type `{integer}` (`ty::Infer(ty::IntVar(..))` an integer inference variable, the type of an integer literal like `0`) and `u8` (`ty::UInt(..)`) should often be treated as equal when testing whether they can be assigned to each other (which is a common operation in diagnostics code). `==` on them will return `false` though, since they are different types.",
+      "source_hash": 10094336297899094859,
+      "context_hash": 7763162288407478964,
+      "translation": "예를 들어, 타입 `{integer}`(`ty::Infer(ty::IntVar(..))`, 즉 정수 추론 변수이자 `0`과 같은 정수 리터럴의 타입)와 `u8`(`ty::UInt(..)`)은 서로 대입 가능한지 검사할 때(진단 코드에서 흔한 연산입니다) 종종 동등한 것으로 취급되어야 합니다. 하지만 이들에 대해 `==`는 `false`를 반환할 것인데, 이는 서로 다른 타입이기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "The simplest way to compare two types correctly requires an inference context (`infcx`).",
+      "source_hash": 14472075045957150854,
+      "context_hash": 10652061197827592706,
+      "translation": "두 타입을 올바르게 비교하는 가장 간단한 방법은 추론 컨텍스트(`infcx`)를 필요로 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "If you have one, you can use `infcx.can_eq(param_env, ty1, ty2)` to check whether the types can be made equal.",
+      "source_hash": 17943792331788876737,
+      "context_hash": 18071920864141691934,
+      "translation": "추론 컨텍스트가 있다면, `infcx.can_eq(param_env, ty1, ty2)`를 사용하여 해당 타입들이 동일해질 수 있는지 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:2",
+      "source": "This is typically what you want to check during diagnostics, which is concerned with questions such as whether two types can be assigned to each other, not whether they're represented identically in the compiler's type-checking layer.",
+      "source_hash": 8823532900621698794,
+      "context_hash": 5387107296387885726,
+      "translation": "이는 일반적으로 진단 과정에서 확인하고자 하는 것으로, 두 타입이 컴파일러의 타입 검사 계층에서 동일하게 표현되는지가 아니라, 서로 대입 가능한지와 같은 질문을 다룹니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "When working with an inference context, you have to be careful to ensure that potential inference variables inside the types actually belong to that inference context.",
+      "source_hash": 16993340231647441502,
+      "context_hash": 2867777415696561531,
+      "translation": "추론 컨텍스트를 다룰 때는, 타입 내부에 있을 수 있는 추론 변수가 실제로 해당 추론 컨텍스트에 속하는지 주의 깊게 확인해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "If you are in a function that has access to an inference context already, this should be the case.",
+      "source_hash": 10989281571769423817,
+      "context_hash": 11133939518759363820,
+      "translation": "이미 추론 컨텍스트에 접근할 수 있는 함수 안에 있다면, 이 조건은 충족되어 있을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "Specifically, this is the case during HIR type checking or MIR borrow checking.",
+      "source_hash": 12144940495169194318,
+      "context_hash": 2629983532073197200,
+      "translation": "구체적으로, 이는 HIR 타입 검사 또는 MIR 빌림 검사기 수행 중에 해당하는 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "Another consideration is normalization.",
+      "source_hash": 11964902504175022127,
+      "context_hash": 2265757317904005357,
+      "translation": "또 하나 고려해야 할 사항은 정규화입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "Two types may actually be the same, but one is behind an associated type.",
+      "source_hash": 10710783361556896798,
+      "context_hash": 1918049475737636698,
+      "translation": "두 타입이 실제로는 같지만, 그중 하나가 연관 타입 뒤에 숨어 있을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:2",
+      "source": "To compare them correctly, you have to normalize the types first.",
+      "source_hash": 5882444606848500493,
+      "context_hash": 5924079786077533949,
+      "translation": "이를 올바르게 비교하려면, 먼저 타입을 정규화해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:29.554385Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:3",
+      "source": "This is primarily a concern during HIR type checking and with all types from a `TyCtxt` query (for example from `tcx.type_of()`).",
+      "source_hash": 12362216520766515245,
+      "context_hash": 10934502813068509916,
+      "translation": "이는 주로 HIR 타입 검사 중과, `TyCtxt` 쿼리(예를 들어 `tcx.type_of()`)에서 나오는 모든 타입에서 우려되는 사항입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:14:29.554386Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "When a `FnCtxt` or an `ObligationCtxt` is available during type checking, `.normalize(ty)` should be used on them to normalize the type.",
+      "source_hash": 15448319196174850988,
+      "context_hash": 18358349392784623751,
+      "translation": "타입 검사 중에 `FnCtxt`나 `ObligationCtxt`를 사용할 수 있는 경우, 타입을 정규화하기 위해 이들에 대해 `.normalize(ty)`를 사용해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713279Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "After type checking, diagnostics code can use `tcx.normalize_erasing_regions(ty)`.",
+      "source_hash": 16543268769719153545,
+      "context_hash": 17897728698865404,
+      "translation": "타입 검사 이후에는 진단 코드에서 `tcx.normalize_erasing_regions(ty)`를 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713280Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "There are also cases where using `==` on `Ty` is fine.",
+      "source_hash": 10713394712085816266,
+      "context_hash": 18427171994376899858,
+      "translation": "`Ty`에 `==`를 사용해도 괜찮은 경우도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713280Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "This is, for example, the case in late lints or after monomorphization, since type checking has been completed, meaning all inference variables are resolved and all regions have been erased.",
+      "source_hash": 9848420524755129170,
+      "context_hash": 12265618919537046108,
+      "translation": "예를 들어 후기 린트(late lint)나 단형성화(monomorphization) 이후가 이러한 경우인데, 타입 검사가 이미 완료되어 모든 추론 변수가 해결되고 모든 리전이 지워졌기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713280Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:2",
+      "source": "In these cases, if you know that inference variables or normalization won't be a concern, `#[allow]` or `#[expect]`ing the lint is recommended.",
+      "source_hash": 16018221035874984045,
+      "context_hash": 7060913800536753293,
+      "translation": "이러한 경우 추론 변수나 정규화가 문제가 되지 않는다는 것을 알고 있다면, 해당 린트에 `#[allow]`나 `#[expect]`를 사용하는 것이 권장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713280Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "When diagnostics code does not have access to an inference context, it should be threaded through the function calls if one is available in some place (like during type checking).",
+      "source_hash": 9992781949750624872,
+      "context_hash": 14316691299175974510,
+      "translation": "진단 코드에 추론 컨텍스트에 대한 접근 권한이 없는 경우, (타입 검사 중과 같이) 어딘가에 추론 컨텍스트가 존재한다면 함수 호출을 통해 전달되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713280Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "If no inference context is available at all, then one can be created as described in [type-inference].",
+      "source_hash": 2741690177970923953,
+      "context_hash": 7095093627079139657,
+      "translation": "추론 컨텍스트가 전혀 존재하지 않는 경우, [type-inference]에 설명된 대로 하나를 생성할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713281Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:1",
+      "source": "But this is only useful when the involved types (for example, if they came from a query like `tcx.type_of()`) are actually substituted with fresh inference variables using [`fresh_args_for_item`].",
+      "source_hash": 13444870269211611111,
+      "context_hash": 4967651910569111935,
+      "translation": "하지만 이는 관련된 타입들이 (예를 들어 `tcx.type_of()`와 같은 쿼리에서 온 것이라면) [`fresh_args_for_item`]을 사용해 실제로 새로운 추론 변수로 치환된 경우에만 유용합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:14:21.713281Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:2",
+      "source": "This can be used to answer questions like \"can `Vec<T>` for any `T` be unified with `Vec<u32>`?\".",
+      "source_hash": 4305346110542764612,
+      "context_hash": 9640702227716720574,
+      "translation": "이는 \"임의의 `T`에 대해 `Vec<T>`가 `Vec<u32>`와 통합될 수 있는가?\"와 같은 질문에 답하는 데 사용될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713281Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "`ty::TyKind` Variants",
+      "source_hash": 6270092015896816114,
+      "context_hash": 880977949105321845,
+      "translation": "`ty::TyKind` 배리언트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713281Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Note: `TyKind` is **NOT** the functional programming concept of *Kind*.",
+      "source_hash": 13592238867289530219,
+      "context_hash": 7273060836423887873,
+      "translation": "참고: `TyKind`는 함수형 프로그래밍 개념인 *Kind*가 **아닙니다**.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713281Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Whenever working with a `Ty` in the compiler, it is common to match on the kind of type:",
+      "source_hash": 6523795384769659184,
+      "context_hash": 831937528894612399,
+      "translation": "컴파일러에서 `Ty`를 다룰 때는 타입의 kind에 대해 패턴 매칭을 하는 것이 일반적입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:14:21.713281Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "The `kind` field is of type `TyKind<'tcx>`, which is an enum defining all of the different kinds of types in the compiler.",
+      "source_hash": 4732305060149301039,
+      "context_hash": 5597746009272898369,
+      "translation": "`kind` 필드는 `TyKind<'tcx>` 타입이며, 이는 컴파일러의 모든 다양한 타입 종류를 정의하는 열거형입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:14:21.713282Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "N.B. inspecting the `kind` field on types during type inference can be risky, as there may be inference variables and other things to consider, or sometimes types are not yet known and will become known later.",
+      "source_hash": 11977034845044814439,
+      "context_hash": 14443070611696764895,
+      "translation": "참고: 타입 추론 중에 타입의 `kind` 필드를 살펴보는 것은 위험할 수 있는데, 고려해야 할 추론 변수나 다른 요소들이 있을 수 있고, 때로는 타입이 아직 알려지지 않았다가 나중에 알려지게 될 수도 있기 때문입니다.",
+      "glossary_snapshot": {
+        "type inference": "타입 추론"
+      },
+      "translated_at": "2026-09-12T01:14:21.713282Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "There are a lot of related types, and we’ll cover them in time (e.g regions/lifetimes, “substitutions”, etc).",
+      "source_hash": 16196074206783677819,
+      "context_hash": 2817860074291532989,
+      "translation": "관련된 타입들이 많이 있으며, 이에 대해서는 차차 다루겠습니다(예: 리전/라이프타임, \"치환\" 등).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "There are many variants on the `TyKind` enum, which you can see by looking at its [documentation][tykind].",
+      "source_hash": 7626670361666276089,
+      "context_hash": 3995992014776120406,
+      "translation": "`TyKind` 열거형에는 많은 배리언트가 있으며, [문서][tykind]를 살펴보면 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:1",
+      "source": "Here is a sampling:",
+      "source_hash": 9696406219455606139,
+      "context_hash": 3916369656578994204,
+      "translation": "다음은 그 일부입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "[**Algebraic Data Types (ADTs)**][kindadt] An [*algebraic data type*][wikiadt] is a  `struct`, `enum` or `union`.",
+      "source_hash": 10305901183072220695,
+      "context_hash": 14474171755354912523,
+      "translation": "[**대수적 데이터 타입(ADTs)**][kindadt] [*대수적 데이터 타입*][wikiadt]은 `struct`, `enum` 또는 `union`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "Under the hood, `struct`, `enum` and `union` are actually implemented the same way: they are all [`ty::TyKind::Adt`][kindadt].",
+      "source_hash": 10584919351693752993,
+      "context_hash": 11322229976397132366,
+      "translation": "내부적으로 `struct`, `enum`, `union`은 실제로 동일한 방식으로 구현됩니다: 이들은 모두 [`ty::TyKind::Adt`][kindadt]입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:2",
+      "source": "It’s basically a user defined type.",
+      "source_hash": 11065821791511797247,
+      "context_hash": 10194968341599506523,
+      "translation": "이는 기본적으로 사용자 정의 타입입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:3",
+      "source": "We will talk more about these later.",
+      "source_hash": 3550639022216849476,
+      "context_hash": 3408965915921699975,
+      "translation": "이에 대해서는 나중에 더 다루겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "[**Foreign**][kindforeign] Corresponds to `extern type T`.",
+      "source_hash": 13323342603625684240,
+      "context_hash": 6126526546473353006,
+      "translation": "[**Foreign**][kindforeign] `extern type T`에 해당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "[**Str**][kindstr] Is the type str.",
+      "source_hash": 4527531811852784789,
+      "context_hash": 11086990807490011990,
+      "translation": "[**Str**][kindstr] str 타입입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713283Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:1",
+      "source": "When the user writes `&str`, `Str` is how we represent the `str` part of that type.",
+      "source_hash": 6300985430035632716,
+      "context_hash": 1733225904912512101,
+      "translation": "사용자가 `&str`을 작성할 때, `Str`은 해당 타입의 `str` 부분을 표현하는 방식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "[**Slice**][kindslice] Corresponds to `[T]`.",
+      "source_hash": 3399922514647334468,
+      "context_hash": 54619680601478229,
+      "translation": "[**Slice**][kindslice] `[T]`에 해당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "[**Array**][kindarray] Corresponds to `[T; n]`.",
+      "source_hash": 1620327025043258221,
+      "context_hash": 7156391718678025775,
+      "translation": "[**Array**][kindarray] `[T; n]`에 해당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "[**RawPtr**][kindrawptr] Corresponds to `*mut T` or `*const T`.",
+      "source_hash": 9179166841246257888,
+      "context_hash": 2226988236226198657,
+      "translation": "[**RawPtr**][kindrawptr] `*mut T` 또는 `*const T`에 해당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "[**Ref**][kindref] `Ref` stands for safe references, `&'a mut T` or `&'a T`. `Ref` has some associated parts, like `Ty<'tcx>` which is the type that the reference references. `Region<'tcx>` is the lifetime or region of the reference and `Mutability` if the reference is mutable or not.",
+      "source_hash": 16726234111121436125,
+      "context_hash": 11495836924399353990,
+      "translation": "[**Ref**][kindref] `Ref`는 안전한 참조인 `&'a mut T` 또는 `&'a T`를 나타냅니다. `Ref`에는 몇 가지 연관된 부분이 있는데, 예를 들어 참조가 가리키는 타입인 `Ty<'tcx>`가 있습니다. `Region<'tcx>`는 참조의 라이프타임 또는 리전이며, `Mutability`는 참조가 가변인지 여부를 나타냅니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "[**Param**][kindparam] Represents a type parameter (e.g. the `T` in `Vec<T>`).",
+      "source_hash": 13432304581695023368,
+      "context_hash": 2858323364138667013,
+      "translation": "[**Param**][kindparam] 타입 매개변수를 나타냅니다(예: `Vec<T>`의 `T`).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "[**Error**][kinderr] Represents a type error somewhere so that we can print better diagnostics.",
+      "source_hash": 8051315682376559153,
+      "context_hash": 3053526515420310673,
+      "translation": "[**Error**][kinderr] 더 나은 진단을 출력할 수 있도록 어딘가에 타입 오류가 있음을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:1",
+      "source": "We will discuss this more later.",
+      "source_hash": 10387769238864168364,
+      "context_hash": 12987052327055103536,
+      "translation": "이에 대해서는 나중에 더 논의하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "[**And many more**...][kindvars]",
+      "source_hash": 10451096173668598048,
+      "context_hash": 4705987742239080117,
+      "translation": "[**그 외에도 많이**...][kindvars]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:14:21.713284Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Import conventions",
+      "source_hash": 15604403773248101340,
+      "context_hash": 12634799354979680894,
+      "translation": "임포트 규칙",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Although there is no hard and fast rule, the `ty` module tends to be used like so:",
+      "source_hash": 4919851655322944455,
+      "context_hash": 1072233508226793783,
+      "translation": "엄격한 규칙이 있는 것은 아니지만, `ty` 모듈은 다음과 같이 사용되는 경향이 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "In particular, since they are so common, the `Ty` and `TyCtxt` types are imported directly.",
+      "source_hash": 352225095287248652,
+      "context_hash": 8288921875656944452,
+      "translation": "특히 `Ty`와 `TyCtxt` 타입은 매우 흔하게 사용되므로 직접 임포트됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "Other types are often referenced with an explicit `ty::` prefix (e.g. `ty::TraitRef<'tcx>`).",
+      "source_hash": 12575219412186503064,
+      "context_hash": 5446561531215684537,
+      "translation": "다른 타입들은 종종 명시적인 `ty::` 접두사를 붙여 참조됩니다 (예: `ty::TraitRef<'tcx>`).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:2",
+      "source": "But some modules choose to import a larger or smaller set of names explicitly.",
+      "source_hash": 9832923716714015755,
+      "context_hash": 17998506563568516709,
+      "translation": "하지만 일부 모듈은 더 많거나 더 적은 이름을 명시적으로 임포트하는 것을 선택하기도 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532400Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Type errors",
+      "source_hash": 5773821309838839187,
+      "context_hash": 16343016405656661269,
+      "translation": "타입 오류",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "There is a `TyKind::Error` that is produced when the user makes a type error.",
+      "source_hash": 6085825829345104503,
+      "context_hash": 13133004353542415994,
+      "translation": "사용자가 타입 오류를 발생시켰을 때 생성되는 `TyKind::Error`가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "The idea is that we would propagate this type and suppress other errors that come up due to it so as not to overwhelm the user with cascading compiler error messages.",
+      "source_hash": 808489062381135934,
+      "context_hash": 2745658010438693664,
+      "translation": "이 타입을 전파하고 이로 인해 발생하는 다른 오류들을 억제함으로써, 연쇄적인 컴파일러 오류 메시지로 사용자를 압도하지 않도록 하려는 것이 그 의도입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:13:13.532401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "There is an **important invariant** for `TyKind::Error`.",
+      "source_hash": 3410813672980352614,
+      "context_hash": 57515689579973839,
+      "translation": "`TyKind::Error`에는 **중요한 불변 조건**이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "The compiler should **never** produce `Error` unless we **know** that an error has already been reported to the user.",
+      "source_hash": 6743890540214576147,
+      "context_hash": 3716079789674796258,
+      "translation": "컴파일러는 이미 사용자에게 오류가 보고되었다는 것을 **알고** 있는 경우가 아니라면 **절대** `Error`를 생성해서는 안 됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:2",
+      "source": "This is usually because (a) you just reported it right there or (b) you are propagating an existing Error type (in which case the error should've been reported when that error type was produced).",
+      "source_hash": 3012486165229640635,
+      "context_hash": 17468808237350178243,
+      "translation": "이는 보통 (a) 바로 그 자리에서 오류를 방금 보고했거나, (b) 기존의 Error 타입을 전파하고 있는 경우입니다(이 경우 해당 Error 타입이 생성될 때 오류가 이미 보고되었어야 합니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "It's important to maintain this invariant because the whole point of the `Error` type is to suppress other errors -- i.e., we don't report them.",
+      "source_hash": 2430338116441027444,
+      "context_hash": 5175652368323332097,
+      "translation": "이 불변 조건을 유지하는 것이 중요한 이유는, `Error` 타입의 전체 목적이 다른 오류들을 억제하는 것—즉, 그것들을 보고하지 않는 것—이기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:1",
+      "source": "If we were to produce an `Error` type without actually emitting an error to the user, then this could cause later errors to be suppressed, and the compilation might inadvertently succeed!",
+      "source_hash": 14228516713779274608,
+      "context_hash": 12820348160937440686,
+      "translation": "만약 사용자에게 실제로 오류를 발생시키지 않은 채로 `Error` 타입을 생성한다면, 이는 이후의 오류들이 억제되게 만들 수 있으며, 컴파일이 의도치 않게 성공해 버릴 수도 있습니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Sometimes there is a third case.",
+      "source_hash": 12238124735695584219,
+      "context_hash": 13122272664478619720,
+      "translation": "때로는 세 번째 경우도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:1",
+      "source": "You believe that an error has been reported, but you believe it would've been reported earlier in the compilation, not locally.",
+      "source_hash": 13811537103472597822,
+      "context_hash": 16315674047505522486,
+      "translation": "오류가 보고되었다고 믿지만, 그것이 지금 이 자리가 아니라 컴파일의 더 앞선 단계에서 보고되었을 것이라고 믿는 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:2",
+      "source": "In that case, you can create a \"delayed bug\" with [`delayed_bug`] or [`span_delayed_bug`].",
+      "source_hash": 729601832089259379,
+      "context_hash": 10297546722145269305,
+      "translation": "이런 경우에는 [`delayed_bug`] 또는 [`span_delayed_bug`]를 사용하여 \"지연된 버그(delayed bug)\"를 만들 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:3",
+      "source": "This will make a note that you expect compilation to yield an error -- if, however, compilation should succeed, then it will trigger a compiler bug report.",
+      "source_hash": 1961457788414222539,
+      "context_hash": 14829327419036307914,
+      "translation": "이는 컴파일이 오류를 산출할 것으로 예상한다는 기록을 남깁니다—하지만 만약 컴파일이 성공한다면, 이는 컴파일러 버그 보고를 촉발하게 됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:13:13.532402Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "For added safety, it's not actually possible to produce a `TyKind::Error` value outside of [`rustc_middle::ty`][ty]; there is a private member of `TyKind::Error` that prevents it from being constructable elsewhere.",
+      "source_hash": 17311805357766249631,
+      "context_hash": 11395482462565942614,
+      "translation": "추가적인 안전성을 위해, [`rustc_middle::ty`][ty] 외부에서는 `TyKind::Error` 값을 실제로 생성하는 것이 불가능합니다; `TyKind::Error`에는 다른 곳에서 생성할 수 없도록 막는 비공개(private) 멤버가 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532403Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:1",
+      "source": "Instead, one should use the [`Ty::new_error`][terr] or [`Ty::new_error_with_message`][terrmsg] methods.",
+      "source_hash": 2699777865974470477,
+      "context_hash": 13670959153408364206,
+      "translation": "대신, [`Ty::new_error`][terr] 또는 [`Ty::new_error_with_message`][terrmsg] 메서드를 사용해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532403Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:2",
+      "source": "These methods either take an `ErrorGuaranteed` or call `span_delayed_bug` before returning an interned `Ty` of kind `Error`.",
+      "source_hash": 13054941333573678092,
+      "context_hash": 14234434505216851732,
+      "translation": "이 메서드들은 `ErrorGuaranteed`를 인자로 받거나, `Error` 종류의 인터닝된 `Ty`를 반환하기 전에 `span_delayed_bug`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532403Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:3",
+      "source": "If you were already planning to use [`span_delayed_bug`], then you can just pass the span and message to [`ty_error_with_message`][terrmsg] instead to avoid a redundant delayed bug.",
+      "source_hash": 6107732252624359487,
+      "context_hash": 18242590378335660079,
+      "translation": "이미 [`span_delayed_bug`]를 사용할 계획이었다면, 중복된 지연된 버그를 피하기 위해 대신 span과 메시지를 [`ty_error_with_message`][terrmsg]에 전달하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532403Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "`TyKind` variant shorthand syntax",
+      "source_hash": 14650288021278581874,
+      "context_hash": 16381542037686195179,
+      "translation": "`TyKind` 변형 축약 구문",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532404Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "When looking at the debug output of `Ty` or simply talking about different types in the compiler, you may encounter syntax that is not valid Rust but is used to concisely represent internal information about types.",
+      "source_hash": 7654846693781555136,
+      "context_hash": 4480645702501493333,
+      "translation": "`Ty`의 디버그 출력을 살펴보거나 단순히 컴파일러 내의 다양한 타입들에 대해 이야기할 때, 유효한 Rust 문법은 아니지만 타입에 대한 내부 정보를 간결하게 표현하기 위해 사용되는 구문을 마주치게 될 수 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:13:13.532404Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "Below is a quick reference cheat sheet to tell what the various syntax actually means:",
+      "source_hash": 16163795690293142177,
+      "context_hash": 12445489610040839258,
+      "translation": "아래는 다양한 구문이 실제로 무엇을 의미하는지 알려주는 간단한 참고용 치트 시트입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532404Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Generic parameters: `{name}/#{index}` e.g. `T/#0`, where `index` corresponds to its position in the list of generic parameters",
+      "source_hash": 13731689051091228119,
+      "context_hash": 11548136794143472818,
+      "translation": "제네릭 매개변수: `{name}/#{index}` 예를 들어 `T/#0`이며, 여기서 `index`는 제네릭 매개변수 목록에서의 위치에 해당합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532404Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "Inference variables: `?{id}` e.g. `?x`/`?0`, where `id` identifies the inference variable",
+      "source_hash": 3336792174603718986,
+      "context_hash": 7266164365907788227,
+      "translation": "추론 변수: `?{id}` 예를 들어 `?x`/`?0`이며, 여기서 `id`는 해당 추론 변수를 식별합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532404Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "Variables from binders: `^{binder}_{index}` e.g. `^0_x`/`^0_2`, where `binder` and `index` identify which variable from which binder is being referred to",
+      "source_hash": 5310677741868111048,
+      "context_hash": 7030437620355814569,
+      "translation": "바인더로부터의 변수: `^{binder}_{index}` 예를 들어 `^0_x`/`^0_2`이며, 여기서 `binder`와 `index`는 어느 바인더의 어떤 변수를 가리키는지 식별합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532404Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "Placeholders: `!{id}` or `!{id}_{universe}` e.g. `!x`/`!0`/`!x_2`/`!0_2`, representing some unique type in the specified universe.",
+      "source_hash": 17698353273956762602,
+      "context_hash": 14076279752908097875,
+      "translation": "플레이스홀더: `!{id}` 또는 `!{id}_{universe}` 예를 들어 `!x`/`!0`/`!x_2`/`!0_2`이며, 지정된 유니버스 내의 어떤 고유한 타입을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532405Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:1",
+      "source": "The universe is often elided when it is `0`",
+      "source_hash": 2582965739727163039,
+      "context_hash": 53944169697646400,
+      "translation": "유니버스가 `0`일 때는 흔히 생략됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532405Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "These should be covered in more depth in later chapters.",
+      "source_hash": 10968462029575236091,
+      "context_hash": 2852758249900494435,
+      "translation": "이 내용들은 이후 장에서 더 깊이 다뤄질 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:13:13.532405Z",
+      "issues": []
+    }
+  ]
+}

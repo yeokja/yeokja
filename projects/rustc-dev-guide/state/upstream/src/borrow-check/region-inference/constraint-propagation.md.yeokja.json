@@ -1,0 +1,810 @@
+{
+  "version": 1,
+  "source_hash": 814995489096487360,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Constraint propagation",
+      "source_hash": 15697835562163731230,
+      "context_hash": 5583734101125264618,
+      "translation": "제약 전파",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820540Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "The main work of the region inference is **constraint propagation**, which is done in the [`propagate_constraints`] function.",
+      "source_hash": 4700732401238406773,
+      "context_hash": 4832142603704647480,
+      "translation": "영역 추론의 주된 작업은 [`propagate_constraints`] 함수에서 수행되는 **제약 전파**입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820541Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "There are three sorts of constraints that are used in NLL, and we'll explain how `propagate_constraints` works by \"layering\" those sorts of constraints on one at a time (each of them is fairly independent from the others):",
+      "source_hash": 17260713414331182091,
+      "context_hash": 10671647816144263067,
+      "translation": "NLL에서 사용되는 제약에는 세 가지 종류가 있으며, `propagate_constraints`가 어떻게 동작하는지 이러한 제약 종류들을 하나씩 \"층층이 쌓아가며\" (각각은 서로 상당히 독립적입니다) 설명하겠습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820541Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "liveness constraints (`R live at E`), which arise from liveness;",
+      "source_hash": 6985341826173590618,
+      "context_hash": 4882640788094307929,
+      "translation": "생존성에서 발생하는 생존성 제약(`R live at E`);",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820541Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "outlives constraints (`R1: R2`), which arise from subtyping;",
+      "source_hash": 978875982568123236,
+      "context_hash": 16431502139944341217,
+      "translation": "서브타이핑에서 발생하는 outlives 제약(`R1: R2`);",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820541Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "[member constraints][m_c] (`member R_m of [R_c...]`), which arise from impl Trait.",
+      "source_hash": 5827695818035480479,
+      "context_hash": 3512791657422838250,
+      "translation": "[멤버 제약][m_c] (`member R_m of [R_c...]`)은 impl 트레이트로부터 발생합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:09:34.820541Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "In this chapter, we'll explain the \"heart\" of constraint propagation, covering both liveness and outlives constraints.",
+      "source_hash": 5338823114542053515,
+      "context_hash": 11432100079529507771,
+      "translation": "이 장에서는 생존성 제약과 outlives 제약을 모두 다루며 제약 전파의 \"핵심\"을 설명하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Notation and high-level concepts",
+      "source_hash": 17191128450832576646,
+      "context_hash": 13133955057245174496,
+      "translation": "표기법과 상위 수준 개념",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Conceptually, region inference is a \"fixed-point\" computation.",
+      "source_hash": 10267479832068021717,
+      "context_hash": 14819649694428812749,
+      "translation": "개념적으로, 영역 추론은 \"고정점\" 계산입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "It is given some set of constraints `{C}` and it computes a set of values `Values: R -> {E}` that maps each region `R` to a set of elements `{E}` (see [here][riv] for more notes on region elements):",
+      "source_hash": 8986609828948034758,
+      "context_hash": 17516627541212237926,
+      "translation": "이는 제약의 집합 `{C}`가 주어지면 각 영역 `R`을 원소 집합 `{E}`에 매핑하는 값의 집합 `Values: R -> {E}`를 계산합니다(영역 원소에 대한 더 자세한 설명은 [여기][riv]를 참고하십시오):",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Initially, each region is mapped to an empty set, so `Values(R) = {}` for all regions `R`.",
+      "source_hash": 13143695767524210386,
+      "context_hash": 4477724170103050400,
+      "translation": "처음에는 각 영역이 빈 집합에 매핑되므로, 모든 영역 `R`에 대해 `Values(R) = {}`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Next, we process the constraints repeatedly until a fixed-point is reached:",
+      "source_hash": 14035213083499877002,
+      "context_hash": 18241495013029149079,
+      "translation": "다음으로, 고정점에 도달할 때까지 제약을 반복적으로 처리합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "For each constraint C:",
+      "source_hash": 12105351334054980077,
+      "context_hash": 14781449526845684812,
+      "translation": "각 제약 C에 대해:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Update `Values` as needed to satisfy the constraint",
+      "source_hash": 14509781943956206592,
+      "context_hash": 9356028119535446504,
+      "translation": "제약을 충족하는 데 필요한 만큼 `Values`를 갱신합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "As a simple example, if we have a liveness constraint `R live at E`, then we can apply `Values(R) = Values(R) union {E}` to make the constraint be satisfied.",
+      "source_hash": 15048234304307347963,
+      "context_hash": 5636228221007276980,
+      "translation": "간단한 예로, 생존성 제약 `R live at E`가 있다면, `Values(R) = Values(R) union {E}`를 적용하여 제약을 충족시킬 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "Similarly, if we have an outlives constraints `R1: R2`, we can apply `Values(R1) = Values(R1) union Values(R2)`. (Member constraints are more complex and we discuss them [in this section][m_c].)",
+      "source_hash": 3940461896599513996,
+      "context_hash": 11749624006543082592,
+      "translation": "마찬가지로, outlives 제약 `R1: R2`가 있다면, `Values(R1) = Values(R1) union Values(R2)`를 적용할 수 있습니다. (멤버 제약은 더 복잡하며 [이 절][m_c]에서 논의합니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "In practice, however, we are a bit more clever.",
+      "source_hash": 8377717271472666126,
+      "context_hash": 8919935291162578433,
+      "translation": "하지만 실제로는 조금 더 영리한 방법을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "Instead of applying the constraints in a loop, we can analyze the constraints and figure out the correct order to apply them, so that we only have to apply each constraint once in order to find the final result.",
+      "source_hash": 7534188067684685423,
+      "context_hash": 14293996858984438451,
+      "translation": "제약을 루프 안에서 적용하는 대신, 제약들을 분석하여 이를 적용할 올바른 순서를 파악함으로써, 최종 결과를 찾기 위해 각 제약을 단 한 번만 적용하면 되도록 할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "Similarly, in the implementation, the `Values` set is stored in the `scc_values` field, but they are indexed not by a *region* but by a *strongly connected component* (SCC).",
+      "source_hash": 8657822919973394735,
+      "context_hash": 12074255593371491149,
+      "translation": "마찬가지로, 구현에서는 `Values` 집합이 `scc_values` 필드에 저장되지만, 이는 *영역*이 아니라 *강결합 컴포넌트*(SCC)로 색인됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "SCCs are an optimization that avoids a lot of redundant storage and computation.",
+      "source_hash": 6050789249620244427,
+      "context_hash": 8372849360549270911,
+      "translation": "SCC는 많은 중복 저장과 계산을 피하는 최적화 기법입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "They are explained in the section on outlives constraints.",
+      "source_hash": 2100421619620681313,
+      "context_hash": 2137986086365470305,
+      "translation": "이에 대해서는 outlives 제약을 다루는 절에서 설명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Liveness constraints",
+      "source_hash": 15982653651969033984,
+      "context_hash": 7273946736606391360,
+      "translation": "생존성 제약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "A **liveness constraint** arises when some variable whose type includes a region R is live at some [point] P.",
+      "source_hash": 1301168940756539842,
+      "context_hash": 6404780247455777900,
+      "translation": "**생존성 제약**은 타입에 영역 R을 포함하는 어떤 변수가 어떤 [지점] P에서 생존해 있을 때 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820543Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "This simply means that the value of R must include the point P.",
+      "source_hash": 1959989103747729321,
+      "context_hash": 17964144918862503262,
+      "translation": "이는 단순히 R의 값이 지점 P를 포함해야 함을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "Liveness constraints are computed by the MIR type checker.",
+      "source_hash": 6885460278190072156,
+      "context_hash": 4192111064155507361,
+      "translation": "생존성 제약은 MIR 타입 검사기가 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "A liveness constraint `R live at E` is satisfied if `E` is a member of `Values(R)`.",
+      "source_hash": 16580376050667151151,
+      "context_hash": 16904926214352985488,
+      "translation": "생존성 제약 `R live at E`는 `E`가 `Values(R)`의 원소일 때 충족됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "So to \"apply\" such a constraint to `Values`, we just have to compute `Values(R) = Values(R) union {E}`.",
+      "source_hash": 14444468480280713596,
+      "context_hash": 6766306566015936845,
+      "translation": "따라서 이러한 제약을 `Values`에 \"적용\"하려면, 단지 `Values(R) = Values(R) union {E}`를 계산하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The liveness values are computed in the type-check and passed to the region inference upon creation in the `liveness_constraints` argument.",
+      "source_hash": 17012819924515188475,
+      "context_hash": 2925362311391247469,
+      "translation": "생존성 값은 타입 검사 단계에서 계산되어, 영역 추론이 생성될 때 `liveness_constraints` 인수로 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "These are not represented as individual constraints like `R live at E` though; instead, we store a (sparse) bitset per region variable (of type [`LivenessValues`]).",
+      "source_hash": 12310881370349616009,
+      "context_hash": 8697492133542405228,
+      "translation": "다만 이는 `R live at E`와 같은 개별 제약으로 표현되지 않습니다. 대신, 영역 변수별로 (희소) 비트셋(타입 [`LivenessValues`])을 저장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "This way we only need a single bit for each liveness constraint.",
+      "source_hash": 11769876889721384862,
+      "context_hash": 9715326161297257925,
+      "translation": "이 방식 덕분에 각 생존성 제약마다 단 하나의 비트만 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "One thing that is worth mentioning: All lifetime parameters are always considered to be live over the entire function body.",
+      "source_hash": 1689616877250389811,
+      "context_hash": 1553096210645375016,
+      "translation": "언급할 만한 한 가지: 모든 라이프타임 매개변수는 항상 함수 본문 전체에 걸쳐 생존해 있는 것으로 간주됩니다.",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:09:34.820544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "This is because they correspond to some portion of the *caller's* execution, and that execution clearly includes the time spent in this function, since the caller is waiting for us to return.",
+      "source_hash": 11907988784994223568,
+      "context_hash": 14728838982923422454,
+      "translation": "이는 이들이 *호출자*의 실행 중 일부에 해당하며, 호출자가 우리가 반환하기를 기다리고 있으므로 그 실행에는 명백히 이 함수에서 소요되는 시간도 포함되기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:34.820545Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Outlives constraints",
+      "source_hash": 12382570793932068160,
+      "context_hash": 6382742423815631146,
+      "translation": "Outlives 제약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869952Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "An outlives constraint `'a: 'b` indicates that the value of `'a` must be a **superset** of the value of `'b`.",
+      "source_hash": 14761447937654131802,
+      "context_hash": 2243579100325085763,
+      "translation": "Outlives 제약 `'a: 'b`는 `'a`의 값이 `'b`의 값의 **상위집합(superset)**이어야 함을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869952Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "That is, an outlives constraint `R1: R2` is satisfied if `Values(R1)` is a superset of `Values(R2)`.",
+      "source_hash": 15302724970765166181,
+      "context_hash": 8860899089069385454,
+      "translation": "즉, outlives 제약 `R1: R2`는 `Values(R1)`이 `Values(R2)`의 상위집합일 때 만족됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869952Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "So to \"apply\" such a constraint to `Values`, we just have to compute `Values(R1) = Values(R1) union Values(R2)`.",
+      "source_hash": 14452690670863551487,
+      "context_hash": 659143189402842361,
+      "translation": "따라서 이러한 제약을 `Values`에 \"적용\"하려면, 단순히 `Values(R1) = Values(R1) union Values(R2)`를 계산하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869952Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "One observation that follows from this is that if you have `R1: R2` and `R2: R1`, then `R1 = R2` must be true.",
+      "source_hash": 17869155201538139069,
+      "context_hash": 7015419402284952758,
+      "translation": "여기서 따라오는 한 가지 관찰은, `R1: R2`와 `R2: R1`을 동시에 가지고 있다면 `R1 = R2`가 참이어야 한다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869953Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "Similarly, if you have:",
+      "source_hash": 14996860865100698081,
+      "context_hash": 6085378561146300590,
+      "translation": "마찬가지로, 다음을 가지고 있다면:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869953Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "then `R1 = R2 = R3 = R4` follows.",
+      "source_hash": 2252994925314646194,
+      "context_hash": 4206702819403355025,
+      "translation": "`R1 = R2 = R3 = R4`가 성립합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869953Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "We take advantage of this to make things much faster, as described shortly.",
+      "source_hash": 14865131921459194881,
+      "context_hash": 3389261436445232859,
+      "translation": "곧 설명하겠지만, 우리는 이를 활용하여 작업을 훨씬 빠르게 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869953Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "In the code, the set of outlives constraints is given to the region inference context on creation in a parameter of type [`OutlivesConstraintSet`].",
+      "source_hash": 16610421608751087513,
+      "context_hash": 17486366433321582232,
+      "translation": "코드에서, outlives 제약의 집합은 리전 추론 컨텍스트가 생성될 때 [`OutlivesConstraintSet`] 타입의 매개변수로 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869953Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "The constraint set is basically just a list of `'a: 'b` constraints.",
+      "source_hash": 7611451899796058093,
+      "context_hash": 3060735411138978446,
+      "translation": "제약 집합은 기본적으로 `'a: 'b` 제약들의 목록일 뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869953Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "The outlives constraint graph and SCCs",
+      "source_hash": 11690891609565023318,
+      "context_hash": 17762545422108320288,
+      "translation": "Outlives 제약 그래프와 SCC",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869953Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "In order to work more efficiently with outlives constraints, they are [converted into the form of a graph][graph-fn], where the nodes of the graph are region variables (`'a`, `'b`) and each constraint `'a: 'b` induces an edge `'a -> 'b`.",
+      "source_hash": 12322945263131193504,
+      "context_hash": 2808615154567180532,
+      "translation": "outlives 제약을 더 효율적으로 다루기 위해, 이들은 [그래프 형태로 변환됩니다][graph-fn]. 이 그래프에서 노드는 리전 변수(`'a`, `'b`)이며, 각 제약 `'a: 'b`는 엣지 `'a -> 'b`를 유도합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:1",
+      "source": "This conversion happens in the [`RegionInferenceContext::new`] function that creates the inference context.",
+      "source_hash": 2689961488546567495,
+      "context_hash": 6974851809415428443,
+      "translation": "이 변환은 추론 컨텍스트를 생성하는 [`RegionInferenceContext::new`] 함수에서 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "When using a graph representation, we can detect regions that must be equal by looking for cycles.",
+      "source_hash": 11095767938602426199,
+      "context_hash": 16428470509338394670,
+      "translation": "그래프 표현을 사용하면, 사이클을 찾음으로써 반드시 같아야 하는 리전들을 탐지할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "That is, if you have a constraint like",
+      "source_hash": 8859561328251935396,
+      "context_hash": 13749850259301487929,
+      "translation": "즉, 다음과 같은 제약이 있다면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "then this will correspond to a cycle in the graph containing the elements `'a...'d`.",
+      "source_hash": 11089110678744947023,
+      "context_hash": 15751939447831567863,
+      "translation": "이는 `'a...'d` 요소를 포함하는 그래프상의 사이클에 대응됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "Therefore, one of the first things that we do in propagating region values is to compute the **strongly connected components** (SCCs) in the constraint graph.",
+      "source_hash": 18321852386932825874,
+      "context_hash": 15612813680459040859,
+      "translation": "따라서, 리전 값을 전파하는 과정에서 우리가 가장 먼저 하는 일 중 하나는 제약 그래프에서 **강한 연결 요소(strongly connected components, SCC)**를 계산하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "The result is stored in the [`constraint_sccs`] field.",
+      "source_hash": 16139912840363227322,
+      "context_hash": 519595114184138034,
+      "translation": "그 결과는 [`constraint_sccs`] 필드에 저장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:2",
+      "source": "You can then easily find the SCC that a region `r` is a part of by invoking `constraint_sccs.scc(r)`.",
+      "source_hash": 5810040667440983633,
+      "context_hash": 9569715968872316153,
+      "translation": "그러면 `constraint_sccs.scc(r)`을 호출하여 리전 `r`이 속한 SCC를 쉽게 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "Working in terms of SCCs allows us to be more efficient: if we have a set of regions `'a...'d` that are part of a single SCC, we don't have to compute/store their values separately.",
+      "source_hash": 6198982276363248771,
+      "context_hash": 17222847776519800341,
+      "translation": "SCC 단위로 작업하면 더 효율적일 수 있습니다: 만약 `'a...'d`라는 리전 집합이 하나의 SCC에 속한다면, 이들의 값을 개별적으로 계산/저장할 필요가 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:1",
+      "source": "We can just store one value **for the SCC**, since they must all be equal.",
+      "source_hash": 8602908093078016977,
+      "context_hash": 9363773459874910572,
+      "translation": "이들은 모두 같아야 하므로, **SCC에 대해** 값 하나만 저장하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "If you look over the region inference code, you will see that a number of fields are defined in terms of SCCs.",
+      "source_hash": 17402460657904904301,
+      "context_hash": 1254106240521233414,
+      "translation": "리전 추론 코드를 살펴보면, 여러 필드들이 SCC를 기준으로 정의되어 있음을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:1",
+      "source": "For example, the [`scc_values`] field stores the values of each SCC.",
+      "source_hash": 7884367833519018448,
+      "context_hash": 10153555736159225745,
+      "translation": "예를 들어, [`scc_values`] 필드는 각 SCC의 값을 저장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:2",
+      "source": "To get the value of a specific region `'a` then, we first figure out the SCC that the region is a part of, and then find the value of that SCC.",
+      "source_hash": 10237469846669328133,
+      "context_hash": 5248837146946180670,
+      "translation": "그러면 특정 리전 `'a`의 값을 얻기 위해, 먼저 그 리전이 속한 SCC를 파악한 뒤 해당 SCC의 값을 찾습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "When we compute SCCs, we not only figure out which regions are a member of each SCC, we also figure out the edges between them.",
+      "source_hash": 8115079676642349297,
+      "context_hash": 658122699006339736,
+      "translation": "SCC를 계산할 때, 우리는 각 SCC에 어떤 리전들이 속하는지뿐만 아니라 이들 사이의 엣지도 함께 파악합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:1",
+      "source": "So for example consider this set of outlives constraints:",
+      "source_hash": 5928338824924232270,
+      "context_hash": 12808667667318954315,
+      "translation": "예를 들어 다음과 같은 outlives 제약의 집합을 생각해 봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "Here we have two SCCs: S0 contains `'a` and `'b`, and S1 contains `'c` and `'d`.",
+      "source_hash": 8457834210869112865,
+      "context_hash": 15047313688850710159,
+      "translation": "여기에는 두 개의 SCC가 있습니다: S0은 `'a`와 `'b`를 포함하고, S1은 `'c`와 `'d`를 포함합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:1",
+      "source": "But these SCCs are not independent: because `'a: 'c`, that means that `S0: S1` as well.",
+      "source_hash": 2052871472137218941,
+      "context_hash": 15996629623936215904,
+      "translation": "하지만 이 SCC들은 독립적이지 않습니다: `'a: 'c`이므로, `S0: S1` 역시 성립합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:2",
+      "source": "That is -- the value of `S0` must be a superset of the value of `S1`.",
+      "source_hash": 14666660327829740200,
+      "context_hash": 13512356919857271558,
+      "translation": "즉 -- `S0`의 값은 `S1`의 값의 상위집합이어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:3",
+      "source": "One crucial thing is that this graph of SCCs is always a DAG -- that is, it never has cycles.",
+      "source_hash": 6019421970718499475,
+      "context_hash": 4385112345375025774,
+      "translation": "한 가지 중요한 점은 이 SCC들의 그래프는 항상 DAG라는 것입니다 -- 즉, 결코 사이클을 갖지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:4",
+      "source": "This is because all the cycles have been removed to form the SCCs themselves.",
+      "source_hash": 14011930434124144090,
+      "context_hash": 8858514345329416511,
+      "translation": "이는 모든 사이클이 SCC 자체를 형성하기 위해 제거되었기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869956Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "Applying liveness constraints to SCCs",
+      "source_hash": 14873646833223083665,
+      "context_hash": 6372372973146384027,
+      "translation": "SCC에 liveness 제약 적용하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:09:25.869956Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "The liveness constraints that come in from the type-checker are expressed in terms of regions -- that is, we have a map like `Liveness: R -> {E}`.",
+      "source_hash": 16279786013589671102,
+      "context_hash": 1693586370868758960,
+      "translation": "타입 검사기에서 들어오는 생존성(liveness) 제약 조건은 리전을 기준으로 표현됩니다 -- 즉, `Liveness: R -> {E}`와 같은 맵을 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238137Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:1",
+      "source": "But we want our final result to be expressed in terms of SCCs -- we can integrate these liveness constraints very easily just by taking the union:",
+      "source_hash": 12415926491548228484,
+      "context_hash": 13025182907776602658,
+      "translation": "하지만 우리는 최종 결과가 SCC를 기준으로 표현되기를 원합니다 -- 이러한 생존성 제약 조건들은 합집합을 취하는 것만으로 매우 쉽게 통합할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238138Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "In the region inferencer, this step is done in [`RegionInferenceContext::new`].",
+      "source_hash": 15069394403980712241,
+      "context_hash": 4670572245313687045,
+      "translation": "리전 추론기에서는 이 단계가 [`RegionInferenceContext::new`]에서 수행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238138Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "Applying outlives constraints",
+      "source_hash": 17274925819011783758,
+      "context_hash": 7134742180245151448,
+      "translation": "outlives 제약 조건 적용하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238138Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Once we have computed the DAG of SCCs, we use that to structure out entire computation.",
+      "source_hash": 3693524981007001511,
+      "context_hash": 3658197775785704831,
+      "translation": "SCC의 DAG를 계산하고 나면, 이를 사용해 전체 계산 구조를 구성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238138Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:1",
+      "source": "If we have an edge `S1 -> S2` between two SCCs, that means that `Values(S1) >= Values(S2)` must hold.",
+      "source_hash": 5967108465966838738,
+      "context_hash": 9423835112824466408,
+      "translation": "두 SCC 사이에 `S1 -> S2`라는 엣지가 있다면, 이는 `Values(S1) >= Values(S2)`가 성립해야 함을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238138Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:2",
+      "source": "So, to compute the value of `S1`, we first compute the values of each successor `S2`.",
+      "source_hash": 8392227767721375994,
+      "context_hash": 14676197635043054986,
+      "translation": "따라서 `S1`의 값을 계산하기 위해, 먼저 각 후속 SCC `S2`의 값을 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238139Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:3",
+      "source": "Then we simply union all of those values together.",
+      "source_hash": 17677999980391100888,
+      "context_hash": 8328441781238007333,
+      "translation": "그런 다음 그 값들을 모두 합집합으로 묶습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238139Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:4",
+      "source": "To use a quasi-iterator-like notation:",
+      "source_hash": 6455609079183531343,
+      "context_hash": 2914359278076808220,
+      "translation": "유사 이터레이터 표기법을 사용하면 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238139Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "In the code, this work starts in the [`propagate_constraints`] function, which iterates over all the SCCs.",
+      "source_hash": 18169405624873718386,
+      "context_hash": 7684403391973492053,
+      "translation": "코드에서 이 작업은 모든 SCC를 순회하는 [`propagate_constraints`] 함수에서 시작됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238139Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:1",
+      "source": "For each SCC `S1`, we compute its value by first computing the value of its successors.",
+      "source_hash": 16602689876173162109,
+      "context_hash": 7172900614459887015,
+      "translation": "각 SCC `S1`에 대해, 먼저 그 후행자들의 값을 계산하여 자신의 값을 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238139Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:2",
+      "source": "Since SCCs form a DAG, we don't have to be concerned about cycles, though we do need to keep a set around to track whether we have already processed a given SCC or not.",
+      "source_hash": 8621345542588797939,
+      "context_hash": 10512949702925218756,
+      "translation": "SCC는 DAG를 이루므로 순환을 걱정할 필요는 없지만, 특정 SCC를 이미 처리했는지 여부를 추적하기 위한 집합은 유지해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238140Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:3",
+      "source": "For each successor `S2`, once we have computed `S2`'s value, we can union those elements into the value for `S1`. (Although we have to be careful in this process to properly handle [higher-ranked placeholders](./placeholders-and-universes.md).",
+      "source_hash": 1447934658703803909,
+      "context_hash": 7062092950932218658,
+      "translation": "각 후속 SCC `S2`에 대해, `S2`의 값을 계산하고 나면 그 요소들을 `S1`의 값에 합집합으로 넣을 수 있습니다. (다만 이 과정에서 [고차 플레이스홀더](./placeholders-and-universes.md)를 올바르게 처리하도록 주의해야 합니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238140Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:4",
+      "source": "Note that the value for `S1` already contains the liveness constraints, since they were added in [`RegionInferenceContext::new`].",
+      "source_hash": 8363672613852261598,
+      "context_hash": 17310059695958791332,
+      "translation": "`S1`의 값에는 이미 생존성 제약 조건이 포함되어 있다는 점에 유의하십시오. 이는 [`RegionInferenceContext::new`]에서 추가되었기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238141Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "Once that process is done, we now have the \"minimal value\" for `S1`, taking into account all of the liveness and outlives constraints.",
+      "source_hash": 14441193037966093959,
+      "context_hash": 775408429008662176,
+      "translation": "이 과정이 끝나면, 모든 생존성 및 outlives 제약 조건을 고려한 `S1`의 \"최소값\"을 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238141Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:1",
+      "source": "However, in order to complete the process, we must also consider [member constraints][m_c], which are described in [a later section][m_c].",
+      "source_hash": 2445260859671180390,
+      "context_hash": 11275458189844795222,
+      "translation": "하지만 이 과정을 완료하려면 [멤버 제약 조건][m_c]도 고려해야 하며, 이는 [뒤의 섹션][m_c]에서 설명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:59.238141Z",
+      "issues": []
+    }
+  ]
+}

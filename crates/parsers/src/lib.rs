@@ -298,9 +298,12 @@ model = "gpt-4o"
         let config = config_with_source("book/", "markdown");
         let parser = select_parser(Path::new("docs/page.mdx"), &config);
         assert_eq!(parser.parse(source).translatable_segments().len(), 2);
-        // A plain .md keeps the strict Markdown reading of raw HTML blocks.
+        // Plain Markdown translates HTML text, but not JSX title attributes.
         let parser = select_parser(Path::new("docs/page.md"), &config);
-        assert!(parser.parse(source).translatable_segments().is_empty());
+        let doc = parser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].source, "Body.");
     }
 
     #[test]

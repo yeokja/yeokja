@@ -1,0 +1,604 @@
+{
+  "version": 1,
+  "source_hash": 10937635738718650781,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Closure Capture Inference",
+      "source_hash": 4269298682754800087,
+      "context_hash": 17301657136971318012,
+      "translation": "클로저 캡처 추론",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573516Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This section describes how rustc handles closures.",
+      "source_hash": 7280733618482171142,
+      "context_hash": 12532646878710412827,
+      "translation": "이 절에서는 rustc가 클로저를 어떻게 처리하는지 설명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573516Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Closures in Rust are effectively \"desugared\" into structs that contain the values they use (or references to the values they use) from their creator's stack frame. rustc has the job of figuring out which values a closure uses and how, so it can decide whether to capture a given variable by shared reference, mutable reference, or by move. rustc also has to figure out which of the closure traits ([`Fn`][fn], [`FnMut`][fn_mut], or [`FnOnce`][fn_once]) a closure is capable of implementing.",
+      "source_hash": 12563263737439108987,
+      "context_hash": 1631760282089215260,
+      "translation": "Rust의 클로저는 생성자의 스택 프레임에서 사용하는 값(또는 그 값에 대한 참조)을 담고 있는 구조체로 사실상 \"탈설탕\"됩니다. rustc는 클로저가 어떤 값을 어떻게 사용하는지 파악하여, 주어진 변수를 공유 참조, 가변 참조, 또는 이동 중 어떤 방식으로 캡처할지 결정하는 역할을 합니다. 또한 rustc는 클로저가 [`Fn`][fn], [`FnMut`][fn_mut], [`FnOnce`][fn_once] 트레이트 중 어떤 것을 구현할 수 있는지도 파악해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Let's start with a few examples:",
+      "source_hash": 2032579308298554837,
+      "context_hash": 17714245306563730887,
+      "translation": "몇 가지 예제부터 살펴봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Example 1",
+      "source_hash": 18395143771999504062,
+      "context_hash": 4608950373019960521,
+      "translation": "예제 1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "To start, let's take a look at how the closure in the following example is desugared:",
+      "source_hash": 11141508834784294870,
+      "context_hash": 9410978641327745267,
+      "translation": "먼저 다음 예제의 클로저가 어떻게 탈설탕되는지 살펴봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "Let's say the above is the content of a file called `immut.rs`.",
+      "source_hash": 8760094814907707765,
+      "context_hash": 5413048981830473970,
+      "translation": "위 내용이 `immut.rs`라는 파일의 내용이라고 합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "If we compile `immut.rs` using the following command.",
+      "source_hash": 9749109100619544553,
+      "context_hash": 13522347024883961338,
+      "translation": "다음 명령을 사용하여 `immut.rs`를 컴파일한다고 합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:2",
+      "source": "The [`-Z dump-mir=all`][dump-mir] flag will cause `rustc` to generate and dump the [MIR][mir] to a directory called `mir_dump`.",
+      "source_hash": 2398575003189082058,
+      "context_hash": 1270891873667967832,
+      "translation": "[`-Z dump-mir=all`][dump-mir] 플래그는 `rustc`가 [MIR][mir]을 생성하여 `mir_dump`라는 디렉터리에 덤프하도록 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "After we run this command, we will see a newly generated directory in our current working directory called `mir_dump`, which will contain several files.",
+      "source_hash": 1022660162169105681,
+      "context_hash": 15926578742812444088,
+      "translation": "이 명령을 실행하면 현재 작업 디렉터리에 `mir_dump`라는 새로 생성된 디렉터리가 나타나며, 이 디렉터리에는 여러 파일이 들어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:1",
+      "source": "If we look at file `rustc.main.-------.mir_map.0.mir`, we will find, among other things, it also contains this line:",
+      "source_hash": 11725671162328106260,
+      "context_hash": 14617608651897564185,
+      "translation": "`rustc.main.-------.mir_map.0.mir` 파일을 살펴보면, 다른 내용들과 함께 다음과 같은 줄도 포함되어 있음을 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "Note that in the MIR examples in this chapter, `_1` is `x`.",
+      "source_hash": 9803384721580012211,
+      "context_hash": 1174154860377773297,
+      "translation": "이 장의 MIR 예제에서 `_1`은 `x`임을 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "Here in first line `_4 = &_1;`, the `mir_dump` tells us that `x` was borrowed as an immutable reference.",
+      "source_hash": 1922451958299660807,
+      "context_hash": 8150441879851268479,
+      "translation": "여기서 첫 번째 줄 `_4 = &_1;`을 보면, `mir_dump`는 `x`가 불변 참조로 빌려졌음을 알려줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:1",
+      "source": "This is what we would hope as our closure just reads `x`.",
+      "source_hash": 17703383006744063555,
+      "context_hash": 13003468805983440409,
+      "translation": "이는 우리의 클로저가 `x`를 읽기만 하므로 예상했던 대로입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:12/seg:0",
+      "source": "Example 2",
+      "source_hash": 13976760705501601548,
+      "context_hash": 7691232256507551699,
+      "translation": "예제 2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Here is another example:",
+      "source_hash": 16225173401718214627,
+      "context_hash": 7773042211379743335,
+      "translation": "또 다른 예제입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:0",
+      "source": "This time along, in the line `_4 = &mut _1;`, we see that the borrow is changed to mutable borrow.",
+      "source_hash": 125460603262275438,
+      "context_hash": 12128365458604900331,
+      "translation": "이번에는 `_4 = &mut _1;` 줄에서 빌림이 가변 빌림으로 바뀐 것을 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:1",
+      "source": "Fair enough!",
+      "source_hash": 3679348637537791771,
+      "context_hash": 8341247593440685434,
+      "translation": "당연한 결과입니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573517Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:2",
+      "source": "The closure increments `x` by 10.",
+      "source_hash": 1349361489918605336,
+      "context_hash": 11265489223999765200,
+      "translation": "클로저가 `x`를 10만큼 증가시키기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "Example 3",
+      "source_hash": 16327917502133336355,
+      "context_hash": 11526452667107189540,
+      "translation": "예제 3",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "One more example:",
+      "source_hash": 10265531930267013923,
+      "context_hash": 8169514892487973521,
+      "translation": "예제를 하나 더 살펴봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "Here, `x` is directly moved into the closure and the access to it will not be permitted after the closure.",
+      "source_hash": 283596031204034238,
+      "context_hash": 15514224175819219897,
+      "translation": "여기서는 `x`가 클로저 안으로 직접 이동되며, 클로저 이후에는 이에 대한 접근이 허용되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Inferences in the compiler",
+      "source_hash": 15108444702879806924,
+      "context_hash": 4971133379115823524,
+      "translation": "컴파일러에서의 추론",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Now let's dive into rustc code and see how all these inferences are done by the compiler.",
+      "source_hash": 3997233146465545945,
+      "context_hash": 16604395739843059022,
+      "translation": "이제 rustc 코드로 들어가 이러한 모든 추론이 컴파일러에서 어떻게 이루어지는지 살펴봅시다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Let's start with defining a term that we will be using quite a bit in the rest of the discussion - *upvar*.",
+      "source_hash": 2811636684687291511,
+      "context_hash": 18392759772226289126,
+      "translation": "나머지 논의에서 자주 사용할 용어인 *upvar*를 정의하는 것부터 시작합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "An **upvar** is a variable that is local to the function where the closure is defined.",
+      "source_hash": 2614449197790633612,
+      "context_hash": 2871730055719164124,
+      "translation": "**upvar**란 클로저가 정의된 함수에 지역적인 변수를 말합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "So, in the above examples, **x** will be an upvar to the closure.",
+      "source_hash": 17999474585991189986,
+      "context_hash": 12451824469342249750,
+      "translation": "따라서 위 예제들에서 **x**는 클로저의 upvar가 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:3",
+      "source": "They are also sometimes referred to as the *free variables* meaning they are not bound to the context of the closure. [`compiler/rustc_passes/src/upvars.rs`][upvars] defines a query called *upvars_mentioned* for this purpose.",
+      "source_hash": 3175972546677274219,
+      "context_hash": 16566568549491284623,
+      "translation": "이들은 클로저의 컨텍스트에 묶여 있지 않다는 의미에서 *자유 변수*라고도 불립니다. [`compiler/rustc_passes/src/upvars.rs`][upvars]는 이 목적을 위해 *upvars_mentioned*라는 쿼리를 정의합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:16:55.573518Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Other than lazy invocation, one other thing that distinguishes a closure from a normal function is that it can use the upvars.",
+      "source_hash": 8975847870660640989,
+      "context_hash": 17030075631735450430,
+      "translation": "지연 호출 외에도, 클로저를 일반 함수와 구분 짓는 또 다른 특징은 어퍼바(upvar)를 사용할 수 있다는 점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757192Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "It borrows these upvars from its surrounding context; therefore the compiler has to determine the upvar's borrow type.",
+      "source_hash": 1366046497134548144,
+      "context_hash": 14368392611577031994,
+      "translation": "클로저는 주변 컨텍스트로부터 이러한 어퍼바를 빌려오므로, 컴파일러는 어퍼바의 빌림 타입을 결정해야 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:01.757193Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "The compiler starts with assigning an immutable borrow type and lowers the restriction (that is, changes it from **immutable** to **mutable** to **move**) as needed, based on the usage.",
+      "source_hash": 7356811954744672764,
+      "context_hash": 3409078337126150353,
+      "translation": "컴파일러는 불변 빌림 타입을 할당하는 것으로 시작하여, 사용 방식에 따라 필요한 만큼 제약을 완화합니다(즉, **불변**에서 **가변**으로, 다시 **이동**으로 변경합니다).",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:01.757195Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:3",
+      "source": "In the Example 1 above, the closure only uses the variable for printing but does not modify it in any way and therefore, in the `mir_dump`, we find the borrow type for the upvar `x` to be immutable.",
+      "source_hash": 11060282253012524745,
+      "context_hash": 10002538623289880033,
+      "translation": "위의 예제 1에서 클로저는 변수를 출력하는 데에만 사용할 뿐 어떠한 방식으로도 수정하지 않으므로, `mir_dump`에서 어퍼바 `x`의 빌림 타입이 불변임을 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757433Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:4",
+      "source": "In example 2, however, the closure modifies `x` and increments it by some value.",
+      "source_hash": 13440613511006125346,
+      "context_hash": 1795065074364346993,
+      "translation": "그러나 예제 2에서는 클로저가 `x`를 수정하며 어떤 값만큼 증가시킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757434Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:5",
+      "source": "Because of this mutation, the compiler, which started off assigning `x` as an immutable reference type, has to adjust it as a mutable reference.",
+      "source_hash": 15135841394905013002,
+      "context_hash": 701887740391179084,
+      "translation": "이러한 변경으로 인해, 처음에 `x`를 불변 참조 타입으로 할당했던 컴파일러는 이를 가변 참조로 조정해야 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:01.757434Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:6",
+      "source": "Likewise in the third example, the closure drops the vector and therefore this requires the variable `x` to be moved into the closure.",
+      "source_hash": 13854220644869946198,
+      "context_hash": 14005805803113773826,
+      "translation": "마찬가지로 세 번째 예제에서는 클로저가 벡터를 드롭하므로, 변수 `x`가 클로저 안으로 이동되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757434Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:7",
+      "source": "Depending on the borrow kind, the closure has to implement the appropriate trait: `Fn` trait for immutable borrow, `FnMut` for mutable borrow, and `FnOnce` for move semantics.",
+      "source_hash": 1961506359557197828,
+      "context_hash": 7265400909803440559,
+      "translation": "빌림 종류에 따라 클로저는 적절한 트레이트를 구현해야 합니다: 불변 빌림에는 `Fn` 트레이트, 가변 빌림에는 `FnMut`, 이동 시맨틱에는 `FnOnce`를 구현해야 합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:04:01.757434Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Most of the code related to the closure is in the [`compiler/rustc_hir_typeck/src/upvar.rs`][upvar] file and the data structures are declared in the file [`compiler/rustc_middle/src/ty/mod.rs`][ty].",
+      "source_hash": 4084457293494558439,
+      "context_hash": 2019567355541018554,
+      "translation": "클로저와 관련된 대부분의 코드는 [`compiler/rustc_hir_typeck/src/upvar.rs`][upvar] 파일에 있으며, 데이터 구조는 [`compiler/rustc_middle/src/ty/mod.rs`][ty] 파일에 선언되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757435Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Before we go any further, let's discuss how we can examine the flow of control through the rustc codebase.",
+      "source_hash": 9532614750845692531,
+      "context_hash": 18359952914016122200,
+      "translation": "더 나아가기 전에, rustc 코드베이스를 통한 제어 흐름을 어떻게 살펴볼 수 있는지 논의해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757435Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "For closures specifically, set the `RUSTC_LOG` env variable as below and collect the output in a file:",
+      "source_hash": 252922534297974890,
+      "context_hash": 7042878499517576260,
+      "translation": "클로저에 한정하여, 아래와 같이 `RUSTC_LOG` 환경 변수를 설정하고 출력을 파일에 수집하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757435Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "This uses the stage1 compiler and enables `debug!` logging for the `rustc_hir_typeck::upvar` module.",
+      "source_hash": 3678252164033116937,
+      "context_hash": 7321441260698421179,
+      "translation": "이는 stage1 컴파일러를 사용하며 `rustc_hir_typeck::upvar` 모듈에 대한 `debug!` 로깅을 활성화합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:04:01.757435Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "The other option is to step through the code using lldb or gdb.",
+      "source_hash": 10728748390849114587,
+      "context_hash": 16310325117898511237,
+      "translation": "다른 방법은 lldb나 gdb를 사용하여 코드를 한 단계씩 실행해 보는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "`rust-lldb build/host/stage1/bin/rustc test.rs`",
+      "source_hash": 3547030051645018591,
+      "context_hash": 10985115088893834818,
+      "translation": "`rust-lldb build/host/stage1/bin/rustc test.rs`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "In lldb:",
+      "source_hash": 17905143205532641831,
+      "context_hash": 5023812249521259213,
+      "translation": "lldb에서:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "`b upvar.rs:134`  // Setting the breakpoint on a certain line in the upvar.rs file",
+      "source_hash": 3549163874184121568,
+      "context_hash": 13741691204494419015,
+      "translation": "`b upvar.rs:134`  // upvar.rs 파일의 특정 줄에 중단점을 설정합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "`r`  // Run the program until it hits the breakpoint",
+      "source_hash": 18219387749450257629,
+      "context_hash": 2904700196883893464,
+      "translation": "`r`  // 중단점에 도달할 때까지 프로그램을 실행합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "Let's start with [`upvar.rs`][upvar].",
+      "source_hash": 169771720662589558,
+      "context_hash": 9359705420049865116,
+      "translation": "[`upvar.rs`][upvar]부터 시작해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "This file has something called the [`euv::ExprUseVisitor`] which walks the source of the closure and invokes a callback for each upvar that is borrowed, mutated, or moved.",
+      "source_hash": 13739274985440433149,
+      "context_hash": 9863711846369278809,
+      "translation": "이 파일에는 [`euv::ExprUseVisitor`]라는 것이 있는데, 이는 클로저의 소스를 탐색하며 빌려지거나, 변경되거나, 이동된 각 어퍼바에 대해 콜백을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "In the above example, our visitor will be called twice, for the lines marked 1 and 2, once for a shared borrow and another one for a mutable borrow.",
+      "source_hash": 4251206288595029058,
+      "context_hash": 9081053051051238256,
+      "translation": "위의 예제에서, 우리의 방문자(visitor)는 1과 2로 표시된 줄에서 두 번 호출되는데, 한 번은 공유 빌림에 대해, 다른 한 번은 가변 빌림에 대해 호출됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757436Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:1",
+      "source": "It will also tell us what was borrowed.",
+      "source_hash": 9022956978587031960,
+      "context_hash": 12587744210756479574,
+      "translation": "또한 무엇이 빌려졌는지도 알려줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757437Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "The callbacks are defined by implementing the [`Delegate`] trait.",
+      "source_hash": 8964725794062546420,
+      "context_hash": 4816624997505119491,
+      "translation": "콜백은 [`Delegate`] 트레이트를 구현함으로써 정의됩니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:04:01.757437Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:1",
+      "source": "The [`InferBorrowKind`][ibk] type implements `Delegate` and keeps a map that records for each upvar which mode of capture was required.",
+      "source_hash": 4552759051086638685,
+      "context_hash": 4758478275719116637,
+      "translation": "[`InferBorrowKind`][ibk] 타입은 `Delegate`를 구현하며, 각 어퍼바에 대해 어떤 캡처 모드가 필요했는지를 기록하는 맵을 유지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757437Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:2",
+      "source": "The modes of capture can be `ByValue` (moved) or `ByRef` (borrowed).",
+      "source_hash": 1479250898115537867,
+      "context_hash": 6208873669783348183,
+      "translation": "캡처 모드는 `ByValue`(이동됨) 또는 `ByRef`(빌려짐)일 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757437Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:3",
+      "source": "For `ByRef` borrows, the possible [`BorrowKind`]s are `ImmBorrow`, `UniqueImmBorrow`, `MutBorrow` as defined in the [`compiler/rustc_middle/src/ty/mod.rs`][middle_ty].",
+      "source_hash": 1431889786464479552,
+      "context_hash": 3850033767027267772,
+      "translation": "`ByRef` 빌림의 경우, 가능한 [`BorrowKind`]는 [`compiler/rustc_middle/src/ty/mod.rs`][middle_ty]에 정의된 대로 `ImmBorrow`, `UniqueImmBorrow`, `MutBorrow`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757437Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "`Delegate` defines a few different methods (the different callbacks): **consume** for *move* of a variable, **borrow** for a *borrow* of some kind (shared or mutable), and **mutate** when we see an *assignment* of something.",
+      "source_hash": 12739109707995925632,
+      "context_hash": 13145076246924651644,
+      "translation": "`Delegate`는 몇 가지 서로 다른 메서드(각기 다른 콜백)를 정의합니다: 변수의 *이동*에 대해서는 **consume**, 어떤 종류(공유 또는 가변)의 *빌림*에 대해서는 **borrow**, 무언가의 *대입*을 볼 때는 **mutate**를 정의합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757437Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "All of these callbacks have a common argument *cmt* which stands for Category, Mutability and Type and is defined in [`compiler/rustc_hir_typeck/src/expr_use_visitor.rs`][cmt].",
+      "source_hash": 15428411325972066817,
+      "context_hash": 9407513913442008246,
+      "translation": "이 모든 콜백은 Category, Mutability, Type의 약자인 *cmt*라는 공통 인자를 가지며, 이는 [`compiler/rustc_hir_typeck/src/expr_use_visitor.rs`][cmt]에 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757438Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:1",
+      "source": "Borrowing from the code comments, \"`cmt` is a complete categorization of a value indicating where it originated and how it is located, as well as the mutability of the memory in which the value is stored\".",
+      "source_hash": 2211766085738200643,
+      "context_hash": 13273111176957087490,
+      "translation": "코드 주석을 인용하면, \"`cmt`는 값이 어디에서 비롯되었는지, 어떻게 위치해 있는지, 그리고 그 값이 저장된 메모리의 가변성까지 나타내는 완전한 값의 분류\"입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757438Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:2",
+      "source": "Based on the callback (consume, borrow etc.), we will call the relevant `adjust_upvar_borrow_kind_for_<something>` and pass the `cmt` along.",
+      "source_hash": 1955008960003622827,
+      "context_hash": 13594489198762079094,
+      "translation": "콜백(consume, borrow 등)에 따라, 우리는 관련된 `adjust_upvar_borrow_kind_for_<something>`을 호출하며 `cmt`를 함께 전달합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757438Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:3",
+      "source": "Once the borrow type is adjusted, we store it in the table, which basically says what borrows were made for each closure.",
+      "source_hash": 13993332896347376230,
+      "context_hash": 3443084048080442187,
+      "translation": "빌림 타입이 조정되고 나면, 이를 테이블에 저장하는데, 이 테이블은 기본적으로 각 클로저에 대해 어떤 빌림이 이루어졌는지를 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:04:01.757438Z",
+      "issues": []
+    }
+  ]
+}

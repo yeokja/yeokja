@@ -1,0 +1,542 @@
+{
+  "version": 1,
+  "source_hash": 2068184947530151902,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "The HIR",
+      "source_hash": 12750753467326818329,
+      "context_hash": 10555544937161416586,
+      "translation": "HIR",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055044Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "The HIR – \"High-Level Intermediate Representation\" – is the primary IR used in most of rustc.",
+      "source_hash": 3237650129397022153,
+      "context_hash": 5336562329008651672,
+      "translation": "HIR – \"고수준 중간 표현(High-Level Intermediate Representation)\" – 은 rustc 대부분에서 사용되는 주요 중간 표현입니다.",
+      "glossary_snapshot": {
+        "intermediate representation": "중간 표현"
+      },
+      "translated_at": "2026-09-12T01:02:19.055045Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "It is a compiler-friendly representation of the abstract syntax tree (AST) that is generated after parsing, macro expansion, and name resolution (see [Lowering](./hir/lowering.md) for how the HIR is created).",
+      "source_hash": 18418488480452493204,
+      "context_hash": 15213035514464839268,
+      "translation": "이는 파싱, 매크로 확장, 이름 해석 이후에 생성되는 추상 구문 트리(AST)를 컴파일러 친화적으로 표현한 것입니다(HIR이 어떻게 생성되는지는 [Lowering](./hir/lowering.md)을 참조하십시오).",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:02:19.055045Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "Many parts of HIR resemble Rust surface syntax quite closely, with the exception that some of Rust's expression forms have been desugared away.",
+      "source_hash": 872736444476687406,
+      "context_hash": 1364159659834946645,
+      "translation": "HIR의 많은 부분은 Rust의 표층 구문과 상당히 유사하지만, Rust의 일부 표현식 형태는 디슈가링(desugar)되어 사라졌다는 점이 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055045Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:3",
+      "source": "For example, `for` loops are converted into a `loop` and do not appear in the HIR.",
+      "source_hash": 12156088760922483494,
+      "context_hash": 8380795107759918460,
+      "translation": "예를 들어, `for` 루프는 `loop`로 변환되며 HIR에는 나타나지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055045Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:4",
+      "source": "This makes HIR more amenable to analysis than a normal AST.",
+      "source_hash": 5035706726529356926,
+      "context_hash": 16085310560314117773,
+      "translation": "이로 인해 HIR은 일반적인 AST보다 분석하기에 더 적합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055045Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "This chapter covers the main concepts of the HIR.",
+      "source_hash": 2820441638824995986,
+      "context_hash": 286861357264397867,
+      "translation": "이 장에서는 HIR의 주요 개념을 다룹니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055045Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "You can view the HIR representation of your code by passing the `-Z unpretty=hir-tree` flag to rustc:",
+      "source_hash": 10489225634444062271,
+      "context_hash": 9871738491258192512,
+      "translation": "`-Z unpretty=hir-tree` 플래그를 rustc에 전달하면 코드의 HIR 표현을 확인할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "You can also use the `-Z unpretty=hir` option to generate a HIR that is closer to the original source code expression:",
+      "source_hash": 1866277851958801440,
+      "context_hash": 8410993472025246380,
+      "translation": "원본 소스 코드 표현식에 더 가까운 HIR을 생성하려면 `-Z unpretty=hir` 옵션을 사용할 수도 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Out-of-band storage and the `Crate` type",
+      "source_hash": 12759078434011102538,
+      "context_hash": 16654589230840541448,
+      "translation": "대역 외 저장소(Out-of-band storage)와 `Crate` 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "The top-level data-structure in the HIR is the [`Crate`], which stores the contents of the crate currently being compiled (we only ever construct HIR for the current crate).",
+      "source_hash": 3871348190784125935,
+      "context_hash": 15915094149078984528,
+      "translation": "HIR의 최상위 자료구조는 [`Crate`]이며, 이는 현재 컴파일 중인 크레이트의 내용을 저장합니다(HIR은 현재 크레이트에 대해서만 구성됩니다).",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Whereas in the AST the crate data structure basically just contains the root module, the HIR `Crate` structure contains a number of maps and other things that serve to organize the content of the crate for easier access.",
+      "source_hash": 2840368515100158539,
+      "context_hash": 18046806805497548541,
+      "translation": "AST에서는 크레이트 자료구조가 기본적으로 루트 모듈만 포함하는 반면, HIR의 `Crate` 구조체는 크레이트의 내용을 더 쉽게 접근할 수 있도록 정리하는 다수의 맵과 기타 요소를 포함합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "For example, the contents of individual items (e.g. modules, functions, traits, impls, etc) in the HIR are not immediately accessible in the parents.",
+      "source_hash": 7677674655809040401,
+      "context_hash": 7033178290351135226,
+      "translation": "예를 들어, HIR에서 개별 아이템(예: 모듈, 함수, 트레이트, impl 등)의 내용은 부모에서 즉시 접근할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "So, for example, if there is a module item `foo` containing a function `bar()`:",
+      "source_hash": 12889664435344629288,
+      "context_hash": 14542058891937009977,
+      "translation": "그래서 예를 들어, 함수 `bar()`를 포함하는 모듈 아이템 `foo`가 있다고 합시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "then in the HIR the representation of module `foo` (the [`Mod`] struct) would only have the **`ItemId`** `I` of `bar()`.",
+      "source_hash": 8674596392240931743,
+      "context_hash": 11857261386771354392,
+      "translation": "그러면 HIR에서 모듈 `foo`의 표현(즉 [`Mod`] 구조체)은 `bar()`의 **`ItemId`** `I`만을 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "To get the details of the function `bar()`, we would lookup `I` in the `items` map.",
+      "source_hash": 15912279867523544622,
+      "context_hash": 3732473045410661154,
+      "translation": "함수 `bar()`의 세부 정보를 얻으려면, `items` 맵에서 `I`를 조회해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "One nice result from this representation is that one can iterate over all items in the crate by iterating over the key-value pairs in these maps (without the need to trawl through the whole HIR).",
+      "source_hash": 18344167795940401744,
+      "context_hash": 14801330436697236768,
+      "translation": "이러한 표현 방식에서 얻는 좋은 결과 중 하나는, 이 맵들의 키-값 쌍을 순회함으로써 (HIR 전체를 뒤질 필요 없이) 크레이트 내의 모든 아이템을 순회할 수 있다는 것입니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:19.055046Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "There are similar maps for things like trait items and impl items, as well as \"bodies\" (explained below).",
+      "source_hash": 4279082697962587141,
+      "context_hash": 3658729825235800372,
+      "translation": "트레이트 아이템과 impl 아이템, 그리고 \"바디(bodies)\"(아래에서 설명)와 같은 것들에 대해서도 유사한 맵이 존재합니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The other reason to set up the representation this way is for better integration with incremental compilation.",
+      "source_hash": 323640659342435517,
+      "context_hash": 10937037560746403415,
+      "translation": "이러한 방식으로 표현을 구성하는 또 다른 이유는 증분 컴파일과의 통합을 더 원활히 하기 위해서입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "This way, if you gain access to an [`&rustc_hir::Item`] (e.g. for the mod `foo`), you do not immediately gain access to the contents of the function `bar()`.",
+      "source_hash": 1173657873783038377,
+      "context_hash": 17761471197698790757,
+      "translation": "이 방식에서는, [`&rustc_hir::Item`](예: 모듈 `foo`에 대한)에 접근할 수 있게 되더라도, 함수 `bar()`의 내용에 즉시 접근할 수 있는 것은 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:2",
+      "source": "Instead, you only gain access to the **id** for `bar()`, and you must invoke some function to lookup the contents of `bar()` given its id; this gives the compiler a chance to observe that you accessed the data for `bar()`, and then record the dependency.",
+      "source_hash": 9452841619687321665,
+      "context_hash": 17320163761380302418,
+      "translation": "대신 `bar()`의 **id**에만 접근할 수 있으며, 해당 id를 통해 `bar()`의 내용을 조회하려면 어떤 함수를 호출해야 합니다. 이는 컴파일러가 여러분이 `bar()`의 데이터에 접근했음을 관찰하고 그 의존성을 기록할 기회를 제공합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "<a id=\"hir-id\"></a>",
+      "source_hash": 18116360508451269531,
+      "context_hash": 16778360369309681877,
+      "translation": "<a id=\"hir-id\"></a>",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Identifiers in the HIR",
+      "source_hash": 9899202548818423990,
+      "context_hash": 12896525167108840758,
+      "translation": "HIR의 식별자",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The HIR uses a bunch of different identifiers that coexist and serve different purposes.",
+      "source_hash": 7153743332851768205,
+      "context_hash": 11693769933098617001,
+      "translation": "HIR은 함께 존재하며 서로 다른 목적을 수행하는 여러 종류의 식별자를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "A [`DefId`], as the name suggests, identifies a particular definition, or top-level item, in a given crate.",
+      "source_hash": 18356820877663939936,
+      "context_hash": 1687655877751482876,
+      "translation": "[`DefId`]는 이름이 시사하듯이 주어진 크레이트 내의 특정 정의, 즉 최상위 아이템을 식별합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:19.055047Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "It is composed of two parts: a [`CrateNum`] which identifies the crate the definition comes from, and a [`DefIndex`] which identifies the definition within the crate.",
+      "source_hash": 12812557151203509103,
+      "context_hash": 12829123866295168094,
+      "translation": "이는 두 부분으로 구성됩니다: 정의가 속한 크레이트를 식별하는 `CrateNum`과 크레이트 내에서 정의를 식별하는 `DefIndex`입니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:19.055048Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "Unlike [`HirId`]s, there isn't a [`DefId`] for every expression, which makes them more stable across compilations.",
+      "source_hash": 11483304665470055196,
+      "context_hash": 10450120961206118601,
+      "translation": "[`HirId`]와 달리, 모든 표현식에 대해 [`DefId`]가 존재하는 것은 아니며, 이로 인해 컴파일 간에 더 안정적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055048Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "A [`LocalDefId`] is basically a [`DefId`] that is known to come from the current crate.",
+      "source_hash": 17751839896253177060,
+      "context_hash": 9969721432086290809,
+      "translation": "[`LocalDefId`]는 기본적으로 현재 크레이트에서 유래한 것으로 알려진 [`DefId`]입니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:02:19.055048Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "This allows us to drop the [`CrateNum`] part, and use the type system to ensure that only local definitions are passed to functions that expect a local definition.",
+      "source_hash": 6604384968927967920,
+      "context_hash": 14343723087950745985,
+      "translation": "이를 통해 [`CrateNum`] 부분을 제거할 수 있으며, 타입 시스템을 사용하여 로컬 정의만이 로컬 정의를 기대하는 함수에 전달되도록 보장할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:02:19.055048Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "A [`HirId`] uniquely identifies a node in the HIR of the current crate.",
+      "source_hash": 3579521537915143203,
+      "context_hash": 15967697436989539972,
+      "translation": "[`HirId`]는 현재 크레이트의 HIR에서 노드를 고유하게 식별합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T00:59:54.961183Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "It is composed of two parts: an `owner` and a `local_id` that is unique within the `owner`.",
+      "source_hash": 583696592577374920,
+      "context_hash": 5726549348633412637,
+      "translation": "이는 두 부분으로 구성됩니다: `owner`와 해당 `owner` 내에서 고유한 `local_id`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961184Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:2",
+      "source": "This combination makes for more stable values which are helpful for incremental compilation.",
+      "source_hash": 11800965730544802401,
+      "context_hash": 2436363546672244173,
+      "translation": "이 조합은 증분 컴파일에 도움이 되는 더 안정적인 값을 만들어 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961185Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:3",
+      "source": "Unlike [`DefId`]s, a [`HirId`] can refer to [fine-grained entities][Node] like expressions, but stays local to the current crate.",
+      "source_hash": 4947042608488197658,
+      "context_hash": 9912215336056724073,
+      "translation": "[`DefId`]와 달리, [`HirId`]는 표현식과 같은 [세밀한 엔티티][Node]를 참조할 수 있지만, 현재 크레이트에 국한됩니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T00:59:54.961185Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "A [`BodyId`] identifies a HIR [`Body`] in the current crate.",
+      "source_hash": 1352798734243641668,
+      "context_hash": 16757390749967845271,
+      "translation": "[`BodyId`]는 현재 크레이트의 HIR [`Body`]를 식별합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T00:59:54.961185Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "It is currently only a wrapper around a [`HirId`].",
+      "source_hash": 13168124279793315097,
+      "context_hash": 12762185840521353609,
+      "translation": "이는 현재 [`HirId`]를 감싸는 래퍼에 불과합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961186Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:2",
+      "source": "For more info about HIR bodies, please refer to the [HIR chapter][hir-bodies].",
+      "source_hash": 12288265373400387887,
+      "context_hash": 11659323775388491314,
+      "translation": "HIR 본문에 대한 더 자세한 정보는 [HIR 챕터][hir-bodies]를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961186Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "These identifiers can be converted into one another through the `TyCtxt`.",
+      "source_hash": 16909755057063029630,
+      "context_hash": 976060789587678884,
+      "translation": "이러한 식별자들은 `TyCtxt`를 통해 서로 변환할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961186Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "HIR Operations",
+      "source_hash": 883028980808986644,
+      "context_hash": 11293824183418476363,
+      "translation": "HIR 연산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961186Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Most of the time when you are working with the HIR, you will do so via `TyCtxt`.",
+      "source_hash": 4643508859452906816,
+      "context_hash": 6094616245870922163,
+      "translation": "HIR을 다룰 때 대부분의 경우 `TyCtxt`를 통해 작업하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961186Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "It contains a number of methods, defined in the `hir::map` module and mostly prefixed with `hir_`, to convert between IDs of various kinds and to lookup data associated with a HIR node.",
+      "source_hash": 15961822954757085098,
+      "context_hash": 12075207711960524075,
+      "translation": "이는 `hir::map` 모듈에 정의되어 있고 대부분 `hir_` 접두사가 붙은 다양한 메서드를 포함하고 있으며, 이를 통해 여러 종류의 ID 간 변환과 HIR 노드에 연관된 데이터 조회를 수행할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961187Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "For example, if you have a [`LocalDefId`], and you would like to convert it to a [`HirId`], you can use [`tcx.local_def_id_to_hir_id(def_id)`][local_def_id_to_hir_id].",
+      "source_hash": 6891369040746650476,
+      "context_hash": 6820995152184530063,
+      "translation": "예를 들어, [`LocalDefId`]를 가지고 있고 이를 [`HirId`]로 변환하고 싶다면, [`tcx.local_def_id_to_hir_id(def_id)`][local_def_id_to_hir_id]를 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961187Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "You need a `LocalDefId`, rather than a `DefId`, since only local items have HIR nodes.",
+      "source_hash": 3922318030331190444,
+      "context_hash": 6410035271833754613,
+      "translation": "`DefId`가 아니라 `LocalDefId`가 필요한데, 이는 로컬 아이템만이 HIR 노드를 가지기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961187Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Similarly, you can use [`tcx.hir_node(n)`][hir_node] to lookup the node for a [`HirId`].",
+      "source_hash": 130564085078491655,
+      "context_hash": 18184675330221011152,
+      "translation": "마찬가지로, [`tcx.hir_node(n)`][hir_node]를 사용하여 [`HirId`]에 대한 노드를 조회할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961188Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "This returns a `Option<Node<'hir>>`, where [`Node`] is an enum defined in the map.",
+      "source_hash": 12374291162060770447,
+      "context_hash": 15789852811890897201,
+      "translation": "이는 `Option<Node<'hir>>`를 반환하며, 여기서 [`Node`]는 맵에 정의된 열거형입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961188Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "By matching on this, you can find out what sort of node the `HirId` referred to and also get a pointer to the data itself.",
+      "source_hash": 9207941312184156094,
+      "context_hash": 2251320766861284658,
+      "translation": "이를 패턴 매칭함으로써 `HirId`가 어떤 종류의 노드를 가리켰는지 알아낼 수 있고, 데이터 자체에 대한 포인터도 얻을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961188Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:3",
+      "source": "Often, you know what sort of node `n` is – e.g. if you know that `n` must be some HIR expression, you can do [`tcx.hir_expect_expr(n)`][expect_expr], which will extract and return the [`&hir::Expr`][Expr], panicking if `n` is not in fact an expression.",
+      "source_hash": 2791205057824215905,
+      "context_hash": 17039268164043737752,
+      "translation": "종종 `n`이 어떤 종류의 노드인지 알고 있는 경우가 있습니다 — 예를 들어 `n`이 반드시 어떤 HIR 표현식이라는 것을 알고 있다면, [`tcx.hir_expect_expr(n)`][expect_expr]를 사용할 수 있으며, 이는 [`&hir::Expr`][Expr]를 추출하여 반환하고, 실제로 `n`이 표현식이 아닐 경우 패닉을 일으킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961188Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Finally, you can find the parents of nodes, via calls like [`tcx.parent_hir_node(n)`][parent_hir_node].",
+      "source_hash": 11225648064228773192,
+      "context_hash": 8629253281043833247,
+      "translation": "마지막으로, [`tcx.parent_hir_node(n)`][parent_hir_node]와 같은 호출을 통해 노드의 부모를 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961188Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "HIR Bodies",
+      "source_hash": 8439857886774328141,
+      "context_hash": 1377042561592869123,
+      "translation": "HIR 본문",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961189Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "A [`rustc_hir::Body`] represents some kind of executable code, such as the body of a function/closure or the definition of a constant.",
+      "source_hash": 7129653506178264055,
+      "context_hash": 11190182555840287142,
+      "translation": "[`rustc_hir::Body`]는 함수/클로저의 본문이나 상수의 정의와 같은 어떤 종류의 실행 가능한 코드를 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961189Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "Bodies are associated with an **owner**, which is typically some kind of item (e.g. an `fn()` or `const`), but could also be a closure expression (e.g. `|x, y| x + y`).",
+      "source_hash": 13779256493650102943,
+      "context_hash": 2952247444113534671,
+      "translation": "본문은 **owner**와 연관되어 있으며, 이는 일반적으로 `fn()`이나 `const` 같은 일종의 아이템이지만, `|x, y| x + y`와 같은 클로저 표현식일 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961189Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "You can use the `TyCtxt` to find the body associated with a given def-id ([`hir_maybe_body_owned_by`]) or to find the owner of a body ([`hir_body_owner_def_id`]).",
+      "source_hash": 7569847365567790625,
+      "context_hash": 15613514061574740533,
+      "translation": "주어진 def-id에 연관된 본문을 찾거나([`hir_maybe_body_owned_by`]) 본문의 owner를 찾기 위해([`hir_body_owner_def_id`]) `TyCtxt`를 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:54.961189Z",
+      "issues": []
+    }
+  ]
+}

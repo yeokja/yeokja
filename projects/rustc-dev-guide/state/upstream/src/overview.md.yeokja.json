@@ -1,0 +1,2334 @@
+{
+  "version": 1,
+  "source_hash": 3866550609897627622,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Overview of the compiler",
+      "source_hash": 14690097610111667261,
+      "context_hash": 17390578317017314068,
+      "translation": "컴파일러 개요",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:27.185804Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This chapter is about the overall process of compiling a program -- how everything fits together.",
+      "source_hash": 17404883603636288352,
+      "context_hash": 211739049802270939,
+      "translation": "이 장에서는 프로그램을 컴파일하는 전체 과정, 즉 모든 것이 어떻게 맞물려 작동하는지를 다룹니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185804Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "The Rust compiler is special in two ways: it does things to your code that other compilers don't do (e.g. borrow-checking) and it has a lot of unconventional implementation choices (e.g. queries).",
+      "source_hash": 4288444660822550631,
+      "context_hash": 16700478111285956318,
+      "translation": "Rust 컴파일러는 두 가지 면에서 특별합니다. 다른 컴파일러들이 하지 않는 작업을 코드에 수행하며(예: 빌림 검사), 관습에서 벗어난 구현 방식을 많이 채택하고 있습니다(예: 쿼리).",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:27.185804Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "We will talk about these in turn in this chapter, and in the rest of the guide, we will look at the individual pieces in more detail.",
+      "source_hash": 3487449783551809458,
+      "context_hash": 18333670317958537703,
+      "translation": "이 장에서는 이 두 가지를 차례로 다루며, 가이드의 나머지 부분에서는 각 부분을 더 자세히 살펴보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185805Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What the compiler does to your code",
+      "source_hash": 7064040633728767424,
+      "context_hash": 10804663476465470116,
+      "translation": "컴파일러가 코드에 수행하는 작업",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:27.185805Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "So first, let's look at what the compiler does to your code.",
+      "source_hash": 7051051786945177214,
+      "context_hash": 5891485430243762640,
+      "translation": "먼저 컴파일러가 코드에 어떤 작업을 수행하는지 살펴봅시다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:27.185805Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "For now, we will avoid mentioning how the compiler implements these steps except as needed.",
+      "source_hash": 10221137153881532283,
+      "context_hash": 10300894725143117145,
+      "translation": "지금은 필요한 경우가 아니면 컴파일러가 이러한 단계를 어떻게 구현하는지는 언급하지 않겠습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:27.185805Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Invocation",
+      "source_hash": 17043060547801561904,
+      "context_hash": 12098806900922729247,
+      "translation": "호출",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185805Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Compilation begins when a user writes a Rust source program in text and invokes the `rustc` compiler on it.",
+      "source_hash": 1275322762446760929,
+      "context_hash": 15146579470063205809,
+      "translation": "컴파일은 사용자가 텍스트로 Rust 소스 프로그램을 작성하고 이를 대상으로 `rustc` 컴파일러를 호출할 때 시작됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:27.185805Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "The work that the compiler needs to perform is defined by command-line options.",
+      "source_hash": 13399061045646138315,
+      "context_hash": 18135109984758751529,
+      "translation": "컴파일러가 수행해야 하는 작업은 명령줄 옵션에 의해 정의됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:27.185806Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "For example, it is possible to enable nightly features (`-Z` flags), perform `check`-only builds, or emit the LLVM Intermediate Representation (`LLVM-IR`) rather than executable machine code.",
+      "source_hash": 9760555098783764046,
+      "context_hash": 4890915158344268216,
+      "translation": "예를 들어, nightly 기능(`-Z` 플래그)을 활성화하거나, `check` 전용 빌드를 수행하거나, 실행 가능한 기계어 코드 대신 LLVM 중간 표현(`LLVM-IR`)을 출력하는 것이 가능합니다.",
+      "glossary_snapshot": {
+        "intermediate representation": "중간 표현"
+      },
+      "translated_at": "2026-09-12T01:05:27.185806Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:3",
+      "source": "The `rustc` executable call may be indirect through the use of `cargo`.",
+      "source_hash": 9769042688941059454,
+      "context_hash": 15589317510882465847,
+      "translation": "`rustc` 실행 파일 호출은 `cargo`를 통해 간접적으로 이루어질 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185806Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Command line argument parsing occurs in the [`rustc_driver`].",
+      "source_hash": 9134514311571156875,
+      "context_hash": 8323021285060431225,
+      "translation": "명령줄 인자 파싱은 [`rustc_driver`]에서 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185806Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "This crate defines the compile configuration that is requested by the user and passes it to the rest of the compilation process as a [`rustc_interface::Config`].",
+      "source_hash": 10416499729465061714,
+      "context_hash": 9779118218190313325,
+      "translation": "이 크레이트는 사용자가 요청한 컴파일 구성을 정의하고, 이를 [`rustc_interface::Config`]로서 나머지 컴파일 과정에 전달합니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:05:27.185806Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Lexing and parsing",
+      "source_hash": 2407377561480091690,
+      "context_hash": 5013212881935097218,
+      "translation": "어휘 분석과 파싱",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185806Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The raw Rust source text is analyzed by a low-level *lexer* located in [`rustc_lexer`].",
+      "source_hash": 16181573823684518891,
+      "context_hash": 8400236147720134296,
+      "translation": "원본 Rust 소스 텍스트는 [`rustc_lexer`]에 위치한 저수준 *어휘 분석기*에 의해 분석됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "At this stage, the source text is turned into a stream of atomic source code units known as _tokens_.",
+      "source_hash": 17917401503840898152,
+      "context_hash": 8422568161892919218,
+      "translation": "이 단계에서 소스 텍스트는 *토큰*이라고 알려진 원자적 소스 코드 단위의 스트림으로 변환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:2",
+      "source": "The `lexer` supports the Unicode character encoding.",
+      "source_hash": 4405726410547389044,
+      "context_hash": 11646539940144829230,
+      "translation": "`lexer`는 유니코드 문자 인코딩을 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "The token stream passes through a higher-level lexer located in [`rustc_parse`] to prepare for the next stage of the compile process.",
+      "source_hash": 2866941086641483788,
+      "context_hash": 9734487034363654161,
+      "translation": "토큰 스트림은 컴파일 과정의 다음 단계를 준비하기 위해 [`rustc_parse`]에 위치한 상위 수준 어휘 분석기를 거칩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "The [`Lexer`] `struct` is used at this stage to perform a set of validations and turn strings into interned symbols (_interning_ is discussed later). [String interning] is a way of storing only one immutable copy of each distinct string value.",
+      "source_hash": 12102886689801570876,
+      "context_hash": 8268501977555012778,
+      "translation": "이 단계에서는 [`Lexer`] `struct`가 사용되어 일련의 검증을 수행하고 문자열을 인턴된 심벌로 변환합니다(*인터닝*에 대해서는 나중에 다룹니다). [String interning]은 서로 다른 각 문자열 값의 불변 복사본을 단 하나만 저장하는 방식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "The lexer has a small interface and doesn't depend directly on the diagnostic infrastructure in `rustc`.",
+      "source_hash": 10092201367600940682,
+      "context_hash": 10429028731095638783,
+      "translation": "렉서는 인터페이스가 작으며 `rustc`의 진단 인프라에 직접 의존하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "Instead it provides diagnostics as plain data which are emitted in [`rustc_parse::lexer`] as real diagnostics.",
+      "source_hash": 10050220178143226002,
+      "context_hash": 11432845253394806872,
+      "translation": "대신 진단 정보를 단순 데이터 형태로 제공하며, 이는 [`rustc_parse::lexer`]에서 실제 진단으로 발행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "The `lexer` preserves full fidelity information for both IDEs and procedural macros (sometimes referred to as \"proc-macros\").",
+      "source_hash": 3034030007830571610,
+      "context_hash": 10179889453593509851,
+      "translation": "`lexer`는 IDE와 절차적 매크로(때로는 \"proc-macros\"라고도 불림) 모두를 위해 완전한 충실도 정보를 보존합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "The *parser* [translates the token stream from the `lexer` into an Abstract Syntax Tree (AST)][parser].",
+      "source_hash": 131608570136713982,
+      "context_hash": 14358456448379670278,
+      "translation": "*파서*는 [`lexer`]의 토큰 스트림을 추상 구문 트리(AST)로 변환합니다][parser].",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:1",
+      "source": "It uses a recursive descent (top-down) approach to syntax analysis.",
+      "source_hash": 950474808690655390,
+      "context_hash": 4584196965745890542,
+      "translation": "이는 재귀 하향(top-down) 방식의 구문 분석 접근법을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:2",
+      "source": "The crate entry points for the `parser` are the [`Parser::parse_crate_mod`][parse_crate_mod] and [`Parser::parse_mod`][parse_mod] methods found in [`rustc_parse::parser::Parser`].",
+      "source_hash": 277965178311940477,
+      "context_hash": 4823219287334464339,
+      "translation": "`parser`의 크레이트 진입점은 [`rustc_parse::parser::Parser`]에 있는 [`Parser::parse_crate_mod`][parse_crate_mod]와 [`Parser::parse_mod`][parse_mod] 메서드입니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:05:27.185807Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:3",
+      "source": "The external module parsing entry point is [`rustc_expand::module::parse_external_mod`][parse_external_mod].",
+      "source_hash": 7533035306332062676,
+      "context_hash": 17905631095389875217,
+      "translation": "외부 모듈 파싱 진입점은 [`rustc_expand::module::parse_external_mod`][parse_external_mod]입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185808Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:4",
+      "source": "And the macro-`parser` entry point is [`Parser::parse_nonterminal`][parse_nonterminal].",
+      "source_hash": 10794888828331038571,
+      "context_hash": 15096440540485718457,
+      "translation": "그리고 매크로-`parser` 진입점은 [`Parser::parse_nonterminal`][parse_nonterminal]입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185808Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "Parsing is performed with a set of [`parser`] utility methods including [`bump`], [`check`], [`eat`], [`expect`], [`look_ahead`].",
+      "source_hash": 6843201933549735473,
+      "context_hash": 341744475894564384,
+      "translation": "파싱은 [`bump`], [`check`], [`eat`], [`expect`], [`look_ahead`]를 비롯한 일련의 [`parser`] 유틸리티 메서드로 수행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:27.185808Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Parsing is organized by semantic construct.",
+      "source_hash": 10169608603156542428,
+      "context_hash": 7593148365768439950,
+      "translation": "파싱은 의미론적 구성 요소별로 구성됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650387Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "Separate `parse_*` methods can be found in the [`rustc_parse`][rustc_parse_parser_dir] directory.",
+      "source_hash": 8249442958571475992,
+      "context_hash": 5177567607991872778,
+      "translation": "별도의 `parse_*` 메서드는 [`rustc_parse`][rustc_parse_parser_dir] 디렉터리에서 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:2",
+      "source": "The source file name follows the construct name.",
+      "source_hash": 5978920281613452198,
+      "context_hash": 11239398712619165320,
+      "translation": "소스 파일 이름은 구성 요소 이름을 따릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:3",
+      "source": "For example, the following files are found in the `parser`:",
+      "source_hash": 13041292419039520047,
+      "context_hash": 81178347745267891,
+      "translation": "예를 들어, `parser`에서는 다음과 같은 파일을 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "[`expr.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/expr.rs)",
+      "source_hash": 15486634661862144053,
+      "context_hash": 12903430963681065661,
+      "translation": "[`expr.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/expr.rs)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "[`pat.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/pat.rs)",
+      "source_hash": 16552136389826958811,
+      "context_hash": 6355197733710028714,
+      "translation": "[`pat.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/pat.rs)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "[`ty.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/ty.rs)",
+      "source_hash": 3551631499026185231,
+      "context_hash": 926307944933714857,
+      "translation": "[`ty.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/ty.rs)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "[`stmt.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/stmt.rs)",
+      "source_hash": 9707198498642358096,
+      "context_hash": 92054265027425960,
+      "translation": "[`stmt.rs`](https://github.com/rust-lang/rust/blob/HEAD/compiler/rustc_parse/src/parser/stmt.rs)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "This naming scheme is used across many compiler stages.",
+      "source_hash": 2277740622152420653,
+      "context_hash": 7904973865832126561,
+      "translation": "이러한 명명 체계는 여러 컴파일러 단계에 걸쳐 사용됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:30.650388Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:1",
+      "source": "You will find either a file or directory with the same name across the parsing, lowering, type checking, [Typed High-level Intermediate Representation (`THIR`)][thir] lowering, and [Mid-level Intermediate Representation (`MIR`)][mir] building sources.",
+      "source_hash": 14258592302815276262,
+      "context_hash": 684242037634585778,
+      "translation": "파싱, 낮추기(lowering), 타입 검사, [타입이 있는 고수준 중간 표현(`THIR`)][thir] 낮추기, 그리고 [중간 수준 중간 표현(`MIR`)][mir] 구축 소스 전반에서 동일한 이름의 파일이나 디렉터리를 찾을 수 있습니다.",
+      "glossary_snapshot": {
+        "intermediate representation": "중간 표현"
+      },
+      "translated_at": "2026-09-12T01:05:30.650389Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "Macro-expansion, `AST`-validation, name-resolution, and early linting also take place during the lexing and parsing stage.",
+      "source_hash": 4888735251751613548,
+      "context_hash": 10021291720410958692,
+      "translation": "매크로 확장, `AST` 검증, 이름 해석, 그리고 초기 린팅도 어휘 분석 및 파싱 단계에서 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650389Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "The [`rustc_ast::ast`]::{[`Crate`], [`Expr`], [`Pat`], ...} `AST` nodes are returned from the parser while the standard [`Diag`] API is used for error handling.",
+      "source_hash": 2775406024998808770,
+      "context_hash": 5418733942421760004,
+      "translation": "[`rustc_ast::ast`]::{[`Crate`], [`Expr`], [`Pat`], ...} `AST` 노드는 파서에서 반환되며, 오류 처리에는 표준 [`Diag`] API가 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650389Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:1",
+      "source": "Generally Rust's compiler will try to recover from errors by parsing a superset of Rust's grammar, while also emitting an error type.",
+      "source_hash": 11144497684422843238,
+      "context_hash": 12201173332703727325,
+      "translation": "일반적으로 러스트 컴파일러는 Rust 문법의 상위 집합을 파싱하면서 오류 유형을 함께 내보냄으로써 오류로부터 복구를 시도합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:30.650389Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "`AST` lowering",
+      "source_hash": 14188907000837765057,
+      "context_hash": 3896356729019863144,
+      "translation": "`AST` 낮추기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650389Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "Next the `AST` is converted into [High-Level Intermediate Representation (`HIR`)][hir], a more compiler-friendly representation of the `AST`.",
+      "source_hash": 14017614800597201369,
+      "context_hash": 3607965286152276994,
+      "translation": "다음으로 `AST`는 `AST`의 좀 더 컴파일러 친화적인 표현인 [고수준 중간 표현(`HIR`)][hir]으로 변환됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "intermediate representation": "중간 표현"
+      },
+      "translated_at": "2026-09-12T01:05:30.650389Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:1",
+      "source": "This process is called \"lowering\" and involves a lot of desugaring (the expansion and formalizing of shortened or abbreviated syntax constructs) of things like loops and `async fn`.",
+      "source_hash": 17265043090522515666,
+      "context_hash": 4506514784080047817,
+      "translation": "이 과정은 \"낮추기(lowering)\"라고 불리며, 루프나 `async fn`과 같은 것들에 대해 많은 탈설탕화(desugaring, 줄이거나 축약된 문법 구성 요소의 확장 및 정형화)를 수반합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650389Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "We then use the `HIR` to do [*type inference*] (the process of automatic detection of the type of an expression), [*trait solving*] (the process of pairing up an impl with each reference to a `trait`), and [*type checking*].",
+      "source_hash": 8665608818996054456,
+      "context_hash": 11569446065078487674,
+      "translation": "그런 다음 `HIR`을 사용하여 [*타입 추론*](표현식의 타입을 자동으로 감지하는 과정), [*트레이트 해결*](각 `trait` 참조에 impl을 짝짓는 과정), 그리고 [*타입 검사*]를 수행합니다.",
+      "glossary_snapshot": {
+        "type inference": "타입 추론",
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:05:30.650390Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:1",
+      "source": "Type checking is the process of converting the types found in the `HIR` ([`hir::Ty`]), which represent what the user wrote, into the internal representation used by the compiler ([`Ty<'tcx>`]).",
+      "source_hash": 1050156387096174051,
+      "context_hash": 5275716604314095023,
+      "translation": "타입 검사는 사용자가 작성한 내용을 나타내는 `HIR`([`hir::Ty`])에서 발견된 타입들을 컴파일러가 사용하는 내부 표현([`Ty<'tcx>`])으로 변환하는 과정입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:30.650390Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:2",
+      "source": "It's called type checking because the information is used to verify the type safety, correctness and coherence of the types used in the program.",
+      "source_hash": 9727744309910733268,
+      "context_hash": 15886394197971359991,
+      "translation": "이를 타입 검사라고 부르는 이유는 이 정보가 프로그램에서 사용된 타입의 타입 안전성, 정확성, 그리고 일관성을 검증하는 데 사용되기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650390Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "`MIR` lowering",
+      "source_hash": 4581921808246284399,
+      "context_hash": 3383276941429571895,
+      "translation": "`MIR` 낮추기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "The `HIR` is further lowered to `MIR` (used for [borrow checking]) by constructing the `THIR`  (an even more desugared `HIR` used for pattern and exhaustiveness checking) to convert into `MIR`.",
+      "source_hash": 1760964382513516280,
+      "context_hash": 1401989318314510205,
+      "translation": "`HIR`은 (패턴 및 완전성 검사에 사용되는, 훨씬 더 탈설탕화된 `HIR`인) `THIR`을 구성함으로써 `MIR`로 변환되어 ([빌림 검사기]에 사용되는) `MIR`로 더 낮춰집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "We do [many optimizations on the MIR][mir-opt] because it is generic and that improves later code generation and compilation speed.",
+      "source_hash": 5015658354802673101,
+      "context_hash": 4128365019532124367,
+      "translation": "이는 제네릭하기 때문이며, 이후의 코드 생성과 컴파일 속도를 개선하므로 [MIR에 대한 많은 최적화][mir-opt]를 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:1",
+      "source": "It is easier to do some optimizations at `MIR` level than at `LLVM-IR` level.",
+      "source_hash": 15587910115646287044,
+      "context_hash": 8611331774841107819,
+      "translation": "일부 최적화는 `LLVM-IR` 수준보다 `MIR` 수준에서 수행하는 것이 더 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:2",
+      "source": "For example LLVM doesn't seem to be able to optimize the pattern the [`simplify_try`] `MIR`-opt looks for.",
+      "source_hash": 12509151260033409147,
+      "context_hash": 12355121476033541113,
+      "translation": "예를 들어 LLVM은 [`simplify_try`] `MIR` 최적화가 찾는 패턴을 최적화할 수 없는 것으로 보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "Rust code is also [_monomorphized_] during code generation, which means making copies of all the generic code with the type parameters replaced by concrete types.",
+      "source_hash": 5630510607512534061,
+      "context_hash": 11973138513542801199,
+      "translation": "러스트 코드는 코드 생성 중에 [*단형화*][_monomorphized_]되기도 하는데, 이는 타입 매개변수를 구체적인 타입으로 대체하여 모든 제네릭 코드의 복사본을 만드는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:1",
+      "source": "To do this, we need to collect a list of what concrete types to generate code for.",
+      "source_hash": 4692877244790099452,
+      "context_hash": 1121009506508772368,
+      "translation": "이를 위해서는 어떤 구체적인 타입에 대해 코드를 생성해야 하는지 목록을 수집해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:2",
+      "source": "This is called _monomorphization collection_ and it happens at the `MIR` level.",
+      "source_hash": 2113950118859177322,
+      "context_hash": 12017087886970738149,
+      "translation": "이를 *단형화 수집*(monomorphization collection)이라고 부르며, `MIR` 수준에서 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "Code generation",
+      "source_hash": 5691877166701119413,
+      "context_hash": 4694935247528723696,
+      "translation": "코드 생성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:30.650391Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:0",
+      "source": "We then begin what is simply called _code generation_ or _codegen_.",
+      "source_hash": 4563161932373000908,
+      "context_hash": 11699764310323608487,
+      "translation": "이후 단순히 *코드 생성* 혹은 *codegen*이라 불리는 단계를 시작합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751753Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:1",
+      "source": "The [code generation stage][codegen] is when higher-level representations of source are turned into an executable binary.",
+      "source_hash": 11455451524030101931,
+      "context_hash": 4210843057097049307,
+      "translation": "[코드 생성 단계][codegen]는 소스의 고수준 표현이 실행 가능한 바이너리로 변환되는 단계입니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T01:05:25.751754Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:2",
+      "source": "Since `rustc` uses LLVM for code generation, the first step is to convert the `MIR` to `LLVM-IR`.",
+      "source_hash": 14753128162137555258,
+      "context_hash": 11430586824489013539,
+      "translation": "`rustc`는 코드 생성에 LLVM을 사용하므로, 첫 번째 단계는 `MIR`을 `LLVM-IR`로 변환하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751755Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:3",
+      "source": "This is where the `MIR` is actually monomorphized.",
+      "source_hash": 15021833041541838298,
+      "context_hash": 10112438086578697692,
+      "translation": "바로 이 단계에서 `MIR`이 실제로 단형화(monomorphize)됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:4",
+      "source": "The `LLVM-IR` is passed to LLVM, which does a lot more optimizations on it, emitting machine code which is basically assembly code with additional low-level types and annotations added (e.g. an ELF object or `WASM`).",
+      "source_hash": 12145011503533448292,
+      "context_hash": 6454220180601597044,
+      "translation": "`LLVM-IR`은 LLVM에 전달되며, LLVM은 이에 대해 훨씬 더 많은 최적화를 수행하여, 기본적으로 저수준 타입과 어노테이션이 추가된 어셈블리 코드라 할 수 있는 기계어 코드(예: ELF 오브젝트나 `WASM`)를 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:5",
+      "source": "The different libraries/binaries are then linked together to produce the final binary.",
+      "source_hash": 1308644125047737572,
+      "context_hash": 5599120191400514865,
+      "translation": "그런 다음 서로 다른 라이브러리/바이너리들이 함께 링크되어 최종 바이너리를 만들어냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751757Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "How it does it",
+      "source_hash": 1716540649507168885,
+      "context_hash": 10940924990440577015,
+      "translation": "어떻게 하는가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751757Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Now that we have a high-level view of what the compiler does to your code, let's take a high-level view of _how_ it does all that stuff.",
+      "source_hash": 6224079537784946107,
+      "context_hash": 3876641615735047484,
+      "translation": "이제 컴파일러가 여러분의 코드에 대해 무엇을 하는지 고수준에서 살펴보았으니, *어떻게* 그 모든 일을 하는지 고수준에서 살펴봅시다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751757Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "There are a lot of constraints and conflicting goals that the compiler needs to satisfy/optimize for.",
+      "source_hash": 4576005369478533412,
+      "context_hash": 2131064362088064926,
+      "translation": "컴파일러가 충족하거나 최적화해야 할 제약 조건과 상충하는 목표가 매우 많습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751758Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "For example,",
+      "source_hash": 13911075595341933893,
+      "context_hash": 15973226364393368051,
+      "translation": "예를 들면,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751759Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Compilation speed: how fast is it to compile a program?",
+      "source_hash": 18113819536216808381,
+      "context_hash": 16047099210311577505,
+      "translation": "컴파일 속도: 프로그램을 컴파일하는 데 걸리는 시간은 얼마나 빠릅니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751759Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "More/better compile-time analyses often means compilation is slower.",
+      "source_hash": 15636283942796524679,
+      "context_hash": 11188049430459282913,
+      "translation": "더 많은/더 나은 컴파일 시점 분석은 종종 컴파일을 더 느리게 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751759Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Also, we want to support incremental compilation, so we need to take that into account.",
+      "source_hash": 7351350869184069858,
+      "context_hash": 6141763292696485789,
+      "translation": "또한 증분 컴파일을 지원하고자 하므로, 이를 고려해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751759Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "How can we keep track of what work needs to be redone and what can be reused if the user modifies their program?",
+      "source_hash": 8277584618785006362,
+      "context_hash": 2650943162070397306,
+      "translation": "사용자가 프로그램을 수정할 경우 어떤 작업을 다시 해야 하고 어떤 작업을 재사용할 수 있는지 어떻게 추적할 수 있습니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751759Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Also we can't store too much stuff in the incremental cache because it would take a long time to load from disk and it could take a lot of space on the user's system...",
+      "source_hash": 14833976035727290301,
+      "context_hash": 1843262598274485792,
+      "translation": "또한 증분 캐시에 너무 많은 것을 저장할 수는 없는데, 디스크에서 불러오는 데 오랜 시간이 걸리고 사용자 시스템의 많은 공간을 차지할 수 있기 때문입니다...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751759Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Compiler memory usage: while compiling a program, we don't want to use more memory than we need.",
+      "source_hash": 17468237568186162310,
+      "context_hash": 14217512300775788375,
+      "translation": "컴파일러 메모리 사용량: 프로그램을 컴파일하는 동안 필요 이상의 메모리를 사용하고 싶지 않습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751759Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Program speed: how fast is your compiled program?",
+      "source_hash": 13532247482378223337,
+      "context_hash": 9222972494039179920,
+      "translation": "프로그램 속도: 컴파일된 프로그램은 얼마나 빠릅니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751760Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "More/better compile-time analyses often means the compiler can do better optimizations.",
+      "source_hash": 13842536712265568499,
+      "context_hash": 13697433248890154949,
+      "translation": "더 많은/더 나은 컴파일 시점 분석은 종종 컴파일러가 더 나은 최적화를 수행할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751760Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Program size: how large is the compiled binary?",
+      "source_hash": 15598767521402122823,
+      "context_hash": 3174022676376526308,
+      "translation": "프로그램 크기: 컴파일된 바이너리는 얼마나 큽니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751760Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "Similar to the previous point.",
+      "source_hash": 11523963936313032508,
+      "context_hash": 16062123922444636126,
+      "translation": "앞의 항목과 유사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751761Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Compiler compilation speed: how long does it take to compile the compiler?",
+      "source_hash": 6754158579671330663,
+      "context_hash": 7286281040335241228,
+      "translation": "컴파일러 컴파일 속도: 컴파일러 자체를 컴파일하는 데 얼마나 걸립니까?",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751761Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "This impacts contributors and compiler maintenance.",
+      "source_hash": 16017274493276695248,
+      "context_hash": 15634627228269050187,
+      "translation": "이는 기여자와 컴파일러 유지 보수에 영향을 미칩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751761Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Implementation complexity: building a compiler is one of the hardest things a person/group can do, and Rust is not a very simple language, so how do we make the compiler's code base manageable?",
+      "source_hash": 6674530959428513887,
+      "context_hash": 7669002597087056491,
+      "translation": "구현 복잡성: 컴파일러를 만드는 일은 한 사람 혹은 한 그룹이 할 수 있는 가장 어려운 일 중 하나이며, Rust는 그다지 단순한 언어가 아니므로, 컴파일러의 코드베이스를 어떻게 관리 가능하게 만들 수 있습니까?",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751761Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Compiler correctness: the binaries produced by the compiler should do what the input programs says they do, and should continue to do so despite the tremendous amount of change constantly going on.",
+      "source_hash": 3418429335415566407,
+      "context_hash": 15412272981830087554,
+      "translation": "컴파일러 정확성: 컴파일러가 만들어내는 바이너리는 입력 프로그램이 말하는 대로 동작해야 하며, 끊임없이 일어나는 엄청난 양의 변경에도 불구하고 계속 그렇게 동작해야 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751762Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Integration: a number of other tools need to use the compiler in various ways (e.g. `cargo`, `clippy`, `Miri`) that must be supported.",
+      "source_hash": 10405931248185071652,
+      "context_hash": 7236699799954385399,
+      "translation": "통합: 여러 다른 도구들(예: `cargo`, `clippy`, `Miri`)이 다양한 방식으로 컴파일러를 사용해야 하며, 이를 지원해야 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751762Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Compiler stability: the compiler should not crash or fail ungracefully on the stable channel.",
+      "source_hash": 14883452015748748030,
+      "context_hash": 3323971177327150481,
+      "translation": "컴파일러 안정성: 컴파일러는 안정 채널에서 충돌하거나 우아하지 못하게 실패해서는 안 됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751762Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Rust stability: the compiler must respect Rust's stability guarantees by not breaking programs that previously compiled despite the many changes that are always going on to its implementation.",
+      "source_hash": 9563766397864511227,
+      "context_hash": 6374204585340424183,
+      "translation": "Rust 안정성: 컴파일러는 구현에 대한 수많은 변경이 항상 진행되고 있음에도 불구하고, 이전에 컴파일되던 프로그램을 깨뜨리지 않음으로써 Rust의 안정성 보장을 준수해야 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:25.751763Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Limitations of other tools: `rustc` uses LLVM in its backend, and LLVM has some strengths we leverage and some aspects we need to work around.",
+      "source_hash": 8617385798560036645,
+      "context_hash": 6890152947544637723,
+      "translation": "다른 도구들의 한계: `rustc`는 백엔드에서 LLVM을 사용하며, LLVM에는 우리가 활용하는 몇 가지 강점과 우회해야 하는 몇 가지 측면이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751763Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "So, as you continue your journey through the rest of the guide, keep these things in mind.",
+      "source_hash": 16298820013023541078,
+      "context_hash": 11442701376641812665,
+      "translation": "그러므로 이 가이드의 나머지 부분을 계속 살펴보는 동안 이러한 점들을 염두에 두십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751763Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "They will often inform decisions that we make.",
+      "source_hash": 15150976240067037390,
+      "context_hash": 17015138080214548564,
+      "translation": "이러한 점들은 우리가 내리는 결정에 종종 영향을 미칠 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751763Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Intermediate representations",
+      "source_hash": 9645474494678327639,
+      "context_hash": 1545761446706648073,
+      "translation": "중간 표현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.751763Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "As with most compilers, `rustc` uses some intermediate representations (IRs) to facilitate computations.",
+      "source_hash": 10264853844782276943,
+      "context_hash": 1328781516360894496,
+      "translation": "대부분의 컴파일러와 마찬가지로 `rustc`도 계산을 용이하게 하기 위해 몇 가지 중간 표현(IR)을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157982Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:1",
+      "source": "In general, working directly with the source code is extremely inconvenient and error-prone.",
+      "source_hash": 6231105052531033692,
+      "context_hash": 11400651705069896020,
+      "translation": "일반적으로 소스 코드를 직접 다루는 것은 매우 불편하고 오류가 발생하기 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:2",
+      "source": "Source code is designed to be human-friendly while at the same time being unambiguous, but it's less convenient for doing something like, say, type checking.",
+      "source_hash": 16301991755892716544,
+      "context_hash": 13453622879095173482,
+      "translation": "소스 코드는 사람이 이해하기 쉬우면서도 동시에 모호하지 않도록 설계되지만, 타입 검사와 같은 작업을 수행하기에는 덜 편리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Instead most compilers, including `rustc`, build some sort of IR out of the source code which is easier to analyze. `rustc` has a few IRs, each optimized for different purposes:",
+      "source_hash": 16439306860560024400,
+      "context_hash": 1233533708709086346,
+      "translation": "대신 `rustc`를 포함한 대부분의 컴파일러는 소스 코드로부터 분석하기 더 쉬운 일종의 IR을 구축합니다. `rustc`는 각기 다른 목적에 최적화된 몇 가지 IR을 가지고 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "Token stream: the lexer produces a stream of tokens directly from the source code.",
+      "source_hash": 5507347569327814989,
+      "context_hash": 14012107940972188315,
+      "translation": "토큰 스트림: 렉서는 소스 코드로부터 직접 토큰의 스트림을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:1",
+      "source": "This stream of tokens is easier for the parser to deal with than raw text.",
+      "source_hash": 4731404877228889845,
+      "context_hash": 1727041567708325013,
+      "translation": "이 토큰 스트림은 파서가 원시 텍스트보다 다루기 더 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "Abstract Syntax Tree (`AST`): the abstract syntax tree is built from the stream of tokens produced by the lexer.",
+      "source_hash": 8819747659759111830,
+      "context_hash": 5486404738276048922,
+      "translation": "추상 구문 트리(`AST`): 추상 구문 트리는 렉서가 생성한 토큰 스트림으로부터 만들어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:1",
+      "source": "It represents pretty much exactly what the user wrote.",
+      "source_hash": 1946345022837284121,
+      "context_hash": 18020764853492313785,
+      "translation": "이는 사용자가 작성한 것을 거의 그대로 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:2",
+      "source": "It helps to do some syntactic sanity checking (e.g. checking that a type is expected where the user wrote one).",
+      "source_hash": 12772930028339222068,
+      "context_hash": 4480199561849217437,
+      "translation": "이는 어느 정도의 구문적 타당성 검사를 수행하는 데 도움을 줍니다(예: 사용자가 타입을 작성한 위치에 타입이 와야 함을 확인하는 것).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "High-level IR (HIR): This is a sort of desugared `AST`.",
+      "source_hash": 18170766377147528944,
+      "context_hash": 17273547221216254225,
+      "translation": "고수준 IR(HIR): 이는 일종의 설탕이 제거된(desugared) `AST`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157983Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:1",
+      "source": "It's still close to what the user wrote syntactically, but it includes some implicit things such as some elided lifetimes, etc. This IR is amenable to type checking.",
+      "source_hash": 14917900710085078790,
+      "context_hash": 2666501638867853423,
+      "translation": "이는 사용자가 작성한 것과 구문적으로 여전히 가깝지만, 생략된 라이프타임 등 몇 가지 암묵적인 요소를 포함합니다. 이 IR은 타입 검사에 적합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "Typed `HIR` (THIR) _formerly High-level Abstract IR (HAIR)_: This is an intermediate between `HIR` and MIR.",
+      "source_hash": 13541873266768952711,
+      "context_hash": 495298272016980800,
+      "translation": "타입이 지정된 `HIR`(THIR) _(이전 명칭: 고수준 추상 IR(HAIR))_: 이는 `HIR`과 MIR 사이의 중간 단계입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:1",
+      "source": "It is like the `HIR` but it is fully typed and a bit more desugared (e.g. method calls and implicit dereferences are made fully explicit).",
+      "source_hash": 4315759419017309319,
+      "context_hash": 15273885703984715882,
+      "translation": "이는 `HIR`과 비슷하지만 완전히 타입이 지정되어 있고 조금 더 설탕이 제거되어 있습니다(예: 메서드 호출과 암묵적 역참조가 완전히 명시적으로 표현됨).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:2",
+      "source": "As a result, it is easier to lower to `MIR` from `THIR`  than from HIR.",
+      "source_hash": 15913879201095675798,
+      "context_hash": 9077384840725580434,
+      "translation": "그 결과, HIR보다 `THIR`에서 `MIR`로 낮추는(lower) 것이 더 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Middle-level IR (`MIR`): This IR is basically a Control-Flow Graph (CFG).",
+      "source_hash": 10141554791094856925,
+      "context_hash": 11506269187692828689,
+      "translation": "중간 수준 IR(`MIR`): 이 IR은 기본적으로 제어 흐름 그래프(CFG)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:1",
+      "source": "A CFG is a type of diagram that shows the basic blocks of a program and how control flow can go between them.",
+      "source_hash": 2062578142702508226,
+      "context_hash": 16923856140828894576,
+      "translation": "CFG는 프로그램의 기본 블록과 그 사이에서 제어 흐름이 어떻게 이동할 수 있는지를 보여주는 일종의 다이어그램입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:2",
+      "source": "Likewise, `MIR` also has a bunch of basic blocks with simple typed statements inside them (e.g. assignment, simple computations, etc) and control flow edges to other basic blocks (e.g., calls, dropping values). `MIR` is used for borrow checking and other important dataflow-based checks, such as checking for uninitialized values.",
+      "source_hash": 3826557350581187716,
+      "context_hash": 1063759735952812871,
+      "translation": "마찬가지로 `MIR`도 여러 기본 블록을 가지고 있으며, 그 안에는 단순한 타입이 지정된 문장(예: 할당, 단순 계산 등)이 있고 다른 기본 블록으로 이어지는 제어 흐름 엣지(예: 호출, 값의 drop)가 있습니다. `MIR`은 빌림 검사와 초기화되지 않은 값을 확인하는 것과 같은 다른 중요한 데이터플로 기반 검사에 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:3",
+      "source": "It is also used for a series of optimizations and for constant evaluation (via `Miri`).",
+      "source_hash": 13074509390751022766,
+      "context_hash": 15533151318902129261,
+      "translation": "또한 이는 일련의 최적화와 (`Miri`를 통한) 상수 평가에도 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:4",
+      "source": "Because `MIR` is still generic, we can do a lot of analyses here more efficiently than after monomorphization.",
+      "source_hash": 10241262916907694999,
+      "context_hash": 15577004949316674911,
+      "translation": "`MIR`은 여전히 제네릭 상태이기 때문에, 단형화(monomorphization) 이후보다 이 단계에서 더 많은 분석을 더 효율적으로 수행할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "`LLVM-IR`: This is the standard form of all input to the LLVM compiler. `LLVM-IR` is a sort of typed assembly language with lots of annotations.",
+      "source_hash": 9705466798721477090,
+      "context_hash": 14586614732109687254,
+      "translation": "`LLVM-IR`: 이는 LLVM 컴파일러에 대한 모든 입력의 표준 형식입니다. `LLVM-IR`은 많은 주석이 달린 일종의 타입이 지정된 어셈블리 언어입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.157984Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:1",
+      "source": "It's a standard format that is used by all compilers that use LLVM (e.g. the clang C compiler also outputs `LLVM-IR`). `LLVM-IR` is designed to be easy for other compilers to emit and also rich enough for LLVM to run a bunch of optimizations on it.",
+      "source_hash": 745330893923982332,
+      "context_hash": 17767310838979916920,
+      "translation": "이는 LLVM을 사용하는 모든 컴파일러가 사용하는 표준 형식입니다(예: clang C 컴파일러도 `LLVM-IR`을 출력함). `LLVM-IR`은 다른 컴파일러가 쉽게 내보낼 수 있으면서도 LLVM이 다양한 최적화를 수행할 수 있을 만큼 풍부하도록 설계되어 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "One other thing to note is that many values in the compiler are _interned_.",
+      "source_hash": 15509601873314824830,
+      "context_hash": 5573614985529186223,
+      "translation": "한 가지 더 주목할 점은 컴파일러 내의 많은 값들이 *interned*된다는 것입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:1",
+      "source": "This is a performance and memory optimization in which we allocate the values in a special allocator called an _[arena]_.",
+      "source_hash": 10847576238811809246,
+      "context_hash": 14038866940907200609,
+      "translation": "이는 성능 및 메모리 최적화 기법으로, *[arena]*라고 불리는 특별한 할당자에 값을 할당하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:2",
+      "source": "Then, we pass around references to the values allocated in the arena.",
+      "source_hash": 12631360660461797572,
+      "context_hash": 7200240602168839937,
+      "translation": "그런 다음, 아레나에 할당된 값에 대한 참조를 전달합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:3",
+      "source": "This allows us to make sure that identical values (e.g. types in your program) are only allocated once and can be compared cheaply by comparing pointers.",
+      "source_hash": 12063523406736479290,
+      "context_hash": 17223299389881605983,
+      "translation": "이를 통해 동일한 값(예: 프로그램 내의 타입)이 단 한 번만 할당되고, 포인터 비교를 통해 저렴하게 비교될 수 있음을 보장할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:4",
+      "source": "Many of the intermediate representations are interned.",
+      "source_hash": 14923936345216306343,
+      "context_hash": 6679086134469521675,
+      "translation": "많은 중간 표현들이 interned되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Queries",
+      "source_hash": 12926498322374679162,
+      "context_hash": 6605714064442432462,
+      "translation": "쿼리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "The first big implementation choice is Rust's use of the _query_ system in its compiler.",
+      "source_hash": 592861938701104574,
+      "context_hash": 11231522657226135555,
+      "translation": "첫 번째 큰 구현 선택은 Rust가 컴파일러 내에서 *쿼리* 시스템을 사용한다는 점입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.157985Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:1",
+      "source": "The Rust compiler _is not_ organized as a series of passes over the code which execute sequentially.",
+      "source_hash": 9643703849171067716,
+      "context_hash": 7887125556831783959,
+      "translation": "Rust 컴파일러는 코드에 대해 순차적으로 실행되는 일련의 패스로 구성되어 있지 *않습니다*.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.157986Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:2",
+      "source": "The Rust compiler does this to make incremental compilation possible -- that is, if the user makes a change to their program and recompiles, we want to do as little redundant work as possible to output the new binary.",
+      "source_hash": 10939874946897187423,
+      "context_hash": 11293574702294585803,
+      "translation": "Rust 컴파일러가 이렇게 하는 이유는 점진적 컴파일(incremental compilation)을 가능하게 하기 위해서입니다. 즉, 사용자가 프로그램을 변경하고 다시 컴파일할 때, 새로운 바이너리를 출력하기 위해 가능한 한 중복 작업을 적게 하고자 하는 것입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.157986Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "In `rustc`, all the major steps above are organized as a bunch of queries that call each other.",
+      "source_hash": 13606908381934469677,
+      "context_hash": 1458578308854006388,
+      "translation": "`rustc`에서는 위에서 언급한 모든 주요 단계가 서로를 호출하는 여러 쿼리로 구성되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465306Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:1",
+      "source": "For example, there is a query to ask for the type of something and another to ask for the optimized `MIR` of a function.",
+      "source_hash": 5855385860584127266,
+      "context_hash": 2156390785218095952,
+      "translation": "예를 들어, 무언가의 타입을 요청하는 쿼리가 있고, 함수의 최적화된 `MIR`을 요청하는 또 다른 쿼리가 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:31.465306Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:2",
+      "source": "These queries can call each other and are all tracked through the query system.",
+      "source_hash": 8410088212593234165,
+      "context_hash": 6805090570304402386,
+      "translation": "이러한 쿼리들은 서로를 호출할 수 있으며, 모두 쿼리 시스템을 통해 추적됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:31.465306Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:3",
+      "source": "The results of the queries are cached on disk so that the compiler can tell which queries' results changed from the last compilation and only redo those.",
+      "source_hash": 13528744812446951505,
+      "context_hash": 8619782037785339625,
+      "translation": "쿼리의 결과는 디스크에 캐싱되어, 컴파일러가 이전 컴파일 이후 어떤 쿼리의 결과가 변경되었는지 판단하여 해당 쿼리만 다시 수행할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.465306Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:4",
+      "source": "This is how incremental compilation works.",
+      "source_hash": 11575047667221014651,
+      "context_hash": 7466376885276070956,
+      "translation": "이것이 증분 컴파일이 동작하는 방식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465307Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "In principle, for the query-fied steps, we do each of the above for each item individually.",
+      "source_hash": 9369819608282423185,
+      "context_hash": 1479307637999831547,
+      "translation": "원칙적으로, 쿼리화된 단계들에서는 위의 각 과정을 항목별로 개별적으로 수행합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:31.465307Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:1",
+      "source": "For example, we will take the `HIR` for a function and use queries to ask for the `LLVM-IR` for that HIR.",
+      "source_hash": 8925181123588360066,
+      "context_hash": 12060699464822491193,
+      "translation": "예를 들어, 함수의 `HIR`을 가져와 쿼리를 사용하여 해당 HIR에 대한 `LLVM-IR`을 요청합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465307Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:2",
+      "source": "This drives the generation of optimized `MIR`, which drives the borrow checker, which drives the generation of `MIR`, and so on.",
+      "source_hash": 4849755506153793107,
+      "context_hash": 2955687372800281093,
+      "translation": "이는 최적화된 `MIR`의 생성을 유도하고, 이는 다시 빌림 검사기를 유도하며, 이는 다시 `MIR` 생성을 유도하는 식으로 이어집니다.",
+      "glossary_snapshot": {
+        "borrow checker": "빌림 검사기"
+      },
+      "translated_at": "2026-09-12T01:05:31.465307Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "... except that this is very over-simplified.",
+      "source_hash": 6685647566032209356,
+      "context_hash": 18135318435863089144,
+      "translation": "... 하지만 이는 지나치게 단순화된 설명입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465307Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:1",
+      "source": "In fact, some queries are not cached on disk, and some parts of the compiler have to run for all code anyway for correctness even if the code is dead code (e.g. the borrow checker).",
+      "source_hash": 1931133406599988940,
+      "context_hash": 17964331619835366667,
+      "translation": "실제로는 일부 쿼리가 디스크에 캐싱되지 않으며, 컴파일러의 일부는 코드가 죽은 코드(dead code)일지라도 정확성을 위해 어쨌든 모든 코드에 대해 실행되어야 합니다(예: 빌림 검사기).",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "borrow checker": "빌림 검사기"
+      },
+      "translated_at": "2026-09-12T01:05:31.465307Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:2",
+      "source": "For example, [currently the `mir_borrowck` query is first executed on all functions of a crate.][passes] Then the codegen backend invokes the `collect_and_partition_mono_items` query, which first recursively requests the `optimized_mir` for all reachable functions, which in turn runs `mir_borrowck` for that function and then creates codegen units.",
+      "source_hash": 5405591788626995129,
+      "context_hash": 6362166604693626249,
+      "translation": "예를 들어, [현재 `mir_borrowck` 쿼리는 크레이트의 모든 함수에 대해 먼저 실행됩니다.][passes] 그런 다음 코드 생성 백엔드가 `collect_and_partition_mono_items` 쿼리를 호출하는데, 이 쿼리는 먼저 도달 가능한 모든 함수에 대해 재귀적으로 `optimized_mir`을 요청하며, 이는 다시 해당 함수에 대해 `mir_borrowck`을 실행한 후 코드 생성 유닛을 생성합니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성",
+        "query": "쿼리",
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:05:31.465307Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:3",
+      "source": "This kind of split will need to remain to ensure that unreachable functions still have their errors emitted.",
+      "source_hash": 2694156228061769005,
+      "context_hash": 7328136789056706202,
+      "translation": "이러한 분리 방식은 도달 불가능한 함수에 대해서도 여전히 오류가 출력되도록 보장하기 위해 계속 유지되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465308Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "Moreover, the compiler wasn't originally built to use a query system; the query system has been retrofitted into the compiler, so parts of it are not query-fied yet.",
+      "source_hash": 1883051836465323688,
+      "context_hash": 5054558197726677142,
+      "translation": "게다가, 컴파일러는 원래 쿼리 시스템을 사용하도록 만들어진 것이 아니라, 쿼리 시스템이 컴파일러에 나중에 도입되었기 때문에 아직 쿼리화되지 않은 부분들이 존재합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.465308Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:1",
+      "source": "Also, LLVM isn't our code, so that isn't querified either.",
+      "source_hash": 628110942569011077,
+      "context_hash": 13028730063522028483,
+      "translation": "또한 LLVM은 저희 코드가 아니므로, 그 부분 역시 쿼리화되어 있지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:21:04.221534Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:2",
+      "source": "The plan is to eventually query-fy all of the steps listed in the previous section, but as of",
+      "source_hash": 18268901711458932540,
+      "context_hash": 3592143112021263779,
+      "translation": "앞으로는 이전 절에서 나열한 모든 단계를 쿼리화할 계획이지만,",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:21:04.221534Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "November 2022, only the steps between `HIR` and `LLVM-IR` are query-fied.",
+      "source_hash": 17053377914325803601,
+      "context_hash": 11359827835353801337,
+      "translation": "2022년 11월 기준으로는 `HIR`과 `LLVM-IR` 사이의 단계만 쿼리화되어 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:21:04.221534Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:1",
+      "source": "That is, lexing, parsing, name resolution, and macro expansion are done all at once for the whole program.",
+      "source_hash": 6204799254462402671,
+      "context_hash": 3826124154469046676,
+      "translation": "즉, 어휘 분석, 구문 분석, 이름 결정, 매크로 확장은 프로그램 전체에 대해 한 번에 수행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:21:04.221535Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "One other thing to mention here is the all-important \"typing context\", [`TyCtxt`], which is a giant struct that is at the center of all things. (Note that the name is mostly historic.",
+      "source_hash": 5654397590076474190,
+      "context_hash": 4835820922630375418,
+      "translation": "여기서 언급할 또 하나는 매우 중요한 \"타이핑 컨텍스트(typing context)\"인 [`TyCtxt`]인데, 이는 모든 것의 중심에 있는 거대한 구조체입니다. (이 이름은 대체로 역사적인 이유로 붙여진 것임을 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465308Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:1",
+      "source": "This is _not_ a \"typing context\" in the sense of `Γ` or `Δ` from type theory.",
+      "source_hash": 6047215450968197703,
+      "context_hash": 16574014962616694991,
+      "translation": "이는 타입 이론에서의 `Γ`나 `Δ`가 의미하는 바와 같은 \"타이핑 컨텍스트\"가 *아닙니다*.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465308Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:2",
+      "source": "The name is retained because that's what the name of the struct is in the source code.) All queries are defined as methods on the [`TyCtxt`] type, and the in-memory query cache is stored there too.",
+      "source_hash": 16077617162565964100,
+      "context_hash": 11562678863950247461,
+      "translation": "이 이름이 유지되는 이유는 소스 코드에서 해당 구조체의 이름이 그렇기 때문입니다.) 모든 쿼리는 [`TyCtxt`] 타입에 대한 메서드로 정의되며, 메모리 내 쿼리 캐시 역시 그곳에 저장됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:31.465308Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:3",
+      "source": "In the code, there is usually a variable called `tcx` which is a handle on the typing context.",
+      "source_hash": 10729567153300254735,
+      "context_hash": 17408207027583827659,
+      "translation": "코드 내에서는 보통 `tcx`라는 변수가 있는데, 이는 타이핑 컨텍스트에 대한 핸들입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465308Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:4",
+      "source": "You will also see lifetimes with the name `'tcx`, which means that something is tied to the lifetime of the [`TyCtxt`] (usually it is stored or interned there).",
+      "source_hash": 3426357040538919229,
+      "context_hash": 15201789416770017829,
+      "translation": "또한 `'tcx`라는 이름의 라이프타임을 보게 될 텐데, 이는 어떤 것이 [`TyCtxt`]의 라이프타임에 묶여 있음을 의미합니다(보통 그곳에 저장되거나 인터닝됩니다).",
+      "glossary_snapshot": {
+        "lifetime": "라이프타임"
+      },
+      "translated_at": "2026-09-12T01:05:31.465309Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "For more information about queries in the compiler, see [the queries chapter][queries].",
+      "source_hash": 2324803364728198906,
+      "context_hash": 4586329041104622894,
+      "translation": "컴파일러의 쿼리에 대한 더 자세한 내용은 [쿼리 챕터][queries]를 참고하십시오.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.465309Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:35/seg:0",
+      "source": "`ty::Ty`",
+      "source_hash": 15433183403416238110,
+      "context_hash": 4411895674851722192,
+      "translation": "`ty::Ty`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465309Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "Types are really important in Rust, and they form the core of a lot of compiler analyses.",
+      "source_hash": 15913179529030110388,
+      "context_hash": 6128676215832422498,
+      "translation": "타입은 Rust에서 매우 중요하며, 수많은 컴파일러 분석의 핵심을 이룹니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.465309Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:1",
+      "source": "The main type (in the compiler) that represents types (in the user's program) is [`rustc_middle::ty::Ty`][ty].",
+      "source_hash": 17005249396381568286,
+      "context_hash": 6438369903838270464,
+      "translation": "(사용자의 프로그램에서의) 타입을 나타내는 (컴파일러 내의) 주요 타입은 [`rustc_middle::ty::Ty`][ty]입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.465309Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:2",
+      "source": "This is so important that we have a whole chapter on [`ty::Ty`][ty], but for now, we just want to mention that it exists and is the way `rustc` represents types!",
+      "source_hash": 6389412281333502111,
+      "context_hash": 16394724720562871572,
+      "translation": "이는 매우 중요하기 때문에 [`ty::Ty`][ty]에 대한 별도의 챕터를 마련해 두었지만, 지금은 그것이 존재하며 `rustc`가 타입을 표현하는 방식이라는 점만 언급하고자 합니다!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465310Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:37/seg:0",
+      "source": "Also note that the [`rustc_middle::ty`] module defines the [`TyCtxt`] struct we mentioned before.",
+      "source_hash": 1230682447210881444,
+      "context_hash": 6058049629700045226,
+      "translation": "또한 [`rustc_middle::ty`] 모듈이 앞서 언급한 [`TyCtxt`] 구조체를 정의한다는 점도 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465310Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "Parallelism",
+      "source_hash": 8913758141059240414,
+      "context_hash": 14598796488693621672,
+      "translation": "병렬성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465310Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "Compiler performance is a problem that we would like to improve on (and are always working on).",
+      "source_hash": 9751517608360680256,
+      "context_hash": 17855481711033342639,
+      "translation": "컴파일러 성능은 우리가 개선하고자 하는(그리고 항상 노력하고 있는) 문제입니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:31.465310Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:1",
+      "source": "One aspect of that is parallelizing `rustc` itself.",
+      "source_hash": 4683498825203283719,
+      "context_hash": 10437099307007368830,
+      "translation": "그 한 측면이 `rustc` 자체를 병렬화하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465310Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "Currently, there is only one part of rustc that is parallel by default: [code generation](./parallel-rustc.md#Codegen).",
+      "source_hash": 10191638528191109703,
+      "context_hash": 10258807738238620800,
+      "translation": "현재 rustc에서 기본적으로 병렬화되어 있는 부분은 [코드 생성](./parallel-rustc.md#Codegen) 하나뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:31.465310Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:0",
+      "source": "However, the rest of the compiler is still not yet parallel.",
+      "source_hash": 12054369755384786580,
+      "context_hash": 2926046782597881817,
+      "translation": "그러나 컴파일러의 나머지 부분은 아직 병렬화되지 않았습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:23.763418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:1",
+      "source": "There have been lots of efforts spent on this, but it is generally a hard problem.",
+      "source_hash": 469786025269650793,
+      "context_hash": 9098239824369930609,
+      "translation": "이를 위해 많은 노력이 투입되었지만, 일반적으로 어려운 문제입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:2",
+      "source": "The current approach is to turn [`RefCell`]s into [`Mutex`]s -- that is, we switch to thread-safe internal mutability.",
+      "source_hash": 7904985785092315682,
+      "context_hash": 15461664369750476448,
+      "translation": "현재의 접근 방식은 [`RefCell`]을 [`Mutex`]로 바꾸는 것, 즉 스레드 안전한 내부 가변성으로 전환하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:3",
+      "source": "However, there are ongoing challenges with lock contention, maintaining query-system invariants under concurrency, and the complexity of the code base.",
+      "source_hash": 3438645413755318557,
+      "context_hash": 16808576330944031728,
+      "translation": "그러나 락 경합, 동시성 하에서 쿼리 시스템 불변 조건 유지, 그리고 코드베이스의 복잡성과 관련하여 지속적인 과제가 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:23.763419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:4",
+      "source": "One can try out the current work by enabling parallel compilation in `bootstrap.toml`.",
+      "source_hash": 17422613288651013105,
+      "context_hash": 17945997675508631613,
+      "translation": "`bootstrap.toml`에서 병렬 컴파일을 활성화하여 현재 작업을 시험해 볼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:5",
+      "source": "It's still early days, but there are already some promising performance improvements.",
+      "source_hash": 2059855509978969883,
+      "context_hash": 6543018465848985149,
+      "translation": "아직 초기 단계이지만, 이미 유망한 성능 개선이 나타나고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "Bootstrapping",
+      "source_hash": 617195901970391793,
+      "context_hash": 5606357869137741672,
+      "translation": "부트스트래핑",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:0",
+      "source": "`rustc` itself is written in Rust.",
+      "source_hash": 13039401888663073936,
+      "context_hash": 13780946378125564903,
+      "translation": "`rustc` 자체는 Rust로 작성되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:1",
+      "source": "So how do we compile the compiler?",
+      "source_hash": 6401462253580914485,
+      "context_hash": 17619821572376297253,
+      "translation": "그렇다면 컴파일러 자체는 어떻게 컴파일할까요?",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:23.763419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:2",
+      "source": "We use an older compiler to compile the newer compiler.",
+      "source_hash": 965517187396502078,
+      "context_hash": 7128413760908650597,
+      "translation": "우리는 더 오래된 컴파일러를 사용해 더 새로운 컴파일러를 컴파일합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:23.763420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:3",
+      "source": "This is called [_bootstrapping_].",
+      "source_hash": 4503382552531299190,
+      "context_hash": 7010611497475764711,
+      "translation": "이를 [*부트스트래핑*]이라고 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:0",
+      "source": "Bootstrapping has a lot of interesting implications.",
+      "source_hash": 11680952166397835666,
+      "context_hash": 2731426902289115489,
+      "translation": "부트스트래핑에는 흥미로운 함의가 많습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:1",
+      "source": "For example, it means that one of the major users of Rust is the Rust compiler, so we are constantly testing our own software (\"eating our own dogfood\").",
+      "source_hash": 17222099883587474810,
+      "context_hash": 8395811519294040634,
+      "translation": "예를 들어, 이는 Rust의 주요 사용자 중 하나가 바로 Rust 컴파일러 자신이라는 것을 의미하며, 따라서 우리는 끊임없이 자신의 소프트웨어를 테스트하고 있습니다(\"자신의 도그푸드를 먹는 것\").",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T01:05:23.763420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:45/seg:0",
+      "source": "For more details on bootstrapping, see [the bootstrapping section of the guide][rustc-bootstrap].",
+      "source_hash": 15949078394549390005,
+      "context_hash": 4468804558272704881,
+      "translation": "부트스트래핑에 대한 더 자세한 내용은 [가이드의 부트스트래핑 섹션][rustc-bootstrap]을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "References",
+      "source_hash": 17861670083855418992,
+      "context_hash": 1858044457995683725,
+      "translation": "참고 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Command line parsing",
+      "source_hash": 13242906989857203247,
+      "context_hash": 8825926967721220360,
+      "translation": "명령줄 파싱",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Guide: [The Rustc Driver and Interface](rustc-driver/intro.md)",
+      "source_hash": 5121951549205015535,
+      "context_hash": 14176734642571499335,
+      "translation": "가이드: [Rustc 드라이버와 인터페이스](rustc-driver/intro.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Driver definition: [`rustc_driver`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_driver/)",
+      "source_hash": 13064897475797688708,
+      "context_hash": 9795992293556006478,
+      "translation": "드라이버 정의: [`rustc_driver`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_driver/)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Main entry point: [`rustc_session::config::build_session_options`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_session/config/fn.build_session_options.html)",
+      "source_hash": 13464942450604156839,
+      "context_hash": 13497371996243248404,
+      "translation": "주요 진입점: [`rustc_session::config::build_session_options`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_session/config/fn.build_session_options.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Lexical Analysis: Lex the user program to a stream of tokens",
+      "source_hash": 12844110920913078120,
+      "context_hash": 9342226287438324899,
+      "translation": "어휘 분석: 사용자 프로그램을 토큰 스트림으로 렉싱",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Guide: [Lexing and Parsing](the-parser.md)",
+      "source_hash": 7565636616626510571,
+      "context_hash": 1700928801810947592,
+      "translation": "가이드: [렉싱과 파싱](the-parser.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Lexer definition: [`rustc_lexer`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_lexer/index.html)",
+      "source_hash": 14856075469935838180,
+      "context_hash": 13828540884198969078,
+      "translation": "렉서 정의: [`rustc_lexer`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_lexer/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Main entry point: [`rustc_lexer::Cursor::advance_token`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_lexer/struct.Cursor.html#method.advance_token)",
+      "source_hash": 1475211645285638156,
+      "context_hash": 15754300533470822331,
+      "translation": "주요 진입점: [`rustc_lexer::Cursor::advance_token`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_lexer/struct.Cursor.html#method.advance_token)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "Parsing: Parse the stream of tokens to an Abstract Syntax Tree (AST)",
+      "source_hash": 12920468953085042238,
+      "context_hash": 6872443917408068135,
+      "translation": "파싱: 토큰 스트림을 추상 구문 트리(AST)로 파싱",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Guide: [Lexing and Parsing](the-parser.md)",
+      "source_hash": 7565636616626510571,
+      "context_hash": 12442660536241825372,
+      "translation": "가이드: [렉싱과 파싱](the-parser.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "Guide: [Macro Expansion](macro-expansion.md)",
+      "source_hash": 943869210152843353,
+      "context_hash": 1105298914826027768,
+      "translation": "가이드: [매크로 확장](macro-expansion.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "Guide: [Name Resolution](name-resolution.md)",
+      "source_hash": 15306491931071472177,
+      "context_hash": 16526275483930978054,
+      "translation": "가이드: [이름 해석](name-resolution.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763421Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "Parser definition: [`rustc_parse`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_parse/index.html)",
+      "source_hash": 8733375884500798219,
+      "context_hash": 7154410697818269323,
+      "translation": "파서 정의: [`rustc_parse`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_parse/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763422Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "Main entry points:",
+      "source_hash": 13876287306791555144,
+      "context_hash": 5082386335101145539,
+      "translation": "주요 진입점:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763422Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "[Entry point for first file in crate](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_interface/passes/fn.parse.html)",
+      "source_hash": 11987814634784875838,
+      "context_hash": 14403015430809675080,
+      "translation": "[크레이트 내 첫 번째 파일에 대한 진입점](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_interface/passes/fn.parse.html)",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T01:05:23.763422Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "[Entry point for outline module parsing](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_expand/module/fn.parse_external_mod.html)",
+      "source_hash": 11242581430111426007,
+      "context_hash": 7117091659003863114,
+      "translation": "[아웃라인 모듈 파싱에 대한 진입점](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_expand/module/fn.parse_external_mod.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763422Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "[Entry point for macro fragments][parse_nonterminal]",
+      "source_hash": 4181225026408762744,
+      "context_hash": 14533003645274240106,
+      "translation": "[매크로 프래그먼트에 대한 진입점][parse_nonterminal]",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:23.763422Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "`AST` definition: [`rustc_ast`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_ast/ast/index.html)",
+      "source_hash": 5293599199546161125,
+      "context_hash": 887486522110060163,
+      "translation": "`AST` 정의: [`rustc_ast`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_ast/ast/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104094Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "Feature gating: [Feature Gate Checking](feature-gate-check.md)",
+      "source_hash": 2678979279611139472,
+      "context_hash": 13224006426260974816,
+      "translation": "기능 게이팅: [기능 게이트 검사](feature-gate-check.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104095Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "Early linting: **TODO**",
+      "source_hash": 11300737758684920533,
+      "context_hash": 8992231390467254843,
+      "translation": "초기 린팅: **TODO**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104096Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "The High Level Intermediate Representation (HIR)",
+      "source_hash": 17161360693300292709,
+      "context_hash": 11701154054338366986,
+      "translation": "고수준 중간 표현(HIR)",
+      "glossary_snapshot": {
+        "intermediate representation": "중간 표현"
+      },
+      "translated_at": "2026-09-12T01:05:25.104096Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Guide: [The HIR](hir.md)",
+      "source_hash": 9600228491229647386,
+      "context_hash": 5823691074197685518,
+      "translation": "가이드: [HIR](hir.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104097Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "Guide: [Identifiers in the HIR](hir.md#identifiers-in-the-hir)",
+      "source_hash": 5670046406626224260,
+      "context_hash": 5563215186301977331,
+      "translation": "가이드: [HIR의 식별자](hir.md#identifiers-in-the-hir)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104097Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "Guide: [The `HIR` Map](hir.md#the-hir-map)",
+      "source_hash": 7911684121227815050,
+      "context_hash": 8532324276903452195,
+      "translation": "가이드: [`HIR` 맵](hir.md#the-hir-map)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104098Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "Guide: [Lowering `AST` to `HIR`](./hir/lowering.md)",
+      "source_hash": 3233991889059759529,
+      "context_hash": 12997123377631564507,
+      "translation": "가이드: [`AST`를 `HIR`로 낮추기](./hir/lowering.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104098Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:0",
+      "source": "How to view `HIR` representation for your code `cargo rustc -- -Z unpretty=hir-tree`",
+      "source_hash": 6354322097894873925,
+      "context_hash": 3535471490847903244,
+      "translation": "코드에 대한 `HIR` 표현을 확인하는 방법: `cargo rustc -- -Z unpretty=hir-tree`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104098Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:27/seg:0",
+      "source": "Rustc `HIR` definition: [`rustc_hir`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_hir/index.html)",
+      "source_hash": 2555946040813677688,
+      "context_hash": 14314125435868754287,
+      "translation": "Rustc `HIR` 정의: [`rustc_hir`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_hir/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104098Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:28/seg:0",
+      "source": "Main entry point: **TODO**",
+      "source_hash": 1850949087892331333,
+      "context_hash": 1200447690300343921,
+      "translation": "주 진입점: **TODO**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104098Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:29/seg:0",
+      "source": "Late linting: **TODO**",
+      "source_hash": 4823686667920610632,
+      "context_hash": 1097129843115151131,
+      "translation": "후기 린팅: **TODO**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104099Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:30/seg:0",
+      "source": "Type Inference",
+      "source_hash": 15270059556282605681,
+      "context_hash": 16369059881264371535,
+      "translation": "타입 추론",
+      "glossary_snapshot": {
+        "type inference": "타입 추론"
+      },
+      "translated_at": "2026-09-12T01:05:25.104099Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:31/seg:0",
+      "source": "Guide: [Type Inference](type-inference.md)",
+      "source_hash": 10291027895616358561,
+      "context_hash": 13899299296598634395,
+      "translation": "가이드: [타입 추론](type-inference.md)",
+      "glossary_snapshot": {
+        "type inference": "타입 추론"
+      },
+      "translated_at": "2026-09-12T01:05:25.104099Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:32/seg:0",
+      "source": "Guide: [The ty Module: Representing Types](ty.md) (semantics)",
+      "source_hash": 8943661426959778847,
+      "context_hash": 11167310124228115349,
+      "translation": "가이드: [ty 모듈: 타입 표현하기](ty.md) (의미론)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104099Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:33/seg:0",
+      "source": "Main entry point (type inference): [`InferCtxtBuilder::enter`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_infer/infer/struct.InferCtxtBuilder.html#method.enter)",
+      "source_hash": 1686905719475378655,
+      "context_hash": 16610050611515008493,
+      "translation": "주 진입점(타입 추론): [`InferCtxtBuilder::enter`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_infer/infer/struct.InferCtxtBuilder.html#method.enter)",
+      "glossary_snapshot": {
+        "type inference": "타입 추론"
+      },
+      "translated_at": "2026-09-12T01:05:25.104100Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:34/seg:0",
+      "source": "Main entry point (type checking bodies): [the `typeck` query](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/ty/struct.TyCtxt.html#method.typeck)",
+      "source_hash": 8911119841575162678,
+      "context_hash": 10332909357880497556,
+      "translation": "주 진입점(본문 타입 검사): [`typeck` 쿼리](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/ty/struct.TyCtxt.html#method.typeck)",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:25.104100Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:35/seg:0",
+      "source": "These two functions can't be decoupled.",
+      "source_hash": 370103842338388239,
+      "context_hash": 2185878419972304561,
+      "translation": "이 두 함수는 분리될 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104100Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:36/seg:0",
+      "source": "The Mid Level Intermediate Representation (MIR)",
+      "source_hash": 5628351464029658093,
+      "context_hash": 17460980351836115670,
+      "translation": "중수준 중간 표현(MIR)",
+      "glossary_snapshot": {
+        "intermediate representation": "중간 표현"
+      },
+      "translated_at": "2026-09-12T01:05:25.104100Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:37/seg:0",
+      "source": "Guide: [The `MIR` (Mid level IR)](mir/index.md)",
+      "source_hash": 18407980174444449069,
+      "context_hash": 14223651900702516845,
+      "translation": "가이드: [`MIR`(중수준 IR)](mir/index.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104101Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:38/seg:0",
+      "source": "Definition: [`rustc_middle/src/mir`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/mir/index.html)",
+      "source_hash": 6721766057598546430,
+      "context_hash": 9019885945717483853,
+      "translation": "정의: [`rustc_middle/src/mir`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/mir/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104101Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:39/seg:0",
+      "source": "Definition of sources that manipulates the MIR: [`rustc_mir_build`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_build/index.html), [`rustc_mir_dataflow`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_dataflow/index.html), [`rustc_mir_transform`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/index.html)",
+      "source_hash": 4959907599783566589,
+      "context_hash": 16465752859119926826,
+      "translation": "MIR을 조작하는 소스의 정의: [`rustc_mir_build`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_build/index.html), [`rustc_mir_dataflow`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_dataflow/index.html), [`rustc_mir_transform`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104101Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:40/seg:0",
+      "source": "The Borrow Checker",
+      "source_hash": 10387387687579683231,
+      "context_hash": 11451708287018114153,
+      "translation": "빌림 검사기",
+      "glossary_snapshot": {
+        "borrow checker": "빌림 검사기"
+      },
+      "translated_at": "2026-09-12T01:05:25.104102Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:41/seg:0",
+      "source": "Guide: [MIR Borrow Check](borrow-check.md)",
+      "source_hash": 11901001653250236795,
+      "context_hash": 2617483685772901605,
+      "translation": "가이드: [MIR 빌림 검사](borrow-check.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104102Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:42/seg:0",
+      "source": "Definition: [`rustc_borrowck`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_borrowck/index.html)",
+      "source_hash": 16549828874599444277,
+      "context_hash": 10260264783461701535,
+      "translation": "정의: [`rustc_borrowck`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_borrowck/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104102Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:43/seg:0",
+      "source": "Main entry point: [`mir_borrowck` query](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_borrowck/fn.mir_borrowck.html)",
+      "source_hash": 1562524595284493945,
+      "context_hash": 3636305779590329670,
+      "translation": "주 진입점: [`mir_borrowck` 쿼리](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_borrowck/fn.mir_borrowck.html)",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:25.104102Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:44/seg:0",
+      "source": "`MIR` Optimizations",
+      "source_hash": 6749303951280117604,
+      "context_hash": 8860698052603741459,
+      "translation": "`MIR` 최적화",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104103Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:45/seg:0",
+      "source": "Guide: [MIR Optimizations](mir/optimizations.md)",
+      "source_hash": 11884673277373276109,
+      "context_hash": 7901626395880515971,
+      "translation": "가이드: [MIR 최적화](mir/optimizations.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104103Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:46/seg:0",
+      "source": "Definition: [`rustc_mir_transform`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/index.html)",
+      "source_hash": 5660082986793932330,
+      "context_hash": 8276594129124565043,
+      "translation": "정의: [`rustc_mir_transform`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/index.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104103Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:47/seg:0",
+      "source": "Main entry point: [`optimized_mir` query](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/fn.optimized_mir.html)",
+      "source_hash": 6858650419837443101,
+      "context_hash": 16726619340219015720,
+      "translation": "주 진입점: [`optimized_mir` 쿼리](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_mir_transform/fn.optimized_mir.html)",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T01:05:25.104103Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:48/seg:0",
+      "source": "Code Generation",
+      "source_hash": 11294664498961736895,
+      "context_hash": 11810521760408014763,
+      "translation": "코드 생성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104103Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:49/seg:0",
+      "source": "Guide: [Code Generation](backend/codegen.md)",
+      "source_hash": 14296670974076123364,
+      "context_hash": 445797227571617480,
+      "translation": "가이드: [코드 생성](backend/codegen.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:25.104103Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:50/seg:0",
+      "source": "Generating Machine Code from `LLVM-IR` with LLVM - **TODO: reference?**",
+      "source_hash": 15333857809834310691,
+      "context_hash": 5128626311859903087,
+      "translation": "LLVM을 사용하여 `LLVM-IR`로부터 기계어 코드를 생성합니다 - **TODO: 참조?**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:43.700443Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:51/seg:0",
+      "source": "Main entry point: [`rustc_codegen_ssa::base::codegen_crate`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/base/fn.codegen_crate.html)",
+      "source_hash": 18325120887498275209,
+      "context_hash": 2752956624125624891,
+      "translation": "주요 진입점: [`rustc_codegen_ssa::base::codegen_crate`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/base/fn.codegen_crate.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:43.700443Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:52/seg:0",
+      "source": "This monomorphizes and produces `LLVM-IR` for one codegen unit.",
+      "source_hash": 17782958520515819863,
+      "context_hash": 14748409310610892860,
+      "translation": "이는 하나의 코드 생성 단위에 대해 단형화를 수행하고 `LLVM-IR`을 생성합니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성"
+      },
+      "translated_at": "2026-09-12T00:59:43.700443Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:52/seg:1",
+      "source": "It then starts a background thread to run LLVM, which must be joined later.",
+      "source_hash": 1209633847155102771,
+      "context_hash": 10660170744631088076,
+      "translation": "그런 다음 LLVM을 실행하기 위한 백그라운드 스레드를 시작하며, 이 스레드는 나중에 조인되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:43.700445Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:53/seg:0",
+      "source": "Monomorphization happens lazily via [`FunctionCx::monomorphize`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/mir/struct.FunctionCx.html#method.monomorphize) and [`rustc_codegen_ssa::base::codegen_instance `](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/base/fn.codegen_instance.html)",
+      "source_hash": 5114499097359112499,
+      "context_hash": 17970114853509819189,
+      "translation": "단형화는 [`FunctionCx::monomorphize`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/mir/struct.FunctionCx.html#method.monomorphize)와 [`rustc_codegen_ssa::base::codegen_instance `](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_codegen_ssa/base/fn.codegen_instance.html)를 통해 지연 방식으로 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:43.700445Z",
+      "issues": []
+    }
+  ]
+}

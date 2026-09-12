@@ -1,0 +1,478 @@
+{
+  "version": 1,
+  "source_hash": 9702155956785977749,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Panicking in Rust",
+      "source_hash": 616689501129103551,
+      "context_hash": 16378013238820631225,
+      "translation": "Rust에서의 패닉",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368108Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Step 1: Invocation of the `panic!` macro.",
+      "source_hash": 14573251571881542007,
+      "context_hash": 6480035128583366306,
+      "translation": "1단계: `panic!` 매크로의 호출",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368108Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "There are actually two panic macros - one defined in `core`, and one defined in `std`.",
+      "source_hash": 7750551270571131511,
+      "context_hash": 6504244354623664309,
+      "translation": "실제로 패닉 매크로는 두 개가 있습니다 - 하나는 `core`에 정의되어 있고, 다른 하나는 `std`에 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368108Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "This is due to the fact that code in `core` can panic. `core` is built before `std`, but we want panics to use the same machinery at runtime, whether they originate in `core` or `std`.",
+      "source_hash": 8023771197754788965,
+      "context_hash": 1117759690607959984,
+      "translation": "이는 `core`의 코드에서도 패닉이 발생할 수 있다는 사실 때문입니다. `core`는 `std`보다 먼저 빌드되지만, 패닉이 `core`에서 발생하든 `std`에서 발생하든 런타임에 동일한 메커니즘을 사용하기를 원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368108Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "core definition of panic!",
+      "source_hash": 2315760545034403965,
+      "context_hash": 18340433455814837547,
+      "translation": "panic!의 core 정의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "The `core` `panic!` macro eventually makes the following call (in [`library/core/src/panicking.rs`]):",
+      "source_hash": 16873006464626145664,
+      "context_hash": 1316171726579013259,
+      "translation": "`core`의 `panic!` 매크로는 결국 다음과 같은 호출을 수행합니다(([`library/core/src/panicking.rs`]에서)):",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Actually resolving this goes through several layers of indirection:",
+      "source_hash": 7667742869408621437,
+      "context_hash": 11243569373026721783,
+      "translation": "실제로 이를 해결하는 과정은 여러 단계의 간접 참조를 거칩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "In [`compiler/rustc_hir/src/weak_lang_items.rs`], `panic_impl` is declared as 'weak lang item', with the symbol `rust_begin_unwind`.",
+      "source_hash": 17221235250322228818,
+      "context_hash": 8691564349556205089,
+      "translation": "[`compiler/rustc_hir/src/weak_lang_items.rs`]에서 `panic_impl`은 심볼 `rust_begin_unwind`를 가진 '약한 언어 아이템(weak lang item)'으로 선언됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "This is used in `rustc_hir_analysis/src/collect.rs` to set the actual symbol name to `rust_begin_unwind`.",
+      "source_hash": 18302652541714574539,
+      "context_hash": 17572985378221292692,
+      "translation": "이는 `rustc_hir_analysis/src/collect.rs`에서 실제 심볼 이름을 `rust_begin_unwind`로 설정하는 데 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Note that `panic_impl` is declared in an `extern \"Rust\"` block, which means that core will attempt to call a foreign symbol called `rust_begin_unwind` (to be resolved at link time)",
+      "source_hash": 4411136693373637767,
+      "context_hash": 13324572185179754934,
+      "translation": "`panic_impl`이 `extern \"Rust\"` 블록 내에 선언되어 있다는 점에 유의하십시오. 이는 core가 `rust_begin_unwind`라는 외부 심볼을 호출하려 시도한다는 것을 의미합니다(링크 시점에 해결됨).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "In [`library/std/src/panicking.rs`], we have this definition:",
+      "source_hash": 9800456474088844869,
+      "context_hash": 4976567955106424526,
+      "translation": "[`library/std/src/panicking.rs`]에는 다음과 같은 정의가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "The special `panic_handler` attribute is resolved via [`compiler/rustc_passes/src/lang_items.rs`].",
+      "source_hash": 6714913519616663366,
+      "context_hash": 17470177849680892272,
+      "translation": "특수한 `panic_handler` 속성은 [`compiler/rustc_passes/src/lang_items.rs`]를 통해 해결됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:1",
+      "source": "The [`extract_ast`] function converts the `panic_handler` attribute to a `panic_impl` lang item.",
+      "source_hash": 712636310299292982,
+      "context_hash": 17122507891722942125,
+      "translation": "[`extract_ast`] 함수는 `panic_handler` 속성을 `panic_impl` 언어 아이템으로 변환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Now, we have a matching `panic_handler` lang item in the `std`.",
+      "source_hash": 2694263463452077820,
+      "context_hash": 9514746271185974783,
+      "translation": "이제 `std`에도 대응하는 `panic_handler` 언어 아이템이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "This function goes through the same process as the `extern { fn panic_impl }` definition in `core`, ending up with a symbol name of `rust_begin_unwind`.",
+      "source_hash": 3533711149844874153,
+      "context_hash": 13954441197517561730,
+      "translation": "이 함수는 `core`의 `extern { fn panic_impl }` 정의와 동일한 과정을 거쳐, 결국 `rust_begin_unwind`라는 심볼 이름을 갖게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368109Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:2",
+      "source": "At link time, the symbol reference in `core` will be resolved to the definition of `std` (the function called `panic_handler` in the Rust source).",
+      "source_hash": 2233078385654003478,
+      "context_hash": 9130890597250136053,
+      "translation": "링크 시점에 `core`의 심볼 참조는 `std`의 정의(Rust 소스에서 `panic_handler`라고 불리는 함수)로 해결됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "Thus, control flow will pass from core to std at runtime.",
+      "source_hash": 3683274078564391644,
+      "context_hash": 17104833475042521177,
+      "translation": "따라서 런타임에 제어 흐름은 core에서 std로 넘어가게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:1",
+      "source": "This allows panics from `core` to go through the same infrastructure that other panics use (panic hooks, unwinding, etc)",
+      "source_hash": 7828325002407833131,
+      "context_hash": 11142620392077419010,
+      "translation": "이를 통해 `core`에서 발생한 패닉도 다른 패닉이 사용하는 것과 동일한 인프라(패닉 훅, 언와인딩 등)를 거칠 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "std implementation of panic!",
+      "source_hash": 14990228880026821662,
+      "context_hash": 7224884551777553161,
+      "translation": "panic!의 std 구현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "This is where the actual panic-related logic begins.",
+      "source_hash": 5835525462803273432,
+      "context_hash": 330803613228858447,
+      "translation": "실제 패닉 관련 로직이 시작되는 지점이 바로 여기입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:1",
+      "source": "In [`library/std/src/panicking.rs`], control passes to `panic_with_hook`.",
+      "source_hash": 8854777510048515063,
+      "context_hash": 4720062216592846269,
+      "translation": "[`library/std/src/panicking.rs`]에서 제어는 `panic_with_hook`으로 넘어갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:2",
+      "source": "This method is responsible for invoking the global panic hook, and checking for double panics.",
+      "source_hash": 17494846419007685295,
+      "context_hash": 10225419709812715663,
+      "translation": "이 메서드는 전역 패닉 훅을 호출하고, 이중 패닉 여부를 확인하는 역할을 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:3",
+      "source": "Finally, we call `__rust_start_panic`, which is provided by the panic runtime.",
+      "source_hash": 9175009109661005877,
+      "context_hash": 7555275518452829187,
+      "translation": "마지막으로, 패닉 런타임이 제공하는 `__rust_start_panic`을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "The call to `__rust_start_panic` is very weird - it is passed a `*mut &mut dyn PanicPayload`, converted to an `usize`.",
+      "source_hash": 2838032106534343791,
+      "context_hash": 10898065710845614225,
+      "translation": "`__rust_start_panic`의 호출은 매우 특이합니다 - `usize`로 변환된 `*mut &mut dyn PanicPayload`가 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:1",
+      "source": "Let's break this type down:",
+      "source_hash": 1981089884910180759,
+      "context_hash": 13792878099705607911,
+      "translation": "이 타입을 분석해 봅시다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "`PanicPayload` is an internal trait.",
+      "source_hash": 24915785121458747,
+      "context_hash": 14421724407766452946,
+      "translation": "`PanicPayload`는 내부 트레이트입니다.",
+      "glossary_snapshot": {
+        "trait": "트레이트"
+      },
+      "translated_at": "2026-09-12T01:05:28.368110Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:1",
+      "source": "It is implemented for `PanicPayload` (a wrapper around the user-supplied payload type), and has a method `fn take_box(&mut self) -> *mut (dyn Any + Send)`.",
+      "source_hash": 2092647889400294229,
+      "context_hash": 14149284970618123063,
+      "translation": "이는 `PanicPayload`(사용자가 제공한 페이로드 타입을 감싸는 래퍼)에 대해 구현되어 있으며, `fn take_box(&mut self) -> *mut (dyn Any + Send)`라는 메서드를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368111Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:2",
+      "source": "This method takes the user-provided payload (`T: Any + Send`), boxes it, and converts the box to a raw pointer.",
+      "source_hash": 15973678210806527649,
+      "context_hash": 6464860569975978705,
+      "translation": "이 메서드는 사용자가 제공한 페이로드(`T: Any + Send`)를 받아 박스로 감싸고, 그 박스를 원시 포인터로 변환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T01:05:28.368111Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "When we call `__rust_start_panic`, we have an `&mut dyn PanicPayload`.",
+      "source_hash": 6488774785612978230,
+      "context_hash": 9095008214029278808,
+      "translation": "`__rust_start_panic`를 호출할 때, 우리는 `&mut dyn PanicPayload`를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277253Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:1",
+      "source": "However, this is a fat pointer (twice the size of a `usize`).",
+      "source_hash": 10572778975446142828,
+      "context_hash": 9008862846794186737,
+      "translation": "하지만 이것은 뚱뚱한 포인터입니다(`usize`의 두 배 크기).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277255Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:2",
+      "source": "To pass this to the panic runtime across an FFI boundary, we take a mutable reference *to this mutable reference* (`&mut &mut dyn PanicPayload`), and convert it to a raw pointer (`*mut &mut dyn PanicPayload`).",
+      "source_hash": 11506517307345707069,
+      "context_hash": 17524692092231544514,
+      "translation": "이를 FFI 경계를 넘어 패닉 런타임에 전달하기 위해, 우리는 *이 가변 참조 자체에 대한* 가변 참조(`&mut &mut dyn PanicPayload`)를 취하고, 이를 로우 포인터(`*mut &mut dyn PanicPayload`)로 변환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277256Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:3",
+      "source": "The outer raw pointer is a thin pointer, since it points to a `Sized` type (a mutable reference).",
+      "source_hash": 4903835393753408055,
+      "context_hash": 3310706795378397572,
+      "translation": "바깥쪽 로우 포인터는 얇은 포인터인데, 이는 `Sized` 타입(가변 참조)을 가리키기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277256Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:4",
+      "source": "Therefore, we can convert this thin pointer into a `usize`, which is suitable for passing across an FFI boundary.",
+      "source_hash": 3094130612014737674,
+      "context_hash": 10256324204033011116,
+      "translation": "따라서 우리는 이 얇은 포인터를 `usize`로 변환할 수 있으며, 이는 FFI 경계를 넘어 전달하기에 적합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277257Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "Finally, we call `__rust_start_panic` with this `usize`.",
+      "source_hash": 15692138947470820584,
+      "context_hash": 11254889709012209701,
+      "translation": "마지막으로, 우리는 이 `usize`와 함께 `__rust_start_panic`을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277257Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:1",
+      "source": "We have now entered the panic runtime.",
+      "source_hash": 8969495463025125524,
+      "context_hash": 8824816898333831849,
+      "translation": "이제 우리는 패닉 런타임에 진입했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277258Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Step 2: The panic runtime",
+      "source_hash": 9326236288550561048,
+      "context_hash": 978986841814751631,
+      "translation": "2단계: 패닉 런타임",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277258Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Rust provides two panic runtimes: `panic_abort` and `panic_unwind`.",
+      "source_hash": 4009921125088018974,
+      "context_hash": 6807029356044525660,
+      "translation": "Rust는 두 가지 패닉 런타임을 제공합니다: `panic_abort`와 `panic_unwind`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277259Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "The user chooses between them at build time via their `Cargo.toml`",
+      "source_hash": 16309300122860086443,
+      "context_hash": 16428123017978777565,
+      "translation": "사용자는 빌드 시점에 `Cargo.toml`을 통해 이 둘 중 하나를 선택합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277259Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "`panic_abort` is extremely simple: its implementation of `__rust_start_panic` just aborts, as you would expect.",
+      "source_hash": 12310869699058888660,
+      "context_hash": 16860960552354714451,
+      "translation": "`panic_abort`는 매우 단순합니다: `__rust_start_panic`의 구현은 예상하시는 대로 그냥 중단(abort)합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277259Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`panic_unwind` is the more interesting case.",
+      "source_hash": 7651444417209748654,
+      "context_hash": 8814234638113811537,
+      "translation": "`panic_unwind`가 더 흥미로운 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277259Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "In its implementation of `__rust_start_panic`, we take the `usize`, convert it back to a `*mut &mut dyn PanicPayload`, dereference it, and call `take_box` on the `&mut dyn PanicPayload`.",
+      "source_hash": 13436247393649560566,
+      "context_hash": 3938184096514158475,
+      "translation": "`__rust_start_panic`의 구현에서, 우리는 `usize`를 취해 다시 `*mut &mut dyn PanicPayload`로 변환하고, 이를 역참조한 다음, `&mut dyn PanicPayload`에 대해 `take_box`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277260Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "At this point, we have a raw pointer to the payload itself (a `*mut (dyn Send + Any)`): that is, a raw pointer to the actual value provided by the user who called `panic!`.",
+      "source_hash": 6245876190502687736,
+      "context_hash": 8497404453050611656,
+      "translation": "이 시점에서, 우리는 페이로드 자체에 대한 로우 포인터(`*mut (dyn Send + Any)`)를 가지게 됩니다: 즉, `panic!`을 호출한 사용자가 제공한 실제 값에 대한 로우 포인터입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277260Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "At this point, the platform-independent code ends.",
+      "source_hash": 15104403982047913884,
+      "context_hash": 16652862417394871460,
+      "translation": "이 시점에서, 플랫폼 독립적인 코드는 끝납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277260Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "We now call into platform-specific unwinding logic (e.g `unwind`).",
+      "source_hash": 3356547592908971074,
+      "context_hash": 584895534682729951,
+      "translation": "이제 우리는 플랫폼별 언와인딩 로직(예: `unwind`)을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277260Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:2",
+      "source": "This code is responsible for unwinding the stack, running any 'landing pads' associated with each frame (currently, running destructors), and transferring control to the `catch_unwind` frame.",
+      "source_hash": 14965013288748834963,
+      "context_hash": 2351734547597058640,
+      "translation": "이 코드는 스택을 언와인딩하고, 각 프레임과 관련된 '착지 지점(landing pad)'을 실행하며(현재는 소멸자를 실행함), `catch_unwind` 프레임으로 제어를 넘기는 역할을 담당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277260Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Note that all panics either abort the process or get caught by some call to `catch_unwind`.",
+      "source_hash": 13893664457386565623,
+      "context_hash": 13969886195030504348,
+      "translation": "모든 패닉은 프로세스를 중단시키거나 `catch_unwind`의 어떤 호출에 의해 잡힌다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277261Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "In particular, in std's [runtime service], the call to the user-provided `main` function is wrapped in `catch_unwind`.",
+      "source_hash": 8723864659836703081,
+      "context_hash": 12574242909872043518,
+      "translation": "특히, std의 [runtime service]에서는, 사용자가 제공한 `main` 함수에 대한 호출이 `catch_unwind`로 감싸져 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:52.277261Z",
+      "issues": []
+    }
+  ]
+}

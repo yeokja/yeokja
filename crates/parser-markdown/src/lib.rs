@@ -1,3 +1,4 @@
+mod html;
 mod mdx;
 mod myst;
 
@@ -59,6 +60,7 @@ struct ParseState<'a> {
     block_idx: usize,
     stack: Vec<Frame>,
     run: Option<Range<usize>>,
+    html_opaque: Vec<Range<usize>>,
 }
 
 impl ParseState<'_> {
@@ -76,6 +78,9 @@ impl ParseState<'_> {
     }
 
     fn push_extra(&mut self, extra: Extra) {
+        if self.html_opaque.iter().any(|r| r.start < extra.range.end && extra.range.start < r.end) {
+            return;
+        }
         if !extra.block_type.is_translatable() {
             self.push_opaque_block(extra.block_type, extra.range);
             return;
@@ -130,6 +135,10 @@ impl ParseState<'_> {
     }
 
     fn extend_run(&mut self, range: Range<usize>) {
+        if self.html_opaque.iter().any(|r| r.start < range.end && range.start < r.end) {
+            self.flush_run();
+            return;
+        }
         if self.in_opaque() {
             return;
         }
@@ -169,6 +178,30 @@ impl ParseState<'_> {
     fn push_block(&mut self, block: Block) {
         self.sections.last_mut().unwrap().blocks.push(block);
         self.block_idx += 1;
+    }
+
+    fn push_html_block(&mut self, range: Range<usize>) {
+        let raw = &self.source[range.clone()];
+        let mut found_prose = false;
+        for prose in html::prose_ranges(raw) {
+            let untrimmed = &raw[prose.clone()];
+            let text = untrimmed.trim();
+            let leading = untrimmed.len() - untrimmed.trim_start().len();
+            let nested = parse_events(text, text, false, Vec::new(), false);
+            for block in nested.sections.into_iter().flat_map(|section| section.blocks) {
+                if let Some(span) = block.span {
+                    let offset = range.start + prose.start + leading;
+                    self.push_extra(Extra {
+                        range: offset + span.start..offset + span.end,
+                        block_type: block.block_type,
+                    });
+                    found_prose = true;
+                }
+            }
+        }
+        if !found_prose {
+            self.push_opaque_block(BlockType::HtmlBlock, range);
+        }
     }
 
     fn push_opaque_block(&mut self, block_type: BlockType, range: Range<usize>) {
@@ -226,6 +259,10 @@ impl DocumentParser for MarkdownParser {
 /// `source`, which must have the same length (a flavour blanks the regions
 /// it handles itself and lists them as `extras`).
 pub(crate) fn parse_with(parsed: &str, source: &str, mdx: bool, extras: Vec<Extra>) -> Document {
+    parse_events(parsed, source, mdx, extras, true)
+}
+
+fn parse_events(parsed: &str, source: &str, mdx: bool, extras: Vec<Extra>, translate_html: bool) -> Document {
     debug_assert_eq!(parsed.len(), source.len());
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
@@ -242,6 +279,7 @@ pub(crate) fn parse_with(parsed: &str, source: &str, mdx: bool, extras: Vec<Extr
         block_idx: 0,
         stack: Vec::new(),
         run: None,
+        html_opaque: if translate_html { html::opaque_ranges(parsed, options) } else { Vec::new() },
     };
 
     for (event, range) in Parser::new_ext(parsed, options).into_offset_iter() {
@@ -306,7 +344,11 @@ pub(crate) fn parse_with(parsed: &str, source: &str, mdx: bool, extras: Vec<Extr
                 }
                 TagEnd::HtmlBlock => {
                     state.stack.pop();
-                    state.push_opaque_block(BlockType::HtmlBlock, range);
+                    if translate_html {
+                        state.push_html_block(range);
+                    } else {
+                        state.push_opaque_block(BlockType::HtmlBlock, range);
+                    }
                 }
                 _ => {}
             },
@@ -609,17 +651,83 @@ mod tests {
     }
 
     #[test]
-    fn html_block_preserved_verbatim() {
+    fn html_block_translates_prose_and_preserves_tags() {
         let parser = MarkdownParser;
         let source = "Text before.\n\n<div class=\"note\">\nraw html\n</div>\n\nText after.\n";
         let doc = parser.parse(source);
         let segments = doc.translatable_segments();
-        assert_eq!(segments.len(), 2);
+        assert_eq!(segments.len(), 3);
 
         let mut translations = TranslationMap::new();
         translations.insert(segments[0].id.clone(), "이전.".to_string());
-        translations.insert(segments[1].id.clone(), "이후.".to_string());
+        translations.insert(segments[1].id.clone(), "HTML 본문".to_string());
+        translations.insert(segments[2].id.clone(), "이후.".to_string());
         let output = parser.reconstruct(&doc, &translations);
-        assert_eq!(output, "이전.\n\n<div class=\"note\">\nraw html\n</div>\n\n이후.\n");
+        assert_eq!(output, "이전.\n\n<div class=\"note\">\nHTML 본문\n</div>\n\n이후.\n");
     }
+    #[test]
+    fn html_warning_and_summary_are_translatable_without_blank_lines() {
+        let source = "<div class=\"warning\">\nThis page is outdated.\n</div>\n\n<details><summary><b>An example</b></summary>\n\nBody text.\n\n</details>\n";
+        let doc = MarkdownParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.iter().map(|s| s.source.as_str()).collect::<Vec<_>>(),
+            ["This page is outdated.", "An example", "Body text."]);
+        let translations = segments.iter().map(|s| (s.id.clone(), "번역".to_string())).collect();
+        assert_eq!(MarkdownParser.reconstruct(&doc, &translations),
+            "<div class=\"warning\">\n번역\n</div>\n\n<details><summary><b>번역</b></summary>\n\n번역\n\n</details>\n");
+    }
+
+    #[test]
+    fn html_literal_elements_comments_and_attributes_are_not_translated() {
+        let source = "<div title=\"Keep > this\">\nVisible prose.<!-- Hidden text. -->\n<pre><code>Keep code.</code></pre>\n<script>if (a < b) { alert('Keep script.'); }</script>\n<style>.a { content: 'Keep style.'; }</style>\nMore prose.\n</div>";
+        let doc = MarkdownParser.parse(source);
+        assert_eq!(doc.translatable_segments().iter().map(|s| s.source.as_str()).collect::<Vec<_>>(),
+            ["Visible prose.", "More prose."]);
+        assert_eq!(MarkdownParser.reconstruct(&doc, &TranslationMap::new()), source);
+    }
+
+    #[test]
+    fn html_prose_keeps_markdown_code_and_autolinks() {
+        let source = "<div>\nRead **this** and `Vec<T>`.\n<https://example.com/a>\n</div>\n\n```html\n<div>Do not translate.</div>\n```\n";
+        let doc = MarkdownParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert!(segments.iter().any(|s| s.source.contains("**this**")));
+        assert!(segments.iter().any(|s| s.source.contains("`Vec<T>`")));
+        assert!(segments.iter().any(|s| s.source.contains("<https://example.com/a>")));
+        assert!(!segments.iter().any(|s| s.source.contains("Do not translate")));
+    }
+
+    #[test]
+    fn html_cdata_and_processing_instructions_stay_verbatim() {
+        for source in ["<![CDATA[ do > keep this ]]>\n", "<?target do > keep this ?>\n"] {
+            let doc = MarkdownParser.parse(source);
+            assert!(doc.translatable_segments().is_empty());
+            assert_eq!(MarkdownParser.reconstruct(&doc, &TranslationMap::new()), source);
+        }
+    }
+
+    #[test]
+    fn html_indentation_is_not_a_markdown_code_block() {
+        let source = "<div><p>    Human visible prose.</p></div>\n";
+        let doc = MarkdownParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        let map = [(segments[0].id.clone(), "눈에 보이는 본문.".to_string())].into();
+        assert_eq!(MarkdownParser.reconstruct(&doc, &map),
+            "<div><p>    눈에 보이는 본문.</p></div>\n");
+    }
+
+    #[test]
+    fn html_literal_elements_remain_opaque_across_blank_lines() {
+        let source = "<div>\n<pre><code>one\n\ntwo</code></pre>\n</div>\n\nVisible prose.\n";
+        let doc = MarkdownParser.parse(source);
+        assert_eq!(doc.translatable_segments().iter().map(|s| s.source.as_str()).collect::<Vec<_>>(), ["Visible prose."]);
+    }
+
+    #[test]
+    fn html_literals_after_longer_closing_fences_are_preserved() {
+        let source = "```\ncode\n````\n\n<code>keep literal</code>\n";
+        assert!(MarkdownParser.parse(source).translatable_segments().is_empty());
+    }
+
 }

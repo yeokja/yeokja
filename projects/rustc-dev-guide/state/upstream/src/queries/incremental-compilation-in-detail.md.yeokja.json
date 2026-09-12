@@ -1,0 +1,2057 @@
+{
+  "version": 1,
+  "source_hash": 10579515939138644822,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Incremental compilation in detail",
+      "source_hash": 3538083478010005052,
+      "context_hash": 13102738226656831185,
+      "translation": "증분 컴파일 상세히 살펴보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248480Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "The incremental compilation scheme is, in essence, a surprisingly simple extension to the overall query system.",
+      "source_hash": 16814843551122190771,
+      "context_hash": 8394157720864340503,
+      "translation": "증분 컴파일 방식은 본질적으로 전체 쿼리 시스템에 대한 놀랍도록 단순한 확장입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248481Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "It relies on the fact that:",
+      "source_hash": 13257209037059681561,
+      "context_hash": 2260853982318636781,
+      "translation": "이는 다음과 같은 사실에 의존합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248481Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "queries are pure functions -- given the same inputs, a query will always yield the same result, and",
+      "source_hash": 2110379979686037211,
+      "context_hash": 3373483090561259889,
+      "translation": "쿼리는 순수 함수입니다 -- 동일한 입력이 주어지면 쿼리는 항상 동일한 결과를 산출합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248481Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "the query model structures compilation in an acyclic graph that makes dependencies between individual computations explicit.",
+      "source_hash": 450192210480002994,
+      "context_hash": 18004266456718143971,
+      "translation": "쿼리 모델은 개별 계산 간의 의존성을 명시적으로 드러내는 비순환 그래프로 컴파일을 구조화합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248482Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "This chapter will explain how we can use these properties for making things incremental and then goes on to discuss version implementation issues.",
+      "source_hash": 15341353440813291923,
+      "context_hash": 16588938540749975450,
+      "translation": "이 장에서는 이러한 속성을 활용해 어떻게 증분화를 이룰 수 있는지 설명한 다음, 버전 구현상의 문제들을 논의합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248482Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "A Basic Algorithm For Incremental Query Evaluation",
+      "source_hash": 1904573822171968173,
+      "context_hash": 4101631824170138846,
+      "translation": "증분 쿼리 평가를 위한 기본 알고리즘",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248482Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "As explained in the [query evaluation model primer][query-model], query invocations form a directed-acyclic graph.",
+      "source_hash": 865221096228308470,
+      "context_hash": 8122873941875413415,
+      "translation": "[쿼리 평가 모델 입문서][query-model]에서 설명했듯이, 쿼리 호출은 유향 비순환 그래프를 형성합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Here's the example from the previous chapter again:",
+      "source_hash": 17702662928033015025,
+      "context_hash": 15482947090450741906,
+      "translation": "이전 장의 예시를 다시 살펴보겠습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Since every access from one query to another has to go through the query context, we can record these accesses and thus actually build this dependency graph in memory.",
+      "source_hash": 4793044471411964809,
+      "context_hash": 4523390887375160485,
+      "translation": "한 쿼리에서 다른 쿼리로의 모든 접근은 쿼리 컨텍스트를 거쳐야 하므로, 이러한 접근을 기록하여 실제로 이 의존성 그래프를 메모리에 구축할 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248483Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "With dependency tracking enabled, when compilation is done, we know which queries were invoked (the nodes of the graph) and for each invocation, which other queries or input has gone into computing the query's result (the edges of the graph).",
+      "source_hash": 11997115671131592302,
+      "context_hash": 15225096171695969430,
+      "translation": "의존성 추적이 활성화된 상태에서 컴파일이 완료되면, 어떤 쿼리들이 호출되었는지(그래프의 노드), 그리고 각 호출에 대해 쿼리 결과를 계산하는 데 어떤 다른 쿼리나 입력이 사용되었는지(그래프의 엣지)를 알 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Now suppose we change the source code of our program so that HIR of `bar` looks different than before.",
+      "source_hash": 14460388476084310767,
+      "context_hash": 2561149987486539671,
+      "translation": "이제 프로그램의 소스 코드를 변경하여 `bar`의 HIR이 이전과 다르게 보이도록 했다고 가정해 보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "Our goal is to only recompute those queries that are actually affected by the change while re-using the cached results of all the other queries.",
+      "source_hash": 4088280259172269445,
+      "context_hash": 14564922729140011788,
+      "translation": "우리의 목표는 변경 사항에 실제로 영향을 받는 쿼리들만 재계산하고, 나머지 모든 쿼리의 캐시된 결과는 재사용하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "Given the dependency graph we can do exactly that.",
+      "source_hash": 3593767590220397264,
+      "context_hash": 11862351218336759741,
+      "translation": "의존성 그래프가 주어지면 정확히 이를 수행할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248485Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:3",
+      "source": "For a given query invocation, the graph tells us exactly what data has gone into computing its results, we just have to follow the edges until we reach something that has changed.",
+      "source_hash": 16440920001091374035,
+      "context_hash": 8203924576080125994,
+      "translation": "특정 쿼리 호출에 대해, 그래프는 그 결과를 계산하는 데 어떤 데이터가 사용되었는지 정확히 알려주므로, 변경된 것을 발견할 때까지 엣지를 따라가기만 하면 됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248485Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:4",
+      "source": "If we don't encounter anything that has changed, we know that the query still would evaluate to the same result we already have in our cache.",
+      "source_hash": 5407843010684038903,
+      "context_hash": 15431221945261249199,
+      "translation": "변경된 것을 하나도 발견하지 못한다면, 해당 쿼리는 여전히 우리가 캐시에 이미 가지고 있는 것과 동일한 결과로 평가될 것임을 알 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Taking the `type_of(foo)` invocation from above as an example, we can check whether the cached result is still valid by following the edges to its inputs.",
+      "source_hash": 5463707274349545333,
+      "context_hash": 16400444673619479449,
+      "translation": "위에서 언급한 `type_of(foo)` 호출을 예로 들면, 그 입력으로 이어지는 엣지를 따라감으로써 캐시된 결과가 여전히 유효한지 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "The only edge leads to `Hir(foo)`, an input that has not been affected by the change.",
+      "source_hash": 2064192365775661836,
+      "context_hash": 14471017864211950238,
+      "translation": "유일한 엣지는 `Hir(foo)`로 이어지는데, 이는 변경에 영향을 받지 않은 입력입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "So we know that the cached result for `type_of(foo)` is still valid.",
+      "source_hash": 17131513690047803583,
+      "context_hash": 5160209424606865710,
+      "translation": "따라서 `type_of(foo)`에 대한 캐시된 결과가 여전히 유효함을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The story is a bit different for `type_check_item(foo)`: We again walk the edges and already know that `type_of(foo)` is fine.",
+      "source_hash": 6439707809603471571,
+      "context_hash": 15283356981806944766,
+      "translation": "`type_check_item(foo)`의 경우는 조금 다릅니다: 다시 엣지를 따라가면서 이미 `type_of(foo)`가 문제없음을 알고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "Then we get to `type_of(bar)` which we have not checked yet, so we walk the edges of `type_of(bar)` and encounter `Hir(bar)` which *has* changed.",
+      "source_hash": 6655228362107593824,
+      "context_hash": 14877227516342150610,
+      "translation": "그다음 아직 확인하지 않은 `type_of(bar)`에 도달하므로, `type_of(bar)`의 엣지를 따라가면 *변경된* `Hir(bar)`를 만나게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:2",
+      "source": "Consequently the result of `type_of(bar)` might yield a different result than what we have in the cache and, transitively, the result of `type_check_item(foo)` might have changed too.",
+      "source_hash": 5261227389289017757,
+      "context_hash": 10882369304154699049,
+      "translation": "그 결과 `type_of(bar)`의 결과는 우리가 캐시에 가지고 있는 것과 다른 결과를 산출할 수 있으며, 이에 따라 전이적으로 `type_check_item(foo)`의 결과도 변경되었을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:3",
+      "source": "We thus re-run `type_check_item(foo)`, which in turn will re-run `type_of(bar)`, which will yield an up-to-date result because it reads the up-to-date version of `Hir(bar)`.",
+      "source_hash": 9027093019645880232,
+      "context_hash": 5357742579829334271,
+      "translation": "따라서 우리는 `type_check_item(foo)`를 다시 실행하며, 이는 다시 `type_of(bar)`를 재실행하게 되고, 이는 최신 버전의 `Hir(bar)`를 읽기 때문에 최신 결과를 산출할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:4",
+      "source": "Also, we re-run `type_check_item(bar)` because result of `type_of(bar)` might have changed.",
+      "source_hash": 509381916805307481,
+      "context_hash": 13034341124826148563,
+      "translation": "또한 `type_of(bar)`의 결과가 변경되었을 수 있으므로 `type_check_item(bar)`도 다시 실행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "The problem with the basic algorithm: false positives",
+      "source_hash": 11045038126395646189,
+      "context_hash": 6094617560246551963,
+      "translation": "기본 알고리즘의 문제점: 거짓 양성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "If you read the previous paragraph carefully you'll notice that it says that `type_of(bar)` *might* have changed because one of its inputs has changed.",
+      "source_hash": 3195455010187182547,
+      "context_hash": 438195957500666636,
+      "translation": "이전 문단을 주의 깊게 읽으면, `type_of(bar)`의 입력 중 하나가 변경되었기 때문에 결과가 *변경되었을 수도 있다*고 말하고 있음을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248487Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "There's also the possibility that it might still yield exactly the same result *even though* its input has changed.",
+      "source_hash": 10459631699138231416,
+      "context_hash": 16360000719382005004,
+      "translation": "또한 입력이 변경되었*음에도 불구하고* 정확히 동일한 결과를 산출할 가능성도 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "Consider an example with a simple query that just computes the sign of an integer:",
+      "source_hash": 11968836587082406966,
+      "context_hash": 13644963363950311231,
+      "translation": "정수의 부호만을 계산하는 단순한 쿼리를 예로 들어 살펴보겠습니다:",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:19.248488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Let's say that `IntValue(x)` starts out as `1000` and then is set to `2000`.",
+      "source_hash": 6981206026474327263,
+      "context_hash": 14317978357307006212,
+      "translation": "`IntValue(x)`가 처음에는 `1000`이었다가 이후 `2000`으로 설정된다고 가정해 보겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "Even though `IntValue(x)` is different in the two cases, `sign_of(x)` yields the result `+` in both cases.",
+      "source_hash": 11805791950703308861,
+      "context_hash": 10201118452106325901,
+      "translation": "`IntValue(x)`는 두 경우에 서로 다르지만, `sign_of(x)`는 두 경우 모두 `+`라는 결과를 산출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "If we follow the basic algorithm, however, `some_other_query(x)` would have to (unnecessarily) be re-evaluated because it transitively depends on a changed input.",
+      "source_hash": 11809376708124756867,
+      "context_hash": 12150569784039855407,
+      "translation": "하지만 기본 알고리즘을 따른다면, `some_other_query(x)`는 변경된 입력에 전이적으로 의존하기 때문에 (불필요하게도) 다시 평가되어야 할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "Change detection yields a \"false positive\" in this case because it has to conservatively assume that `some_other_query(x)` might be affected by that changed input.",
+      "source_hash": 241519456526165547,
+      "context_hash": 8623329532644465139,
+      "translation": "이 경우 변경 감지는 \"거짓 양성\"을 산출하는데, 이는 `some_other_query(x)`가 변경된 입력에 영향을 받을 수도 있다고 보수적으로 가정해야 하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:19.248489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Unfortunately it turns out that the actual queries in the compiler are full of examples like this and small changes to the input often potentially affect very large parts of the output binaries.",
+      "source_hash": 5235045256163537333,
+      "context_hash": 10985813826136404640,
+      "translation": "안타깝게도 실제로 컴파일러의 쿼리들은 이런 예시로 가득 차 있으며, 입력에 대한 작은 변경이 종종 출력 바이너리의 매우 큰 부분에 영향을 미칠 가능성이 있는 것으로 드러납니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:17.478561Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "As a consequence, we had to make the change detection system smarter and more accurate.",
+      "source_hash": 1601563125680921282,
+      "context_hash": 17893989595515237710,
+      "translation": "그 결과, 변경 감지 시스템을 더 똑똑하고 더 정확하게 만들어야 했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478561Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Improving accuracy: the red-green algorithm",
+      "source_hash": 15197589301156133674,
+      "context_hash": 3454659594770822747,
+      "translation": "정확도 개선: red-green 알고리즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478562Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The \"false positives\" problem can be solved by interleaving change detection and query re-evaluation.",
+      "source_hash": 5428109863487227906,
+      "context_hash": 11986862611494471187,
+      "translation": "\"거짓 양성\" 문제는 변경 감지와 쿼리 재평가를 서로 교차시킴으로써 해결할 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:17.478562Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Instead of walking the graph all the way to the inputs when trying to find out if some cached result is still valid, we can check if a result has *actually* changed after we were forced to re-evaluate it.",
+      "source_hash": 14471122329437558206,
+      "context_hash": 15849952998604933696,
+      "translation": "캐시된 결과가 여전히 유효한지 알아내기 위해 그래프를 입력까지 끝까지 탐색하는 대신, 재평가를 강제로 수행한 후에 결과가 *실제로* 변경되었는지를 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478562Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "We call this algorithm the red-green algorithm because nodes in the dependency graph are assigned the color green if we were able to prove that its cached result is still valid and the color red if the result has turned out to be different after re-evaluating it.",
+      "source_hash": 8500876280791502803,
+      "context_hash": 5841574627173086927,
+      "translation": "이 알고리즘을 red-green 알고리즘이라고 부르는 이유는, 의존성 그래프의 노드가 캐시된 결과가 여전히 유효하다는 것을 증명할 수 있었다면 초록색이, 재평가 후 결과가 다르다고 판명되었다면 빨간색이 할당되기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478562Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "The meat of red-green change tracking is implemented in the try-mark-green algorithm, that, you've guessed it, tries to mark a given node as green:",
+      "source_hash": 3278358074782404254,
+      "context_hash": 16447732883239140941,
+      "translation": "red-green 변경 추적의 핵심은 try-mark-green 알고리즘에 구현되어 있으며, 짐작하셨듯이 이 알고리즘은 주어진 노드를 초록색으로 표시하려고 시도합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478563Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "NOTE: The actual implementation can be found in [`compiler/rustc_middle/src/dep_graph/graph.rs`][try_mark_green]",
+      "source_hash": 17575117041248116563,
+      "context_hash": 7214002278023776108,
+      "translation": "참고: 실제 구현은 [`compiler/rustc_middle/src/dep_graph/graph.rs`][try_mark_green]에서 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478563Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "By using red-green marking we can avoid the devastating cumulative effect of having false positives during change detection.",
+      "source_hash": 10544556170056405933,
+      "context_hash": 5279870063560275723,
+      "translation": "red-green 표시를 사용함으로써 변경 감지 중 거짓 양성이 누적되어 발생하는 치명적인 영향을 피할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478563Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "Whenever a query is executed in incremental mode, we first check if its already green.",
+      "source_hash": 17711127463573630486,
+      "context_hash": 9793002634945289628,
+      "translation": "쿼리가 증분 모드에서 실행될 때마다, 먼저 이미 초록색인지 확인합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:17.478563Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:2",
+      "source": "If not, we run `try_mark_green()` on it.",
+      "source_hash": 12281705073313796404,
+      "context_hash": 10208687617186927577,
+      "translation": "그렇지 않다면, 해당 쿼리에 대해 `try_mark_green()`을 실행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478563Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:3",
+      "source": "If it still isn't green after that, then we actually invoke the query provider to re-compute the result.",
+      "source_hash": 8467635810313293303,
+      "context_hash": 15524465568703491062,
+      "translation": "그 후에도 여전히 초록색이 아니라면, 실제로 쿼리 제공자를 호출하여 결과를 다시 계산합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:17.478564Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:4",
+      "source": "Re-computing the query might then itself involve recursively invoking more queries, which can mean we come back to the `try_mark_green()` algorithm for the dependencies recursively.",
+      "source_hash": 13771035678108726293,
+      "context_hash": 6414918415812888586,
+      "translation": "쿼리를 다시 계산하는 과정은 그 자체로 재귀적으로 더 많은 쿼리를 호출하는 것을 포함할 수 있으며, 이는 의존성에 대해 `try_mark_green()` 알고리즘으로 재귀적으로 되돌아올 수 있음을 의미합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:17.478564Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "The real world: how persistence makes everything complicated",
+      "source_hash": 14435335269672699592,
+      "context_hash": 8487627362251229059,
+      "translation": "현실 세계: 지속성이 모든 것을 복잡하게 만드는 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478564Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "The sections above described the underlying algorithm for incremental compilation but because the compiler process exits after being finished and takes the query context with its result cache with it into oblivion, we have to persist data to disk, so the next compilation session can make use of it.",
+      "source_hash": 3790099841013308308,
+      "context_hash": 12932952788149316061,
+      "translation": "위 절들은 증분 컴파일의 기저 알고리즘을 설명했지만, 컴파일러 프로세스는 작업을 마친 후 종료되면서 결과 캐시를 가진 쿼리 컨텍스트를 소멸시켜 버리기 때문에, 다음 컴파일 세션이 이를 활용할 수 있도록 데이터를 디스크에 지속시켜야 합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:17.478564Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "This comes with a whole new set of implementation challenges:",
+      "source_hash": 5904033386315690664,
+      "context_hash": 5954680819778717321,
+      "translation": "이는 완전히 새로운 종류의 구현 과제들을 수반합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478565Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "The query result cache is stored to disk, so they are not readily available for change comparison.",
+      "source_hash": 6081341823518911771,
+      "context_hash": 16911703656404788846,
+      "translation": "쿼리 결과 캐시는 디스크에 저장되므로, 변경 비교에 곧바로 사용할 수 없습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:17.478565Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "A subsequent compilation session will start off with new version of the code that has arbitrary changes applied to it.",
+      "source_hash": 10893009630847951211,
+      "context_hash": 17157185371086981005,
+      "translation": "후속 컴파일 세션은 임의의 변경 사항이 적용된 새 버전의 코드로 시작하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478565Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "All kinds of IDs and indices that are generated from a global, sequential counter (e.g. `NodeId`, `DefId`, etc) might have shifted, making the persisted results on disk not immediately usable anymore because the same numeric IDs and indices might refer to completely new things in the new compilation session.",
+      "source_hash": 12381652320495020295,
+      "context_hash": 7102973116236598701,
+      "translation": "전역적이고 순차적인 카운터로부터 생성되는 온갖 종류의 ID와 인덱스(예: `NodeId`, `DefId` 등)가 이동했을 수 있으며, 이로 인해 동일한 숫자 ID와 인덱스가 새 컴파일 세션에서는 완전히 다른 것을 가리킬 수 있기 때문에 디스크에 지속된 결과를 곧바로 사용할 수 없게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478565Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Persisting things to disk comes at a cost, so not every tiny piece of information should be actually cached in between compilation sessions.",
+      "source_hash": 17457473233737057489,
+      "context_hash": 1365700291711336686,
+      "translation": "데이터를 디스크에 지속시키는 데는 비용이 들기 때문에, 모든 작은 정보 조각을 컴파일 세션 사이에 실제로 캐시해서는 안 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478566Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "Fixed-sized, plain-old-data is preferred to complex things that need to run through an expensive (de-)serialization step.",
+      "source_hash": 17103612910603252071,
+      "context_hash": 9583237145756200602,
+      "translation": "고정 크기의 단순한 데이터가, 비용이 많이 드는 (역)직렬화 단계를 거쳐야 하는 복잡한 것들보다 선호됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478566Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "The following sections describe how the compiler solves these issues.",
+      "source_hash": 3134872236535034202,
+      "context_hash": 17074730907299741860,
+      "translation": "다음 절들은 컴파일러가 이러한 문제들을 어떻게 해결하는지 설명합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:17.478566Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "A Question Of Stability: Bridging The Gap Between Compilation Sessions",
+      "source_hash": 2403909267708205123,
+      "context_hash": 1790826248103283128,
+      "translation": "안정성의 문제: 컴파일 세션 사이의 간극 메우기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478566Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "As noted before, various IDs (like `DefId`) are generated by the compiler in a way that depends on the contents of the source code being compiled.",
+      "source_hash": 2393140152486757832,
+      "context_hash": 17827145746092971575,
+      "translation": "앞서 언급했듯이, (`DefId`와 같은) 다양한 ID는 컴파일 대상 소스 코드의 내용에 따라 컴파일러에 의해 생성됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:17.478566Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:1",
+      "source": "ID assignment is usually deterministic.",
+      "source_hash": 1314937375048659987,
+      "context_hash": 13129704910132206437,
+      "translation": "ID 할당은 대개 결정적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478567Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:2",
+      "source": "That is, if the exact same code is compiled twice, the same things will end up with the same IDs.",
+      "source_hash": 6562991858741570307,
+      "context_hash": 9381800810608981467,
+      "translation": "즉, 정확히 동일한 코드가 두 번 컴파일되면, 같은 대상들은 동일한 ID를 갖게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478567Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:3",
+      "source": "However, if something changes, e.g. a function is added in the middle of a file, there is no guarantee that anything will have the same ID as it had before.",
+      "source_hash": 7091939089608784688,
+      "context_hash": 10051693699280489873,
+      "translation": "하지만 무언가가 변경되면, 예를 들어 파일 중간에 함수가 추가되면, 어떤 것이든 이전과 동일한 ID를 가질 것이라는 보장은 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478567Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "As a consequence we cannot represent the data in our on-disk cache the same way it is represented in memory.",
+      "source_hash": 14098631637487050492,
+      "context_hash": 2163406404109344051,
+      "translation": "그 결과 우리는 디스크 캐시 내의 데이터를 메모리에서 표현하는 것과 동일한 방식으로 표현할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478567Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:1",
+      "source": "For example, if we just stored a piece of type information like `TyKind::FnDef(DefId, GenericArgsRef<'tcx>)` (as we do in memory) and then the contained `DefId` points to a different function in a new compilation session we'd be in trouble.",
+      "source_hash": 8443618764733971959,
+      "context_hash": 13909608648594749371,
+      "translation": "예를 들어, (메모리에서 하듯이) `TyKind::FnDef(DefId, GenericArgsRef<'tcx>)`와 같은 타입 정보를 그대로 저장했는데 그 안에 포함된 `DefId`가 새로운 컴파일 세션에서 다른 함수를 가리킨다면 문제가 생길 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:17.478567Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "The solution to this problem is to find \"stable\" forms for IDs which remain valid in between compilation sessions.",
+      "source_hash": 5691346461182030219,
+      "context_hash": 13788648681375446019,
+      "translation": "이 문제에 대한 해법은 컴파일 세션 사이에도 유효성을 유지하는 \"안정적인(stable)\" 형태의 ID를 찾는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926805Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:1",
+      "source": "For the most important case, `DefId`s, these are the so-called `DefPath`s.",
+      "source_hash": 6388565367855201480,
+      "context_hash": 14535307829981509268,
+      "translation": "가장 중요한 경우인 `DefId`의 경우, 이것이 바로 이른바 `DefPath`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926805Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:2",
+      "source": "Each `DefId` has a corresponding `DefPath`, but in place of a numeric ID, a `DefPath` is based on the path to the identified item, e.g. `std::collections::HashMap`.",
+      "source_hash": 714887525683686795,
+      "context_hash": 16397794341526358302,
+      "translation": "각 `DefId`에는 대응하는 `DefPath`가 있지만, 숫자 ID 대신 `DefPath`는 식별된 항목에 대한 경로, 예를 들어 `std::collections::HashMap`을 기반으로 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:3",
+      "source": "The advantage of an ID like this is that it is not affected by unrelated changes.",
+      "source_hash": 16733260972520736270,
+      "context_hash": 793233431491464243,
+      "translation": "이러한 ID의 장점은 관련 없는 변경에 영향을 받지 않는다는 점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:4",
+      "source": "For example, one can add a new function to `std::collections` but `std::collections::HashMap` would still be `std::collections::HashMap`.",
+      "source_hash": 7913898495525576892,
+      "context_hash": 11766071349149397830,
+      "translation": "예를 들어, `std::collections`에 새로운 함수를 추가하더라도 `std::collections::HashMap`은 여전히 `std::collections::HashMap`일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:5",
+      "source": "A `DefPath` is \"stable\" across changes made to the source code while a `DefId` isn't.",
+      "source_hash": 12571657072408906732,
+      "context_hash": 6535825966280081853,
+      "translation": "`DefPath`는 소스 코드에 가해진 변경에도 \"안정적\"이지만 `DefId`는 그렇지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "There is also the `DefPathHash` which is just a 128-bit hash value of the `DefPath`.",
+      "source_hash": 11683345131572170589,
+      "context_hash": 6912287400272174918,
+      "translation": "`DefPathHash`도 있는데, 이는 단순히 `DefPath`의 128비트 해시 값입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:1",
+      "source": "The two contain the same information and we mostly use the `DefPathHash` because it simpler to handle, being `Copy` and self-contained.",
+      "source_hash": 2863041594785362453,
+      "context_hash": 6562006311843871532,
+      "translation": "이 둘은 동일한 정보를 담고 있지만, 저희는 대부분 `DefPathHash`를 사용합니다. 이는 `Copy`이면서 자기 완결적이어서 다루기가 더 간단하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "This principle of stable identifiers is used to make the data in the on-disk cache resilient to source code changes.",
+      "source_hash": 1294940849750028032,
+      "context_hash": 18183599234716298764,
+      "translation": "이러한 안정적인 식별자의 원칙은 디스크 캐시의 데이터가 소스 코드 변경에도 견고하게 유지되도록 하는 데 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:1",
+      "source": "Instead of storing a `DefId`, we store the `DefPathHash` and when we deserialize something from the cache, we map the `DefPathHash` to the corresponding `DefId` in the *current* compilation session (which is just a simple hash table lookup).",
+      "source_hash": 17925218818077376939,
+      "context_hash": 7503206949820181301,
+      "translation": "`DefId`를 저장하는 대신 `DefPathHash`를 저장하며, 캐시에서 무언가를 역직렬화할 때 `DefPathHash`를 *현재* 컴파일 세션에서의 대응하는 `DefId`로 매핑합니다(이는 단순한 해시 테이블 조회일 뿐입니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "The `HirId`, used for identifying HIR components that don't have their own `DefId`, is another such stable ID.",
+      "source_hash": 16500168077874962877,
+      "context_hash": 6669371846187833707,
+      "translation": "자체적인 `DefId`가 없는 HIR 구성 요소를 식별하는 데 사용되는 `HirId`도 이러한 안정적인 ID 중 하나입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:1",
+      "source": "It is (conceptually) a pair of a `DefPath` and a `LocalId`, where the `LocalId` identifies something (e.g. a `hir::Expr`) locally within its \"owner\" (e.g. a `hir::Item`).",
+      "source_hash": 6173882069407756021,
+      "context_hash": 4479923063564659776,
+      "translation": "이는 (개념적으로) `DefPath`와 `LocalId`의 쌍으로, `LocalId`는 그 \"소유자\"(예: `hir::Item`) 내부에서 지역적으로 무언가(예: `hir::Expr`)를 식별합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:2",
+      "source": "If the owner is moved around, the `LocalId`s within it are still the same.",
+      "source_hash": 14667272609740400367,
+      "context_hash": 18108225308833667722,
+      "translation": "소유자가 이동되더라도 그 내부의 `LocalId`는 그대로 유지됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "Checking query results for changes: `StableHash` and `Fingerprint`s",
+      "source_hash": 13841684411497929208,
+      "context_hash": 15859232727682519954,
+      "translation": "쿼리 결과의 변경 여부 검사: `StableHash`와 `Fingerprint`",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.926806Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "In order to do red-green-marking we often need to check if the result of a query has changed compared to the result it had during the previous compilation session.",
+      "source_hash": 1079112221346865954,
+      "context_hash": 12410172973805311497,
+      "translation": "적-녹 표시(red-green-marking)를 수행하기 위해서는 쿼리의 결과가 이전 컴파일 세션에서 가졌던 결과와 비교하여 변경되었는지 확인해야 하는 경우가 많습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:1",
+      "source": "There are two performance problems with this though:",
+      "source_hash": 3510342037041046699,
+      "context_hash": 4996416397377221019,
+      "translation": "다만 이와 관련해서는 두 가지 성능 문제가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "We'd like to avoid having to load the previous result from disk just for doing the comparison.",
+      "source_hash": 14205593774022300737,
+      "context_hash": 7854049303286178495,
+      "translation": "비교를 수행하기 위해서만 디스크에서 이전 결과를 불러오는 일을 피하고자 합니다. 저희는 이미 새로운 결과를 계산했고 그것을 사용할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "We already computed the new result and will use that.",
+      "source_hash": 7176576173476957545,
+      "context_hash": 9543963410217142319,
+      "translation": "또한 디스크에서 결과를 불러오는 것은 앞으로 사용될 가능성이 낮은 데이터로 인터너(interner)를 \"오염\"시킬 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:2",
+      "source": "Also loading a result from disk will \"pollute\" the interners with data that is unlikely to ever be used.",
+      "source_hash": 5005376435428479952,
+      "context_hash": 10344434654809385189,
+      "translation": "모든 개별 결과를 디스크 캐시에 저장하고 싶지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "We don't want to store each and every result in the on-disk cache.",
+      "source_hash": 1594584575390712622,
+      "context_hash": 6558808217444260839,
+      "translation": "예를 들어, 상위(upstream) 크레이트에서 이미 이용 가능한 것들을 디스크에 유지하는 것은 헛된 노력일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:1",
+      "source": "For example, it would be wasted effort to persist things to disk that are already available in upstream crates.",
+      "source_hash": 16400125374747400845,
+      "context_hash": 7145970827235562925,
+      "translation": "예를 들어, 상위 크레이트에 이미 존재하는 것들을 디스크에 유지하는 것은 낭비되는 노력일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "The compiler avoids these problems by using so-called `Fingerprint`s.",
+      "source_hash": 12051435372003304915,
+      "context_hash": 11593703391589473336,
+      "translation": "컴파일러는 이른바 `Fingerprint`라는 것을 사용하여 이러한 문제를 피합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:24.926807Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:1",
+      "source": "Each time a new query result is computed, the query engine will compute a 128 bit hash value of the result.",
+      "source_hash": 10794877439140221749,
+      "context_hash": 10230282746659466072,
+      "translation": "새로운 쿼리 결과가 계산될 때마다, 쿼리 엔진은 결과의 128비트 해시 값을 계산합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:2",
+      "source": "We call this hash value \"the `Fingerprint` of the query result\".",
+      "source_hash": 5689983937831384616,
+      "context_hash": 15837001275566662417,
+      "translation": "우리는 이 해시 값을 \"쿼리 결과의 `Fingerprint`\"라고 부릅니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:3",
+      "source": "The hashing is (and has to be) done \"in a stable way\".",
+      "source_hash": 11036032455570101746,
+      "context_hash": 110071939990741839,
+      "translation": "해싱은 \"안정적인 방식으로\" 이루어져야 하며, 실제로 그렇게 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:4",
+      "source": "This means that whenever something is hashed that might change in between compilation sessions (e.g. a `DefId`), we instead hash its stable equivalent (e.g. the corresponding `DefPath`).",
+      "source_hash": 12661532685805991336,
+      "context_hash": 13495578753537279631,
+      "translation": "이는 컴파일 세션 사이에 변경될 수 있는 것(예: `DefId`)이 해싱될 때마다, 그 대신 안정적인 대응물(예: 해당하는 `DefPath`)을 해싱한다는 의미입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:5",
+      "source": "That's what the whole `StableHash` infrastructure is for.",
+      "source_hash": 7259015448828868078,
+      "context_hash": 8678104463518362337,
+      "translation": "이러한 방식으로 서로 다른 두 컴파일 세션에서 계산된 `Fingerprint`도 여전히 비교 가능합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:6",
+      "source": "This way `Fingerprint`s computed in two different compilation sessions are still comparable.",
+      "source_hash": 3709480932244803023,
+      "context_hash": 6887887207983695581,
+      "translation": "이러한 방식으로, 서로 다른 두 컴파일 세션에서 계산된 `Fingerprint`도 여전히 비교 가능합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "The next step is to store these fingerprints along with the dependency graph.",
+      "source_hash": 13632684654820502488,
+      "context_hash": 4335101913789864202,
+      "translation": "지문은 단순히 복사될 바이트일 뿐이므로 이는 비용이 적습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:1",
+      "source": "This is cheap since fingerprints are just bytes to be copied.",
+      "source_hash": 13934649693248519588,
+      "context_hash": 2426282235881644716,
+      "translation": "지문 전체 집합을 의존성 그래프와 함께 불러오는 것 역시 비용이 적습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:2",
+      "source": "It's also cheap to load the entire set of fingerprints together with the dependency graph.",
+      "source_hash": 14419922335380899477,
+      "context_hash": 3535424018086740499,
+      "translation": "이제 적-녹 표시가 결과의 변경 여부를 확인해야 하는 지점에 도달하면, (이미 불러온) 이전 지문을 새 결과의 지문과 그저 비교하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "Now, when red-green-marking reaches the point where it needs to check if a result has changed, it can just compare the (already loaded) previous fingerprint to the fingerprint of the new result.",
+      "source_hash": 6623196037102038686,
+      "context_hash": 8545114068241179258,
+      "translation": "이제 적록 표시(red-green-marking)가 결과가 변경되었는지 확인해야 하는 지점에 도달하면, (이미 로드된) 이전 핑거프린트와 새 결과의 핑거프린트를 비교하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.926808Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "This approach works rather well but it's not without flaws:",
+      "source_hash": 15769535687482204429,
+      "context_hash": 15307338750633288057,
+      "translation": "이 접근 방식은 상당히 잘 작동하지만 결함이 없는 것은 아닙니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863444Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "There is a small possibility of hash collisions.",
+      "source_hash": 17165492951712134993,
+      "context_hash": 16550380643659567106,
+      "translation": "해시 충돌의 가능성이 작게나마 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863445Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:1",
+      "source": "That is, two different results could have the same fingerprint and the system would erroneously assume that the result hasn't changed, leading to a missed update.",
+      "source_hash": 15177112292122159371,
+      "context_hash": 13979733018376693991,
+      "translation": "즉, 서로 다른 두 결과가 동일한 핑거프린트를 가질 수 있으며, 이 경우 시스템은 결과가 변경되지 않았다고 잘못 판단하여 업데이트를 누락하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863445Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "We mitigate this risk by using a high-quality hash function and a 128 bit wide hash value.",
+      "source_hash": 8345087046891931535,
+      "context_hash": 12467787325273282604,
+      "translation": "우리는 고품질 해시 함수와 128비트 폭의 해시 값을 사용하여 이 위험을 완화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863445Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:1",
+      "source": "Due to these measures the practical risk of a hash collision is negligible.",
+      "source_hash": 17768447401656439758,
+      "context_hash": 13191195220428017525,
+      "translation": "이러한 조치 덕분에 해시 충돌의 실질적인 위험은 무시할 수 있는 수준입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863445Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "Computing fingerprints is quite costly.",
+      "source_hash": 15554649133951159846,
+      "context_hash": 370716978059673387,
+      "translation": "핑거프린트를 계산하는 것은 비용이 상당히 많이 듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863446Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:1",
+      "source": "It is the main reason why incremental compilation can be slower than non-incremental compilation.",
+      "source_hash": 6979121750712526182,
+      "context_hash": 8392876882938103804,
+      "translation": "이는 증분 컴파일이 비증분 컴파일보다 느려질 수 있는 주된 이유입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863446Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:2",
+      "source": "We are forced to use a good and thus expensive hash function, and we have to map things to their stable equivalents while doing the hashing.",
+      "source_hash": 7182599447106594380,
+      "context_hash": 13539068720742922183,
+      "translation": "우리는 좋은, 따라서 비용이 큰 해시 함수를 사용할 수밖에 없으며, 해싱을 하는 동안 대상을 안정적인 대응물로 매핑해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863446Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "A tale of two `DepGraph`s: the old and the new",
+      "source_hash": 15517241190537409439,
+      "context_hash": 6269225140156946575,
+      "translation": "두 개의 `DepGraph` 이야기: 이전 것과 새로운 것",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863446Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "The initial description of dependency tracking glosses over a few details that quickly become a head scratcher when actually trying to implement things.",
+      "source_hash": 4968623972508325572,
+      "context_hash": 16854103380819041673,
+      "translation": "의존성 추적에 대한 초기 설명은 실제로 구현을 시도할 때 금세 골머리를 앓게 만드는 몇 가지 세부 사항을 얼버무리고 넘어갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863446Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:1",
+      "source": "In particular it's easy to overlook that we are actually dealing with *two* dependency graphs: The one we built during the previous compilation session and the one that we are building for the current compilation session.",
+      "source_hash": 4303591829799432288,
+      "context_hash": 5715426971469415489,
+      "translation": "특히 우리가 실제로는 *두 개의* 의존성 그래프를 다루고 있다는 점을 간과하기 쉬운데, 하나는 이전 컴파일 세션에서 구축한 것이고 다른 하나는 현재 컴파일 세션을 위해 구축하고 있는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863446Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "When a compilation session starts, the compiler loads the previous dependency graph into memory as an immutable piece of data.",
+      "source_hash": 10619901960274406014,
+      "context_hash": 3887300122509816167,
+      "translation": "컴파일 세션이 시작되면 컴파일러는 이전 의존성 그래프를 불변 데이터 조각으로 메모리에 로드합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:24.863447Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:1",
+      "source": "Then, when a query is invoked, it will first try to mark the corresponding node in the graph as green.",
+      "source_hash": 2730050015643750253,
+      "context_hash": 3890690683869940041,
+      "translation": "그런 다음 쿼리가 호출되면, 그래프 내 해당 노드를 초록색으로 표시하려고 먼저 시도합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863447Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:2",
+      "source": "This means really that we are trying to mark the node in the *previous* dep-graph as green that corresponds to the query key in the *current* session.",
+      "source_hash": 1288310211897889742,
+      "context_hash": 5386180216299032522,
+      "translation": "이는 실제로 *현재* 세션의 쿼리 키에 대응하는 노드를 *이전* 의존성 그래프에서 초록색으로 표시하려 한다는 것을 의미합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863447Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:3",
+      "source": "How do we do this mapping between current query key and previous `DepNode`?",
+      "source_hash": 16183575155138960751,
+      "context_hash": 8205140673217184718,
+      "translation": "현재 쿼리 키와 이전 `DepNode` 사이의 이러한 매핑은 어떻게 이루어질까요?",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863447Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:4",
+      "source": "The answer is again `Fingerprint`s: Nodes in the dependency graph are identified by a fingerprint of the query key.",
+      "source_hash": 948151675655736690,
+      "context_hash": 3693005885948803140,
+      "translation": "답은 다시 `Fingerprint`입니다: 의존성 그래프 내 노드는 쿼리 키의 핑거프린트로 식별됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863448Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:5",
+      "source": "Since fingerprints are stable across compilation sessions, computing one in the current session allows us to find a node in the dependency graph from the previous session.",
+      "source_hash": 11446963536626679689,
+      "context_hash": 7498995471948900684,
+      "translation": "핑거프린트는 컴파일 세션 전반에 걸쳐 안정적이므로, 현재 세션에서 핑거프린트를 계산하면 이전 세션의 의존성 그래프에서 노드를 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863448Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:6",
+      "source": "If we don't find a node with the given fingerprint, it means that the query key refers to something that did not yet exist in the previous session.",
+      "source_hash": 14559627884248748096,
+      "context_hash": 2383125306166191068,
+      "translation": "주어진 핑거프린트를 가진 노드를 찾지 못한다면, 이는 해당 쿼리 키가 이전 세션에는 아직 존재하지 않았던 대상을 가리킨다는 것을 의미합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863448Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:0",
+      "source": "So, having found the dep-node in the previous dependency graph, we can look up its dependencies (i.e. also dep-nodes in the previous graph) and continue with the rest of the try-mark-green algorithm.",
+      "source_hash": 17662149033681247285,
+      "context_hash": 4438844659235992943,
+      "translation": "이렇게 이전 의존성 그래프에서 dep-노드를 찾았다면, 그 의존성들(즉 이전 그래프 내의 dep-노드들 역시)을 찾아보고 try-mark-green 알고리즘의 나머지 부분을 계속 진행할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863449Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:1",
+      "source": "The next interesting thing happens when we successfully marked the node as green.",
+      "source_hash": 4898131155769850907,
+      "context_hash": 13750433339829938262,
+      "translation": "다음으로 흥미로운 일은 노드를 성공적으로 초록색으로 표시했을 때 일어납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863449Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:2",
+      "source": "At that point we copy the node and the edges to its dependencies from the old graph into the new graph.",
+      "source_hash": 7060969611510013212,
+      "context_hash": 2022222666104311841,
+      "translation": "그 시점에서 우리는 노드와 그 의존성으로의 엣지를 이전 그래프에서 새 그래프로 복사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863449Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:3",
+      "source": "We have to do this because the new dep-graph cannot acquire the node and edges via the regular dependency tracking.",
+      "source_hash": 4381698296979785151,
+      "context_hash": 16189392571871918752,
+      "translation": "새 dep-그래프는 일반적인 의존성 추적을 통해 노드와 엣지를 획득할 수 없기 때문에 이를 수행해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863449Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:4",
+      "source": "The tracking system can only record edges while actually running a query -- but running the query, although we have the result already cached, is exactly what we want to avoid.",
+      "source_hash": 694143403391293035,
+      "context_hash": 6958873495266695191,
+      "translation": "추적 시스템은 실제로 쿼리를 실행하는 동안에만 엣지를 기록할 수 있는데, 결과가 이미 캐시되어 있는데도 쿼리를 실행하는 것은 우리가 바로 피하고자 하는 일입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863449Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:0",
+      "source": "Once the compilation session has finished, all the unchanged parts have been copied over from the old into the new dependency graph, while the changed parts have been added to the new graph by the tracking system.",
+      "source_hash": 11634409904552714037,
+      "context_hash": 8920142897816210824,
+      "translation": "컴파일 세션이 완료되면, 변경되지 않은 모든 부분은 이전 그래프에서 새 의존성 그래프로 복사되어 있고, 변경된 부분은 추적 시스템에 의해 새 그래프에 추가되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863450Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:1",
+      "source": "At this point, the new graph is serialized out to disk, alongside the query result cache, and can act as the previous dep-graph in a subsequent compilation session.",
+      "source_hash": 8063403584045450542,
+      "context_hash": 12068271134789058071,
+      "translation": "이 시점에서 새 그래프는 쿼리 결과 캐시와 함께 디스크에 직렬화되어 저장되며, 이후 컴파일 세션에서 이전 dep-그래프 역할을 할 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863450Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:0",
+      "source": "Didn't you forget something?: cache promotion",
+      "source_hash": 2423358473722548488,
+      "context_hash": 8989873815796331757,
+      "translation": "뭔가를 잊지 않으셨나요?: 캐시 승격",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863450Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:30/seg:0",
+      "source": "The system described so far has a somewhat subtle property: If all inputs of a dep-node are green then the dep-node itself can be marked as green without computing or loading the corresponding query result.",
+      "source_hash": 1391153019534766827,
+      "context_hash": 1827784978756442562,
+      "translation": "지금까지 설명한 시스템에는 다소 미묘한 속성이 있습니다: dep-노드의 모든 입력이 초록색이면, 해당 dep-노드 자체도 대응하는 쿼리 결과를 계산하거나 로드하지 않고도 초록색으로 표시할 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863450Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:30/seg:1",
+      "source": "Applying this property transitively often leads to the situation that some intermediate results are never actually loaded from disk, as in the following example:",
+      "source_hash": 7199889043238683152,
+      "context_hash": 3136521731254591178,
+      "translation": "이 속성을 전이적으로 적용하면 다음 예시처럼 일부 중간 결과가 실제로는 디스크에서 전혀 로드되지 않는 상황이 자주 발생합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863450Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:0",
+      "source": "The compiler might need the value of `leaf_query(C)` in order to generate some output artifact.",
+      "source_hash": 40348997816335360,
+      "context_hash": 11497840222635692847,
+      "translation": "컴파일러는 어떤 출력 산출물을 생성하기 위해 `leaf_query(C)`의 값이 필요할 수 있습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:24.863450Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:1",
+      "source": "If it can mark `leaf_query(C)` as green, it will load the result from the on-disk cache.",
+      "source_hash": 8232795315225985156,
+      "context_hash": 15628163867701265760,
+      "translation": "`leaf_query(C)`를 초록색으로 표시할 수 있다면, 디스크상 캐시에서 결과를 로드하게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863451Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:2",
+      "source": "The result of `intermediate_query(B)` is never loaded though.",
+      "source_hash": 10164468964602545598,
+      "context_hash": 2232887696449675017,
+      "translation": "하지만 `intermediate_query(B)`의 결과는 결코 로드되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:24.863451Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:3",
+      "source": "As a consequence, when the compiler persists the *new* result cache by writing all in-memory query results to disk, `intermediate_query(B)` will not be in memory and thus will be missing from the new result cache.",
+      "source_hash": 6394768057427469251,
+      "context_hash": 12168526877731142530,
+      "translation": "그 결과, 컴파일러가 메모리상의 모든 쿼리 결과를 디스크에 기록하여 *새* 결과 캐시를 저장할 때, `intermediate_query(B)`는 메모리에 존재하지 않으므로 새 결과 캐시에서 누락되게 됩니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:24.863451Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:33/seg:0",
+      "source": "If there subsequently is another compilation session that actually needs the result of `intermediate_query(B)` it will have to be re-computed even though we had a perfectly valid result for it in the cache just before.",
+      "source_hash": 15080130940639718974,
+      "context_hash": 8659326413633060624,
+      "translation": "이후 실제로 `intermediate_query(B)`의 결과가 필요한 또 다른 컴파일 세션이 있다면, 바로 직전까지 캐시에 완벽히 유효한 결과가 있었음에도 불구하고 다시 계산해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641101Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:34/seg:0",
+      "source": "In order to prevent this from happening, the compiler does something called \"cache promotion\": Before emitting the new result cache it will walk all green dep-nodes and make sure that their query result is loaded into memory.",
+      "source_hash": 12133652647638083852,
+      "context_hash": 4515417959076463015,
+      "translation": "이런 일이 발생하는 것을 방지하기 위해 컴파일러는 \"캐시 승격(cache promotion)\"이라는 작업을 수행합니다. 새 결과 캐시를 내보내기 전에 모든 초록색 의존성 노드를 순회하여 해당 쿼리 결과가 메모리에 로드되어 있는지 확인합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641102Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:34/seg:1",
+      "source": "That way the result cache doesn't unnecessarily shrink again.",
+      "source_hash": 16623879677836665037,
+      "context_hash": 5406920306851897009,
+      "translation": "이렇게 하면 결과 캐시가 불필요하게 다시 줄어들지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641103Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Incremental compilation and the compiler backend",
+      "source_hash": 18269005377713155315,
+      "context_hash": 15258251210371054695,
+      "translation": "점진적 컴파일과 컴파일러 백엔드",
+      "glossary_snapshot": {
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:21.641104Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The compiler backend, the part involving LLVM, is using the query system but it is not implemented in terms of queries itself.",
+      "source_hash": 17853687321147638313,
+      "context_hash": 15939069108601463122,
+      "translation": "LLVM을 다루는 부분인 컴파일러 백엔드는 쿼리 시스템을 사용하지만, 그 자체가 쿼리로 구현되어 있지는 않습니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641104Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "As a consequence it does not automatically partake in dependency tracking.",
+      "source_hash": 17352499994127091808,
+      "context_hash": 316965897083668330,
+      "translation": "그 결과 의존성 추적에 자동으로 참여하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641105Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:2",
+      "source": "However, the manual integration with the tracking system is pretty straight-forward.",
+      "source_hash": 13468963510009657483,
+      "context_hash": 9690919940674120110,
+      "translation": "하지만 추적 시스템과의 수동 통합은 상당히 간단합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641105Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:3",
+      "source": "The compiler simply tracks what queries get invoked when generating the initial LLVM version of each codegen unit (CGU), which results in a dep-node for each CGU.",
+      "source_hash": 17964796772633703368,
+      "context_hash": 13845378763742477759,
+      "translation": "컴파일러는 각 코드 생성 단위(CGU)의 초기 LLVM 버전을 생성할 때 어떤 쿼리가 호출되는지를 단순히 추적하며, 그 결과로 각 CGU에 대한 의존성 노드가 생성됩니다.",
+      "glossary_snapshot": {
+        "codegen": "코드 생성",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:21.641105Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:4",
+      "source": "In subsequent compilation sessions it then tries to mark the dep-node for a CGU as green.",
+      "source_hash": 15637358299569444253,
+      "context_hash": 17672174020898331106,
+      "translation": "이후 컴파일 세션에서는 CGU의 의존성 노드를 초록색으로 표시하려고 시도합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:5",
+      "source": "If it succeeds, it knows that the corresponding object and bitcode files on disk are still valid.",
+      "source_hash": 9650321353842788670,
+      "context_hash": 746674383518815641,
+      "translation": "성공하면 디스크에 있는 해당 오브젝트 파일과 비트코드 파일이 여전히 유효하다는 것을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:6",
+      "source": "If it doesn't succeed, the entire CGU has to be recompiled.",
+      "source_hash": 15847533176488814814,
+      "context_hash": 113073973057420306,
+      "translation": "성공하지 못하면 해당 CGU 전체를 다시 컴파일해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "This is the same approach that is used for regular queries.",
+      "source_hash": 5972615688909643949,
+      "context_hash": 463677019882019550,
+      "translation": "이는 일반 쿼리에 사용되는 것과 동일한 접근 방식입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "The main differences are:",
+      "source_hash": 12649413012551057993,
+      "context_hash": 10876420513765458363,
+      "translation": "주요 차이점은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "that we cannot easily compute a fingerprint for LLVM modules (because they are opaque C++ objects),",
+      "source_hash": 7027741185231676537,
+      "context_hash": 9109563677586714289,
+      "translation": "LLVM 모듈에 대해서는 지문(fingerprint)을 쉽게 계산할 수 없다는 점입니다(불투명한 C++ 객체이기 때문입니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "that the logic for dealing with cached values is rather different from regular queries because here we have bitcode and object files instead of serialized Rust values in the common result cache file, and",
+      "source_hash": 2203549355166345623,
+      "context_hash": 2097254254009497092,
+      "translation": "캐시된 값을 처리하는 로직이 일반 쿼리와는 상당히 다르다는 점입니다. 여기서는 공통 결과 캐시 파일 내의 직렬화된 러스트 값 대신 비트코드와 오브젝트 파일을 다루기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "the operations around LLVM are so expensive in terms of computation time and memory consumption that we need to have tight control over what is executed when and what stays in memory for how long.",
+      "source_hash": 987581468403345787,
+      "context_hash": 6332435311391083494,
+      "translation": "LLVM 관련 작업은 계산 시간과 메모리 소비 측면에서 매우 비용이 크기 때문에, 언제 무엇이 실행되고 무엇이 얼마나 오래 메모리에 남아 있는지를 세밀하게 제어해야 한다는 점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641106Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "The query system could probably be extended with general purpose mechanisms to deal with all of the above but so far that seemed like more trouble than it would save.",
+      "source_hash": 2519947652564267844,
+      "context_hash": 9183924856028411457,
+      "translation": "쿼리 시스템은 아마도 위의 모든 사항을 다룰 수 있는 범용 메커니즘으로 확장될 수 있겠지만, 지금까지는 그렇게 하는 것이 절약되는 수고보다 더 번거로운 일로 보였습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641107Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Query modifiers",
+      "source_hash": 15368126165283098801,
+      "context_hash": 9678663298626202338,
+      "translation": "쿼리 수정자(Query modifiers)",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641107Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "FIXME: Make [`rustc_middle::query::modifiers`] the home for query modifier documentation, and migrate all other useful modifier docs there after verifying that they are still accurate.",
+      "source_hash": 8389586153857131654,
+      "context_hash": 5868103004739117935,
+      "translation": "FIXME: [`rustc_middle::query::modifiers`]를 쿼리 수정자 문서의 본거지로 만들고, 다른 유용한 수정자 문서가 여전히 정확한지 확인한 후 그곳으로 이전하십시오.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641107Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "The query system allows for applying [modifiers][mod] to queries.",
+      "source_hash": 16777766337157780167,
+      "context_hash": 8400418759630734805,
+      "translation": "쿼리 시스템은 쿼리에 [수정자][mod]를 적용할 수 있게 해줍니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641108Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "These modifiers affect certain aspects of how the system treats the query with respect to incremental compilation:",
+      "source_hash": 6447949241528850487,
+      "context_hash": 3303057097505863219,
+      "translation": "이러한 수정자는 점진적 컴파일과 관련하여 시스템이 해당 쿼리를 다루는 방식의 특정 측면에 영향을 미칩니다:",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641108Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "`eval_always` - A query with the `eval_always` attribute is re-executed unconditionally during incremental compilation.",
+      "source_hash": 5141839404215001243,
+      "context_hash": 8428235150589306577,
+      "translation": "`eval_always` - `eval_always` 속성이 붙은 쿼리는 점진적 컴파일 중에 무조건 다시 실행됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641109Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "I.e. the system will not even try to mark the query's dep-node as green.",
+      "source_hash": 4987128794548546078,
+      "context_hash": 3842651021062576904,
+      "translation": "즉, 시스템은 해당 쿼리의 의존성 노드를 초록색으로 표시하려는 시도조차 하지 않습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641109Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:2",
+      "source": "This attribute has two use cases:",
+      "source_hash": 1993576902947890681,
+      "context_hash": 9372662277915648867,
+      "translation": "이 속성에는 두 가지 사용 사례가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641110Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "`eval_always` queries can read inputs (from files, global state, etc).",
+      "source_hash": 10541845703773138845,
+      "context_hash": 2317735780110879912,
+      "translation": "`eval_always` 쿼리는 (파일, 전역 상태 등으로부터) 입력을 읽을 수 있습니다. 파일에 쓰거나 전역 상태를 변경하는 것과 같은 부작용을 발생시킬 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641110Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "They can also produce side effects like writing to files and changing global state.",
+      "source_hash": 9283094979827896755,
+      "context_hash": 6346473639259462331,
+      "translation": "파일에 쓰거나 전역 상태를 변경하는 것과 같은 부작용을 발생시킬 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641110Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "Some queries are very likely to be re-evaluated because their result depends on the entire source code.",
+      "source_hash": 14742221201177101213,
+      "context_hash": 7535459544100749811,
+      "translation": "일부 쿼리는 결과가 전체 소스 코드에 의존하기 때문에 다시 평가될 가능성이 매우 높습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641110Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "In this case `eval_always` can be used as an optimization because the system can skip recording dependencies in the first place.",
+      "source_hash": 2012231694002027359,
+      "context_hash": 16792471285403684861,
+      "translation": "이 경우 `eval_always`는 애초에 의존성 기록을 건너뛸 수 있게 해준다는 점에서 최적화로 사용될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641110Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "`no_force` - Never \"force\" the dep nodes for this query, even if the query's key type is recoverable.",
+      "source_hash": 5632972275848006012,
+      "context_hash": 10523759260776227760,
+      "translation": "`no_force` - 쿼리의 키 타입이 복구 가능하더라도 이 쿼리의 의존성 노드를 절대 \"강제(force)\"하지 않습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641110Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "`no_hash` - Applying `no_hash` to a query tells the system to not compute the fingerprint of the query's result.",
+      "source_hash": 2596337536175077689,
+      "context_hash": 1856091649783714851,
+      "translation": "`no_hash` - 쿼리에 `no_hash`를 적용하면 시스템이 해당 쿼리 결과의 지문을 계산하지 않도록 지시합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:21.641111Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:1",
+      "source": "This has two consequences:",
+      "source_hash": 1931486267849681296,
+      "context_hash": 2887512352082369275,
+      "translation": "이는 두 가지 결과를 가져옵니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641111Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Not computing the fingerprint can save quite a bit of time because fingerprinting is expensive, especially for large, complex values.",
+      "source_hash": 2916031328297477894,
+      "context_hash": 7858223368521262072,
+      "translation": "지문 계산을 하지 않으면 상당한 시간을 절약할 수 있는데, 특히 크고 복잡한 값의 경우 지문 계산이 비용이 많이 들기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:21.641111Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Without the fingerprint, the system has to unconditionally assume that the result of the query has changed.",
+      "source_hash": 11417192356917004987,
+      "context_hash": 6951447719170810822,
+      "translation": "지문(fingerprint)이 없으면 시스템은 쿼리의 결과가 변경되었다고 무조건 가정해야 합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806316Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:1",
+      "source": "As a consequence, anything depending on a `no_hash` query will always be re-executed.",
+      "source_hash": 365379489668778568,
+      "context_hash": 2048660865306073434,
+      "translation": "그 결과, `no_hash` 쿼리에 의존하는 모든 것은 항상 다시 실행됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806316Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "Using `no_hash` for a query can make sense in two circumstances:",
+      "source_hash": 12533083089364589204,
+      "context_hash": 8933334160713585113,
+      "translation": "쿼리에 `no_hash`를 사용하는 것은 두 가지 상황에서 의미가 있을 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806317Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "If the result of the query is very likely to change whenever one of its inputs changes, e.g. a function like `|a, b, c| -> (a * b * c)`.",
+      "source_hash": 8190376513098216583,
+      "context_hash": 2446090371036509962,
+      "translation": "쿼리의 입력값 중 하나가 변경될 때마다 결과도 변경될 가능성이 매우 높은 경우, 예를 들어 `|a, b, c| -> (a * b * c)`와 같은 함수인 경우입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806317Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:1",
+      "source": "In such a case recomputing the query will always yield a red node if one of the inputs is red so we can spare us the trouble and default to red immediately.",
+      "source_hash": 17301878898310631389,
+      "context_hash": 14066528140629541679,
+      "translation": "이런 경우 입력값 중 하나가 붉은색이면 쿼리를 재계산해도 항상 붉은색 노드가 나오므로, 그 수고를 덜고 기본적으로 즉시 붉은색으로 처리해도 됩니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806317Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:2",
+      "source": "A counter example would be a function like `|a| -> (a == 42)` where the result does not change for most changes of `a`.",
+      "source_hash": 1233142243625915999,
+      "context_hash": 14821241440795128667,
+      "translation": "반례로는 `|a| -> (a == 42)`와 같은 함수를 들 수 있는데, 이 경우 `a`가 대부분 변경되어도 결과는 변경되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806317Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "If the result of a query is a big, monolithic collection (e.g. `index_hir`) and there are \"projection queries\" reading from that collection (e.g. `hir_owner`).",
+      "source_hash": 8189324624409990290,
+      "context_hash": 214381059914119782,
+      "translation": "쿼리의 결과가 크고 단일화된(monolithic) 컬렉션(예: `index_hir`)이며, 그 컬렉션에서 읽어오는 \"프로젝션 쿼리(projection query)\"가 존재하는 경우입니다(예: `hir_owner`).",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806317Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:1",
+      "source": "In such a case the big collection will likely fulfill the condition above (any changed input means recomputing the whole collection) and the results of the projection queries will be hashed anyway.",
+      "source_hash": 12355733866857664743,
+      "context_hash": 2465298266466283381,
+      "translation": "이런 경우 큰 컬렉션은 위의 조건(입력값이 하나라도 변경되면 전체 컬렉션을 재계산해야 함)을 만족할 가능성이 높으며, 프로젝션 쿼리의 결과는 어차피 해시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806317Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:2",
+      "source": "If we also hashed the collection query, it would mean that we effectively hash the same data twice: once when hashing the collection and another time when hashing all the projection query results. `no_hash` allows us to avoid that redundancy and the projection queries act as a \"firewall\", shielding their dependents from the unconditionally red `no_hash` node.",
+      "source_hash": 11529293953126548966,
+      "context_hash": 13864206938226992390,
+      "translation": "컬렉션 쿼리도 해시한다면, 이는 사실상 같은 데이터를 두 번 해시하는 셈이 됩니다. 한 번은 컬렉션을 해시할 때, 또 한 번은 모든 프로젝션 쿼리 결과를 해시할 때입니다. `no_hash`는 이러한 중복을 피할 수 있게 해주며, 프로젝션 쿼리들은 \"방화벽\" 역할을 하여 무조건 붉은색으로 처리되는 `no_hash` 노드로부터 그 의존자들을 보호합니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "`cache_on_disk` - The query's return values are cached to disk, and can be loaded by subsequent sessions if the corresponding dep node is green.",
+      "source_hash": 16065399628310099197,
+      "context_hash": 10969041425551469872,
+      "translation": "`cache_on_disk` - 쿼리의 반환값이 디스크에 캐시되며, 해당 의존성 노드가 초록색인 경우 이후 세션에서 로드될 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:1",
+      "source": "If the `separate_provide_extern` modifier is also present, values will only be cached to disk for \"local\" keys, because values for external crates should be loadable from crate metadata instead.",
+      "source_hash": 11569384702450188873,
+      "context_hash": 14463160760005164541,
+      "translation": "`separate_provide_extern` 수식자도 함께 있는 경우, 값은 \"로컬\" 키에 대해서만 디스크에 캐시됩니다. 외부 크레이트의 값은 크레이트 메타데이터로부터 로드할 수 있어야 하기 때문입니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "`feedable` - The query is not actually a function, but its own arena type.",
+      "source_hash": 12041963096964783282,
+      "context_hash": 2109256753722365475,
+      "translation": "`feedable` - 이 쿼리는 실제로는 함수가 아니라 그 자체의 아레나(arena) 타입입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:1",
+      "source": "This is done to declare an arena, \"feed\" the information to store at a later point in the compilation (for example, when we actually have a `Crate` object available), and then retrieve it as any other crate.",
+      "source_hash": 412053758363514795,
+      "context_hash": 9395336635584745810,
+      "translation": "이는 아레나를 선언하고, 컴파일 과정 중 나중 시점에 저장할 정보를 \"공급(feed)\"한 다음(예를 들어 실제로 `Crate` 객체를 사용할 수 있게 되었을 때), 이를 다른 크레이트와 마찬가지로 조회하기 위해 이루어집니다.",
+      "glossary_snapshot": {
+        "crate": "크레이트"
+      },
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:2",
+      "source": "Thus, function definitions for these queries do not exist.",
+      "source_hash": 5757571665466950107,
+      "context_hash": 9831239163673230952,
+      "translation": "따라서 이러한 쿼리들에 대한 함수 정의는 존재하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "The projection query pattern",
+      "source_hash": 838188288329146656,
+      "context_hash": 1968570946461696190,
+      "translation": "프로젝션 쿼리 패턴",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "It's interesting to note that `eval_always` and `no_hash` can be used together in the so-called \"projection query\" pattern.",
+      "source_hash": 4923241078410867518,
+      "context_hash": 10314715553080366226,
+      "translation": "`eval_always`와 `no_hash`는 이른바 \"프로젝션 쿼리\" 패턴에서 함께 사용될 수 있다는 점이 흥미롭습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806318Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "It is often the case that there is one query that depends on the entirety of the compiler's input (e.g. the indexed HIR) and another query that projects individual values out of this monolithic value (e.g. a HIR item with a certain `DefId`).",
+      "source_hash": 13677594449772128771,
+      "context_hash": 2015040766740365957,
+      "translation": "컴파일러 입력 전체에 의존하는 하나의 쿼리(예: 인덱싱된 HIR)와, 이 단일화된 값에서 개별 값을 추출하는 또 다른 쿼리(예: 특정 `DefId`를 가진 HIR 아이템)가 존재하는 경우가 흔히 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:2",
+      "source": "These projection queries allow for building change propagation \"firewalls\" because even if the result of the monolithic query changes (which it is very likely to do) the small projections can still mostly be marked as green.",
+      "source_hash": 13446561824492472274,
+      "context_hash": 5092268155429806373,
+      "translation": "이러한 프로젝션 쿼리들은 변경 전파의 \"방화벽\"을 구축할 수 있게 해줍니다. 단일화된 쿼리의 결과가 변경되더라도(그럴 가능성이 매우 높음에도) 작은 프로젝션들은 대부분 여전히 초록색으로 표시될 수 있기 때문입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "Let's assume that the result `monolithic_query` changes so that also the result of `projection(x)` has changed, i.e. both their dep-nodes are being marked as red.",
+      "source_hash": 15839398202249527922,
+      "context_hash": 1534713899412406646,
+      "translation": "`monolithic_query`의 결과가 변경되어 `projection(x)`의 결과도 변경되었다고, 즉 둘의 의존성 노드가 모두 붉은색으로 표시되었다고 가정해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "As a consequence, `foo(a)` needs to be re-executed; but `bar(b)` and `baz(c)` can be marked as green.",
+      "source_hash": 9875710562550487692,
+      "context_hash": 10052393944509032664,
+      "translation": "그 결과 `foo(a)`는 다시 실행되어야 하지만, `bar(b)`와 `baz(c)`는 초록색으로 표시될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:2",
+      "source": "However, if `foo`, `bar`, and `baz` would have directly depended on `monolithic_query` then all of them would have had to be re-evaluated.",
+      "source_hash": 5827092547615525317,
+      "context_hash": 2644620773880770754,
+      "translation": "하지만 `foo`, `bar`, `baz`가 `monolithic_query`에 직접 의존했다면, 이들 모두 다시 평가되어야 했을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "This pattern works even without `eval_always` and `no_hash` but the two modifiers can be used to avoid unnecessary overhead.",
+      "source_hash": 8294586146895612987,
+      "context_hash": 10072588686989450102,
+      "translation": "이 패턴은 `eval_always`와 `no_hash` 없이도 작동하지만, 이 두 수식자를 사용하면 불필요한 오버헤드를 피할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "If the monolithic query is likely to change at any minor modification of the compiler's input it makes sense to mark it as `eval_always`, thus getting rid of its dependency tracking cost.",
+      "source_hash": 15639078410015104260,
+      "context_hash": 5434463846586516055,
+      "translation": "단일화된 쿼리가 컴파일러 입력의 사소한 수정에도 변경될 가능성이 높다면, 이를 `eval_always`로 표시하여 의존성 추적 비용을 없애는 것이 합리적입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:2",
+      "source": "And it always makes sense to mark the monolithic query as `no_hash` because we have the projections to take care of keeping things green as much as possible.",
+      "source_hash": 13595861643828545114,
+      "context_hash": 14462269643809639010,
+      "translation": "그리고 프로젝션들이 가능한 한 초록색을 유지하는 역할을 맡아주므로, 단일화된 쿼리를 `no_hash`로 표시하는 것은 언제나 합리적입니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:59:26.806319Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Shortcomings of the current system",
+      "source_hash": 7054388821077874432,
+      "context_hash": 5236461038059168241,
+      "translation": "현재 시스템의 단점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806320Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "There are many things that still can be improved.",
+      "source_hash": 15008059560986397951,
+      "context_hash": 5936325697005570703,
+      "translation": "아직 개선할 수 있는 부분이 많이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806320Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Incrementality of on-disk data structures",
+      "source_hash": 10238324812842422608,
+      "context_hash": 1046418128127963817,
+      "translation": "디스크상 데이터 구조의 증분성(incrementality)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806320Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "The current system is not able to update on-disk caches and the dependency graph in-place.",
+      "source_hash": 7835399450587158251,
+      "context_hash": 11680785525472102161,
+      "translation": "현재 시스템은 디스크상 캐시와 의존성 그래프를 제자리(in-place)에서 갱신할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806320Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "Instead, it has to rewrite each file entirely in each compilation session.",
+      "source_hash": 17412143795317346451,
+      "context_hash": 7380094316602857126,
+      "translation": "대신 각 컴파일 세션마다 각 파일을 전체적으로 다시 작성해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806320Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:2",
+      "source": "The overhead of doing so is a few percent of total compilation time.",
+      "source_hash": 10492535718187584231,
+      "context_hash": 15310494622707929877,
+      "translation": "이로 인한 오버헤드는 전체 컴파일 시간의 몇 퍼센트 정도입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806320Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Unnecessary data dependencies",
+      "source_hash": 17406282351486276517,
+      "context_hash": 13751470585349752254,
+      "translation": "불필요한 데이터 의존성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:59:26.806320Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "Data structures used as query results could be factored in a way that removes edges from the dependency graph.",
+      "source_hash": 16544916905972812635,
+      "context_hash": 16935591521014701728,
+      "translation": "쿼리 결과로 사용되는 데이터 구조는 의존성 그래프에서 엣지를 제거하는 방식으로 구성될 수 있습니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:58:03.655709Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:1",
+      "source": "Especially \"span\" information is very volatile, so including it in query result will increase the chance that the result won't be reusable.",
+      "source_hash": 6573357177954684427,
+      "context_hash": 15727269083920341524,
+      "translation": "특히 \"span\" 정보는 매우 변동성이 커서, 이를 쿼리 결과에 포함시키면 결과를 재사용할 수 없게 될 가능성이 높아집니다.",
+      "glossary_snapshot": {
+        "query": "쿼리"
+      },
+      "translated_at": "2026-09-12T00:58:03.655709Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:2",
+      "source": "See <https://github.com/rust-lang/rust/issues/47389> for more information.",
+      "source_hash": 5347248504287702650,
+      "context_hash": 40443124463912509,
+      "translation": "자세한 내용은 <https://github.com/rust-lang/rust/issues/47389>를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T00:58:03.655710Z",
+      "issues": []
+    }
+  ]
+}
