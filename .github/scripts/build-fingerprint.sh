@@ -49,6 +49,12 @@ fingerprint_input() {
     echo "none"
   fi
 
+  # HoTT's shared index dictionary is a generated PDF input outside ko/.
+  if [ -d "$project_dir/ko-index" ]; then
+    echo "ko-index:"
+    find "$project_dir/ko-index" -type f -exec sha256sum {} + | LC_ALL=C sort
+  fi
+
   if [ "$daily" = "--daily" ]; then
     echo "date:${YEOKJA_FINGERPRINT_DATE:-$(date -u +%F)}"
   fi

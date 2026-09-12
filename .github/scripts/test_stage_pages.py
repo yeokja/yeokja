@@ -42,6 +42,7 @@ class StagePagesTests(unittest.TestCase):
         )
 
     def add_required_artifacts(self) -> None:
+        self.write(self.artifacts / "dist-hott-pdf" / "HoTT-ko.pdf", "hott pdf")
         self.add_site_artifact("dist-devguide", "devguide")
         self.write(
             self.artifacts
@@ -95,8 +96,16 @@ class StagePagesTests(unittest.TestCase):
             "required chisel-book PDF is missing from the staged tree", result.stderr
         )
 
+    def test_missing_hott_pdf_prevents_publishing_a_broken_link(self) -> None:
+        self.add_site_artifact("dist-devguide", "devguide")
+        self.write(self.artifacts / "dist-chisel-book-pdf" / "Digital-Design-with-Chisel-ko.pdf", "pdf")
+        result = self.run_stage()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("required HoTT PDF is missing", result.stderr)
+
     def test_required_files_preserved_from_published_tree_suffice(self) -> None:
         # plan 잡이 빌드를 건너뛰면 산출물은 없지만 보존된 트리에 이미 있습니다.
+        self.write(self.site / "hott" / "HoTT-ko.pdf", "published hott")
         self.write(self.site / "devguide" / "index.html", "published devguide")
         self.write(
             self.site / "chisel-book" / "Digital-Design-with-Chisel-ko.pdf",
@@ -122,6 +131,7 @@ class StagePagesTests(unittest.TestCase):
         for artifact in (
             "dist-devguide",
             "dist-chisel-book-pdf",
+            "dist-hott-pdf",
             "dist-mil",
             "dist-napkin-pdf",
             "dist-pypy",
@@ -138,6 +148,7 @@ class StagePagesTests(unittest.TestCase):
         for artifact in (
             "dist-devguide",
             "dist-chisel-book-pdf",
+            "dist-hott-pdf",
             "dist-mil",
             "dist-napkin-pdf",
             "dist-pypy",
@@ -289,6 +300,18 @@ class StagePagesTests(unittest.TestCase):
             (self.site / "napkin" / "Napkin-ko.epub").read_text(encoding="utf-8"),
             "new epub",
         )
+
+    def test_hott_pdf_is_published_and_preserved_on_cached_build(self) -> None:
+        self.add_required_artifacts()
+        self.write(self.artifacts / "dist-hott-pdf" / "HoTT-ko.pdf", "Korean HoTT")
+        result = self.run_stage()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.site / "hott" / "HoTT-ko.pdf").read_text(), "Korean HoTT")
+        (self.artifacts / "dist-hott-pdf" / "HoTT-ko.pdf").unlink()
+        (self.artifacts / "dist-hott-pdf").rmdir()
+        result = self.run_stage()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.site / "hott" / "HoTT-ko.pdf").read_text(), "Korean HoTT")
 
     def test_chisel_book_artifact_refreshes_pdf_download(self) -> None:
         self.add_required_artifacts()

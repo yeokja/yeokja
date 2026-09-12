@@ -1,0 +1,173 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+[[sources]]
+path = "upstream"
+pattern = "front.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "frontpage.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "preface.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "introduction.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "preliminaries.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "basics.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "logic.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "equivalences.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "induction.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "hits.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "hlevels.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "homotopy.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "categories.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "setmath.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "reals.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "formal.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "symbols.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "back.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+[[sources]]
+path = "upstream"
+pattern = "blurb.tex"
+parser = "latex-extended"
+output = "ko/{path}"
+
+# Canonical subject-index display terms, translated once across all occurrences.
+[[sources]]
+path = "index"
+pattern = "terms.tex"
+parser = "latex-extended"
+output = "ko-index/{path}"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[[derive.step]]
+kind = "patch"
+file = "patches/korean-localization.patch"
+
+[[derive.step]]
+kind = "generate"
+command = 'python3 "$YEOKJA_ROOT/scripts/prepare_pdf.py"'
+
+[[derive.step]]
+kind = "generate"
+command = 'python3 "$YEOKJA_ROOT/scripts/index_terms.py" apply'
+
+[build.pdf]
+command = '''
+set -eu
+printf '\\newcommand{\\OPTversion}{%s}\n' "$(git -C "$YEOKJA_ROOT/upstream" rev-parse --short=12 HEAD)-ko" > version.tex
+latexmk -xelatex -interaction=nonstopmode -halt-on-error hott-online.tex
+if grep -Eq 'Missing character:|There were undefined references|multiply defined' hott-online.log; then
+  echo "PDF validation failed: missing glyphs or unresolved references" >&2
+  exit 1
+fi
+cp hott-online.pdf HoTT-ko.pdf
+'''
+outputs = ["HoTT-ko.pdf"]
+dist = "output/pdf"
+
+[provider]
+type = "codex"
+model = "gpt-6-astra"
+reasoning_effort = "medium"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 24

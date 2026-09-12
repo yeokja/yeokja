@@ -35,6 +35,15 @@ case "$project" in
     "$yeokja" translate ui
     python3 scripts/prepare_ui.py
     ;;
+  hott)
+    # Check every configured source before reconstruction; CI must not call a provider.
+    python3 scripts/index_terms.py extract
+    "$yeokja" status --check index
+    "$yeokja" status --check upstream
+    "$yeokja" translate index
+    "$yeokja" translate upstream
+    "$yeokja" status --check upstream
+    ;;
   devguide|learn-fpga)
     "$yeokja" translate upstream
     "$yeokja" status --check upstream

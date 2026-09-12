@@ -176,9 +176,7 @@ impl TranslationEvaluator for FormatEvaluator {
             }
 
             let broken = rst_broken_bracket_references(&context.translation);
-            if !broken.is_empty()
-                && rst_broken_bracket_references(&context.source).is_empty()
-            {
+            if !broken.is_empty() && rst_broken_bracket_references(&context.source).is_empty() {
                 issues.push(EvaluationIssue {
                     severity: IssueSeverity::Error,
                     kind: IssueKind::FormatLost,
@@ -219,13 +217,15 @@ impl TranslationEvaluator for FormatEvaluator {
         if context.markup == Markup::Latex {
             let mut source = latex_structure(&context.source);
             let mut translation = latex_structure(&context.translation);
+            let groups_preserved =
+                latex_group_balance(&source) == latex_group_balance(&translation);
             // Korean grammar routinely moves a displayed term or reference to
             // another part of the sentence. The safety property is that every
             // structural token survives byte-for-byte, including duplicates;
             // their prose-level order is not itself LaTeX syntax.
             source.sort_unstable();
             translation.sort_unstable();
-            if !is_multiset_subset(&source, &translation) {
+            if !groups_preserved || !is_multiset_subset(&source, &translation) {
                 issues.push(EvaluationIssue {
                     severity: IssueSeverity::Error,
                     kind: IssueKind::FormatLost,
@@ -415,6 +415,19 @@ fn constrained_marks(markup: Markup) -> &'static [(char, &'static str)] {
     }
 }
 
+fn latex_group_balance(tokens: &[String]) -> (i64, i64) {
+    let (mut depth, mut minimum) = (0, 0);
+    for token in tokens {
+        match token.as_str() {
+            "syntax:{" => depth += 1,
+            "syntax:}" => depth -= 1,
+            _ => {}
+        }
+        minimum = minimum.min(depth);
+    }
+    (depth, minimum)
+}
+
 /// LaTeX syntax whose spelling is independent of the visible prose around it.
 ///
 /// The evaluator compares the resulting tokens as a multiset: Korean sentence
@@ -513,21 +526,22 @@ fn latex_structure(text: &str) -> Vec<String> {
                 continue;
             }
             tokens.push(format!("command:{}", &text[start..at]));
-            if latex_opaque_argument_command(command) {
+            if let Some(arguments) = latex_reference_arguments(command) {
                 while let Some(end) = latex_argument_end(text, at, b'[', b']') {
                     tokens.push(format!("opaque:{}", &text[at..end]));
                     at = end;
                 }
-                if let Some(end) = latex_argument_end(text, at, b'{', b'}') {
-                    tokens.push(format!("opaque:{}", &text[at..end]));
-                    at = end;
+                // Keep a range's endpoints together: sorting independent
+                // argument tokens would accept a reversed reference range.
+                let arguments_start = at;
+                for _ in 0..arguments {
+                    if let Some(end) = latex_argument_end(text, at, b'{', b'}') {
+                        at = end;
+                    }
                 }
-            } else if command == "href"
-                && let Some(end) = latex_argument_end(text, at, b'{', b'}')
-            {
-                // The destination is semantic; the following visible label is prose.
-                tokens.push(format!("opaque:{}", &text[at..end]));
-                at = end;
+                if at > arguments_start {
+                    tokens.push(format!("opaque:{}", &text[arguments_start..at]));
+                }
             }
             continue;
         }
@@ -623,24 +637,55 @@ fn is_escaped(bytes: &[u8], at: usize) -> bool {
     slashes % 2 == 1
 }
 
-fn latex_opaque_argument_command(command: &str) -> bool {
-    matches!(
-        command,
-        "Cref"
-            | "cref"
-            | "cite"
-            | "citeauthor"
-            | "citep"
-            | "citet"
-            | "eqref"
-            | "include"
-            | "includegraphics"
-            | "input"
-            | "label"
-            | "pageref"
-            | "ref"
-            | "url"
-    )
+fn latex_reference_arguments(command: &str) -> Option<usize> {
+    match command {
+        "crefrange" | "Crefrange" | "cpagerefrange" | "Cpagerefrange" => Some(2),
+        "hyperref" => Some(0),       // optional target, then a visible label
+        "narrowequation" => Some(1), // HoTT's inline/display math wrapper
+        "Cref" | "cref" | "cite" | "citeauthor" | "citep" | "citet" | "eqref" | "include"
+        | "includegraphics" | "input" | "label" | "symlabel" | "pageref" | "ref" | "url"
+        | "href" => Some(1),
+        _ => None,
+    }
+}
+
+/// Reference keys and URL destinations are identifiers, not glossary prose.
+/// Keep visible link labels and all surrounding text available for checking.
+pub(crate) fn without_latex_reference_arguments(text: &str) -> String {
+    let mut output = String::new();
+    let mut at = 0;
+    while at < text.len() {
+        if text.as_bytes()[at] == b'\\' {
+            let start = at;
+            at += 1;
+            while text.as_bytes().get(at).is_some_and(u8::is_ascii_alphabetic) {
+                at += 1;
+            }
+            let command = &text[start + 1..at];
+            if let Some(arguments) = latex_reference_arguments(command).or(match command {
+                "index" | "indexdef" | "indexfoot" => Some(1),
+                "indexsee" => Some(2),
+                _ => None,
+            }) {
+                while let Some(end) = latex_argument_end(text, at, b'[', b']') {
+                    at = end;
+                }
+                for _ in 0..arguments {
+                    if let Some(end) = latex_argument_end(text, at, b'{', b'}') {
+                        at = end;
+                    }
+                }
+                output.push(' ');
+            } else {
+                output.push_str(&text[start..at]);
+            }
+            continue;
+        }
+        let ch = text[at..].chars().next().unwrap();
+        output.push(ch);
+        at += ch.len_utf8();
+    }
+    output
 }
 
 fn latex_argument_end(text: &str, mut at: usize, open: u8, close: u8) -> Option<usize> {
@@ -1191,14 +1236,10 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
         && matches!(
             line_start_construct(translation),
             Some("an attribute entry (`:name:`)") | Some("a block title (`.`)")
-        )
-    {
+        ) {
         let trimmed = translation.trim_start();
         let indent_len = translation.len() - trimmed.len();
-        repaired_line_start = format!(
-            "{}관련 {trimmed}",
-            &translation[..indent_len]
-        );
+        repaired_line_start = format!("{}관련 {trimmed}", &translation[..indent_len]);
         repaired_line_start.as_str()
     } else {
         translation
@@ -1219,11 +1260,7 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
         }
         for (byte_at, _) in translation.match_indices(url) {
             let byte_end = byte_at + url.len();
-            if translation[byte_end..]
-                .chars()
-                .next()
-                .is_some_and(is_word)
-            {
+            if translation[byte_end..].chars().next().is_some_and(is_word) {
                 insertions.insert(translation[..byte_end].chars().count());
             }
         }
@@ -1273,7 +1310,8 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
                 insertions.insert(span.end);
             }
         }
-        let run_len = |at: usize, mark: char| chars[at..].iter().take_while(|c| **c == mark).count();
+        let run_len =
+            |at: usize, mark: char| chars[at..].iter().take_while(|c| **c == mark).count();
         for mark in ['`', '*'] {
             let mut open: Option<(usize, usize)> = None;
             let mut at = 0usize;
@@ -1339,9 +1377,8 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
     if insertions.is_empty() && removals.is_empty() && spaces.is_empty() {
         return translation.to_string();
     }
-    let mut repaired = String::with_capacity(
-        translation.len() + insertions.len() * 2 + spaces.len(),
-    );
+    let mut repaired =
+        String::with_capacity(translation.len() + insertions.len() * 2 + spaces.len());
     for boundary in 0..=chars.len() {
         if spaces.contains(&boundary) {
             repaired.push(' ');
@@ -1595,7 +1632,6 @@ mod tests {
         );
         let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed, "{:?}", result.issues);
-
     }
 
     #[tokio::test]
@@ -1607,7 +1643,6 @@ mod tests {
         );
         let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed, "{:?}", result.issues);
-
     }
 
     #[test]
@@ -1756,7 +1791,6 @@ mod tests {
         );
         let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed, "{:?}", result.issues);
-
     }
 
     /// A mark with a word against its left opens nothing, so this emphasis is
@@ -1960,7 +1994,10 @@ mod tests {
             "관련 :pep:`252`\\ 에서 설명한 것처럼 디스크립터에는 get 메서드가 있습니다."
         );
         assert_eq!(
-            repair_rst_boundaries("The .NET platform is supported.", ".NET 플랫폼을 지원합니다."),
+            repair_rst_boundaries(
+                "The .NET platform is supported.",
+                ".NET 플랫폼을 지원합니다."
+            ),
             "관련 .NET 플랫폼을 지원합니다."
         );
     }
@@ -2327,5 +2364,42 @@ mod tests {
         let ctx = context_in(Markup::Latex, "A ``group''.", "어떤 ‘군’입니다.");
         let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed, "{:?}", result.issues);
+    }
+    #[tokio::test]
+    async fn latex_range_references_preserve_both_targets() {
+        let ctx = context_in(
+            Markup::Latex,
+            r"See \crefrange{sec:first}{sec:last}.",
+            r"\crefrange{sec:first}{sec:changed}를 보십시오.",
+        );
+        assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+    #[tokio::test]
+    async fn latex_range_references_preserve_endpoint_order() {
+        let ctx = context_in(
+            Markup::Latex,
+            r"See \crefrange{sec:first}{sec:last}.",
+            r"\crefrange{sec:last}{sec:first}를 보십시오.",
+        );
+        assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+    #[tokio::test]
+    async fn latex_math_macros_cannot_absorb_translated_prose() {
+        let ctx = context_in(
+            Markup::Latex,
+            r"The pair \narrowequation{(a,b):A} has a second component.",
+            r"쌍 \narrowequation{(a,b):A의 두 번째 성분}이 있습니다.",
+        );
+        assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+    #[tokio::test]
+    async fn latex_rejects_extra_or_reversed_group_delimiters() {
+        for translation in [
+            r"\cref{thm:main}}에 의해 성립합니다.",
+            r"}\cref{thm:main}{에 의해 성립합니다.",
+        ] {
+            let ctx = context_in(Markup::Latex, r"By \cref{thm:main}, it holds.", translation);
+            assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+        }
     }
 }

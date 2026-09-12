@@ -14,6 +14,8 @@ impl TranslationEvaluator for GlossaryEvaluator {
 
         let source = if context.markup == Markup::Verso {
             without_verso_role_headers(&context.source)
+        } else if context.markup == Markup::Latex {
+            crate::evaluator_format::without_latex_reference_arguments(&context.source)
         } else {
             context.source.clone()
         };
@@ -70,9 +72,7 @@ fn without_verso_role_headers(text: &str) -> String {
                 .chars()
                 .next()
                 .is_some_and(|ch| ch.is_ascii_alphabetic());
-            if starts_as_role
-                && let Some(close_offset) = text[name_start..].find('}')
-            {
+            if starts_as_role && let Some(close_offset) = text[name_start..].find('}') {
                 let end = name_start + close_offset + 1;
                 output.push_str(&text[copied_through..at]);
                 copied_through = end;
@@ -149,11 +149,7 @@ mod tests {
 
     #[tokio::test]
     async fn passes_when_term_not_in_source() {
-        let ctx = make_context(
-            "Hello world.",
-            "안녕 세계.",
-            vec![("repository", "저장소")],
-        );
+        let ctx = make_context("Hello world.", "안녕 세계.", vec![("repository", "저장소")]);
         let result = GlossaryEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed);
     }
@@ -181,6 +177,18 @@ mod tests {
         assert!(GlossaryEvaluator.evaluate(&ctx).await.unwrap().passed);
 
         ctx.translation = "이 추상화는 {anchorName Monad}`Monad`를 사용합니다.".to_string();
+        assert!(!GlossaryEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+    #[tokio::test]
+    async fn latex_reference_keys_are_not_glossary_prose() {
+        let mut ctx = make_context(
+            r"See \cref{sec:compute-universe}, \crefrange{sec:path}{sec:universe}, and \href{https://example.org/universe}{this chapter}.",
+            r"\cref{sec:compute-universe}, \crefrange{sec:path}{sec:universe} 및 \href{https://example.org/universe}{이 장}을 보십시오.",
+            vec![("universe", "유니버스"), ("path", "경로")],
+        );
+        ctx.markup = Markup::Latex;
+        assert!(GlossaryEvaluator.evaluate(&ctx).await.unwrap().passed);
+        ctx.source.push_str(" The universe contains this path.");
         assert!(!GlossaryEvaluator.evaluate(&ctx).await.unwrap().passed);
     }
 }

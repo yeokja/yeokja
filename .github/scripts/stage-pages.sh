@@ -109,6 +109,7 @@ overlay_site "dist-napkin-html" "site" "napkin"
 overlay_download "dist-napkin-pdf" "Napkin-ko.pdf"
 overlay_download "dist-napkin-epub" "Napkin-ko.epub"
 overlay_download "dist-chisel-book-pdf" "Digital-Design-with-Chisel-ko.pdf" "chisel-book"
+overlay_download "dist-hott-pdf" "HoTT-ko.pdf" "hott"
 overlay_site "dist-devguide" "site" "devguide"
 overlay_site "dist-rust-forge" "site" "rust-forge"
 overlay_site "dist-component-docs" "site" "component-docs"
@@ -126,3 +127,5 @@ test -s "$site_dir/devguide/index.html" || \
   fail "required devguide site is missing from the staged tree"
 test -s "$site_dir/chisel-book/Digital-Design-with-Chisel-ko.pdf" || \
   fail "required chisel-book PDF is missing from the staged tree"
+test -s "$site_dir/hott/HoTT-ko.pdf" || \
+  fail "required HoTT PDF is missing from the staged tree"

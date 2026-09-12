@@ -14,6 +14,10 @@ use yeokja_parser_utils::{apply_splices, join_segments_with_translations};
 /// require their exact preservation.
 pub struct LatexParser;
 
+/// Opt-in coverage for theorem aliases, description labels, equation reasons,
+/// and parbox text. Existing `latex` projects retain stable segment identities.
+pub struct ExtendedLatexParser;
+
 const OPAQUE_ENVIRONMENTS: &[&str] = &[
     "align",
     "align*",
@@ -90,6 +94,10 @@ const VISIBLE_TEXT_COMMANDS: &[&str] = &[
     "vocab",
 ];
 
+const EXTENDED_TITLED_ENVIRONMENTS: &[&str] = &[
+    "thm", "lem", "cor", "defn", "ex", "eg", "egs", "rmk", "axiom", "notes",
+];
+
 const TITLED_ENVIRONMENTS: &[&str] = &[
     "abuse",
     "claim",
@@ -123,6 +131,7 @@ struct PendingBlock {
 }
 
 struct Builder<'a> {
+    extended: bool,
     source: &'a str,
     sections: Vec<Section>,
     section_idx: usize,
@@ -133,8 +142,9 @@ struct Builder<'a> {
 }
 
 impl<'a> Builder<'a> {
-    fn new(source: &'a str) -> Self {
+    fn new(source: &'a str, extended: bool) -> Self {
         Self {
+            extended,
             source,
             sections: vec![Section { blocks: Vec::new() }],
             section_idx: 0,
@@ -189,7 +199,7 @@ impl<'a> Builder<'a> {
         let raw = &self.source[span.clone()];
         let masked = mask_comments(raw).0;
         let normalized = normalize_latex_text(&masked);
-        if !has_visible_prose(&normalized) {
+        if !has_visible_prose(&normalized, self.extended) {
             return;
         }
         let segment = Segment {
@@ -222,64 +232,114 @@ impl<'a> Builder<'a> {
 
 impl DocumentParser for LatexParser {
     fn parse(&self, source: &str) -> Document {
-        let mut builder = Builder::new(source);
-        let mut line_start = 0usize;
-
-        for line in source.split_inclusive('\n') {
-            let content = line.strip_suffix('\n').unwrap_or(line);
-            parse_line(&mut builder, content, line_start);
-            line_start += line.len();
-        }
-        if line_start < source.len() {
-            parse_line(&mut builder, &source[line_start..], line_start);
-        }
-
-        let mut document = builder.finish();
-        append_visible_text_arguments(&mut document);
-        document
+        parse_latex(source, false)
     }
-
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
-        let mut splices = Vec::new();
-        for section in &document.sections {
-            for block in &section.blocks {
-                let Some(span) = &block.span else {
-                    continue;
-                };
-                if !block.translatable
-                    || !block
-                        .segments
-                        .iter()
-                        .any(|segment| translations.contains_key(&segment.id))
-                {
-                    continue;
-                }
-                let translated = join_segments_with_translations(&block.segments, translations);
-                let raw = &document.source[span.clone()];
-                let (_, comments) = mask_comments(raw);
-                splices.push((span.clone(), restore_comments(translated, &comments)));
-            }
-        }
-        let reconstructed = apply_splices(&document.source, splices);
-        let replacements: HashMap<_, _> = document
-            .sections
-            .iter()
-            .flat_map(|section| &section.blocks)
-            .filter(|block| block.span.is_none() && block.block_type == BlockType::Table)
-            .flat_map(|block| &block.segments)
-            .filter_map(|segment| {
-                translations
-                    .get(&segment.id)
-                    .map(|translation| (segment.source.as_str(), translation.as_str()))
-            })
-            .collect();
-        let refined = replace_visible_text_arguments(&reconstructed, &replacements);
-        disambiguate_korean_after_control_words(&refined)
+        reconstruct_latex(document, translations, false)
     }
-
     fn markup(&self) -> Markup {
         Markup::Latex
     }
+}
+
+impl DocumentParser for ExtendedLatexParser {
+    fn parse(&self, source: &str) -> Document {
+        parse_latex(source, true)
+    }
+    fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
+        reconstruct_latex(document, translations, true)
+    }
+    fn markup(&self) -> Markup {
+        Markup::Latex
+    }
+}
+
+fn parse_latex(source: &str, extended: bool) -> Document {
+    let mut builder = Builder::new(source, extended);
+    let mut line_start = 0usize;
+    let math_commands: Vec<_> = if extended {
+        source
+            .match_indices("\\narrowequation")
+            .filter_map(|(start, _)| {
+                let line_start = source[..start].rfind('\n').map_or(0, |at| at + 1);
+                if source[line_start..start]
+                    .match_indices('%')
+                    .any(|(at, _)| !is_escaped(source.as_bytes(), line_start + at))
+                {
+                    return None;
+                }
+                let (command, end) = leading_command(&source[start..])?;
+                if command != "narrowequation" {
+                    return None;
+                }
+                let argument = mandatory_argument(source, start + end)?;
+                Some(start..argument.end + 1)
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    for line in source.split_inclusive('\n') {
+        let content = line.strip_suffix('\n').unwrap_or(line);
+        if math_commands
+            .iter()
+            .any(|span| span.start < line_start && span.end > line_start)
+        {
+            let kind = builder
+                .pending
+                .map_or(BlockType::Paragraph, |block| block.block_type);
+            builder.add_text(line_start..line_start + content.len(), kind);
+        } else {
+            parse_line(&mut builder, content, line_start);
+        }
+        line_start += line.len();
+    }
+    if line_start < source.len() {
+        parse_line(&mut builder, &source[line_start..], line_start);
+    }
+
+    let mut document = builder.finish();
+    append_visible_text_arguments(&mut document, extended);
+    document
+}
+
+fn reconstruct_latex(document: &Document, translations: &TranslationMap, extended: bool) -> String {
+    let mut splices = Vec::new();
+    for section in &document.sections {
+        for block in &section.blocks {
+            let Some(span) = &block.span else {
+                continue;
+            };
+            if !block.translatable
+                || !block
+                    .segments
+                    .iter()
+                    .any(|segment| translations.contains_key(&segment.id))
+            {
+                continue;
+            }
+            let translated = join_segments_with_translations(&block.segments, translations);
+            let raw = &document.source[span.clone()];
+            let (_, comments) = mask_comments(raw);
+            splices.push((span.clone(), restore_comments(translated, &comments)));
+        }
+    }
+    let reconstructed = apply_splices(&document.source, splices);
+    let replacements: HashMap<_, _> = document
+        .sections
+        .iter()
+        .flat_map(|section| &section.blocks)
+        .filter(|block| block.span.is_none() && block.block_type == BlockType::Table)
+        .flat_map(|block| &block.segments)
+        .filter_map(|segment| {
+            translations
+                .get(&segment.id)
+                .map(|translation| (segment.source.as_str(), translation.as_str()))
+        })
+        .collect();
+    let refined = replace_visible_text_arguments(&reconstructed, &replacements, extended);
+    disambiguate_korean_after_control_words(&refined)
 }
 
 fn parse_line(builder: &mut Builder<'_>, line: &str, base: usize) {
@@ -310,7 +370,16 @@ fn parse_line(builder: &mut Builder<'_>, line: &str, base: usize) {
 
     if leading_command(trimmed).is_some_and(|(command, _)| command == "begin")
         && let Some((environment, _, _)) = first_environment_command(trimmed, "begin")
-        && is_opaque_environment(environment)
+        && (is_opaque_environment(environment)
+            || builder.extended
+                && matches!(
+                    environment,
+                    "narrowmultline"
+                        | "narrowmultline*"
+                        | "mathpar"
+                        | "mathparpagebreakable"
+                        | "displaymath"
+                ))
     {
         builder.flush();
         update_opaque_stack(trimmed, &mut builder.opaque);
@@ -335,6 +404,30 @@ fn parse_line(builder: &mut Builder<'_>, line: &str, base: usize) {
     }
 
     if let Some((command, command_end)) = leading_command(trimmed) {
+        // Index and label directives may sit in the middle of one sentence.
+        // Leave a pending span open so the next prose line includes the intervening
+        // directives instead of turning each half into a separate translation.
+        if builder.extended
+            && matches!(
+                command,
+                "index" | "indexdef" | "indexfoot" | "indexsee" | "label" | "symlabel"
+            )
+        {
+            let mut at = command_end;
+            for _ in 0..if command == "indexsee" { 2 } else { 1 } {
+                if let Some(argument) = mandatory_argument(trimmed, at) {
+                    at = argument.end + 1;
+                }
+            }
+            let tail = trimmed[at..].trim_start();
+            if !tail.is_empty() && !tail.starts_with('%') {
+                let kind = builder
+                    .pending
+                    .map_or(BlockType::Paragraph, |block| block.block_type);
+                builder.add_text((base + trimmed_start)..(base + trimmed_end), kind);
+            }
+            return;
+        }
         if let Some((_, level)) = TITLE_COMMANDS.iter().find(|(name, _)| *name == command) {
             builder.flush();
             if *level <= 2 {
@@ -387,11 +480,34 @@ fn parse_line(builder: &mut Builder<'_>, line: &str, base: usize) {
         if command == "begin" {
             builder.flush();
             if let Some((environment, _, after)) = first_environment_command(trimmed, "begin")
-                && TITLED_ENVIRONMENTS.contains(&environment)
-                && let Some(title) = optional_argument(trimmed, after)
+                && (TITLED_ENVIRONMENTS.contains(&environment)
+                    || builder.extended && EXTENDED_TITLED_ENVIRONMENTS.contains(&environment))
             {
-                let span = (base + trimmed_start + title.start)..(base + trimmed_start + title.end);
-                builder.push_span(span, BlockType::Heading, Some(5));
+                let mut at = after;
+                if let Some(title) = optional_argument(trimmed, at) {
+                    let span =
+                        (base + trimmed_start + title.start)..(base + trimmed_start + title.end);
+                    builder.push_span(span, BlockType::Heading, Some(5));
+                    at = title.end + 1;
+                }
+                if !builder.extended {
+                    return;
+                }
+                // Labels on the opening line are structure; prose after them
+                // belongs to the theorem body, including its following lines.
+                loop {
+                    at += trimmed[at..].len() - trimmed[at..].trim_start().len();
+                    if let Some(("label", end)) = leading_command(&trimmed[at..])
+                        && let Some(label) = mandatory_argument(trimmed, at + end)
+                    {
+                        at = label.end + 1;
+                    } else {
+                        break;
+                    }
+                }
+                if at < trimmed.len() {
+                    parse_line(builder, &trimmed[at..], base + trimmed_start + at);
+                }
             }
             return;
         }
@@ -405,6 +521,13 @@ fn parse_line(builder: &mut Builder<'_>, line: &str, base: usize) {
             builder.flush();
             let mut at = command_end;
             if let Some(label) = optional_argument(trimmed, at) {
+                if builder.extended && has_english_fragment(&trimmed[label.clone()]) {
+                    builder.push_span(
+                        (base + trimmed_start + label.start)..(base + trimmed_start + label.end),
+                        BlockType::Heading,
+                        Some(5),
+                    );
+                }
                 at = label.end + 1;
             }
             let rest = &trimmed[at..];
@@ -649,7 +772,7 @@ fn normalize_latex_text(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-fn has_visible_prose(text: &str) -> bool {
+fn has_visible_prose(text: &str, extended: bool) -> bool {
     let bytes = text.as_bytes();
     let mut at = 0usize;
     let mut math_delimiter: Option<&str> = None;
@@ -690,7 +813,7 @@ fn has_visible_prose(text: &str) -> bool {
                 at += 1;
             }
             let command = &text[command_start..at];
-            if opaque_argument_command(command) {
+            if opaque_argument_command(command) || extended && command == "narrowequation" {
                 while let Some(argument) = optional_argument(text, at) {
                     at = argument.end + 1;
                 }
@@ -739,8 +862,8 @@ fn opaque_argument_command(command: &str) -> bool {
 /// by `replace_visible_text_arguments` after ordinary paragraph splices have
 /// been applied, so they can safely refine text nested inside a translated
 /// paragraph without creating overlapping source edits.
-fn append_visible_text_arguments(document: &mut Document) {
-    let arguments = visible_text_arguments(&document.source);
+fn append_visible_text_arguments(document: &mut Document, extended: bool) {
+    let arguments = visible_text_arguments(&document.source, extended);
     let table_cells = table_cell_spans(&document.source);
     if arguments.is_empty() && table_cells.is_empty() {
         return;
@@ -772,7 +895,7 @@ fn append_visible_text_arguments(document: &mut Document) {
     for span in table_cells {
         let raw = &document.source[span.clone()];
         let normalized = normalize_latex_text(&mask_comments(raw).0);
-        if !has_visible_prose(&normalized) {
+        if !has_visible_prose(&normalized, extended) {
             continue;
         }
         let block_idx = blocks.len();
@@ -796,7 +919,7 @@ fn append_visible_text_arguments(document: &mut Document) {
     document.sections.push(Section { blocks });
 }
 
-fn visible_text_arguments(source: &str) -> Vec<String> {
+fn visible_text_arguments(source: &str, extended: bool) -> Vec<String> {
     let bytes = source.as_bytes();
     let mut arguments = Vec::new();
     let mut seen = HashSet::new();
@@ -823,7 +946,7 @@ fn visible_text_arguments(source: &str) -> Vec<String> {
         }
         if bytes[at] == b'\\'
             && let Some((command, command_end)) = leading_command(&source[at..])
-            && let Some(argument) = visible_argument(&source[at..], command, command_end)
+            && let Some(argument) = visible_argument(&source[at..], command, command_end, extended)
         {
             let normalized = normalize_latex_text(&source[at + argument.start..at + argument.end]);
             if has_english_fragment(&normalized) && seen.insert(normalized.clone()) {
@@ -838,11 +961,24 @@ fn visible_text_arguments(source: &str) -> Vec<String> {
     arguments
 }
 
-fn visible_argument(text: &str, command: &str, command_end: usize) -> Option<Range<usize>> {
-    if VISIBLE_TEXT_COMMANDS.contains(&command) {
+fn visible_argument(
+    text: &str,
+    command: &str,
+    command_end: usize,
+    extended: bool,
+) -> Option<Range<usize>> {
+    if VISIBLE_TEXT_COMMANDS.contains(&command) || extended && command == "tag" {
         return mandatory_argument(text, command_end);
     }
     match command {
+        "parbox" if extended => {
+            let mut at = command_end;
+            while let Some(option) = optional_argument(text, at) {
+                at = option.end + 1;
+            }
+            let width = mandatory_argument(text, at)?;
+            mandatory_argument(text, width.end + 1)
+        }
         "hyperref" => {
             let label = optional_argument(text, command_end)?;
             mandatory_argument(text, label.end + 1)
@@ -961,7 +1097,11 @@ fn push_table_cell_span(source: &str, mut span: Range<usize>, spans: &mut Vec<Ra
     }
 }
 
-fn replace_visible_text_arguments(source: &str, replacements: &HashMap<&str, &str>) -> String {
+fn replace_visible_text_arguments(
+    source: &str,
+    replacements: &HashMap<&str, &str>,
+    extended: bool,
+) -> String {
     if replacements.is_empty() {
         return source.to_string();
     }
@@ -978,7 +1118,7 @@ fn replace_visible_text_arguments(source: &str, replacements: &HashMap<&str, &st
         }
         if bytes[at] == b'\\'
             && let Some((command, command_end)) = leading_command(&source[at..])
-            && let Some(argument) = visible_argument(&source[at..], command, command_end)
+            && let Some(argument) = visible_argument(&source[at..], command, command_end, extended)
         {
             let span = (at + argument.start)..(at + argument.end);
             let normalized = normalize_latex_text(&source[span.clone()]);
@@ -1305,6 +1445,51 @@ mod tests {
     }
 
     #[test]
+    fn translates_equation_reasons_parboxes_and_description_labels() {
+        let source = "\\begin{align*}\nx &= y \\tag{by induction}\\\\\n\\end{align*}\n\\begin{center}\n\\parbox{\\textwidth-2cm}{For every $x$, a path exists.}\n\\end{center}\n\\begin{description}\n\\item[Path induction:] Body.\n\\end{description}\n";
+        let document = ExtendedLatexParser.parse(source);
+        let map = translated(
+            &document,
+            &[
+                ("by induction", "귀납법에 의해"),
+                (
+                    "For every $x$, a path exists.",
+                    "모든 $x$에 대해 경로가 존재합니다.",
+                ),
+                ("Path induction:", "경로 귀납법:"),
+            ],
+        );
+        let result = ExtendedLatexParser.reconstruct(&document, &map);
+        assert!(result.contains("\\tag{귀납법에 의해}"));
+        assert!(result.contains("\\parbox{\\textwidth-2cm}{모든 $x$에 대해 경로가 존재합니다.}"));
+        assert!(result.contains("\\item[경로 귀납법:] Body."));
+    }
+
+    #[test]
+    fn hott_theorem_aliases_keep_titles_and_inline_body() {
+        let source =
+            "\\begin{lem}[Path lemma] \\label{lem:path} For all\npaths, this holds.\n\\end{lem}\n";
+        let document = ExtendedLatexParser.parse(source);
+        let sources: Vec<_> = document
+            .translatable_segments()
+            .into_iter()
+            .map(|segment| segment.source.as_str())
+            .collect();
+        assert_eq!(sources, ["Path lemma", "For all paths, this holds."]);
+        let map = translated(
+            &document,
+            &[
+                ("Path lemma", "경로 보조정리"),
+                ("For all paths, this holds.", "모든 경로에 대해 성립합니다."),
+            ],
+        );
+        assert_eq!(
+            ExtendedLatexParser.reconstruct(&document, &map),
+            "\\begin{lem}[경로 보조정리] \\label{lem:path} 모든 경로에 대해 성립합니다.\n\\end{lem}\n"
+        );
+    }
+
+    #[test]
     fn parses_proposition_titles() {
         let source = "\\begin{proposition}[Equivalent conditions]\nBody.\n\\end{proposition}\n";
         let document = LatexParser.parse(source);
@@ -1368,5 +1553,85 @@ mod tests {
             LatexParser.reconstruct(&document, &TranslationMap::new()),
             source
         );
+    }
+    #[test]
+    fn default_parser_keeps_existing_books_segment_layout() {
+        let source = "\\begin{lem}[Alias title]\nBody.\n\\end{lem}\n\\begin{align*}\nx=y \\tag{by induction}\n\\end{align*}\n";
+        let document = LatexParser.parse(source);
+        let texts: Vec<_> = document
+            .translatable_segments()
+            .into_iter()
+            .map(|s| s.source.as_str())
+            .collect();
+        assert_eq!(texts, ["Body."]);
+    }
+    #[test]
+    fn extended_parser_keeps_multiline_math_macros_in_one_span() {
+        let source = "The pair\n\\narrowequation{\n(a,b):A\\times B\n}\nhas a second component.\n";
+        let document = ExtendedLatexParser.parse(source);
+        let texts: Vec<_> = document
+            .translatable_segments()
+            .into_iter()
+            .map(|s| s.source.as_str())
+            .collect();
+        assert_eq!(
+            texts,
+            ["The pair \\narrowequation{ (a,b):A\\times B } has a second component."]
+        );
+        let map = translated(
+            &document,
+            &[(
+                texts[0],
+                "쌍 \\narrowequation{ (a,b):A\\times B }에는 두 번째 성분이 있습니다.",
+            )],
+        );
+        assert!(
+            ExtendedLatexParser
+                .reconstruct(&document, &map)
+                .contains("\\narrowequation{ (a,b):A\\times B }에는")
+        );
+    }
+    #[test]
+    fn extended_math_environments_only_offer_visible_text() {
+        let source = "\\begin{narrowmultline*}\nx = y \\text{otherwise}\n\\end{narrowmultline*}\n\\begin{mathpar}\n\\inferrule{p}{q}\n\\end{mathpar}\nExplanation.\n";
+        let document = ExtendedLatexParser.parse(source);
+        let texts: Vec<_> = document
+            .translatable_segments()
+            .into_iter()
+            .map(|s| s.source.as_str())
+            .collect();
+        assert_eq!(texts, ["Explanation.", "otherwise"]);
+    }
+    #[test]
+    fn extended_index_markers_do_not_split_a_sentence() {
+        let source = "Thus we require the induction principle%\n\\index{induction principle}%\nfor dependent pairs.\n";
+        let document = ExtendedLatexParser.parse(source);
+        let texts: Vec<_> = document
+            .translatable_segments()
+            .into_iter()
+            .map(|s| s.source.as_str())
+            .collect();
+        assert_eq!(texts.len(), 1);
+        assert!(texts[0].starts_with("Thus we require"));
+        assert!(texts[0].ends_with("for dependent pairs."));
+        assert!(texts[0].contains("\\index{induction principle}"));
+    }
+
+    #[test]
+    fn default_math_macro_coverage_remains_unchanged() {
+        let doc = LatexParser.parse("\\narrowequation{g : A}\n");
+        assert_eq!(doc.translatable_segments().len(), 1);
+        let doc = ExtendedLatexParser.parse("\\narrowequation{g : A}\n");
+        assert!(doc.translatable_segments().is_empty());
+    }
+    #[test]
+    fn extended_directive_lines_keep_their_visible_tail() {
+        let doc = ExtendedLatexParser.parse("\\indexdef{modal} if every type has a map.\n");
+        let texts: Vec<_> = doc
+            .translatable_segments()
+            .into_iter()
+            .map(|s| s.source.as_str())
+            .collect();
+        assert_eq!(texts, ["\\indexdef{modal} if every type has a map."]);
     }
 }

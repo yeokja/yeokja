@@ -59,6 +59,7 @@ fn parser_by_name(
         "pep_text_block" => Box::new(yeokja_parser_rst::PepTextBlockParser),
         "mil" | "mathematics_in_lean" => Box::new(yeokja_parser_rst::MilParser),
         "latex" | "tex" => Box::new(yeokja_parser_latex::LatexParser),
+        "latex-extended" => Box::new(yeokja_parser_latex::ExtendedLatexParser),
         "verso" => Box::new(yeokja_parser_verso::VersoParser::new(
             file_path,
             parser_manifest.unwrap_or_default(),

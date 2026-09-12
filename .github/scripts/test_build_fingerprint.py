@@ -92,6 +92,13 @@ class BuildFingerprintTests(unittest.TestCase):
         self.write(self.ko / "book.md", "changed translation")
         self.assertNotEqual(before, self.fingerprint())
 
+    def test_changing_canonical_index_translation_changes_fingerprint(self) -> None:
+        index = self.project / "ko-index" / "terms.tex"
+        self.write(index, "original index translation")
+        before = self.fingerprint("pdf")
+        self.write(index, "corrected Korean index translation")
+        self.assertNotEqual(before, self.fingerprint("pdf"))
+
     def test_changing_a_tracked_project_file_changes_the_fingerprint(self) -> None:
         before = self.fingerprint()
         self.write(self.project / "yeokja.toml", "[project]\nextra = true\n")
