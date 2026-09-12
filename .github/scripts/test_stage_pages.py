@@ -241,6 +241,67 @@ class StagePagesTests(unittest.TestCase):
             "new",
         )
 
+    def test_raytracing_artifact_publishes_books_assets_and_fingerprint(self) -> None:
+        self.write(self.site / "raytracing" / "old.html", "old")
+        self.add_site_artifact("dist-raytracing", "Korean books")
+        for relative_path in (
+            "books/RayTracingInOneWeekend.html",
+            "images/cover.jpg",
+            "style/markdeep.min.js",
+        ):
+            self.write(
+                self.artifacts / "dist-raytracing" / "site" / relative_path,
+                relative_path,
+            )
+        self.add_fingerprint("dist-raytracing", "new-raytracing")
+        self.add_required_artifacts()
+
+        result = self.run_stage(with_fingerprints=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.site / "raytracing" / "old.html").exists())
+        self.assertEqual(
+            (self.site / "raytracing" / "index.html").read_text(encoding="utf-8"),
+            "Korean books",
+        )
+        for relative_path in (
+            "books/RayTracingInOneWeekend.html",
+            "images/cover.jpg",
+            "style/markdeep.min.js",
+        ):
+            self.assertEqual(
+                (self.site / "raytracing" / relative_path).read_text(encoding="utf-8"),
+                relative_path,
+            )
+        self.assertEqual(
+            (self.site / "build-fingerprints" / "dist-raytracing").read_text(
+                encoding="utf-8"
+            ),
+            "new-raytracing\n",
+        )
+
+    def test_missing_raytracing_artifact_preserves_published_books(self) -> None:
+        self.write(self.site / "raytracing" / "index.html", "published books")
+        self.write(
+            self.site / "build-fingerprints" / "dist-raytracing", "published-fp\n"
+        )
+        self.add_fingerprint("dist-raytracing", "unpublished-fp")
+        self.add_required_artifacts()
+
+        result = self.run_stage(with_fingerprints=True)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            (self.site / "raytracing" / "index.html").read_text(encoding="utf-8"),
+            "published books",
+        )
+        self.assertEqual(
+            (self.site / "build-fingerprints" / "dist-raytracing").read_text(
+                encoding="utf-8"
+            ),
+            "published-fp\n",
+        )
+
     def test_pypy_artifact_replaces_pypy_and_rpython_together(self) -> None:
         self.write(self.site / "pypy" / "old.html", "old pypy")
         self.write(self.site / "rpython" / "old.html", "old rpython")

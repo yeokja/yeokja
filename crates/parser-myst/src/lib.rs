@@ -39,7 +39,7 @@ use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_utils::{resolve_reference_links, splice_reconstruct};
 
-use crate::{Extra, parse_with};
+use yeokja_parser_markdown_dialect::{Extra, parse_with};
 
 /// MyST parser: Markdown with Sphinx directives, roles and targets.
 pub struct MystParser;
@@ -679,7 +679,7 @@ impl DocumentParser for MystParser {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::MarkdownParser;
+    use yeokja_parser_markdown::MarkdownParser;
 
     fn sources(doc: &Document) -> Vec<String> {
         doc.translatable_segments()
