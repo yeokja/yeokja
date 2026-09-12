@@ -59,7 +59,7 @@ python3 -m unittest discover -s projects/nix-dev/scripts -p 'test_*.py'
   덧붙입니다. Sphinx glossary는 정의 하나에 용어를 여러 줄 둘 수 있습니다.
   패치는 번역된 정의문을 문맥으로 삼으므로 그 번역이 바뀌면 `ko/`의 파일로
   `diff -u`를 다시 떠야 합니다.
-- **검색**: `npx -y pagefind@1`로 색인을 만들어 `site/pagefind/`에 둡니다.
+- **검색**: devShell이 제공하는 `pagefind`로 색인을 만들어 `site/pagefind/`에 둡니다.
   색인 생성이 실패하면 빌드도 실패합니다.
 
 Nix 참조 매뉴얼(`/manual/nix/...`)은 nix.dev가 따로 호스팅하는 별도 문서로 이

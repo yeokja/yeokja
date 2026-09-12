@@ -42,7 +42,7 @@ nix develop path:../../nix#hott -c ../../target/release/yeokja build pdf
 ## PDF와 GitHub Pages
 
 `output/pdf/HoTT-ko.pdf`가 배포 결과물입니다. GitHub Pages 워크플로의
-`latex-hott` 작업이 같은 툴체인으로 PDF를 빌드하고 `/hott/HoTT-ko.pdf`에
+rebuild 잡이 같은 devShell(`nix/projects/hott.nix`)로 PDF를 빌드하고 `/hott/HoTT-ko.pdf`에
 배치합니다. 배포 전 19개 원고 전체의 번역 상태를 확인하고, 미번역이 있으면
 실패합니다. 글자 누락이나 해결되지 않은 참조가 PDF 로그에 있어도 빌드를 중단합니다. 빌드 입력이 같으면 이전 PDF를 보존합니다.
 

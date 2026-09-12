@@ -22,5 +22,7 @@
       printf '%s\n' "$want" > "$stamp"
     fi
     export PATH="$venv/bin:$PATH"
+  else
+    echo "python-venv: $requirements 가 없습니다 (cwd=$PWD) — 프로젝트 디렉터리에서 nix develop을 실행했고 upstream 서브모듈이 받아져 있는지 확인하세요" >&2
   fi
 ''

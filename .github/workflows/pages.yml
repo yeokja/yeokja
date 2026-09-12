@@ -37,7 +37,8 @@
 #
 # 새 배포 프로젝트나 타깃을 추가하면 .github/pages-projects.json과 stage 잡이
 # 부르는 .github/scripts/stage-pages.sh에 각각 항목을 추가하고, 그 프로젝트의
-# 툴체인을 nix/projects/<project>.nix에 선언합니다. 전체를 강제로 다시
+# 툴체인을 nix/projects/<project>.nix에 선언합니다. 빌드 명령이 스스로
+# `nix build`를 부르는 타깃은 항목에 "nix_shell": false를 둡니다. 전체를 강제로 다시
 # 빌드하려면 workflow_dispatch의 force_rebuild를 켭니다.
 name: Deploy Pages
 
@@ -189,12 +190,12 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
 
-      # 셸이 요구하는 스토어 경로를 Actions 캐시에 보관합니다. 키는 프로젝트·타깃
-      # 단위입니다 — napkin의 pdf는 upstream flake로 `nix build`를 하고
-      # html·epub은 devShell만 쓰므로, 한 키를 같이 쓰면 먼저 저장된 쪽의
-      # 부분집합만 남아 다른 쪽은 매번 다시 받게 됩니다. 해시 입력은
-      # flake.lock과 그 프로젝트의 셸 정의(그리고 napkin처럼 자체 flake.lock을
-      # 가진 프로젝트는 그것까지)라, 입력이 바뀔 때만 새 항목이 생기고 그때
+      # 셸이 요구하는 스토어 경로를 Actions 캐시에 보관합니다. 키는 프로젝트
+      # 단위이되, devShell 대신 `nix build`로 빌드하는 항목(nix_shell: false —
+      # napkin pdf)은 스토어 경로 집합이 달라 별도 키(shell-/build- 접두사)를 씁니다. 한 키를
+      # 같이 쓰면 먼저 저장된 쪽의 부분집합만 남아 다른 쪽은 매번 다시 받게
+      # 됩니다. 해시 입력은 flake.lock, 공용 헬퍼(nix/lib), 그 프로젝트의 셸
+      # 정의(그리고 napkin처럼 자체 flake.lock을 가진 프로젝트는 그것까지)라, 입력이 바뀔 때만 새 항목이 생기고 그때
       # 같은 접두사의 옛 항목은 purge로 지워 저장소 캐시 한도(10 GB)를
       # 아낍니다. hashFiles는 없는 파일을 무시합니다. `nix develop`은 GC
       # 루트를 남기지 않아 저장 전 GC를 걸면 방금 받은 경로가 지워지므로
@@ -202,10 +203,10 @@ jobs:
       - name: Cache the Nix store
         uses: nix-community/cache-nix-action@v7
         with:
-          primary-key: nix-${{ runner.os }}-${{ matrix.project }}-${{ matrix.target }}-${{ hashFiles('nix/flake.lock', format('nix/projects/{0}.nix', matrix.project), format('projects/{0}/assets/flake.lock', matrix.project), format('projects/{0}/upstream/flake.lock', matrix.project)) }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-${{ matrix.project }}-${{ matrix.target }}-
+          primary-key: nix-${{ runner.os }}-${{ matrix.nix_shell == false && 'build' || 'shell' }}-${{ matrix.project }}-${{ hashFiles('nix/flake.lock', 'nix/lib/*.nix', format('nix/projects/{0}.nix', matrix.project), format('projects/{0}/assets/flake.lock', matrix.project), format('projects/{0}/upstream/flake.lock', matrix.project)) }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-${{ matrix.nix_shell == false && 'build' || 'shell' }}-${{ matrix.project }}-
           purge: true
-          purge-prefixes: nix-${{ runner.os }}-${{ matrix.project }}-${{ matrix.target }}-
+          purge-prefixes: nix-${{ runner.os }}-${{ matrix.nix_shell == false && 'build' || 'shell' }}-${{ matrix.project }}-
           purge-created: 0
           purge-primary-key: never
 
@@ -213,14 +214,24 @@ jobs:
       # 분리해 먼저 한 번 들어가 봅니다 — 실패하면 툴체인 문제임이 로그에서
       # 바로 드러납니다.
       - name: Enter the project's Nix shell
+        if: matrix.nix_shell != false
         run: |
           cd projects/${{ matrix.project }}
           nix develop "path:../../nix#${{ matrix.project }}" -c true
 
       - name: Build ${{ matrix.target }}
+        if: matrix.nix_shell != false
         run: |
           cd projects/${{ matrix.project }}
           nix develop "path:../../nix#${{ matrix.project }}" -c ../../target/release/yeokja build ${{ matrix.target }}
+
+      # 빌드 명령이 스스로 `nix build`를 부르는 항목은 devShell(napkin의 경우
+      # TeX Live 전체 6 GiB 남짓)을 실체화할 이유가 없습니다.
+      - name: Build ${{ matrix.target }} without a devShell
+        if: matrix.nix_shell == false
+        run: |
+          cd projects/${{ matrix.project }}
+          ../../target/release/yeokja build ${{ matrix.target }}
 
       - name: Upload build output
         uses: actions/upload-artifact@v4
