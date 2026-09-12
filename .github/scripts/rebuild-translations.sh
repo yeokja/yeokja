@@ -28,6 +28,16 @@ fi
 cd "$project_dir"
 
 case "$project" in
+  webgpufundamentals)
+    python3 scripts/metadata.py extract
+    "$yeokja" status --check metadata
+    "$yeokja" status --check upstream/webgpu/lessons
+    "$yeokja" translate upstream/webgpu/lessons
+    "$yeokja" translate metadata
+    python3 scripts/metadata.py apply
+    python3 scripts/verify_sources.py
+    "$yeokja" status --check upstream/webgpu/lessons
+    ;;
   putting-the-you-in-cpu)
     "$yeokja" status --check upstream/src/content/chapters
     "$yeokja" status --check ui

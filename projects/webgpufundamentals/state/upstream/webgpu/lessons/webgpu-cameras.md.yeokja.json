@@ -1,0 +1,1492 @@
+{
+  "version": 1,
+  "source_hash": 5355561291297108264,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU Cameras Description: Cameras via Matrices TOC: Cameras",
+      "source_hash": 6338749815825117837,
+      "context_hash": 10635978735239389600,
+      "translation": "제목: WebGPU 카메라 설명: 행렬을 통한 카메라 목차: 카메라",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:09:57.852188Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This article is the 7th in a series of articles that will hopefully teach you about 3D math.",
+      "source_hash": 12614177705917827095,
+      "context_hash": 14671612020644342014,
+      "translation": "이 글은 3D 수학을 알려드리기 위한 시리즈의 7번째 글입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852188Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Each one builds on the previous lesson so you may find them easiest to understand by reading them in order.",
+      "source_hash": 1605581489901723993,
+      "context_hash": 10547812998842403429,
+      "translation": "각 글은 이전 강의를 바탕으로 하므로 순서대로 읽으시면 가장 이해하기 쉬울 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "{{{toc-steps list=\"matrix-math.hanson\"}}}",
+      "source_hash": 17040027031287241575,
+      "context_hash": 616784332626105653,
+      "translation": "{{{toc-steps list=\"matrix-math.hanson\"}}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "In the last post we had to move the F in front of the frustum because the `mat4.perspective` function puts the eye at at the origin (0, 0, 0) and that objects in the frustum are between `-zNear` to `-zFar` in front of it.",
+      "source_hash": 5677607947382353579,
+      "context_hash": 11688667372131899591,
+      "translation": "지난 글에서는 `mat4.perspective` 함수가 눈을 원점(0, 0, 0)에 두고 절두체 안의 객체들이 그 앞의 `-zNear`에서 `-zFar` 사이에 있도록 만들기 때문에, F를 절두체 앞으로 옮겨야 했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "This means, anything we want to appear, needs to be placed this this space.",
+      "source_hash": 3256366978894795905,
+      "context_hash": 9303121508150456189,
+      "translation": "이는 우리가 화면에 나타내고자 하는 모든 것이 이 공간에 배치되어야 함을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "In the real world you usually move your camera to take a picture of a some object",
+      "source_hash": 11057607626588909842,
+      "context_hash": 18309681313485900791,
+      "translation": "현실 세계에서는 보통 어떤 물체의 사진을 찍기 위해 카메라를 이동시킵니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "moving the camera to the objects",
+      "source_hash": 11547848906542755811,
+      "context_hash": 16753787291125088601,
+      "translation": "카메라를 객체들 쪽으로 이동시키기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "But, in our last post, we came up with a projection matrix that requires things to be in front of the origin on the -Z axis.",
+      "source_hash": 13645627549351638851,
+      "context_hash": 6038753214892001781,
+      "translation": "하지만 지난 글에서 저희는 -Z축 상의 원점 앞에 물체들이 있어야 하는 투영 행렬을 만들었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "To achieve this, what we want to do is, move the camera to the origin and move everything else the right amount so it's still in the same place *relative to the camera*.",
+      "source_hash": 5434832970439813608,
+      "context_hash": 11627913472488603470,
+      "translation": "이를 달성하기 위해 저희가 하고자 하는 것은, 카메라를 원점으로 이동시키고 나머지 모든 것을 적절한 만큼 이동시켜서 여전히 *카메라 기준으로* 같은 위치에 있도록 하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "moving the objects to the view",
+      "source_hash": 15586451598940215827,
+      "context_hash": 6237171307136578452,
+      "translation": "객체들을 뷰로 이동시키기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "We need to effectively move the world in front of the camera.",
+      "source_hash": 13655067189205072212,
+      "context_hash": 12595087231044343273,
+      "translation": "저희는 사실상 세계를 카메라 앞으로 이동시켜야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:1",
+      "source": "The easiest way to do this is to use an \"inverse\" matrix.",
+      "source_hash": 17617751265072077715,
+      "context_hash": 13989352195988169796,
+      "translation": "이를 수행하는 가장 쉬운 방법은 \"역\"행렬을 사용하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852189Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:2",
+      "source": "The math to compute an inverse matrix in the general case is complex but conceptually it's easy.",
+      "source_hash": 9649223538613190132,
+      "context_hash": 7300677412013026364,
+      "translation": "일반적인 경우에 역행렬을 계산하는 수학은 복잡하지만 개념적으로는 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:3",
+      "source": "The inverse is the value you'd use to negate some other value.",
+      "source_hash": 10903676568621266457,
+      "context_hash": 4376063182595350851,
+      "translation": "역은 어떤 값을 상쇄하기 위해 사용하는 값입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:4",
+      "source": "For example, the inverse of a matrix that translates in X by 123 is a matrix that translates in X by -123.",
+      "source_hash": 922634553017923496,
+      "context_hash": 3026949966370454207,
+      "translation": "예를 들어, X 방향으로 123만큼 이동시키는 행렬의 역행렬은 X 방향으로 -123만큼 이동시키는 행렬입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:5",
+      "source": "The inverse of a matrix that scales by 5 is a matrix that scales by 1/5th or 0.2.",
+      "source_hash": 8454095858028315755,
+      "context_hash": 11437102140018814250,
+      "translation": "5배로 크기를 조정하는 행렬의 역행렬은 1/5, 즉 0.2배로 크기를 조정하는 행렬입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:6",
+      "source": "The inverse of a matrix that rotates 30&deg; around the X axis would be one that rotates -30&deg; around the X axis.",
+      "source_hash": 1398677563584195840,
+      "context_hash": 16511258536704968180,
+      "translation": "X축을 기준으로 30&deg; 회전시키는 행렬의 역행렬은 X축을 기준으로 -30&deg; 회전시키는 행렬일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "Up until this point we've used translation, rotation and scale to affect the position and orientation of our 'F'.",
+      "source_hash": 12400376922331467317,
+      "context_hash": 11505080493880897192,
+      "translation": "지금까지 우리는 이동, 회전, 크기 조절을 사용하여 'F'의 위치와 방향에 영향을 주었습니다.",
+      "glossary_snapshot": {
+        "translation": "이동"
+      },
+      "translated_at": "2026-09-12T08:23:55.403674Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:1",
+      "source": "After multiplying all the matrices together we have a single matrix that represents how to move the 'F' from the origin to the place, size and orientation we want it.",
+      "source_hash": 13874676214470237931,
+      "context_hash": 11147914256416662922,
+      "translation": "모든 행렬을 곱한 후에는, 'F'를 원점에서 저희가 원하는 위치, 크기, 방향으로 이동시키는 방법을 나타내는 하나의 행렬을 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:2",
+      "source": "We can do the same for a camera.",
+      "source_hash": 18113793020239152339,
+      "context_hash": 18347049575737395900,
+      "translation": "카메라에 대해서도 같은 작업을 할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:3",
+      "source": "Once we have the matrix that tells us how to move and rotate the camera from the origin to where we want it we can compute its inverse which will give us a matrix that tells us how to move and rotate everything else the opposite amount which will effectively make it so the camera is at (0, 0, 0) and we've moved everything in front of it.",
+      "source_hash": 7019798694823337393,
+      "context_hash": 15947190342338678117,
+      "translation": "카메라를 원점에서 저희가 원하는 위치로 이동시키고 회전시키는 방법을 알려주는 행렬을 얻고 나면, 그 역행렬을 계산할 수 있습니다. 이 역행렬은 나머지 모든 것을 반대 방향으로 이동시키고 회전시키는 방법을 알려주는 행렬이 되며, 이는 사실상 카메라가 (0, 0, 0)에 있고 나머지 모든 것을 그 앞으로 이동시킨 것과 같은 효과를 만들어냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "Let's make a 3D scene with a circle of 'F's like the diagrams above.",
+      "source_hash": 16110436981996546444,
+      "context_hash": 1980077291391471651,
+      "translation": "위의 다이어그램들처럼 'F'들이 원을 이루는 3D 장면을 만들어봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "First things first, lets adjust our F vertex data.",
+      "source_hash": 10881694502510359575,
+      "context_hash": 5555604324390418813,
+      "translation": "우선, F의 정점 데이터를 조정해봅시다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:57.852190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:1",
+      "source": "We originally started in 2D with pixels.",
+      "source_hash": 16613306284570269179,
+      "context_hash": 2816946760708123311,
+      "translation": "저희는 원래 픽셀 단위의 2D에서 시작했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:2",
+      "source": "The top left corner of the F is at 0,0 and extends 100 pixels right and 150 pixels down. \"Pixels\" probably make no sense as a unit in 3D and the perspective projection matrix we made uses positive Y up so, let's flip our F so positive Y is up and let's center it around the origin.",
+      "source_hash": 12502026413078373048,
+      "context_hash": 16876496284080671717,
+      "translation": "F의 왼쪽 위 모서리는 0,0에 위치하며 오른쪽으로 100픽셀, 아래로 150픽셀 뻗어 있습니다. \"픽셀\"은 3D에서는 단위로서 아마 말이 되지 않을 것이며, 저희가 만든 원근 투영 행렬은 양의 Y를 위쪽으로 사용하므로, F를 뒤집어서 양의 Y가 위쪽이 되도록 하고 원점을 중심으로 배치합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Further, as we went over in [the previous article](webgpu-perspective-projection.html), because we were using positive Y = down to match most 2D pixel libraries, we had our triangle vertex order backward for normal 3D and ended up culling the the `'front'` facing triangles instead of the normal `'back'` facing triangles since were scaling Y by negative 1.",
+      "source_hash": 1994598208079951116,
+      "context_hash": 5670107398761552876,
+      "translation": "더욱이, [이전 글](webgpu-perspective-projection.html)에서 다뤘듯이, 대부분의 2D 픽셀 라이브러리에 맞추기 위해 양의 Y = 아래쪽을 사용했기 때문에, 일반적인 3D에 비해 삼각형 정점 순서가 반대로 되어 있었고, Y를 -1로 크기 조정했기 때문에 결국 일반적인 `'back'` 면 삼각형 대신 `'front'` 면 삼각형을 컬링하게 되었습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:1",
+      "source": "Now that we're doing *normal* 3D with positive Y = up, let's flip the order of the vertices so that clockwise triangles are facing out.",
+      "source_hash": 16330463066796076388,
+      "context_hash": 14861719302517875676,
+      "translation": "이제 양의 Y = 위쪽인 *일반적인* 3D를 다루고 있으므로, 정점의 순서를 뒤집어서 시계 방향 삼각형이 바깥쪽을 향하도록 합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "Finally let's set the `cullMode` to cull *back facing* triangles.",
+      "source_hash": 5890295992539105325,
+      "context_hash": 2972899014453207819,
+      "translation": "마지막으로 `cullMode`를 설정하여 *뒷면* 삼각형을 컬링하도록 합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "Here's a function that given a matrix will compute its inverse matrix.",
+      "source_hash": 7412018321676405105,
+      "context_hash": 10901712659648439322,
+      "translation": "다음은 행렬이 주어지면 그 역행렬을 계산하는 함수입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "Like we've done in previous examples, to draw 5 things we need 5 uniform buffers and 5 bind groups.",
+      "source_hash": 84287575872419193,
+      "context_hash": 15542670277563761581,
+      "translation": "이전 예제들에서 했던 것처럼, 5개를 그리려면 5개의 유니폼 버퍼와 5개의 바인드 그룹이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "Let's get rid of some of the settings to unclutter our example",
+      "source_hash": 17051435520612137320,
+      "context_hash": 5790127307714533624,
+      "translation": "예제를 정리하기 위해 일부 설정을 제거해봅시다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:57.852191Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:23/seg:0",
+      "source": "Because we are drawing 5 things and they will all use the same projection matrix we'll calculate it before the loop of drawing the Fs",
+      "source_hash": 6697072567853212581,
+      "context_hash": 560205603363066241,
+      "translation": "5개의 물체를 그리는데 이들이 모두 같은 투영 행렬을 사용할 것이므로, F를 그리는 루프 전에 이를 계산하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985970Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:0",
+      "source": "Next we'll compute a camera matrix.",
+      "source_hash": 11929306690436127390,
+      "context_hash": 7811321743689222962,
+      "translation": "다음으로 카메라 행렬을 계산하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985970Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:1",
+      "source": "This matrix represents the position and orientation of the camera in the world.",
+      "source_hash": 11567397643748180136,
+      "context_hash": 13070969141141516308,
+      "translation": "이 행렬은 월드 안에서의 카메라의 위치와 방향을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:2",
+      "source": "The code below makes a matrix that rotates the camera around the origin radius * 1.5 distance out and looking at the origin.",
+      "source_hash": 3450607494773615886,
+      "context_hash": 15444443899309437635,
+      "translation": "아래 코드는 카메라를 원점 주위로, radius * 1.5 거리만큼 떨어진 곳에서 원점을 바라보도록 회전시키는 행렬을 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "camera movement",
+      "source_hash": 11280922772454659549,
+      "context_hash": 208423904139523598,
+      "translation": "카메라 이동",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:0",
+      "source": "We then compute a \"view matrix\" from the camera matrix.",
+      "source_hash": 3033502702309208121,
+      "context_hash": 9401890931702361747,
+      "translation": "그다음 카메라 행렬로부터 \"뷰 행렬\"을 계산하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:1",
+      "source": "A \"view matrix\" is the matrix that moves everything the opposite of the camera effectively making everything relative to the camera as though the camera was at the origin (0,0,0).",
+      "source_hash": 6821484963979861146,
+      "context_hash": 6783575011949359951,
+      "translation": "\"뷰 행렬\"은 모든 것을 카메라와 반대 방향으로 이동시켜, 마치 카메라가 원점(0,0,0)에 있는 것처럼 모든 것을 카메라 기준으로 만드는 행렬입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:2",
+      "source": "We can do this by using the `inverse` function that computes the inverse matrix (the matrix that does the exact opposite of the supplied matrix).",
+      "source_hash": 16989121230664676558,
+      "context_hash": 16351928391801998492,
+      "translation": "이는 공급된 행렬과 정확히 반대되는 동작을 하는 역행렬을 계산하는 `inverse` 함수를 사용하여 할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:3",
+      "source": "In this case the supplied matrix would move the camera to some position and orientation relative to the origin.",
+      "source_hash": 5275529802539149264,
+      "context_hash": 13583995239337756646,
+      "translation": "이 경우 공급된 행렬은 카메라를 원점 기준의 어떤 위치와 방향으로 이동시킬 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:4",
+      "source": "The inverse of that is a matrix that will move everything else such that the camera is at the origin.",
+      "source_hash": 15886454546263639964,
+      "context_hash": 1868552815348451076,
+      "translation": "그 역행렬은 카메라가 원점에 있게 되도록 다른 모든 것을 이동시키는 행렬입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:0",
+      "source": "Now we combine the view and projection matrix into a view projection matrix.",
+      "source_hash": 12622258452347480362,
+      "context_hash": 15811143141183348802,
+      "translation": "이제 뷰 행렬과 투영 행렬을 결합하여 뷰 투영 행렬을 만들겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:0",
+      "source": "Finally we draw a circle of Fs.",
+      "source_hash": 17600475766974901019,
+      "context_hash": 16094753176592564979,
+      "translation": "마지막으로 F로 이루어진 원을 그리겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:1",
+      "source": "For each F we start with the view projection matrix, then compute a position on a circle and translate to that position.",
+      "source_hash": 17360615013005889319,
+      "context_hash": 10637036906754350625,
+      "translation": "각 F에 대해 뷰 투영 행렬에서 시작하여, 원 위의 위치를 계산한 다음 그 위치로 이동합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "And voila!",
+      "source_hash": 5458264866876794670,
+      "context_hash": 7016916493924886333,
+      "translation": "짜잔!",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:1",
+      "source": "A camera that goes around the circle of 'F's.",
+      "source_hash": 8856619859678026229,
+      "context_hash": 7706933118275431449,
+      "translation": "F로 이루어진 원 주위를 도는 카메라입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:2",
+      "source": "Drag the `cameraAngle` slider to move the camera around.",
+      "source_hash": 14186694612681205559,
+      "context_hash": 17344114612004917990,
+      "translation": "`cameraAngle` 슬라이더를 드래그하여 카메라를 이동시켜 보십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:35/seg:0",
+      "source": "{{{example url=\"../webgpu-cameras-step-1-direct-math.html\" }}}",
+      "source_hash": 7620516525903573460,
+      "context_hash": 17316126808448909011,
+      "translation": "{{{example url=\"../webgpu-cameras-step-1-direct-math.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:0",
+      "source": "That's all fine but using rotate and translate to move a camera where you want it and point toward what you want to see is not always easy.",
+      "source_hash": 7115693573847761937,
+      "context_hash": 12268748054757199043,
+      "translation": "이는 다 좋지만, 회전과 이동을 사용해 카메라를 원하는 곳으로 옮기고 보고 싶은 곳을 향하게 하는 것이 항상 쉬운 것은 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:1",
+      "source": "For example if we wanted the camera to always point at a specific one of the 'F's it would take some pretty crazy math to compute how to rotate the camera to point at that 'F' while it goes around the circle of 'F's.",
+      "source_hash": 11027669466179750195,
+      "context_hash": 1983400789372151155,
+      "translation": "예를 들어 카메라가 항상 특정한 하나의 F를 향하게 하고 싶다면, 카메라가 F로 이루어진 원을 돌면서 그 F를 향하도록 회전시키는 방법을 계산하는 데 상당히 복잡한 수학이 필요할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985972Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:0",
+      "source": "Fortunately there's an easier way.",
+      "source_hash": 16913453505973882628,
+      "context_hash": 18171440141009093760,
+      "translation": "다행히 더 쉬운 방법이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:1",
+      "source": "We can just decide where we want the camera and what we want it to point at and then compute a matrix that will put the camera there.",
+      "source_hash": 3972240225584162786,
+      "context_hash": 15576570334147211116,
+      "translation": "카메라를 어디에 두고 무엇을 향하게 할지 그냥 정한 다음, 카메라를 그곳에 두는 행렬을 계산하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:2",
+      "source": "Based on how matrices work this is surprisingly easy.",
+      "source_hash": 1715760623386373397,
+      "context_hash": 4963502311261903401,
+      "translation": "행렬이 작동하는 방식을 생각하면 이는 놀라울 정도로 쉽습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:0",
+      "source": "First we need to know where we want the camera.",
+      "source_hash": 14120518338224660935,
+      "context_hash": 16713078177958479215,
+      "translation": "먼저 카메라를 어디에 두고 싶은지 알아야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:1",
+      "source": "We'll call this the `eye`.",
+      "source_hash": 2775807972214053902,
+      "context_hash": 2157252727484471443,
+      "translation": "이를 `eye`라고 부르겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:2",
+      "source": "Then we need to know the position of the thing we want to look at or aim at.",
+      "source_hash": 8125926732490846398,
+      "context_hash": 18380669203179404157,
+      "translation": "그다음 우리가 보거나 조준하고 싶은 대상의 위치를 알아야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:3",
+      "source": "We'll call it the `target`.",
+      "source_hash": 4590798871678550028,
+      "context_hash": 13664015692912197522,
+      "translation": "이를 `target`이라고 부르겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:4",
+      "source": "If we subtract the `target` from the `eye` we'll have a vector that points in the direction we'd need to go from the camera to get to the target.",
+      "source_hash": 10323522313532233991,
+      "context_hash": 13921955127271773731,
+      "translation": "`eye`에서 `target`을 빼면 카메라에서 대상으로 가기 위해 필요한 방향을 가리키는 벡터를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:5",
+      "source": "Let's call it `zAxis`.",
+      "source_hash": 7555401940084471926,
+      "context_hash": 3421907589814272113,
+      "translation": "이를 `zAxis`라고 부릅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:6",
+      "source": "Since we know the camera points in the -Z direction we can subtract the other way `eye - target`.",
+      "source_hash": 8376684205765489846,
+      "context_hash": 13535620266848721969,
+      "translation": "카메라가 -Z 방향을 가리킨다는 것을 알고 있으므로 반대 방향으로 `eye - target`을 빼면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:7",
+      "source": "We normalize the results and copy it directly into the `z` part of a matrix.",
+      "source_hash": 10840038288275036652,
+      "context_hash": 4582576699977234011,
+      "translation": "그 결과를 정규화하여 행렬의 `z` 부분에 그대로 복사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:0",
+      "source": "Zx",
+      "source_hash": 16930981916829032044,
+      "context_hash": 556579937890342600,
+      "translation": "Zx",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:0",
+      "source": "Zy",
+      "source_hash": 17042977209482503764,
+      "context_hash": 11213585209164816687,
+      "translation": "Zy",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:52.985973Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:41/seg:0",
+      "source": "Zz",
+      "source_hash": 16095522816957428625,
+      "context_hash": 6831939404328467012,
+      "translation": "Zz",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448480Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:0",
+      "source": "This part of a matrix represents the Z axis.",
+      "source_hash": 13173517201418733703,
+      "context_hash": 17225983229665728730,
+      "translation": "행렬의 이 부분은 Z축을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448484Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:1",
+      "source": "In this case the Z-axis of the camera.",
+      "source_hash": 16167859029430642837,
+      "context_hash": 6236146701646265131,
+      "translation": "이 경우에는 카메라의 Z축입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:2",
+      "source": "Normalizing a vector means making it a vector that represents 1.0 unit.",
+      "source_hash": 10524793623244793221,
+      "context_hash": 12678654924884998121,
+      "translation": "벡터를 정규화한다는 것은 그 벡터를 1.0 단위를 나타내는 벡터로 만드는 것을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:3",
+      "source": "If you go back to [the rotation article](webgpu-rotation.html) where we talked about unit circles and how those helped with 2D rotation.",
+      "source_hash": 16122415010841612237,
+      "context_hash": 8096603197033761257,
+      "translation": "[회전에 관한 글](webgpu-rotation.html)로 돌아가 보면, 거기서 단위원과 그것이 2D 회전에 어떻게 도움이 되는지에 대해 다룬 바 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:4",
+      "source": "In 3D we need unit spheres and a normalized vector represents a point on a unit sphere.",
+      "source_hash": 8751546755963234605,
+      "context_hash": 13573828198021827160,
+      "translation": "3D에서는 단위 구가 필요하며, 정규화된 벡터는 단위 구 위의 한 점을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:0",
+      "source": "the",
+      "source_hash": 5411923372064595750,
+      "context_hash": 4499180887915928188,
+      "translation": "the",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:0",
+      "source": "z axis",
+      "source_hash": 15441491889117595338,
+      "context_hash": 2350678889670613632,
+      "translation": "z축",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:0",
+      "source": "That's not enough info though.",
+      "source_hash": 1207974721656852103,
+      "context_hash": 7615376626746189444,
+      "translation": "하지만 그것만으로는 정보가 충분하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:1",
+      "source": "Just a single vector gives us a point on a unit sphere but which orientation from that point to orient things?",
+      "source_hash": 10891413755827840252,
+      "context_hash": 17321837401296029578,
+      "translation": "벡터 하나만으로는 단위 구 위의 한 점만 알 수 있을 뿐, 그 점에서 사물을 어떤 방향으로 배치할지는 알 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448485Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:2",
+      "source": "We need to fill out the other parts of the matrix.",
+      "source_hash": 18020320560393487598,
+      "context_hash": 10928631968536551247,
+      "translation": "행렬의 나머지 부분을 채워야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:3",
+      "source": "Specifically the X axis and Y axis parts.",
+      "source_hash": 616715723374825837,
+      "context_hash": 16955975437611192249,
+      "translation": "구체적으로는 X축과 Y축 부분입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:4",
+      "source": "We know that in general, these 3 parts are perpendicular to each other.",
+      "source_hash": 13677328449085313923,
+      "context_hash": 9080606888882972436,
+      "translation": "일반적으로 이 세 부분은 서로 수직이라는 것을 알고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:5",
+      "source": "We also know that \"in general\", we don't point the camera straight up.",
+      "source_hash": 16886846041177968151,
+      "context_hash": 3232586266482783163,
+      "translation": "또한 \"일반적으로\" 카메라를 똑바로 위로 향하게 하지는 않는다는 것도 알고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:6",
+      "source": "Given that, if we know which way is up, in this case (0,1,0), We can use that and something called a \"cross product\" to compute the X axis and Y axis for the matrix.",
+      "source_hash": 2681185639185692859,
+      "context_hash": 3557037913280469135,
+      "translation": "이를 고려하여, 위쪽 방향이 어느 쪽인지 알고 있다면(이 경우 (0,1,0)), 이를 이용해 \"외적\"이라는 것을 계산함으로써 행렬의 X축과 Y축을 구할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:0",
+      "source": "I have no idea what a cross product means in mathematical terms.",
+      "source_hash": 17910700382376885595,
+      "context_hash": 15166469575728915513,
+      "translation": "수학적으로 외적이 무엇을 의미하는지는 전혀 모릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:1",
+      "source": "What I do know is that, if you have 2 unit vectors and you compute the cross product of them you'll get a vector that is perpendicular to those 2 vectors.",
+      "source_hash": 16529437560960176328,
+      "context_hash": 3492192516328864934,
+      "translation": "제가 아는 것은, 단위 벡터 두 개가 있고 그 둘의 외적을 계산하면 그 두 벡터에 수직인 벡터를 얻게 된다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:2",
+      "source": "In other words, if you have a vector pointing south east, and a vector pointing up, and you compute the cross product you'll get a vector pointing either south west or north east since those are the 2 vectors that are perpendicular to south east and up.",
+      "source_hash": 4300127029691419750,
+      "context_hash": 2618725617555553893,
+      "translation": "다시 말해, 남동쪽을 가리키는 벡터와 위쪽을 가리키는 벡터가 있고 그 외적을 계산하면, 남서쪽이나 북동쪽을 가리키는 벡터를 얻게 됩니다. 이 두 방향이 남동쪽과 위쪽에 수직인 두 벡터이기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:3",
+      "source": "Depending on which order you compute the cross product in, you'll get the opposite answer.",
+      "source_hash": 7754662630968669868,
+      "context_hash": 10282979057773960829,
+      "translation": "외적을 계산하는 순서에 따라 정반대의 결과를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:0",
+      "source": "In any case if we compute the cross product of our <span class=\"z-axis\">`zAxis`</span> and <span style=\"color: gray;\">`up`</span> we'll get the <span class=\"x-axis\">xAxis</span> for the camera.",
+      "source_hash": 5001837784802117367,
+      "context_hash": 2751847349817019854,
+      "translation": "어쨌든 <span class=\"z-axis\">`zAxis`</span>와 <span style=\"color: gray;\">`up`</span>의 외적을 계산하면 카메라의 <span class=\"x-axis\">xAxis</span>를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:48/seg:0",
+      "source": "up",
+      "source_hash": 2571373012096355983,
+      "context_hash": 15314573786523561957,
+      "translation": "up",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448486Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:49/seg:0",
+      "source": "cross",
+      "source_hash": 15442181058544873024,
+      "context_hash": 9779123601247812405,
+      "translation": "cross",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:0",
+      "source": "zAxis",
+      "source_hash": 16456861735472775283,
+      "context_hash": 9829383056381167648,
+      "translation": "zAxis",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:51/seg:0",
+      "source": "=",
+      "source_hash": 8592122598755560693,
+      "context_hash": 2778441354933719076,
+      "translation": "=",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:52/seg:0",
+      "source": "xAxis",
+      "source_hash": 171531937452640947,
+      "context_hash": 6873114706166488480,
+      "translation": "xAxis",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:0",
+      "source": "And now that we have the <span class=\"x-axis\">`xAxis`</span> we can cross the <span class=\"z-axis\">`zAxis`</span> and the <span class=\"x-axis\">`xAxis`</span> which will give us the camera's <span class=\"y-axis\">`yAxis`</span>",
+      "source_hash": 5400577587826839790,
+      "context_hash": 777068907739242359,
+      "translation": "이제 <span class=\"x-axis\">`xAxis`</span>를 구했으니, <span class=\"z-axis\">`zAxis`</span>와 <span class=\"x-axis\">`xAxis`</span>를 외적하면 카메라의 <span class=\"y-axis\">`yAxis`</span>를 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:54/seg:0",
+      "source": "zAxis",
+      "source_hash": 16456861735472775283,
+      "context_hash": 14338499182388318712,
+      "translation": "zAxis",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:55/seg:0",
+      "source": "cross",
+      "source_hash": 15442181058544873024,
+      "context_hash": 2778441354933719076,
+      "translation": "cross",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:0",
+      "source": "xAxis",
+      "source_hash": 171531937452640947,
+      "context_hash": 9829383056381167648,
+      "translation": "xAxis",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448487Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:57/seg:0",
+      "source": "=",
+      "source_hash": 8592122598755560693,
+      "context_hash": 8375862949321100746,
+      "translation": "=",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448488Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:58/seg:0",
+      "source": "yAxis",
+      "source_hash": 5388423254460560614,
+      "context_hash": 13302673343361650277,
+      "translation": "yAxis",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:52.448488Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:0",
+      "source": "Now all we have to do is plug the 3 axes into a matrix.",
+      "source_hash": 11157678480537878023,
+      "context_hash": 9411184684975486976,
+      "translation": "이제 남은 일은 3개의 축을 행렬에 대입하는 것뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498006Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:1",
+      "source": "That gives us a matrix that will orient something that points at the `target` from the `eye`.",
+      "source_hash": 15023552039024970323,
+      "context_hash": 10031851443337780656,
+      "translation": "그러면 `eye`에서 `target`을 바라보는 대상을 정렬해 주는 행렬을 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498007Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:2",
+      "source": "We just need to put in the `eye` position in the final column.",
+      "source_hash": 10030886221457789028,
+      "context_hash": 18165852166428471106,
+      "translation": "마지막 열에 `eye` 위치만 넣어 주면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498008Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:60/seg:0",
+      "source": "x axis →",
+      "source_hash": 9163983476293883322,
+      "context_hash": 4142042172252841189,
+      "translation": "x축 →",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:61/seg:0",
+      "source": "y axis →",
+      "source_hash": 8301878288805632299,
+      "context_hash": 6422948818707165385,
+      "translation": "y축 →",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:62/seg:0",
+      "source": "z axis →",
+      "source_hash": 5608889132005666417,
+      "context_hash": 8792203648789792220,
+      "translation": "z축 →",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:0",
+      "source": "eye position →",
+      "source_hash": 8999396189219943282,
+      "context_hash": 10860660663515048857,
+      "translation": "eye 위치 →",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:64/seg:0",
+      "source": "Xx",
+      "source_hash": 1538352195688272942,
+      "context_hash": 11720766849072233596,
+      "translation": "Xx",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:65/seg:0",
+      "source": "Yx",
+      "source_hash": 4109038700988796574,
+      "context_hash": 4768637636205251443,
+      "translation": "Yx",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:66/seg:0",
+      "source": "Zx",
+      "source_hash": 16930981916829032044,
+      "context_hash": 16668033316175505463,
+      "translation": "Zx",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:67/seg:0",
+      "source": "Tx",
+      "source_hash": 12106298241545335481,
+      "context_hash": 17547984967241816286,
+      "translation": "Tx",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:68/seg:0",
+      "source": "Xy",
+      "source_hash": 11246445791468966120,
+      "context_hash": 4703809972623648772,
+      "translation": "Xy",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:69/seg:0",
+      "source": "Yy",
+      "source_hash": 13097514549547011636,
+      "context_hash": 3824690019448326853,
+      "translation": "Yy",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498009Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:70/seg:0",
+      "source": "Zy",
+      "source_hash": 17042977209482503764,
+      "context_hash": 14876366646165594129,
+      "translation": "Zy",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:71/seg:0",
+      "source": "Ty",
+      "source_hash": 7295383731987078393,
+      "context_hash": 12532169098114106390,
+      "translation": "Ty",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:72/seg:0",
+      "source": "Xz",
+      "source_hash": 14049256745553740926,
+      "context_hash": 17205679743632751811,
+      "translation": "Xz",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:0",
+      "source": "Yz",
+      "source_hash": 7510930738120198523,
+      "context_hash": 15152422814538596276,
+      "translation": "Yz",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:74/seg:0",
+      "source": "Zz",
+      "source_hash": 16095522816957428625,
+      "context_hash": 9646425117097329382,
+      "translation": "Zz",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:75/seg:0",
+      "source": "Tz",
+      "source_hash": 7927612813222618035,
+      "context_hash": 4242446774157026034,
+      "translation": "Tz",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:76/seg:0",
+      "source": "0",
+      "source_hash": 7148434200721666028,
+      "context_hash": 15002460252380328930,
+      "translation": "0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:77/seg:0",
+      "source": "0",
+      "source_hash": 7148434200721666028,
+      "context_hash": 17768031938658998342,
+      "translation": "0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:0",
+      "source": "0",
+      "source_hash": 7148434200721666028,
+      "context_hash": 16541678519844204738,
+      "translation": "0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498010Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:79/seg:0",
+      "source": "1",
+      "source_hash": 13237225503670494420,
+      "context_hash": 3433222413382067230,
+      "translation": "1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498011Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:80/seg:0",
+      "source": "Here's the code to compute the cross product of 2 vectors.",
+      "source_hash": 8494509009395807847,
+      "context_hash": 17600732926195697354,
+      "translation": "다음은 두 벡터의 외적(cross product)을 계산하는 코드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498011Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:80/seg:1",
+      "source": "Like our matrix code we'll make it take an optional destination array.",
+      "source_hash": 11458126982358623902,
+      "context_hash": 3507746096840771545,
+      "translation": "행렬 코드와 마찬가지로, 선택적으로 목적지 배열을 받을 수 있게 만들겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498011Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:82/seg:0",
+      "source": "Here's the code to subtract two vectors.",
+      "source_hash": 4355379584911505854,
+      "context_hash": 11900466402372976248,
+      "translation": "다음은 두 벡터를 빼는 코드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498011Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:84/seg:0",
+      "source": "Here's the code to normalize a vector (make it into a unit vector).",
+      "source_hash": 12332700361352686314,
+      "context_hash": 7456649161242041124,
+      "translation": "다음은 벡터를 정규화하는(단위 벡터로 만드는) 코드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498011Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:86/seg:0",
+      "source": "Here's the code to compute a *camera* matrix.",
+      "source_hash": 5963038682174595995,
+      "context_hash": 9977117474569973245,
+      "translation": "다음은 *camera* 행렬을 계산하는 코드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:86/seg:1",
+      "source": "It follows the steps described above.",
+      "source_hash": 10636204040090075767,
+      "context_hash": 9207392819923275929,
+      "translation": "위에서 설명한 단계를 그대로 따릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:88/seg:0",
+      "source": "And here is how we might use it to make the camera point at a specific 'F' as we move it.",
+      "source_hash": 13453535585026721915,
+      "context_hash": 808072194747342286,
+      "translation": "그리고 다음은 카메라를 움직이면서 특정 'F'를 바라보게 만드는 데 이 코드를 사용하는 방법입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:90/seg:0",
+      "source": "And here's the result.",
+      "source_hash": 4186462656774114320,
+      "context_hash": 11026189305408249326,
+      "translation": "그리고 다음은 그 결과입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:06:57.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:91/seg:0",
+      "source": "{{{example url=\"../webgpu-cameras-step-2-camera-aim.html\" }}}",
+      "source_hash": 13406971941916323702,
+      "context_hash": 12600387444770224305,
+      "translation": "{{{example url=\"../webgpu-cameras-step-2-camera-aim.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:06:57.498012Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:92/seg:0",
+      "source": "Drag the slider and notice how the camera tracks a single 'F'.",
+      "source_hash": 18034359808714924886,
+      "context_hash": 13805052533191815759,
+      "translation": "슬라이더를 드래그하고 카메라가 하나의 'F'를 어떻게 추적하는지 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751824Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:93/seg:0",
+      "source": "Most math libraries don't have a `cameraAim` function.",
+      "source_hash": 5219251571869752530,
+      "context_hash": 9263805589096524497,
+      "translation": "대부분의 수학 라이브러리에는 `cameraAim` 함수가 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751824Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:93/seg:1",
+      "source": "Instead they have a `lookAt` function which computes exactly what our `cameraAim` function does but ALSO converts it to a view matrix.",
+      "source_hash": 1732112732122953839,
+      "context_hash": 7913095391391141786,
+      "translation": "대신 그것들은 우리의 `cameraAim` 함수가 하는 일을 정확히 계산하면서도 그것을 뷰 행렬로 변환까지 해주는 `lookAt` 함수를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:93/seg:2",
+      "source": "Functionally `lookAt` could be implemented like this",
+      "source_hash": 9877994581608195366,
+      "context_hash": 2517668649842880682,
+      "translation": "기능적으로 `lookAt`은 다음과 같이 구현될 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:95/seg:0",
+      "source": "Using this `lookAt` function our code would change to this",
+      "source_hash": 15334793213585014977,
+      "context_hash": 3868202238525353143,
+      "translation": "이 `lookAt` 함수를 사용하면 우리 코드는 다음과 같이 바뀔 것입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:97/seg:0",
+      "source": "{{{example url=\"../webgpu-cameras-step-3-look-at.html\" }}}",
+      "source_hash": 14320109892370506544,
+      "context_hash": 2457984680491049103,
+      "translation": "{{{example url=\"../webgpu-cameras-step-3-look-at.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:0",
+      "source": "Note that you can use this type of \"aim\" math for more than just cameras.",
+      "source_hash": 11998449423975479893,
+      "context_hash": 7055339679539403472,
+      "translation": "이런 종류의 \"조준\" 수학은 카메라뿐만 아니라 다른 곳에도 사용할 수 있다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:1",
+      "source": "Common uses are making a character's head follow some target.",
+      "source_hash": 17831602963626306727,
+      "context_hash": 3152595960098068551,
+      "translation": "흔한 용도로는 캐릭터의 머리가 어떤 대상을 따라가게 만드는 것이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:2",
+      "source": "Making a turret aim at a target.",
+      "source_hash": 2867447041498734352,
+      "context_hash": 5806445438451736251,
+      "translation": "포탑이 목표물을 조준하게 만드는 것이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:3",
+      "source": "Making an object follow a path.",
+      "source_hash": 88584453593321640,
+      "context_hash": 2348588585335145863,
+      "translation": "객체가 경로를 따라가게 만드는 것이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:4",
+      "source": "You compute where on the path the target is.",
+      "source_hash": 14784706282316458494,
+      "context_hash": 2932926852166794020,
+      "translation": "경로 상에서 목표가 어디에 있는지 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751825Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:5",
+      "source": "Then you compute where on the path the target would be a few moments in the future.",
+      "source_hash": 7014761822084012866,
+      "context_hash": 17233931206633557984,
+      "translation": "그런 다음 잠시 후의 미래 시점에 목표가 경로 상 어디에 있을지 계산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:6",
+      "source": "Plug those 2 values into your `aim` function and you'll get a matrix that makes your object follow the path and orient toward the path as well.",
+      "source_hash": 15941052511648540495,
+      "context_hash": 9936100060064643797,
+      "translation": "이 두 값을 `aim` 함수에 넣으면 객체가 경로를 따라가면서 경로 쪽으로 방향을 맞추게 하는 행렬을 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:99/seg:0",
+      "source": "Usually to \"aim\" something you want it to point down the positive Z axis instead of the negative Z axis as our function above did.",
+      "source_hash": 2547806543469239574,
+      "context_hash": 6881534813811024772,
+      "translation": "보통 무언가를 \"조준\"하려면 위 함수처럼 음의 Z축이 아니라 양의 Z축 방향을 가리키기를 원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:99/seg:1",
+      "source": "So, we need to subtract `target` from `eye` instead of `eye` from `target`",
+      "source_hash": 6647945114706572281,
+      "context_hash": 2803533893067231266,
+      "translation": "그러므로 `eye`에서 `target`을 빼는 대신 `target`에서 `eye`를 빼야 합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:101/seg:0",
+      "source": "Then we'll hard code a camera target and change the settings so we can move one of the Fs",
+      "source_hash": 11042484673685527366,
+      "context_hash": 2472668393369541412,
+      "translation": "그런 다음 카메라 목표를 하드코딩하고 F 중 하나를 움직일 수 있도록 설정을 변경하겠습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:103/seg:0",
+      "source": "And finally for the first 25 Fs we'll orient them in a grid using `aim` and *aim* them at the 26th F",
+      "source_hash": 11307970087179591941,
+      "context_hash": 9423401377426783530,
+      "translation": "그리고 마지막으로 처음 25개의 F에 대해서는 `aim`을 사용해 격자 형태로 방향을 정하고 26번째 F를 *aim*하겠습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:105/seg:0",
+      "source": "And now 25 Fs are facing (their front is positive Z), the 26th F",
+      "source_hash": 1565280516075697955,
+      "context_hash": 18107989540563633168,
+      "translation": "그리고 이제 25개의 F는 (앞면이 양의 Z 방향인 채로) 26번째 F를 향하고 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:106/seg:0",
+      "source": "{{{example url=\"../webgpu-cameras-step-4-aim-Fs.html\" }}}",
+      "source_hash": 10538228537348407020,
+      "context_hash": 6278911697324731323,
+      "translation": "{{{example url=\"../webgpu-cameras-step-4-aim-Fs.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:107/seg:0",
+      "source": "Move the sliders and see all 25Fs *aim*.",
+      "source_hash": 7480241322624505228,
+      "context_hash": 7520749647495205721,
+      "translation": "슬라이더를 움직여서 25개의 F가 모두 *aim*하는 모습을 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T06:58:35.751826Z",
+      "issues": []
+    }
+  ]
+}

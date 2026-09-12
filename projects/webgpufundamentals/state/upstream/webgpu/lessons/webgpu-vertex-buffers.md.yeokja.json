@@ -1,0 +1,2506 @@
+{
+  "version": 1,
+  "source_hash": 6406948719994922933,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU Vertex Buffers Description: Passing Vertex Data to Shaders TOC: Vertex Buffers",
+      "source_hash": 8663650592497942548,
+      "context_hash": 5576023520064479758,
+      "translation": "제목: WebGPU 정점 버퍼",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:58.532221Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This article is one in a series of the various ways to provide data to a shader.",
+      "source_hash": 943481788633892990,
+      "context_hash": 4441016011468251755,
+      "translation": "이 글은 셰이더에 데이터를 제공하는 다양한 방법을 다루는 시리즈 중 하나입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:58.532222Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Each one builds on the previous lesson so you may find them easiest to understand by reading them in order.",
+      "source_hash": 1605581489901723993,
+      "context_hash": 3099973037594717681,
+      "translation": "각 글은 이전 강의를 바탕으로 하므로 순서대로 읽는 것이 이해하기 가장 쉬울 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532222Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "{{{toc-steps list=\"passing-data.hanson\"}}}",
+      "source_hash": 139006572089008170,
+      "context_hash": 11459209213583777412,
+      "translation": "{{{toc-steps list=\"passing-data.hanson\"}}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532222Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "In [the previous article](webgpu-storage-buffers.html) we put vertex data in a storage buffer and indexed it using the builtin `vertex_index`.",
+      "source_hash": 18312215481539341434,
+      "context_hash": 9376297937048924051,
+      "translation": "[이전 글](webgpu-storage-buffers.html)에서는 정점 데이터를 스토리지 버퍼에 넣고 내장 함수인 `vertex_index`를 사용해 인덱싱했습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:58.532223Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "While that technique is growing in popularity, the traditional way to provide vertex data to a vertex shader is via vertex buffers and attributes.",
+      "source_hash": 5937461933660518064,
+      "context_hash": 6698245220636289017,
+      "translation": "그 기법이 점점 인기를 얻고 있지만, 정점 셰이더에 정점 데이터를 제공하는 전통적인 방법은 정점 버퍼와 속성(attribute)을 통하는 것입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532223Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "Vertex buffers are just like any other WebGPU buffer; they hold data.",
+      "source_hash": 839508316480284954,
+      "context_hash": 5346134075165061522,
+      "translation": "정점 버퍼는 다른 WebGPU 버퍼와 마찬가지로 데이터를 담고 있습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "WebGPU": "WebGPU",
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:58.532223Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "The difference is we don't access them directly from the vertex shader.",
+      "source_hash": 17683063881094061348,
+      "context_hash": 2508564586811873108,
+      "translation": "차이점은 정점 셰이더에서 이를 직접 접근하지 않는다는 것입니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:58.532224Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:2",
+      "source": "Instead, we tell WebGPU what kind of data is in the buffer and how it's organized.",
+      "source_hash": 9741349104580012679,
+      "context_hash": 7598260706117446330,
+      "translation": "대신, WebGPU에 버퍼에 어떤 종류의 데이터가 있고 어떻게 구성되어 있는지 알려줍니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:58.532224Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:3",
+      "source": "It then pulls the data out of the buffer and provides it for us.",
+      "source_hash": 15389815078654873889,
+      "context_hash": 17953310749409663081,
+      "translation": "그러면 WebGPU가 버퍼에서 데이터를 꺼내어 우리에게 제공합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:58.532224Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "Let's take the last example from [the previous article](webgpu-storage-buffers.html) and change it from using a storage buffer to using a vertex buffer.",
+      "source_hash": 7755363233589859317,
+      "context_hash": 7127225803966863180,
+      "translation": "[이전 글](webgpu-storage-buffers.html)의 마지막 예제를 가져와서 스토리지 버퍼를 사용하던 것을 정점 버퍼를 사용하도록 바꿔봅시다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532224Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "The first thing to do is change the shader to get its vertex data from a vertex buffer.",
+      "source_hash": 7345618302499813751,
+      "context_hash": 14418727859995551274,
+      "translation": "가장 먼저 할 일은 셰이더가 정점 버퍼로부터 정점 데이터를 받도록 변경하는 것입니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "shader": "셰이더",
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:58.532225Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "As you can see, it's a small change.",
+      "source_hash": 3094037355041296574,
+      "context_hash": 14932083928705581557,
+      "translation": "보시다시피, 작은 변경입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532225Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:1",
+      "source": "The important part is declaring the position field with `@location(0)`.",
+      "source_hash": 3950396079154774456,
+      "context_hash": 13063436100379365828,
+      "translation": "중요한 부분은 `@location(0)`으로 position 필드를 선언하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532225Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "Next, we have to tell WebGPU how to supply data for `@location(0)` - for that, we use the render pipeline:",
+      "source_hash": 3782468559148949991,
+      "context_hash": 9884434021454593036,
+      "translation": "다음으로, `@location(0)`에 데이터를 어떻게 공급할지 WebGPU에 알려줘야 합니다 - 이를 위해 렌더 파이프라인을 사용합니다:",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:58.532225Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "To the [`vertex`](GPUVertexState) entry of the [`pipeline` descriptor](GPURenderPipelineDescriptor) we added a `buffers` array which is used to describe how to pull data out of 1 or more vertex buffers.",
+      "source_hash": 17091708690316260084,
+      "context_hash": 10039941153367887608,
+      "translation": "[`pipeline` 서술자](GPURenderPipelineDescriptor)의 [`vertex`](GPUVertexState) 항목에 `buffers` 배열을 추가했는데, 이는 하나 이상의 정점 버퍼에서 데이터를 꺼내는 방법을 설명하는 데 사용됩니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532225Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:1",
+      "source": "For our first and only buffer, we set an `arrayStride` in number of bytes.",
+      "source_hash": 8055166890261596579,
+      "context_hash": 843871662138932682,
+      "translation": "우리의 첫 번째이자 유일한 버퍼에 대해, 바이트 수 단위의 `arrayStride`를 설정합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:58.532226Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:2",
+      "source": "A *stride* in this case is how many bytes to get from the data for one vertex in the buffer, to the next vertex in the buffer.",
+      "source_hash": 2652804641322421576,
+      "context_hash": 10709282341737454382,
+      "translation": "이 경우 *stride*는 버퍼 안에서 한 정점의 데이터부터 다음 정점의 데이터까지 몇 바이트를 가져와야 하는지를 의미합니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:58.532226Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Since our data is `vec2f`, which is two float32 numbers, we set the `arrayStride` to 8.",
+      "source_hash": 13527989822994570186,
+      "context_hash": 14959461652259876617,
+      "translation": "우리의 데이터는 두 개의 float32 숫자인 `vec2f`이므로, `arrayStride`를 8로 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532226Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:0",
+      "source": "Next we define an array of attributes.",
+      "source_hash": 581209207796489028,
+      "context_hash": 690022575319947100,
+      "translation": "다음으로 속성 배열을 정의합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532226Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:1",
+      "source": "We only have one: `shaderLocation: 0` corresponds to `location(0)` in our `Vertex` struct. `offset: 0` says the data for this attribute starts at byte 0 in the vertex buffer.",
+      "source_hash": 14575702340037219145,
+      "context_hash": 8789646675442060936,
+      "translation": "하나만 있습니다: `shaderLocation: 0`은 `Vertex` 구조체의 `location(0)`에 대응합니다. `offset: 0`은 이 속성의 데이터가 정점 버퍼의 0번 바이트에서 시작함을 나타냅니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532226Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:2",
+      "source": "Finally `format: 'float32x2'` says we want WebGPU to pull the data out of the buffer as two 32bit floating point numbers. (Note: the `attributes` property is shown in the [simplified draw diagram](webgpu-fundamentals.html#a-draw-diagram) from the first article).",
+      "source_hash": 9296730795919247091,
+      "context_hash": 14216675737832309351,
+      "translation": "마지막으로 `format: 'float32x2'`는 WebGPU가 버퍼에서 32비트 부동소수점 숫자 두 개로 데이터를 꺼내기를 원한다는 것을 나타냅니다. (참고: `attributes` 속성은 첫 번째 글의 [단순화된 드로우 다이어그램](webgpu-fundamentals.html#a-draw-diagram)에 나와 있습니다.)",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:58.532227Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "We need to change the usages of the buffer holding vertex data from `STORAGE` to `VERTEX` and remove it from the bind group.",
+      "source_hash": 8177315128662063700,
+      "context_hash": 10159266952876283580,
+      "translation": "정점 데이터를 담고 있는 버퍼의 사용 용도를 `STORAGE`에서 `VERTEX`로 변경하고, 바인드 그룹에서 제거해야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532227Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "Then, at draw time we need to tell WebGPU which vertex buffer to use:",
+      "source_hash": 12570352043972416307,
+      "context_hash": 2367982139211323913,
+      "translation": "그런 다음, 드로우 시점에 어떤 정점 버퍼를 사용할지 WebGPU에 알려줘야 합니다:",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "WebGPU": "WebGPU",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532227Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "The `0` here corresponds to first element of the render pipeline `buffers` array we specified above.",
+      "source_hash": 2112876142226334759,
+      "context_hash": 5358575356341892517,
+      "translation": "여기서 `0`은 위에서 지정한 렌더 파이프라인 `buffers` 배열의 첫 번째 요소에 대응합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532227Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:0",
+      "source": "With that, we've switched from using a storage buffer for vertices to a vertex buffer.",
+      "source_hash": 12819564643582677894,
+      "context_hash": 12145712385233978670,
+      "translation": "이로써, 정점에 스토리지 버퍼를 사용하던 것에서 정점 버퍼를 사용하는 것으로 전환했습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:58.532227Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "{{{example url=\"../webgpu-vertex-buffers.html\"}}}",
+      "source_hash": 15991697723618409283,
+      "context_hash": 11867882801657681705,
+      "translation": "{{{example url=\"../webgpu-vertex-buffers.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532228Z",
+      "issues": [
+        "Term 'vertex' should be translated as '정점' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "The state when the draw command is executed would look something like this:",
+      "source_hash": 17915529547107466370,
+      "context_hash": 8600865184617738388,
+      "translation": "드로우 명령이 실행될 때의 상태는 대략 다음과 같이 보일 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532228Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "The attribute `format` field can be one of these types:",
+      "source_hash": 13216613766767769815,
+      "context_hash": 16714602817504452185,
+      "translation": "속성의 `format` 필드는 다음 유형 중 하나일 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532228Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:0",
+      "source": "Vertex format",
+      "source_hash": 14686726955104350798,
+      "context_hash": 7589271913198715644,
+      "translation": "정점 형식",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:58.532228Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "Data type",
+      "source_hash": 13041899648365585541,
+      "context_hash": 9697065397165000331,
+      "translation": "데이터 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532228Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:27/seg:0",
+      "source": "Components",
+      "source_hash": 1938974083493463926,
+      "context_hash": 13786797623766404688,
+      "translation": "구성 요소",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:58.532228Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:0",
+      "source": "Byte size",
+      "source_hash": 6406906844202244864,
+      "context_hash": 15468632543321579225,
+      "translation": "바이트 크기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215288Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:29/seg:0",
+      "source": "Example WGSL type",
+      "source_hash": 9548059179855669932,
+      "context_hash": 14958569246358612368,
+      "translation": "WGSL 타입 예시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215290Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 10267192517904457684,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215311Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 11395809425337716222,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215312Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 16427096544281012699,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215312Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 13584216997960658912,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215312Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 18294341240827736924,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215313Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:35/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 9020605102773799652,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215313Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 11319442043846163746,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215313Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 15903392379815844313,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215313Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 4721189265370841175,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215314Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 6957162061710218538,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215373Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 16427096544281012699,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215373Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:41/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 2545733798045385550,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215373Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 18294341240827736924,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215373Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 11833475396214969346,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215373Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 11319442043846163746,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215373Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 14208954668922232810,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:0",
+      "source": "unsigned normalized",
+      "source_hash": 10898633477900118537,
+      "context_hash": 4721189265370841175,
+      "translation": "unsigned normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 1230138910163167702,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:48/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 16427096544281012699,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:49/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 6758564675166486345,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:0",
+      "source": "unsigned normalized",
+      "source_hash": 10898633477900118537,
+      "context_hash": 18294341240827736924,
+      "translation": "unsigned normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:51/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 15893439245211135623,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:52/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 11319442043846163746,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 9937335506876283607,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:54/seg:0",
+      "source": "signed normalized",
+      "source_hash": 11436770819788578213,
+      "context_hash": 4721189265370841175,
+      "translation": "signed normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215374Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:55/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 7505273120071925171,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215375Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 16427096544281012699,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215375Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:57/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 15415814564393859371,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215375Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:58/seg:0",
+      "source": "signed normalized",
+      "source_hash": 11436770819788578213,
+      "context_hash": 18294341240827736924,
+      "translation": "signed normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215375Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 1314116317449979004,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.215375Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:60/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 11319442043846163746,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312610Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:61/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 13037041008543788057,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312610Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:62/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 4721189265370841175,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 9020605102773799652,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:64/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 16427096544281012699,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:65/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 13037041008543788057,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:66/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 18294341240827736924,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:67/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 2815285631079710027,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:68/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 11319442043846163746,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:69/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 1286805951014208070,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:70/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 4721189265370841175,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:71/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 11833475396214969346,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:72/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 16427096544281012699,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 15903392379815844313,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312611Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:74/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 18294341240827736924,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:75/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 10262086326508627656,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:76/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 11319442043846163746,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:77/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 17968170572132617113,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:0",
+      "source": "unsigned normalized",
+      "source_hash": 10898633477900118537,
+      "context_hash": 4721189265370841175,
+      "translation": "unsigned normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:79/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 15893439245211135623,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:80/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 16427096544281012699,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:81/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 14208954668922232810,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:82/seg:0",
+      "source": "unsigned normalized",
+      "source_hash": 10898633477900118537,
+      "context_hash": 18294341240827736924,
+      "translation": "unsigned normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:83/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 13145570592792789618,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:84/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 11319442043846163746,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:85/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 149976762114291907,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:86/seg:0",
+      "source": "signed normalized",
+      "source_hash": 11436770819788578213,
+      "context_hash": 4721189265370841175,
+      "translation": "signed normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:87/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 1314116317449979004,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:88/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 16427096544281012699,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312612Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:89/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 9937335506876283607,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312615Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:90/seg:0",
+      "source": "signed normalized",
+      "source_hash": 11436770819788578213,
+      "context_hash": 18294341240827736924,
+      "translation": "signed normalized",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312615Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:91/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 12150722698146598244,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:34.312615Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:92/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 11319442043846163746,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292552Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:93/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 12501047519760278781,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292553Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:94/seg:0",
+      "source": "float",
+      "source_hash": 3276846242849193493,
+      "context_hash": 4721189265370841175,
+      "translation": "float",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292553Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:95/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 519796155648749661,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292553Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:96/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 16427096544281012699,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292553Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:97/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 3953208524602631286,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292553Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:98/seg:0",
+      "source": "float",
+      "source_hash": 3276846242849193493,
+      "context_hash": 18294341240827736924,
+      "translation": "float",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292553Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:99/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 10748860045548024923,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:100/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 11319442043846163746,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:101/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 12501047519760278781,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:102/seg:0",
+      "source": "float",
+      "source_hash": 3276846242849193493,
+      "context_hash": 12345160859519425771,
+      "translation": "float",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:103/seg:0",
+      "source": "1",
+      "source_hash": 13237225503670494420,
+      "context_hash": 519796155648749661,
+      "translation": "1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:104/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 1937402621465882015,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:105/seg:0",
+      "source": "float",
+      "source_hash": 3276846242849193493,
+      "context_hash": 491809404360474638,
+      "translation": "float",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:106/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 10748860045548024923,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:107/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 16427096544281012699,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:108/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 12501047519760278781,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292554Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:109/seg:0",
+      "source": "float",
+      "source_hash": 3276846242849193493,
+      "context_hash": 11744567465713760141,
+      "translation": "float",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:110/seg:0",
+      "source": "3",
+      "source_hash": 2744517546871237796,
+      "context_hash": 2525260253584608281,
+      "translation": "3",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:111/seg:0",
+      "source": "12",
+      "source_hash": 6080128442901703586,
+      "context_hash": 1340418473419506415,
+      "translation": "12",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:112/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 3774837414708912415,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:113/seg:0",
+      "source": "float",
+      "source_hash": 3276846242849193493,
+      "context_hash": 18294341240827736924,
+      "translation": "float",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:114/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 6982957923130403450,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:115/seg:0",
+      "source": "16",
+      "source_hash": 12522305586339984642,
+      "context_hash": 11319442043846163746,
+      "translation": "16",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:116/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 5829389481028592518,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:117/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 12345160859519425771,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:118/seg:0",
+      "source": "1",
+      "source_hash": 13237225503670494420,
+      "context_hash": 9020605102773799652,
+      "translation": "1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:119/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 2337120268077694330,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:120/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 491809404360474638,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292555Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:121/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 2815285631079710027,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292556Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:122/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 16427096544281012699,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292556Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:123/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 4498899542475845060,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:43.292556Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:124/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 11744567465713760141,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352964Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:125/seg:0",
+      "source": "3",
+      "source_hash": 2744517546871237796,
+      "context_hash": 7639513419933121712,
+      "translation": "3",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352965Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:126/seg:0",
+      "source": "12",
+      "source_hash": 6080128442901703586,
+      "context_hash": 1340418473419506415,
+      "translation": "12",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352965Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:127/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 11940281843159761789,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352965Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:128/seg:0",
+      "source": "unsigned int",
+      "source_hash": 12628868532587592052,
+      "context_hash": 18294341240827736924,
+      "translation": "unsigned int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352965Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:129/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 8979171205132479538,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352965Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:130/seg:0",
+      "source": "16",
+      "source_hash": 12522305586339984642,
+      "context_hash": 11319442043846163746,
+      "translation": "16",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352965Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:131/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 17597433696769966742,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:132/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 12345160859519425771,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:133/seg:0",
+      "source": "1",
+      "source_hash": 13237225503670494420,
+      "context_hash": 11833475396214969346,
+      "translation": "1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:134/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 7909341446190132445,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:135/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 491809404360474638,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:136/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 10262086326508627656,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:137/seg:0",
+      "source": "8",
+      "source_hash": 12485775574321252452,
+      "context_hash": 16427096544281012699,
+      "translation": "8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:138/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 1286805951014208070,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:139/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 11744567465713760141,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352966Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:140/seg:0",
+      "source": "3",
+      "source_hash": 2744517546871237796,
+      "context_hash": 14466320305664004347,
+      "translation": "3",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352967Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:141/seg:0",
+      "source": "12",
+      "source_hash": 6080128442901703586,
+      "context_hash": 1340418473419506415,
+      "translation": "12",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352967Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:142/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 10198018735209580107,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352967Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:143/seg:0",
+      "source": "signed int",
+      "source_hash": 12041518110359151276,
+      "context_hash": 18294341240827736924,
+      "translation": "signed int",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352967Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:144/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 5466228684530212420,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352967Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:145/seg:0",
+      "source": "16",
+      "source_hash": 12522305586339984642,
+      "context_hash": 11319442043846163746,
+      "translation": "16",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352967Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:146/seg:0",
+      "source": ",",
+      "source_hash": 13846691484988911893,
+      "context_hash": 6814526642858607205,
+      "translation": ",",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352967Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "<a id=\"a-instancing\"></a>Instancing with Vertex Buffers",
+      "source_hash": 3540199713890141557,
+      "context_hash": 15319362399400320851,
+      "translation": "<a id=\"a-instancing\"></a>정점 버퍼를 이용한 인스턴싱",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:48.352968Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Attributes can advance per vertex or per instance.",
+      "source_hash": 7035878936524656702,
+      "context_hash": 11198574544145076418,
+      "translation": "애트리뷰트는 정점마다 진행하거나 인스턴스마다 진행할 수 있습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:48.352969Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Advancing them per instance is effectively the same thing we're doing when we index `otherStructs[instanceIndex]` and `ourStructs[instanceIndex]` where `instanceIndex` got its value from `@builtin(instance_index)`.",
+      "source_hash": 13665466066296918366,
+      "context_hash": 11305672592356855586,
+      "translation": "인스턴스마다 진행하는 것은 사실상 `otherStructs[instanceIndex]`와 `ourStructs[instanceIndex]`를 인덱싱할 때 하고 있는 것과 동일한 일이며, 여기서 `instanceIndex`는 `@builtin(instance_index)`로부터 값을 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352969Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Let's get rid of the storage buffers and use vertex buffers to accomplish the same thing.",
+      "source_hash": 15636993238991522464,
+      "context_hash": 8630697331923687208,
+      "translation": "스토리지 버퍼를 없애고 정점 버퍼를 사용해서 같은 일을 해봅시다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:48.352970Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "First lets change the shader to use vertex attributes instead of storage buffers.",
+      "source_hash": 1953197293619087643,
+      "context_hash": 237666591192633788,
+      "translation": "먼저 셰이더가 스토리지 버퍼 대신 정점 애트리뷰트를 사용하도록 바꿔봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:08:48.352970Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Now we need to update our render pipeline to tell it how we want to supply data to those attributes.",
+      "source_hash": 3743721991811363209,
+      "context_hash": 12831270728406740073,
+      "translation": "이제 렌더 파이프라인을 갱신해서 이 애트리뷰트들에 데이터를 어떻게 공급할지 알려줘야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352971Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "To keep the changes to a minimum we'll use the data we created for the storage buffers almost as is.",
+      "source_hash": 8017241317164449909,
+      "context_hash": 8580508667500625556,
+      "translation": "변경 사항을 최소화하기 위해 스토리지 버퍼용으로 만들었던 데이터를 거의 그대로 사용하겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:48.352971Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "We'll use two buffers, one buffer will hold the `color` and `offset` per instance, the other will hold the `scale`.",
+      "source_hash": 688250412418170530,
+      "context_hash": 2885763078371201999,
+      "translation": "버퍼 두 개를 사용할 것인데, 하나의 버퍼는 인스턴스마다의 `color`와 `offset`을 담고, 다른 버퍼는 `scale`을 담습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:48.352971Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Above we added 2 entries to the `buffers` array on our pipeline description so now there are 3 buffer entries, meaning we're telling WebGPU we'll supply the data in 3 buffers.",
+      "source_hash": 17567691489917766906,
+      "context_hash": 14201170033309556897,
+      "translation": "위에서 파이프라인 서술에 있는 `buffers` 배열에 2개의 항목을 추가했으므로 이제 버퍼 항목이 3개가 되었으며, 이는 WebGPU에게 3개의 버퍼로 데이터를 공급하겠다고 알려주는 것을 의미합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:48.352972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "For our 2 new entries we set the `stepMode` to `instance`.",
+      "source_hash": 5662209017872786681,
+      "context_hash": 11461986289754645477,
+      "translation": "새로운 2개 항목에 대해 `stepMode`를 `instance`로 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489392Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "This means this attribute will only advance to next value once per instance.",
+      "source_hash": 6720260338570669014,
+      "context_hash": 119997638423688086,
+      "translation": "이는 이 속성이 인스턴스당 한 번씩만 다음 값으로 진행함을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489392Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "The default is `stepMode: 'vertex'` which advances once per vertex (and starts over for each instance).",
+      "source_hash": 3114277017522005879,
+      "context_hash": 158831606556336741,
+      "translation": "기본값은 `stepMode: 'vertex'`이며 정점마다 한 번씩 진행합니다(그리고 각 인스턴스마다 다시 처음부터 시작합니다).",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489392Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "We have 2 buffers.",
+      "source_hash": 9709946773269672314,
+      "context_hash": 2982496130550099178,
+      "translation": "우리는 2개의 버퍼를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489392Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "The one that holds just `scale` is simple.",
+      "source_hash": 10865256886463585865,
+      "context_hash": 975061008744375049,
+      "translation": "`scale`만 담고 있는 버퍼는 간단합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489393Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "Just like our first buffer that holds `position` it's 2 32 floats per vertex.",
+      "source_hash": 6790116674956602307,
+      "context_hash": 17723678163778352950,
+      "translation": "`position`을 담고 있는 첫 번째 버퍼와 마찬가지로, 정점당 32비트 실수 2개입니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489393Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "Our other buffer holds `color` and `offset` and they're going to be interleaved in the data like this",
+      "source_hash": 2688596817583678323,
+      "context_hash": 12970953631269995211,
+      "translation": "다른 버퍼는 `color`와 `offset`을 담고 있으며 다음과 같이 데이터에서 인터리빙될 예정입니다",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:09:20.489393Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "So above we say the `arrayStride` to get from one set of data to the next is `6 * 4`, 6 32bit floats each 4 bytes (24 bytes total).",
+      "source_hash": 7669502407213882549,
+      "context_hash": 15490285504755641234,
+      "translation": "그래서 위에서 한 데이터 세트에서 다음 데이터 세트로 이동하는 `arrayStride`는 `6 * 4`, 즉 32비트 실수 6개 각 4바이트(총 24바이트)라고 말합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489393Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "The `color` starts at offset 0 but the `offset` starts 16 bytes in.",
+      "source_hash": 18312468500988988988,
+      "context_hash": 904104753614416222,
+      "translation": "`color`는 오프셋 0에서 시작하지만 `offset`은 16바이트 지점에서 시작합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489393Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "Next we can change the code that sets up the buffers.",
+      "source_hash": 5319004426391222549,
+      "context_hash": 1954528419526001895,
+      "translation": "다음으로 버퍼를 설정하는 코드를 변경할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489393Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "Vertex attributes do not have the same padding restrictions as structures in storage buffers so we no longer need the padding.",
+      "source_hash": 6478356559423067393,
+      "context_hash": 889238270021848268,
+      "translation": "정점 속성은 스토리지 버퍼의 구조체와 동일한 패딩 제약이 없으므로 더 이상 패딩이 필요하지 않습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489393Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:1",
+      "source": "Otherwise all we did was change the usage from `STORAGE` to `VERTEX` (and we renamed all the variables from \"storage\" to \"vertex\").",
+      "source_hash": 2364175184763715782,
+      "context_hash": 4542980525593096590,
+      "translation": "그 외에는 사용 용도를 `STORAGE`에서 `VERTEX`로 변경한 것뿐입니다 (그리고 모든 변수 이름도 \"storage\"에서 \"vertex\"로 바꾸었습니다).",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489394Z",
+      "issues": [
+        "Term 'vertex' should be translated as '정점' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "Since we're no longer using the storage buffers we no longer need the bind group:",
+      "source_hash": 3963762484128520354,
+      "context_hash": 4223009759367373410,
+      "translation": "더 이상 스토리지 버퍼를 사용하지 않으므로 더 이상 바인드 그룹이 필요하지 않습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489394Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "Finally, we don't need to set the bind group but, we do need to set the vertex buffers:",
+      "source_hash": 16646027805827792753,
+      "context_hash": 9021939124040322938,
+      "translation": "마지막으로, 바인드 그룹을 설정할 필요는 없지만 정점 버퍼는 설정해야 합니다:",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489394Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "Here the first parameter to `setVertexBuffer` corresponds to the elements of the `buffers` array in the pipeline we created above.",
+      "source_hash": 2482163327631958497,
+      "context_hash": 511826032678867185,
+      "translation": "여기서 `setVertexBuffer`의 첫 번째 매개변수는 위에서 만든 파이프라인의 `buffers` 배열의 요소에 대응합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489394Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "With that we have the same thing we had before, but we're using all vertex buffers and no storage buffers.",
+      "source_hash": 2707537047537860355,
+      "context_hash": 4713736022727855987,
+      "translation": "이로써 이전과 동일한 것을 얻었지만, 스토리지 버퍼 없이 모두 정점 버퍼를 사용하고 있습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489394Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "{{{example url=\"../webgpu-vertex-buffers-instanced-colors\"}}}",
+      "source_hash": 16042315114532503027,
+      "context_hash": 13646238395437904189,
+      "translation": "{{{example url=\"../webgpu-vertex-buffers-instanced-colors\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489394Z",
+      "issues": [
+        "Term 'vertex' should be translated as '정점' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "Just for fun, let's add another attribute for a per vertex color.",
+      "source_hash": 14551091123931479209,
+      "context_hash": 7144221320073846223,
+      "translation": "재미 삼아, 정점별 색상을 위한 또 다른 속성을 추가해 봅시다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:1",
+      "source": "First let's change the shader:",
+      "source_hash": 4710425275558137106,
+      "context_hash": 7925138459373590760,
+      "translation": "먼저 셰이더를 변경해 봅시다:",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "Then we need to update the pipeline to describe how we'll supply the data.",
+      "source_hash": 9569757001118540159,
+      "context_hash": 3311694262203640675,
+      "translation": "그런 다음 데이터를 어떻게 공급할지 설명하도록 파이프라인을 업데이트해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:1",
+      "source": "We're going to interleave the `perVertexColor` data with the `position` like this:",
+      "source_hash": 7341109861793096811,
+      "context_hash": 9929667724009860908,
+      "translation": "`perVertexColor` 데이터를 `position`과 다음과 같이 인터리빙할 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "So, the `arrayStride` needs to be changed to cover our new data and we need to add the new attribute.",
+      "source_hash": 9684038535523951222,
+      "context_hash": 12781381968242347586,
+      "translation": "그래서, 새로운 데이터를 포괄하도록 `arrayStride`를 변경해야 하고 새로운 속성을 추가해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:1",
+      "source": "It starts after two 32bit floating point numbers so its `offset` into the buffer is 8 bytes.",
+      "source_hash": 10695941986248556682,
+      "context_hash": 4393607535479190533,
+      "translation": "이는 32비트 부동소수점 숫자 2개 뒤에서 시작하므로 버퍼 내 `offset`은 8바이트입니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "We'll update the circle vertex generation code to provide a dark color for vertices on the outer edge of the circle and a light color for the inner vertices.",
+      "source_hash": 2674571692613611676,
+      "context_hash": 11929819223455281808,
+      "translation": "원의 바깥쪽 가장자리에 있는 정점에는 어두운 색을, 안쪽 정점에는 밝은 색을 제공하도록 원 정점 생성 코드를 업데이트하겠습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "And with that we get shaded circles:",
+      "source_hash": 5270812326853448030,
+      "context_hash": 8863255630733856953,
+      "translation": "그렇게 하면 음영이 있는 원을 얻게 됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489395Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:31/seg:0",
+      "source": "{{{example url=\"../webgpu-vertex-buffers-per-vertex-colors.html\"}}}",
+      "source_hash": 15930527885954574729,
+      "context_hash": 18150416422009104970,
+      "translation": "{{{example url=\"../webgpu-vertex-buffers-per-vertex-colors.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489396Z",
+      "issues": [
+        "Term 'vertex' should be translated as '정점' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "<a id=\"a-default-values\"></a>Attributes in WGSL do not have to match attributes in JavaScript",
+      "source_hash": 15565942119200664264,
+      "context_hash": 7470316878373706541,
+      "translation": "<a id=\"a-default-values\"></a>WGSL의 속성은 JavaScript의 속성과 일치할 필요가 없습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489396Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Above in WGSL we declared the `perVertexColor` attribute as a `vec3f` like this:",
+      "source_hash": 4598898541328286416,
+      "context_hash": 9817716000644921178,
+      "translation": "위 WGSL에서 우리는 `perVertexColor` 속성을 다음과 같이 `vec3f`로 선언했습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489396Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "And used it like this:",
+      "source_hash": 17663022972158097518,
+      "context_hash": 2341332633953809903,
+      "translation": "그리고 다음과 같이 사용했습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489396Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "We could also declare it as a `vec4f` and use it like this:",
+      "source_hash": 15014715175757873953,
+      "context_hash": 3206249066322199597,
+      "translation": "이를 `vec4f`로 선언하고 다음과 같이 사용할 수도 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489396Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "And change nothing else.",
+      "source_hash": 7205239876854146125,
+      "context_hash": 13010465648375075925,
+      "translation": "그리고 나머지는 아무것도 바꾸지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:20.489396Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "In JavaScript we're still only supplying the data as 3 floats per vertex.",
+      "source_hash": 2100050496562735580,
+      "context_hash": 3075147044742559618,
+      "translation": "JavaScript에서는 여전히 정점당 3개의 실수로만 데이터를 공급하고 있습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:20.489396Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "This works because attributes always have 4 values available in the shader.",
+      "source_hash": 5317042482320963087,
+      "context_hash": 18123196638105008664,
+      "translation": "이는 셰이더에서 어트리뷰트가 항상 4개의 값을 사용할 수 있기 때문에 동작합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:09:22.415832Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "They default to `0, 0, 0, 1` so any values we don't supply get these defaults.",
+      "source_hash": 3188506997064583188,
+      "context_hash": 6881823780819068840,
+      "translation": "이 값들은 기본적으로 `0, 0, 0, 1`이므로, 우리가 제공하지 않은 값은 이 기본값을 가지게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415833Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "{{{example url=\"../webgpu-vertex-buffers-per-vertex-colors-3-in-4-out.html\"}}}",
+      "source_hash": 17265042863201531133,
+      "context_hash": 16579622616060070866,
+      "translation": "{{{example url=\"../webgpu-vertex-buffers-per-vertex-colors-3-in-4-out.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:22.415833Z",
+      "issues": [
+        "Term 'vertex' should be translated as '정점' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "<a id=\"a-normalized-attributes\"></a>Using normalized values to save space",
+      "source_hash": 4300147447090590404,
+      "context_hash": 5593376732833320881,
+      "translation": "<a id=\"a-normalized-attributes\"></a>정규화된 값을 사용해 공간 절약하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415834Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "We're using 32bit floating point values for colors.",
+      "source_hash": 18087484285757278632,
+      "context_hash": 224338840486339684,
+      "translation": "우리는 색상에 32비트 부동소수점 값을 사용하고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415834Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Each `perVertexColor` has 3 values for a total of 12 bytes per color per vertex.",
+      "source_hash": 15462559797138706999,
+      "context_hash": 3648494086907350833,
+      "translation": "각 `perVertexColor`는 3개의 값을 가지므로 정점당 색상마다 총 12바이트입니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:22.415834Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "Each `color` has 4 values for a total of 16 bytes per color per instance.",
+      "source_hash": 13962267538823795877,
+      "context_hash": 14278366751139920696,
+      "translation": "각 `color`는 4개의 값을 가지므로 인스턴스당 색상마다 총 16바이트입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415834Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "We could optimize that by using 8bit values and telling WebGPU they should be normalized from 0 ↔ 255 to 0.0 ↔ 1.0.",
+      "source_hash": 15350284087304687198,
+      "context_hash": 14832024872422982380,
+      "translation": "8비트 값을 사용하고 WebGPU에게 이를 0 ↔ 255에서 0.0 ↔ 1.0으로 정규화하도록 지시함으로써 이를 최적화할 수 있습니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:09:22.415834Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Looking at the list of valid attribute formats there is no 3 value 8bit format but there is `'unorm8x4'` so let's use that.",
+      "source_hash": 7463539164374766983,
+      "context_hash": 15169646538465357799,
+      "translation": "유효한 어트리뷰트 포맷 목록을 살펴보면 3개의 값을 갖는 8비트 포맷은 없지만 `'unorm8x4'`는 있으므로, 이를 사용합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "First let's change the code that generates the vertices to store colors as 8bit values that will be normalized:",
+      "source_hash": 4511553979941322896,
+      "context_hash": 5916579157438748122,
+      "translation": "먼저 정점을 생성하는 코드를 변경하여 색상을 정규화될 8비트 값으로 저장하도록 합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Above we make `colorData`, which is a `Uint8Array` view of the same data as `vertexData`.",
+      "source_hash": 11429566389941267122,
+      "context_hash": 14405183427453889363,
+      "translation": "위에서는 `colorData`를 만들었는데, 이는 `vertexData`와 동일한 데이터를 가리키는 `Uint8Array` 뷰입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "Review the [data memory layout article](webgpu-memory-layout.html#multiple-views-of-the-same-arraybuffer) if this is unclear.",
+      "source_hash": 6100697463216982634,
+      "context_hash": 2788622541908050537,
+      "translation": "이것이 이해되지 않는다면 [데이터 메모리 레이아웃 아티클](webgpu-memory-layout.html#multiple-views-of-the-same-arraybuffer)을 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "We then use `colorData` to insert the colors, expanding them from 0 ↔ 1 to 0 ↔ 255.",
+      "source_hash": 10858388311498287473,
+      "context_hash": 16534831999814661398,
+      "translation": "그런 다음 `colorData`를 사용해 색상을 삽입하며, 0 ↔ 1에서 0 ↔ 255로 확장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "The memory layout of this (per vertex) data is like this:",
+      "source_hash": 12605053193206247627,
+      "context_hash": 10932884819193811524,
+      "translation": "이 (정점당) 데이터의 메모리 레이아웃은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "We also need to update the per instance data.",
+      "source_hash": 10270962694858165262,
+      "context_hash": 6689605303661152101,
+      "translation": "인스턴스당 데이터도 업데이트해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "The layout for the per instance data is like this:",
+      "source_hash": 4395891435091000046,
+      "context_hash": 10602201898007459170,
+      "translation": "인스턴스당 데이터의 레이아웃은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "We then need to change the pipeline to pull out the data as 8bit unsigned values and to normalize them back to 0 ↔ 1, update the offsets, and update the stride to its new size.",
+      "source_hash": 13434196563177552494,
+      "context_hash": 17664087128899024576,
+      "translation": "그런 다음 파이프라인을 변경하여 데이터를 8비트 부호 없는 값으로 꺼내고 이를 다시 0 ↔ 1로 정규화하며, 오프셋을 업데이트하고 스트라이드를 새로운 크기로 업데이트해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "And with that we've save a little space.",
+      "source_hash": 9834012496347939529,
+      "context_hash": 14752754616916781110,
+      "translation": "이를 통해 약간의 공간을 절약했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:1",
+      "source": "We were using 20 bytes per vertex, now we're using 12 bytes per vertex, a 40% savings.",
+      "source_hash": 17783925830860568130,
+      "context_hash": 14819200343257417580,
+      "translation": "우리는 정점당 20바이트를 사용하고 있었으나, 이제는 정점당 12바이트를 사용하므로 40%를 절약한 것입니다.",
+      "glossary_snapshot": {
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:09:22.415836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:2",
+      "source": "And we were using 24 bytes per instance, now we're using 12, a 50% savings.",
+      "source_hash": 12439454325318919989,
+      "context_hash": 2809043448834852507,
+      "translation": "그리고 인스턴스당 24바이트를 사용하고 있었으나, 이제는 12바이트를 사용하므로 50%를 절약한 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "{{{example url=\"../webgpu-vertex-buffers-8bit-colors.html\"}}}",
+      "source_hash": 9822922328033279670,
+      "context_hash": 562449345933930991,
+      "translation": "{{{example url=\"../webgpu-vertex-buffers-8bit-colors.html\"}}}",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:09:22.415836Z",
+      "issues": [
+        "Term 'vertex' should be translated as '정점' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "Note that we don't have to use a struct.",
+      "source_hash": 11762299227380296532,
+      "context_hash": 18088547435555142992,
+      "translation": "구조체를 사용할 필요가 없다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415837Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:1",
+      "source": "This would work just as well:",
+      "source_hash": 12652358685736207950,
+      "context_hash": 6955471718422602129,
+      "translation": "다음과 같이 해도 동일하게 동작할 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415837Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "As again, all WebGPU cares about that we define `locations` in the shader and supply data to those locations via the API.",
+      "source_hash": 605715099225747084,
+      "context_hash": 9939739784206113796,
+      "translation": "다시 말하지만, WebGPU가 신경 쓰는 것은 오직 우리가 셰이더에서 `locations`를 정의하고 API를 통해 해당 위치에 데이터를 제공한다는 것뿐입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:09:22.415837Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "<a id=\"a-index-buffers\"></a>Index Buffers",
+      "source_hash": 15153129146027237733,
+      "context_hash": 7319701354704059481,
+      "translation": "<a id=\"a-index-buffers\"></a>인덱스 버퍼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415838Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "One last thing to cover here are index buffers.",
+      "source_hash": 12029524367002916722,
+      "context_hash": 6312387651832835719,
+      "translation": "여기서 다룰 마지막 한 가지는 인덱스 버퍼입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415838Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "Index buffers describe the order to process and use the vertices.",
+      "source_hash": 738742643526981607,
+      "context_hash": 7383399816187354471,
+      "translation": "인덱스 버퍼는 정점을 처리하고 사용하는 순서를 기술합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415838Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "You can think of `draw` as going through the vertices in order:",
+      "source_hash": 8110135740674403770,
+      "context_hash": 12923003614752756598,
+      "translation": "`draw`는 순서대로 정점을 순회하는 것으로 생각할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415838Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "With an index buffer we can change that order.",
+      "source_hash": 4400216977704709498,
+      "context_hash": 10383438991735427572,
+      "translation": "인덱스 버퍼를 사용하면 그 순서를 바꿀 수 있습니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:09:22.415838Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "We were creating 6 vertices per subdivision of the circle even though 2 of them were identical.",
+      "source_hash": 9259899002479714673,
+      "context_hash": 1786681343659311270,
+      "translation": "우리는 원의 각 세분마다 6개의 정점을 생성하고 있었지만, 그중 2개는 동일했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:09:22.415838Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Now instead, we'll only create 4 but then use indices to use those 4 vertices 6 times by telling WebGPU to draw indices in this order:",
+      "source_hash": 6278811116620695299,
+      "context_hash": 16150309107339397826,
+      "translation": "이제 대신 4개만 생성한 다음, WebGPU에게 다음 순서로 인덱스를 그리도록 지시함으로써 인덱스를 사용해 그 4개의 정점을 6번 사용할 것입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:09:22.415838Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "Then we need to create an index buffer:",
+      "source_hash": 5758646088895441952,
+      "context_hash": 1888725836458449204,
+      "translation": "그런 다음 인덱스 버퍼를 생성해야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:09:22.415839Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "Notice we set the usage to `INDEX`.",
+      "source_hash": 2419726408434094527,
+      "context_hash": 8426352241460092003,
+      "translation": "usage를 `INDEX`로 설정한 것에 주목하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:46.792851Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Then finally at draw time we need to specify the index buffer:",
+      "source_hash": 6141171287373985507,
+      "context_hash": 15925921448648332867,
+      "translation": "그리고 마지막으로 그리기 시점에 인덱스 버퍼를 지정해야 합니다:",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:46.792853Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "Because our buffer contains 32bit unsigned integer indices we need to pass `'uint32'` here.",
+      "source_hash": 11882731222748574843,
+      "context_hash": 745591833916095972,
+      "translation": "버퍼가 32비트 부호 없는 정수 인덱스를 담고 있기 때문에 여기에는 `'uint32'`를 전달해야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:46.792856Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:1",
+      "source": "We could also use 16 bit unsigned indices in which case we'd pass in `'uint16'`.",
+      "source_hash": 3693371398036591801,
+      "context_hash": 8529290212429335734,
+      "translation": "16비트 부호 없는 인덱스를 사용할 수도 있는데, 이 경우에는 `'uint16'`을 전달하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:46.792856Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "And we need to call `drawIndexed` instead of `draw`:",
+      "source_hash": 15576871178742428189,
+      "context_hash": 13008828470072202139,
+      "translation": "그리고 `draw` 대신 `drawIndexed`를 호출해야 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:46.792857Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "With that we saved some space (33%) and, potentially a similar amount of processing when computing vertices in the vertex shader as it's possible the GPU can reuse vertices it has already calculated.",
+      "source_hash": 11533063469228357454,
+      "context_hash": 3369765712191353614,
+      "translation": "이를 통해 공간을 일부(33%) 절약했으며, GPU가 이미 계산한 정점을 재사용할 수 있으므로 정점 셰이더에서 정점을 계산할 때 처리량도 비슷한 정도로 절약될 가능성이 있습니다.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:08:46.792858Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "{{{example url=\"../webgpu-vertex-buffers-index-buffer.html\"}}}",
+      "source_hash": 6871919550949827457,
+      "context_hash": 1656034097789582387,
+      "translation": "{{{example url=\"../webgpu-vertex-buffers-index-buffer.html\"}}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU",
+        "vertex": "정점",
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:46.792859Z",
+      "issues": [
+        "Term 'vertex' should be translated as '정점' but was not found in translation",
+        "Term 'buffer' should be translated as '버퍼' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "Note that we could have also used an index buffer with the storage buffer example from [the previous article](webgpu-storage-buffers.html).",
+      "source_hash": 18355547004288847914,
+      "context_hash": 4789000932179354491,
+      "translation": "[이전 글](webgpu-storage-buffers.html)의 스토리지 버퍼 예제에서도 인덱스 버퍼를 사용할 수 있었다는 점에 유의하십시오.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:46.792862Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:1",
+      "source": "In that case the value from `@builtin(vertex_index)` that's passed in matches the index from the index buffer.",
+      "source_hash": 15068667888934192736,
+      "context_hash": 9748229215363366970,
+      "translation": "이 경우 전달되는 `@builtin(vertex_index)`의 값은 인덱스 버퍼의 인덱스와 일치합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:08:46.792864Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "Next up we'll cover [textures](webgpu-textures.html).",
+      "source_hash": 3996899735628768247,
+      "context_hash": 9203905953055778873,
+      "translation": "다음으로는 [텍스처](webgpu-textures.html)를 다루겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:46.792864Z",
+      "issues": []
+    }
+  ]
+}

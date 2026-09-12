@@ -1,0 +1,783 @@
+{
+  "version": 1,
+  "source_hash": 3851545751616357762,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU - Point Lighting Description: How to implement point lighting in WebGPU TOC: Point Lighting",
+      "source_hash": 15083973388489332383,
+      "context_hash": 3061904430470556126,
+      "translation": "제목: WebGPU - 점 조명 설명: WebGPU에서 점 조명을 구현하는 방법 목차: 점 조명",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:14:18.728144Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This article is a continuation of [WebGPU Directional Lighting](webgpu-lighting-directional.html).",
+      "source_hash": 347658191907700158,
+      "context_hash": 8066380027038926364,
+      "translation": "이 글은 [WebGPU 방향성 조명](webgpu-lighting-directional.html)에서 이어지는 내용입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:14:18.728145Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "If you haven't read that I suggest [you start there](webgpu-lighting-directional.html).",
+      "source_hash": 14490997264918649716,
+      "context_hash": 2472626404175344612,
+      "translation": "아직 그 글을 읽지 않으셨다면 [먼저 그곳부터 시작하시기](webgpu-lighting-directional.html)를 권장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728145Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "In the previous article we covered directional lighting where the light is coming universally from the same direction.",
+      "source_hash": 339798760022821305,
+      "context_hash": 1779058356177683985,
+      "translation": "이전 글에서는 빛이 모든 곳에서 동일한 방향으로 오는 방향성 조명을 다루었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728145Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "We set that direction before rendering.",
+      "source_hash": 5603337022387922188,
+      "context_hash": 15483317422689361907,
+      "translation": "렌더링 전에 그 방향을 설정했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "What if instead of setting the direction for the light we picked a point in 3d space for the light and computed the direction from that point to each visible spot on the surface of our model in our shader?",
+      "source_hash": 898632461517610894,
+      "context_hash": 11683414819677398057,
+      "translation": "빛의 방향을 설정하는 대신, 빛을 위해 3D 공간 상의 한 점을 정하고 그 점에서 모델 표면의 각 보이는 지점까지의 방향을 셰이더에서 계산하면 어떻게 될까요?",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:14:18.728146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "That would give us a point light.",
+      "source_hash": 10513379479712078210,
+      "context_hash": 11870997837743220127,
+      "translation": "그렇게 하면 점 조명을 얻을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "{{{diagram url=\"resources/point-lighting.html\" width=\"700\" height=\"400\" className=\"noborder\" }}}",
+      "source_hash": 16348239008622065099,
+      "context_hash": 8968389550554919510,
+      "translation": "{{{diagram url=\"resources/point-lighting.html\" width=\"700\" height=\"400\" className=\"noborder\" }}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "If you rotate the surface above you'll see how each point on the surface has a different *surface to light* vector.",
+      "source_hash": 18027871623265390309,
+      "context_hash": 4244550240931404845,
+      "translation": "위의 표면을 회전시켜 보면 표면의 각 점마다 서로 다른 *표면에서 빛까지*의 벡터를 가진다는 것을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:1",
+      "source": "Getting the dot product of the surface normal and each individual surface to light vector gives us a different value at each point on the surface.",
+      "source_hash": 696379767682138578,
+      "context_hash": 16932815256241136783,
+      "translation": "표면 법선과 각 개별 표면-빛 벡터의 내적을 구하면 표면의 각 지점마다 서로 다른 값을 얻게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "So, let's do that.",
+      "source_hash": 2631331182177342676,
+      "context_hash": 4256184479703700699,
+      "translation": "그럼, 그렇게 해봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "First we need the light position",
+      "source_hash": 4736341330805659593,
+      "context_hash": 18312046115541406912,
+      "translation": "먼저 빛의 위치가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "And we need a way to compute the world position of the surface.",
+      "source_hash": 15586618086141529430,
+      "context_hash": 7108343712393250122,
+      "translation": "그리고 표면의 월드 위치를 계산할 방법이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:1",
+      "source": "For that we can multiply our positions by the world matrix so ...",
+      "source_hash": 2387002861398712492,
+      "context_hash": 7488523638078253787,
+      "translation": "이를 위해 우리의 위치들에 월드 행렬을 곱하면 됩니다...",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "And we can compute a vector from the surface to the light which is similar to the light direction we had before except this time we're computing it for every position on the surface to a light's world position point.",
+      "source_hash": 399517603851154949,
+      "context_hash": 2256062701766522130,
+      "translation": "그리고 표면에서 빛까지의 벡터를 계산할 수 있는데, 이는 이전에 사용했던 빛의 방향과 비슷하지만 이번에는 표면의 모든 위치에서 빛의 월드 위치 지점까지를 계산한다는 점이 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Here's all that in context",
+      "source_hash": 4725675973836655558,
+      "context_hash": 8364175721466505311,
+      "translation": "전체 문맥에서 보면 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "Now in the fragment shader we need to normalize the surface to light vector since it's a not a unit vector.",
+      "source_hash": 14845510390189554776,
+      "context_hash": 15239067745949589599,
+      "translation": "이제 프래그먼트 셰이더에서 표면-빛 벡터를 정규화해야 하는데, 이는 그것이 단위 벡터가 아니기 때문입니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:1",
+      "source": "Note that we could normalize in the vertex shader but because it's an *inter-stage variable* it will be linearly interpolated between our positions and so would not be a complete unit vector",
+      "source_hash": 2965156702837403283,
+      "context_hash": 15601602940813923834,
+      "translation": "정점 셰이더에서 정규화할 수도 있지만, 이는 *스테이지 간 변수*이기 때문에 우리의 위치들 사이에서 선형 보간되어 완전한 단위 벡터가 되지 않는다는 점에 유의하십시오.",
+      "glossary_snapshot": {
+        "vertex": "정점",
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:14:18.728147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "Then we need to update our uniform buffer, offsets, and views",
+      "source_hash": 1453078506838651305,
+      "context_hash": 12154965346903233574,
+      "translation": "그런 다음 유니폼 버퍼, 오프셋, 뷰를 업데이트해야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:14:18.728148Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "and we need to set them",
+      "source_hash": 6851578352761269404,
+      "context_hash": 1215923437337552509,
+      "translation": "그리고 그것들을 설정해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728148Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "And here it is",
+      "source_hash": 14719654840195250257,
+      "context_hash": 14216219177582749633,
+      "translation": "그리고 여기 결과가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728148Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "{{{example url=\"../webgpu-lighting-point.html\" }}}",
+      "source_hash": 14147175756323621635,
+      "context_hash": 7115337945953049019,
+      "translation": "{{{example url=\"../webgpu-lighting-point.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:14:18.728148Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "<a id=\"a-specular\"></a> Specular Highlighting",
+      "source_hash": 4987142597302108692,
+      "context_hash": 10958950318522305485,
+      "translation": "<a id=\"a-specular\"></a> 스페큘러 하이라이트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728148Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Now that we have a point we can add something called specular highlighting.",
+      "source_hash": 15178419247405375908,
+      "context_hash": 18068125643187390628,
+      "translation": "이제 점이 생겼으니 스페큘러 하이라이트라는 것을 추가할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728148Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "If you look at on object in the real world, if it's remotely shiny, then if it happens to reflect the light directly at you it's almost like a mirror",
+      "source_hash": 14236405092691151422,
+      "context_hash": 9926877006642738387,
+      "translation": "현실 세계의 물체를 보면, 그것이 조금이라도 광택이 있다면 빛을 여러분에게 직접 반사할 경우 거의 거울처럼 보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728149Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "We can simulate that effect by computing if the light reflects into our eyes.",
+      "source_hash": 5415072812192335618,
+      "context_hash": 5766316109199781740,
+      "translation": "빛이 우리 눈으로 반사되는지를 계산하여 그 효과를 시뮬레이션할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728149Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "Again the *dot-product* comes to the rescue.",
+      "source_hash": 1905677784087434215,
+      "context_hash": 11398226040187908647,
+      "translation": "여기서도 *내적*이 구원자로 등장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728149Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "What do we need to check?",
+      "source_hash": 3074786588229639759,
+      "context_hash": 3088841116424348184,
+      "translation": "무엇을 확인해야 할까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728149Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "Well let's think about it.",
+      "source_hash": 2516161397353563375,
+      "context_hash": 16010211127782946100,
+      "translation": "한번 생각해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728149Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "Light reflects at the same angle it hits a surface so if the direction of the surface to the light is the exact reflection of the surface to the eye then it's at the perfect angle to reflect",
+      "source_hash": 5995303146340292571,
+      "context_hash": 14861764015698803934,
+      "translation": "빛은 표면에 부딪힌 것과 같은 각도로 반사되므로, 표면에서 빛까지의 방향이 표면에서 눈까지의 방향을 정확히 반사한 것이라면, 그것이 반사되기에 완벽한 각도입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728149Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "{{{diagram url=\"resources/surface-reflection.html\" width=\"700\" height=\"400\" className=\"noborder\" }}}",
+      "source_hash": 13487449052934091854,
+      "context_hash": 16389317086472299585,
+      "translation": "{{{diagram url=\"resources/surface-reflection.html\" width=\"700\" height=\"400\" className=\"noborder\" }}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:14:18.728149Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "If we know the direction from the surface of our model to the light (which we do since we just did that).",
+      "source_hash": 16240720768771797133,
+      "context_hash": 7203969918965708689,
+      "translation": "모델 표면에서 조명까지의 방향을 알고 있다면(방금 그것을 구했으므로 알고 있습니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199747Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "And if we know the direction from the surface to view/eye/camera, which we can compute, then we can add those 2 vectors and normalize them to get the `halfVector` which is the vector that sits half way between them.",
+      "source_hash": 12002707064930975147,
+      "context_hash": 162039322891855319,
+      "translation": "그리고 표면에서 시점/눈/카메라까지의 방향도 계산할 수 있으므로, 이 두 벡터를 더하고 정규화하면 그 둘의 중간에 위치한 벡터인 `halfVector`를 구할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199748Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "If the halfVector and the surface normal match then it's the perfect angle to reflect the light into the view/eye/camera.",
+      "source_hash": 1101007996222966791,
+      "context_hash": 4979360067308025605,
+      "translation": "halfVector와 표면 법선이 일치한다면, 조명을 시점/눈/카메라로 반사시키기에 완벽한 각도입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199748Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:3",
+      "source": "And how can we tell when they match?",
+      "source_hash": 6104758392785364685,
+      "context_hash": 7333847640560970715,
+      "translation": "그렇다면 이 둘이 일치하는지는 어떻게 알 수 있을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199749Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:4",
+      "source": "Take the *dot product* just like we did before. 1 = they match, same direction, 0 = they're perpendicular, -1 = they're opposite.",
+      "source_hash": 8355075575824944134,
+      "context_hash": 8722460941621195376,
+      "translation": "이전에 했던 것처럼 *내적*을 구하면 됩니다. 1이면 방향이 일치하는 것이고, 0이면 서로 수직이며, -1이면 서로 반대 방향입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199749Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "{{{diagram url=\"resources/specular-lighting.html\" width=\"700\" height=\"400\" className=\"noborder\" }}}",
+      "source_hash": 6531924512879483955,
+      "context_hash": 915870471978857800,
+      "translation": "{{{diagram url=\"resources/specular-lighting.html\" width=\"700\" height=\"400\" className=\"noborder\" }}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199750Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "So first thing is we need to pass in the view/camera/eye position, compute the surface to view vector and pass it to the fragment shader.",
+      "source_hash": 12347005310188988075,
+      "context_hash": 9758364406481894751,
+      "translation": "그러므로 먼저 시점/카메라/눈 위치를 전달받아 표면에서 시점까지의 벡터를 계산하고, 이를 프래그먼트 셰이더로 전달해야 합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:13:45.199750Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Next in the fragment shader we need to compute the `halfVector` between the surface to view and surface to light vectors.",
+      "source_hash": 2078959605698457175,
+      "context_hash": 5051175522371877694,
+      "translation": "다음으로 프래그먼트 셰이더에서는 표면에서 시점까지의 벡터와 표면에서 조명까지의 벡터 사이의 `halfVector`를 계산해야 합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:13:45.199751Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "Then we can take the dot product the `halfVector` and the normal to find out if the light is reflecting into the view.",
+      "source_hash": 6613165685586114228,
+      "context_hash": 18179081584009084220,
+      "translation": "그런 다음 `halfVector`와 법선의 내적을 구해 조명이 시점 쪽으로 반사되고 있는지 알아낼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199751Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "Again we have add room for viewWorldPosition to our uniformBuffer.",
+      "source_hash": 7583533831305711865,
+      "context_hash": 15503817932032044493,
+      "translation": "다시 한번 uniformBuffer에 viewWorldPosition을 위한 공간을 추가해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199752Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "and set it",
+      "source_hash": 2041894197569292036,
+      "context_hash": 12571985184350088147,
+      "translation": "그리고 이를 설정합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199752Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "And here's that",
+      "source_hash": 3775146291045632634,
+      "context_hash": 14222136314421840093,
+      "translation": "결과는 다음과 같습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199752Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "{{{example url=\"../webgpu-lighting-point-w-specular.html\" }}}",
+      "source_hash": 17021192166514389307,
+      "context_hash": 3862029669978220742,
+      "translation": "{{{example url=\"../webgpu-lighting-point-w-specular.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:13:45.199753Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "**DANG THAT'S BRIGHT!**",
+      "source_hash": 3820689553640893757,
+      "context_hash": 12695325972823403943,
+      "translation": "**와, 너무 밝습니다!**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199753Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "We can fix the brightness by raising the dot-product result to a power.",
+      "source_hash": 15294644456491002144,
+      "context_hash": 17907415589333693950,
+      "translation": "내적 결과를 거듭제곱함으로써 밝기를 조정할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199753Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:1",
+      "source": "This will scrunch up the specular highlight from a linear falloff to an exponential falloff.",
+      "source_hash": 15462447441009519952,
+      "context_hash": 5545007918232931862,
+      "translation": "이렇게 하면 스페큘러 하이라이트가 선형 감쇠에서 지수적 감쇠로 압축됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199754Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "{{{diagram url=\"resources/power-graph.html\" width=\"400\" height=\"400\" className=\"noborder\" }}}",
+      "source_hash": 16734031380081078346,
+      "context_hash": 12439985665555244745,
+      "translation": "{{{diagram url=\"resources/power-graph.html\" width=\"400\" height=\"400\" className=\"noborder\" }}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199754Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "The closer the red line is to the top of the graph the brighter our specular addition will be.",
+      "source_hash": 7464092348641784909,
+      "context_hash": 7805215902753082427,
+      "translation": "빨간 선이 그래프의 위쪽에 가까울수록 스페큘러 추가값이 더 밝아집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199754Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:1",
+      "source": "By raising the power it scrunches the range where it goes bright to the right.",
+      "source_hash": 13273863458535489499,
+      "context_hash": 18190280437756584858,
+      "translation": "지수를 높이면 밝아지는 구간이 오른쪽으로 압축됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199754Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "Let's call that `shininess` and add it to our shader.",
+      "source_hash": 9449272981206397650,
+      "context_hash": 15157423767869271612,
+      "translation": "이 값을 `shininess`라고 부르고 셰이더에 추가해봅시다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:13:45.199754Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "The dot product can go negative.",
+      "source_hash": 10217476354288009329,
+      "context_hash": 17718162828437370204,
+      "translation": "내적 결과는 음수가 될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199755Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:1",
+      "source": "Taking a negative number to a power is undefined in WebGPU (or is NaN?) which would be bad.",
+      "source_hash": 7900937495452329162,
+      "context_hash": 127467044963391613,
+      "translation": "WebGPU에서 음수를 거듭제곱하는 것은 정의되지 않은 동작입니다(혹은 NaN일까요?). 이는 문제가 됩니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:13:45.199755Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:2",
+      "source": "So, if the dot product is negative then we just leave specular at 0.0.",
+      "source_hash": 12854982222059748834,
+      "context_hash": 18432229667307512936,
+      "translation": "그러므로 내적 결과가 음수이면 스페큘러 값을 그냥 0.0으로 둡니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199755Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "Of course we need to set `shininess`.",
+      "source_hash": 12309311811320288213,
+      "context_hash": 15090161133047104468,
+      "translation": "물론 `shininess`도 설정해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "And here's that",
+      "source_hash": 3775146291045632634,
+      "context_hash": 17255860365904161046,
+      "translation": "결과는 다음과 같습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:0",
+      "source": "{{{example url=\"../webgpu-lighting-point-w-specular-power.html\" }}}",
+      "source_hash": 16514900847580813034,
+      "context_hash": 3690055953062045432,
+      "translation": "{{{example url=\"../webgpu-lighting-point-w-specular-power.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "Coming up next [spot lighting](webgpu-lighting-spot.html).",
+      "source_hash": 2634477879224357976,
+      "context_hash": 8152815723623972706,
+      "translation": "다음으로는 [스포트 라이팅](webgpu-lighting-spot.html)을 다루겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:31/seg:0",
+      "source": "Why is",
+      "source_hash": 235884241985257762,
+      "context_hash": 17183829239539035288,
+      "translation": "왜",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:0",
+      "source": "undefined?",
+      "source_hash": 14575645751338204819,
+      "context_hash": 13955928229270982358,
+      "translation": "정의되지 않았을까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:0",
+      "source": "What does this mean?",
+      "source_hash": 14411676566466519782,
+      "context_hash": 1806004159098352179,
+      "translation": "이것은 무엇을 의미할까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:34/seg:0",
+      "source": "Well you can look at it as",
+      "source_hash": 6968632382075435241,
+      "context_hash": 12523580398353615648,
+      "translation": "다음과 같이 볼 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199756Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:35/seg:0",
+      "source": "What about",
+      "source_hash": 6012127819354152125,
+      "context_hash": 564235214368198179,
+      "translation": "그렇다면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:13:45.199757Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:0",
+      "source": "Well you can look at that as",
+      "source_hash": 17538000740681426374,
+      "context_hash": 8535387831334947502,
+      "translation": "이것은 다음과 같이 볼 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761587Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:37/seg:0",
+      "source": "Ok, how about",
+      "source_hash": 9812442447866195862,
+      "context_hash": 12381218867383542004,
+      "translation": "그럼, 이것은 어떻습니까",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761588Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:38/seg:0",
+      "source": "Well that could be",
+      "source_hash": 13782673561749376591,
+      "context_hash": 8573539551107944344,
+      "translation": "이것은 다음과 같을 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761588Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:39/seg:0",
+      "source": "And",
+      "source_hash": 2898726145559437254,
+      "context_hash": 3485137880246654780,
+      "translation": "그리고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761588Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:0",
+      "source": "Well you can look at as",
+      "source_hash": 4247502311980657723,
+      "context_hash": 4672275460371930328,
+      "translation": "이것은 다음과 같이 볼 수 있습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761588Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:0",
+      "source": "As you know multiplying a negative by a negative makes a positive.",
+      "source_hash": 3280723852626858297,
+      "context_hash": 15580208195228487099,
+      "translation": "아시다시피 음수에 음수를 곱하면 양수가 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761588Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:1",
+      "source": "Multiplying by a negative again makes it negative.",
+      "source_hash": 115044866488070401,
+      "context_hash": 6391886064761337260,
+      "translation": "다시 음수를 곱하면 음수가 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761589Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:42/seg:0",
+      "source": "Well then what does this mean?",
+      "source_hash": 7809694695733778549,
+      "context_hash": 7293188097929163356,
+      "translation": "그렇다면 이것은 무엇을 의미합니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761589Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:43/seg:0",
+      "source": "How do you decide whether the result of that positive or negative?",
+      "source_hash": 1192936328493017608,
+      "context_hash": 10924845597022054327,
+      "translation": "그 결과가 양수인지 음수인지 어떻게 결정합니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761589Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:43/seg:1",
+      "source": "That's the land of",
+      "source_hash": 14134996481314025181,
+      "context_hash": 1081086816815279836,
+      "translation": "그곳이 바로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761589Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:44/seg:0",
+      "source": "imaginary numbers",
+      "source_hash": 5139592913224364369,
+      "context_hash": 8877013068405893793,
+      "translation": "허수의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761589Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:45/seg:0",
+      "source": ".",
+      "source_hash": 12781307830597812232,
+      "context_hash": 12988623319426026166,
+      "translation": "영역입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:12:36.761589Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,875 @@
+{
+  "version": 1,
+  "source_hash": 6395788286007360056,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Title: WebGPU Environment Maps (reflections) Description: How to implement environment maps.",
+      "source_hash": 2571820796424893245,
+      "context_hash": 18021728965867265664,
+      "translation": "제목: WebGPU 환경 맵 (반사) 설명: 환경 맵을 구현하는 방법입니다.",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:11:20.448117Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:0/seg:1",
+      "source": "TOC: Environment maps",
+      "source_hash": 7269784928415992647,
+      "context_hash": 14694356163131334935,
+      "translation": "목차: 환경 맵",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This article continues from [the article on cube maps](webgpu-cube-maps.html).",
+      "source_hash": 11874353561025077972,
+      "context_hash": 8423676311148705681,
+      "translation": "이 글은 [큐브 맵에 관한 글](webgpu-cube-maps.html)에 이어지는 내용입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "This article also uses concepts covered in [the article on lighting](webgpu-lighting-directional.html).",
+      "source_hash": 2647377191111211712,
+      "context_hash": 15161586781784905652,
+      "translation": "이 글은 또한 [조명에 관한 글](webgpu-lighting-directional.html)에서 다룬 개념을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "If you have not read those articles already you might want to read them first.",
+      "source_hash": 12260686792940618868,
+      "context_hash": 15803632273821203619,
+      "translation": "아직 그 글들을 읽지 않으셨다면 먼저 읽어보시는 것이 좋습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "An *environment map* represents the environment of the objects you're drawing.",
+      "source_hash": 11117258252424019665,
+      "context_hash": 9194302433457605280,
+      "translation": "*환경 맵*은 여러분이 그리고 있는 객체의 환경을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "If the you're drawing an outdoor scene it would represent the outdoors.",
+      "source_hash": 15509388951252524495,
+      "context_hash": 16673821753408590160,
+      "translation": "실외 장면을 그리고 있다면 실외를 나타낼 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "If you're drawing people on a stage it would represent the venue.",
+      "source_hash": 10711034828147764837,
+      "context_hash": 8187230317888527052,
+      "translation": "무대 위의 사람들을 그리고 있다면 그 장소를 나타낼 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:3",
+      "source": "If you're drawing an outer space scene it would be the stars.",
+      "source_hash": 13374039147558378368,
+      "context_hash": 9239521398760187364,
+      "translation": "우주 공간의 장면을 그리고 있다면 그것은 별들일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448118Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:4",
+      "source": "We can implement an environment map with a cube map if we have 6 images that show the environment from a point in space in the 6 directions of the cubemap.",
+      "source_hash": 16012275929318785068,
+      "context_hash": 15890781591625355707,
+      "translation": "큐브맵의 6개 방향에서 공간의 한 지점에서 본 환경을 보여주는 6개의 이미지가 있다면, 큐브맵을 사용하여 환경 맵을 구현할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Here's an environment map from the lobby of the Leadenhall Market in London.",
+      "source_hash": 4513931643950545618,
+      "context_hash": 17997939087430532144,
+      "translation": "다음은 런던 리든홀 마켓(Leadenhall Market) 로비에서 촬영한 환경 맵입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "positive x",
+      "source_hash": 164674942478063951,
+      "context_hash": 9144286240236073389,
+      "translation": "x 양의 방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "negative x",
+      "source_hash": 775693626137123540,
+      "context_hash": 16449828477168969219,
+      "translation": "x 음의 방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "positive y",
+      "source_hash": 3110395442869213818,
+      "context_hash": 10559994613231843391,
+      "translation": "y 양의 방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "positive z",
+      "source_hash": 5501879485441600490,
+      "context_hash": 17531406010169382643,
+      "translation": "z 양의 방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "negative z",
+      "source_hash": 11975368178728842215,
+      "context_hash": 6973294281006211043,
+      "translation": "z 음의 방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "positive y",
+      "source_hash": 3110395442869213818,
+      "context_hash": 1789867518210622800,
+      "translation": "y 양의 방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "Leadenhall Market",
+      "source_hash": 9754959139214471702,
+      "context_hash": 15267808411067517022,
+      "translation": "리든홀 마켓",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": ", CC0 by:",
+      "source_hash": 4852991012485696271,
+      "context_hash": 12944534838923491838,
+      "translation": ", CC0 제공:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:12/seg:0",
+      "source": "Andreas Mischok",
+      "source_hash": 3235404307343123269,
+      "context_hash": 1711725749056276616,
+      "translation": "Andreas Mischok",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Based on [the code in the previous article](webgpu-cube-maps.html) let's load those 6 images instead of the canvases we generated.",
+      "source_hash": 7685370472414400556,
+      "context_hash": 10457731217625097762,
+      "translation": "[이전 글의 코드](webgpu-cube-maps.html)를 바탕으로, 우리가 생성했던 캔버스 대신 그 6개의 이미지를 로드해봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448119Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:1",
+      "source": "From [the article on importing textures](webgpu-importing-textures.html) we had these two function.",
+      "source_hash": 6232444551986408657,
+      "context_hash": 10190934458390588109,
+      "translation": "[텍스처 임포트에 관한 글](webgpu-importing-textures.html)에서 다음 두 함수를 사용한 바 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448120Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:2",
+      "source": "One to load an image and another to create a texture from an image.",
+      "source_hash": 120682791623878041,
+      "context_hash": 17818198506186275906,
+      "translation": "하나는 이미지를 로드하는 함수이고, 다른 하나는 이미지로부터 텍스처를 생성하는 함수입니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:11:20.448120Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "Let's add and one to load multiple images",
+      "source_hash": 3363851257943714759,
+      "context_hash": 902038988859164928,
+      "translation": "여러 이미지를 로드하는 함수를 추가해봅시다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448120Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "While we were at it we also changed the existing function to use the new one.",
+      "source_hash": 14148662912176967073,
+      "context_hash": 15361887562395501536,
+      "translation": "이 김에 기존 함수도 새 함수를 사용하도록 변경했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448120Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:1",
+      "source": "Now we can use the new one to load the six images.",
+      "source_hash": 7692939077338224492,
+      "context_hash": 14200040518802619319,
+      "translation": "이제 새 함수를 사용하여 6개의 이미지를 로드할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448120Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "In fragment shader we want to know, for each fragment to be drawn, given a vector from the eye/camera to that position on the surface of the object, which direction will it reflect off the that surface.",
+      "source_hash": 14382638586335588751,
+      "context_hash": 2784803468408973478,
+      "translation": "프래그먼트 셰이더에서는, 그려질 각 프래그먼트에 대해, 눈/카메라에서 객체 표면의 해당 위치로 향하는 벡터가 주어졌을 때, 그 벡터가 표면에서 어느 방향으로 반사될지 알고자 합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:11:20.448120Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:1",
+      "source": "We can then use that direction to get a color from the cubemap.",
+      "source_hash": 5033999565607107617,
+      "context_hash": 10313919486450787573,
+      "translation": "그런 다음 그 방향을 사용하여 큐브맵으로부터 색상을 얻을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448121Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:0",
+      "source": "The formula to reflect is",
+      "source_hash": 8511370926105288422,
+      "context_hash": 14310846734451821861,
+      "translation": "반사 공식은 다음과 같습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448121Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "Thinking about what we can see it's true.",
+      "source_hash": 14074329737276158197,
+      "context_hash": 18196880019435939962,
+      "translation": "우리가 볼 수 있는 것을 생각해보면 그것이 사실임을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448121Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:1",
+      "source": "Recall from the [lighting articles](webgpu-lighting-directional.html) that a dot product of 2 vectors returns the cosine of the angle between the 2 vectors.",
+      "source_hash": 4181980556654721559,
+      "context_hash": 8422322687649324192,
+      "translation": "[조명에 관한 글들](webgpu-lighting-directional.html)에서 두 벡터의 내적이 두 벡터 사이 각도의 코사인 값을 반환한다는 것을 상기해봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448121Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:2",
+      "source": "Adding vectors gives us a new vector so let's take the example of an eye looking directly perpendicular to a flat surface.",
+      "source_hash": 646028893863367570,
+      "context_hash": 285179570833111207,
+      "translation": "벡터를 더하면 새로운 벡터가 나오므로, 평평한 표면에 정확히 수직으로 바라보는 눈의 예를 들어봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:20.448121Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "Let's visualize the formula above.",
+      "source_hash": 16717369653603260605,
+      "context_hash": 14940671837269545994,
+      "translation": "위 공식을 시각화해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090814Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:1",
+      "source": "First off recall the dot product of 2 vectors pointing in exactly opposite directions is -1 so visually",
+      "source_hash": 11488253680794339464,
+      "context_hash": 12874007822021672495,
+      "translation": "먼저 정확히 반대 방향을 가리키는 두 벡터의 내적은 -1이라는 것을 기억하십시오. 시각적으로는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "Plugging in that dot product with the <span style=\"color:black; font-weight:bold;\">eyeToSurfaceDir</span> and <span style=\"color:green;\">normal</span> in the reflection formula gives us this",
+      "source_hash": 17834051270605420776,
+      "context_hash": 10113399470146584447,
+      "translation": "이 내적을 반사 공식의 <span style=\"color:black; font-weight:bold;\">eyeToSurfaceDir</span>과 <span style=\"color:green;\">normal</span>에 대입하면 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:0",
+      "source": "Which multiplying -2 by -1 makes it positive 2.",
+      "source_hash": 16646500097756399604,
+      "context_hash": 813217777938759794,
+      "translation": "-2와 -1을 곱하면 양수 2가 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:0",
+      "source": "So adding the vectors by connecting them up gives us the <span style=\"color: red\">reflected vector</span>",
+      "source_hash": 6059078490640392881,
+      "context_hash": 17579660366459412467,
+      "translation": "따라서 벡터들을 이어서 더하면 <span style=\"color: red\">반사 벡터</span>를 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:0",
+      "source": "We can see above given 2 normals, one completely cancels out the direction from the eye and the second one points the reflection directly back towards the eye.",
+      "source_hash": 14738660355692330550,
+      "context_hash": 8597203575704882783,
+      "translation": "위에서 볼 수 있듯이 두 개의 노멀이 주어졌을 때, 하나는 눈으로부터의 방향을 완전히 상쇄시키고 다른 하나는 반사를 눈 쪽으로 정확히 향하게 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:1",
+      "source": "Which if we put back in the original diagram is exactly what we'd expect",
+      "source_hash": 4665064621550194855,
+      "context_hash": 5161196874318447978,
+      "translation": "이를 원래의 다이어그램에 다시 넣어보면 정확히 우리가 예상한 대로입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "Let's rotate the surface 45 degrees to the right.",
+      "source_hash": 4217514079674383537,
+      "context_hash": 6797350631932109102,
+      "translation": "표면을 오른쪽으로 45도 회전해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:0",
+      "source": "The dot product of 2 vectors 135 degrees apart is -0.707",
+      "source_hash": 9485581349571802199,
+      "context_hash": 18154455677106373017,
+      "translation": "135도 떨어진 두 벡터의 내적은 -0.707입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:0",
+      "source": "So plugging everything into the formula",
+      "source_hash": 6770296861934520446,
+      "context_hash": 931014150163743954,
+      "translation": "이제 모든 것을 공식에 대입하면 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:0",
+      "source": "Again multiplying 2 negatives gives us a positive but the <span style=\"color: green\">vector</span> is now about 30% shorter.",
+      "source_hash": 4563123986338125647,
+      "context_hash": 17777947913081251051,
+      "translation": "마찬가지로 두 음수를 곱하면 양수가 되지만 이제 <span style=\"color: green\">벡터</span>는 약 30% 짧아집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:0",
+      "source": "Adding up the vectors gives us the <span style=\"color: red\">reflected vector</span>",
+      "source_hash": 7029337937863794785,
+      "context_hash": 6195499706199067272,
+      "translation": "벡터들을 더하면 <span style=\"color: red\">반사 벡터</span>를 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:0",
+      "source": "Which if we put back in the original diagram seems correct.",
+      "source_hash": 18311816704191526676,
+      "context_hash": 15856971603581806791,
+      "translation": "이를 원래의 다이어그램에 다시 넣어보면 맞는 것으로 보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090815Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:0",
+      "source": "We use that  <span style=\"color: red\">reflected direction</span> to look at the cubemap to color the surface of the object.",
+      "source_hash": 14964029864330816686,
+      "context_hash": 5353944410179293832,
+      "translation": "우리는 그 <span style=\"color: red\">반사 방향</span>을 사용하여 큐브맵을 참조함으로써 물체 표면의 색을 결정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:0",
+      "source": "Here's a diagram where you can set the rotation of the surface and see the various parts of the equation.",
+      "source_hash": 1982701828612844516,
+      "context_hash": 14087306475827311492,
+      "translation": "다음은 표면의 회전값을 설정하고 공식의 다양한 부분을 볼 수 있는 다이어그램입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:1",
+      "source": "You can also see the reflection vectors point to the different faces of the cubemap and effect the color of the surface.",
+      "source_hash": 7983307032125477992,
+      "context_hash": 7972500524981652928,
+      "translation": "또한 반사 벡터가 큐브맵의 여러 면을 가리키면서 표면의 색상에 영향을 미치는 것도 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:48/seg:0",
+      "source": "{{{diagram url=\"resources/environment-mapping.html\" width=\"700\" height=\"500\" }}}",
+      "source_hash": 12096167030720576900,
+      "context_hash": 14042976222820119714,
+      "translation": "{{{diagram url=\"resources/environment-mapping.html\" width=\"700\" height=\"500\" }}}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:49/seg:0",
+      "source": "Now that we know how reflection works and that we can use it to look up values from the cubemap let's change the shaders to do that.",
+      "source_hash": 2141135866440661194,
+      "context_hash": 9724852335820046335,
+      "translation": "이제 반사가 어떻게 작동하는지, 그리고 이를 사용하여 큐브맵에서 값을 조회할 수 있다는 것을 알았으니 셰이더를 그렇게 바꿔봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:0",
+      "source": "First in the vertex shader we'll compute the world position and world oriented normal of the vertices and pass those to the fragment shader as inter-stage variables.",
+      "source_hash": 8647687530422707522,
+      "context_hash": 9635616795215404154,
+      "translation": "먼저 정점 셰이더에서 정점들의 월드 위치와 월드 방향의 노멀을 계산하고, 이를 스테이지 간 변수로 프래그먼트 셰이더에 전달하겠습니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더",
+        "vertex": "정점"
+      },
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:1",
+      "source": "This is similar to what we did in [the article on spotlights](webgpu-3d-lighting-spot.html).",
+      "source_hash": 9334888528516813468,
+      "context_hash": 8872534176034736179,
+      "translation": "이는 [스포트라이트에 관한 글](webgpu-3d-lighting-spot.html)에서 했던 것과 유사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:52/seg:0",
+      "source": "Then in the fragment shader we normalize the `worldNormal` since it's being interpolated across the surface between vertices.",
+      "source_hash": 1404994489967504692,
+      "context_hash": 8042764961464503799,
+      "translation": "그런 다음 프래그먼트 셰이더에서는 `worldNormal`이 정점 사이의 표면에 걸쳐 보간되고 있으므로 이를 정규화합니다.",
+      "glossary_snapshot": {
+        "shader": "셰이더"
+      },
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:52/seg:1",
+      "source": "Based on the matrix math from [the article on cameras](webgpu-cameras.html) we can get the world position of the camera by getting the 3rd row of the view matrix and negating it and by subtracting that from the world position of the surface we get the `eyeToSurfaceDir`.",
+      "source_hash": 14224708856423264142,
+      "context_hash": 16441688476065619828,
+      "translation": "[카메라에 관한 글](webgpu-cameras.html)에서 다룬 행렬 수학에 따르면, 뷰 행렬의 3번째 행을 가져와 부호를 반전시킴으로써 카메라의 월드 위치를 구할 수 있으며, 이를 표면의 월드 위치에서 빼면 `eyeToSurfaceDir`을 얻을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090816Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:0",
+      "source": "And finally we use `reflect` which is a built in WGSL function that implements the formula we went over above.",
+      "source_hash": 14343735081717244864,
+      "context_hash": 4499959636186608445,
+      "translation": "마지막으로 위에서 다룬 공식을 구현한, WGSL의 내장 함수인 `reflect`를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:1",
+      "source": "We use the result to get a color from the cubemap.",
+      "source_hash": 4991051685513419977,
+      "context_hash": 709828595016694713,
+      "translation": "그 결과를 사용하여 큐브맵에서 색상을 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:55/seg:0",
+      "source": "We also need real normals for this example.",
+      "source_hash": 14081370269401675142,
+      "context_hash": 5252893597708886083,
+      "translation": "이 예제에서는 실제 노멀도 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:55/seg:1",
+      "source": "We need real normals so the faces of the cube appear flat.",
+      "source_hash": 15054458142885778610,
+      "context_hash": 6779139708612252090,
+      "translation": "큐브의 각 면이 평평하게 보이도록 하려면 실제 노멀이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:55/seg:2",
+      "source": "In the previous example, just to see the cubemap work, we repurposed the cube's positions but in this case we need actual normals for a cube like we covered in [the article on lighting](webgpu-lighting-directional.html)",
+      "source_hash": 9351516800062137320,
+      "context_hash": 4117201170461499150,
+      "translation": "이전 예제에서는 큐브맵이 작동하는 것을 보기 위해 큐브의 위치값을 그대로 재활용했지만, 이번에는 [조명에 관한 글](webgpu-lighting-directional.html)에서 다룬 것과 같은 큐브를 위한 실제 노멀이 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:57/seg:0",
+      "source": "And of course we need to change our pipeline to provide the normals",
+      "source_hash": 2126555666709257633,
+      "context_hash": 14005229392358530700,
+      "translation": "그리고 물론 노멀을 제공하도록 파이프라인을 변경해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:0",
+      "source": "As usual we need to setup our uniform buffer and views",
+      "source_hash": 814933387315625263,
+      "context_hash": 17989000695418168137,
+      "translation": "늘 그렇듯이 유니폼 버퍼와 뷰를 설정해야 합니다.",
+      "glossary_snapshot": {
+        "buffer": "버퍼"
+      },
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:61/seg:0",
+      "source": "And we need to set them at render time",
+      "source_hash": 1818328270425093248,
+      "context_hash": 11104828312149545617,
+      "translation": "그리고 렌더링 시점에 이를 설정해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:0",
+      "source": "Let's also change the rendering to a rAF loop",
+      "source_hash": 4595155042362271808,
+      "context_hash": 10615394770887736697,
+      "translation": "렌더링도 rAF 루프로 바꿔봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:65/seg:0",
+      "source": "And with that we get.",
+      "source_hash": 2087157953805113577,
+      "context_hash": 9008910876133388284,
+      "translation": "그러면 다음과 같은 결과를 얻습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:11:41.090817Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:66/seg:0",
+      "source": "{{{example url=\"../webgpu-environment-map-backward.html\" }}}",
+      "source_hash": 11163237068942250995,
+      "context_hash": 17067609080207576074,
+      "translation": "{{{example url=\"../webgpu-environment-map-backward.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:59.692852Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:67/seg:0",
+      "source": "If you look closely you might see a small problem.",
+      "source_hash": 4952555175167000428,
+      "context_hash": 9334999602501378794,
+      "translation": "자세히 살펴보면 작은 문제를 발견할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692852Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "<a id=\"a-flipped\"></a> Correcting the reflection direction",
+      "source_hash": 6939643173994212559,
+      "context_hash": 14253684440095973641,
+      "translation": "<a id=\"a-flipped\"></a> 반사 방향 수정하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Our cube with an environment map applied to it represents a mirrored cube.",
+      "source_hash": 3123956054184612038,
+      "context_hash": 784713490320079850,
+      "translation": "환경 맵이 적용된 우리의 큐브는 거울 큐브를 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "But a mirror normally shows things flipped horizontally.",
+      "source_hash": 306101136018974346,
+      "context_hash": 16578076652469667817,
+      "translation": "하지만 거울은 보통 사물을 좌우로 뒤집어서 보여줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "What's going on?",
+      "source_hash": 12739655195639273706,
+      "context_hash": 10784048353307547625,
+      "translation": "무슨 일이 일어나고 있는 것일까요?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "The issue is, we're on the inside of the cube looking out, but recall from [the previous article](webgpu-cube-maps.html), when we mapped textures to each side of the cube they mapped correctly when viewed from the outside.",
+      "source_hash": 10705706152736788929,
+      "context_hash": 17093762378926417401,
+      "translation": "문제는 우리가 큐브 안쪽에서 바깥을 바라보고 있다는 것인데, [이전 글](webgpu-cube-maps.html)을 떠올려 보면, 큐브의 각 면에 텍스처를 매핑했을 때 그것들은 바깥쪽에서 볼 때 올바르게 매핑되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Another way to look at this is, from inside the cube we're in a \"y-up right handed coordinate system\".",
+      "source_hash": 126542331802150261,
+      "context_hash": 18185844935739408803,
+      "translation": "이것을 바라보는 또 다른 방법은, 큐브 안쪽에서 우리는 \"y-up 오른손 좌표계\"에 있다는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "This means positive-z is forward.",
+      "source_hash": 12866360422509780049,
+      "context_hash": 11523158845904737911,
+      "translation": "이는 양의 z가 정면임을 의미합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "Where as all of our 3d math so far uses a \"y-up left handed coordinate system\" [^xxx-handed] where negative-z is forward.",
+      "source_hash": 2876096942279749153,
+      "context_hash": 16279444223924200368,
+      "translation": "반면 지금까지 우리의 모든 3D 수학은 음의 z가 정면인 \"y-up 왼손 좌표계\" [^xxx-handed]를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:3",
+      "source": "A simple solution is to flip the Z coordinate when we sample the texture.",
+      "source_hash": 18153123182726242121,
+      "context_hash": 7374529885919639338,
+      "translation": "간단한 해결책은 텍스처를 샘플링할 때 Z 좌표를 뒤집는 것입니다.",
+      "glossary_snapshot": {
+        "texture": "텍스처"
+      },
+      "translated_at": "2026-09-12T07:08:59.692853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "To be honest I find this talk of \"left handed\" vs \"right handed\" coordinate systems to be super confusing and I'd much rather say \"+x to the right, +y up, -z forward\", which leaves zero ambiguity.",
+      "source_hash": 9504985318849409480,
+      "context_hash": 273839363097528851,
+      "translation": "솔직히 말하면 \"왼손\" 대 \"오른손\" 좌표계에 대한 이런 이야기가 너무 헷갈려서, 저는 차라리 \"+x는 오른쪽, +y는 위쪽, -z는 정면\"이라고 말하는 것을 훨씬 선호합니다. 이렇게 하면 모호함이 전혀 남지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "If you want to know more though you can [google it](https://www.google.com/search?q=right+handed+vs+left+handed+coordinate+system&tbm=isch) 😄",
+      "source_hash": 8711275251324327425,
+      "context_hash": 9138645706594811188,
+      "translation": "그래도 더 알고 싶다면 [구글에 검색해](https://www.google.com/search?q=right+handed+vs+left+handed+coordinate+system&tbm=isch) 볼 수 있습니다 😄",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Now the reflection is flipped, just like in a mirror.",
+      "source_hash": 54914185962673649,
+      "context_hash": 10920772559874619622,
+      "translation": "이제 반사가 거울에서처럼 뒤집혔습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "{{{example url=\"../webgpu-environment-map.html\" }}}",
+      "source_hash": 13424607708252272817,
+      "context_hash": 8516607628295923054,
+      "translation": "{{{example url=\"../webgpu-environment-map.html\" }}}",
+      "glossary_snapshot": {
+        "WebGPU": "WebGPU"
+      },
+      "translated_at": "2026-09-12T07:08:59.692854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "Next let's show [how to use a cubemap for a skybox](webgpu-skybox.html).",
+      "source_hash": 13972489218165845790,
+      "context_hash": 7326885834337154674,
+      "translation": "다음으로 [스카이박스에 큐브맵을 사용하는 방법](webgpu-skybox.html)을 보여드리겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692855Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Finding and Making Cube Maps",
+      "source_hash": 4399260147138716661,
+      "context_hash": 13906722398503121319,
+      "translation": "큐브맵 찾기와 만들기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692855Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "You can find hundreds of free panoramas at [polyhaven.com](https://polyhaven.com/hdris).",
+      "source_hash": 9434153802112140363,
+      "context_hash": 9022679938383792318,
+      "translation": "[polyhaven.com](https://polyhaven.com/hdris)에서 수백 개의 무료 파노라마를 찾을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692855Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "Download a jpg or png of any one of them (click the ≡ menu in the top right).",
+      "source_hash": 228548953041449292,
+      "context_hash": 6551836574758705011,
+      "translation": "그중 아무거나 jpg나 png를 다운로드하십시오(오른쪽 상단의 ≡ 메뉴를 클릭하십시오).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692856Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "Then, go to [this page](https://greggman.github.io/panorama-to-cubemap/) and drag and drop the .jpg or .png file there.",
+      "source_hash": 4170382271856120525,
+      "context_hash": 2887116001564688828,
+      "translation": "그런 다음 [이 페이지](https://greggman.github.io/panorama-to-cubemap/)로 이동해서 .jpg나 .png 파일을 그곳에 드래그 앤 드롭하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692856Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:3",
+      "source": "Select the size and format you want and click the button to save the images as cubemap faces.",
+      "source_hash": 1140465449414819436,
+      "context_hash": 4119214638767860780,
+      "translation": "원하는 크기와 형식을 선택하고 버튼을 클릭해서 이미지를 큐브맵 면으로 저장하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T07:08:59.692856Z",
+      "issues": []
+    }
+  ]
+}

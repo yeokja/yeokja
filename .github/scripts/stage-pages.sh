@@ -99,6 +99,8 @@ test -s "$landing_dir/favicon.svg" || fail "landing page is missing favicon.svg"
 
 overlay_site "dist-putting-the-you-in-cpu" "site" "putting-the-you-in-cpu"
 
+overlay_site "dist-webgpufundamentals" "site" "webgpufundamentals"
+
 overlay_site "dist-thebeambook" "site" "theBeamBook"
 overlay_pypy
 overlay_site "dist-fp-lean" "site" "fp-lean"
