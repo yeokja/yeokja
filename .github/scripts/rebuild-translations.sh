@@ -32,6 +32,11 @@ case "$project" in
     "$yeokja" translate upstream
     "$yeokja" status --check upstream
     ;;
+  component-docs)
+    "$yeokja" status --check upstream/component-model/src
+    "$yeokja" translate upstream/component-model/src
+    "$yeokja" status --check upstream/component-model/src
+    ;;
   rustc-dev-guide)
     "$yeokja" translate upstream/src
     "$yeokja" status --check upstream/src

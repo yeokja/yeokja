@@ -1,0 +1,927 @@
+{
+  "version": 1,
+  "source_hash": 9866260113286852879,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Creating Runnable Components (Rust)",
+      "source_hash": 4382765087391801360,
+      "context_hash": 8457252729456888230,
+      "translation": "실행 가능한 컴포넌트 만들기 (Rust)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908768Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "This page has content for both **WASI 0.2** and **WASI 0.3**.",
+      "source_hash": 9316719174586448922,
+      "context_hash": 5536190426325636134,
+      "translation": "이 페이지에는 **WASI 0.2**와 **WASI 0.3** 모두에 대한 내용이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908768Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Use the tabs below to switch between versions where they differ.",
+      "source_hash": 8096262881220059627,
+      "context_hash": 15167362095624873484,
+      "translation": "버전 간에 차이가 있는 부분에서는 아래 탭을 사용하여 전환하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908768Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "**WASI 0.3 toolchain note.** Rust's [`wasm32-wasip3` target](https://doc.rust-lang.org/nightly/rustc/platform-support/wasm32-wasip3.html) is currently Tier 3 with no prebuilt artifacts; building for it requires constructing the standard library from source.",
+      "source_hash": 11552584419998045660,
+      "context_hash": 4393789273585132363,
+      "translation": "**WASI 0.3 툴체인 참고 사항.** Rust의 [`wasm32-wasip3` 대상](https://doc.rust-lang.org/nightly/rustc/platform-support/wasm32-wasip3.html)은 현재 Tier 3이며 미리 빌드된 아티팩트가 없어, 이를 대상으로 빌드하려면 표준 라이브러리를 소스에서부터 구성해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908768Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "The 0.3 example on this page therefore uses the library/reactor pattern targeting `wasm32-wasip2`, where [`wit-bindgen`](https://docs.rs/wit-bindgen)'s `async` feature handles the 0.3 binding generation.",
+      "source_hash": 4379971908723227006,
+      "context_hash": 5086940479679463125,
+      "translation": "따라서 이 페이지의 0.3 예제는 `wasm32-wasip2`를 대상으로 하는 라이브러리/리액터 패턴을 사용하며, 여기서 [`wit-bindgen`](https://docs.rs/wit-bindgen)의 `async` 기능이 0.3 바인딩 생성을 처리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908768Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:2",
+      "source": "There is no Rust-idiomatic 0.3 path for the `fn main()` command-component pattern yet.",
+      "source_hash": 5969137642862419209,
+      "context_hash": 8484153969711538820,
+      "translation": "`fn main()` 커맨드 컴포넌트 패턴에 대한 Rust다운 0.3 경로는 아직 없습니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908769Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Creating a command component",
+      "source_hash": 18187950655554308348,
+      "context_hash": 3755786130909016107,
+      "translation": "커맨드 컴포넌트 만들기",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908769Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A _command_ is a component with a specific export that allows it to be executed directly by `wasmtime` (or other `wasi:cli` hosts).",
+      "source_hash": 14104546509999663868,
+      "context_hash": 16284251181862399172,
+      "translation": "*command*는 `wasmtime`(또는 다른 `wasi:cli` 호스트)이 직접 실행할 수 있도록 하는 특정 익스포트를 가진 컴포넌트입니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908769Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "In Rust terms, it's the equivalent of an application (`bin`) package with a `main` function, instead of a library crate (`lib`) package.",
+      "source_hash": 2757407109572000020,
+      "context_hash": 9075755465569143968,
+      "translation": "Rust 용어로 표현하면, 이는 라이브러리 크레이트(`lib`) 패키지 대신 `main` 함수를 가진 애플리케이션(`bin`) 패키지에 해당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908769Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Command components work by including a WebAssembly core export `_start` that indicates the component has a natural `main`-like starting point.",
+      "source_hash": 14507131486765450153,
+      "context_hash": 12160777236712589421,
+      "translation": "커맨드 컴포넌트는 컴포넌트가 `main`과 같은 자연스러운 시작점을 가지고 있음을 나타내는 WebAssembly 코어 익스포트 `_start`를 포함함으로써 동작합니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908769Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "1.",
+      "source_hash": 4093818885034029453,
+      "context_hash": 10882076397007812508,
+      "translation": "1.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "Create a new Rust binary project",
+      "source_hash": 17782417745943233284,
+      "context_hash": 15334663280145662346,
+      "translation": "새 Rust 바이너리 프로젝트 생성하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "To create a command with cargo, run:",
+      "source_hash": 10458086197226768729,
+      "context_hash": 1336658419591065153,
+      "translation": "cargo로 커맨드를 생성하려면 다음을 실행하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Unlike library components, this does _not_ have the `--lib` flag (`--bin` is the default for `cargo new`).",
+      "source_hash": 15932341590300528362,
+      "context_hash": 5921591338870760769,
+      "translation": "라이브러리 컴포넌트와 달리, 여기에는 `--lib` 플래그가 *없습니다*(`--bin`이 `cargo new`의 기본값입니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "The created Rust source file is called `main.rs` instead of `lib.rs`, and contains a `main` function.",
+      "source_hash": 12561183599578117464,
+      "context_hash": 3969416070546257671,
+      "translation": "생성된 Rust 소스 파일은 `lib.rs`가 아니라 `main.rs`로 명명되며, `main` 함수를 포함합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "You can write Rust in this project, just as you normally would, including importing your own or third-party crates.",
+      "source_hash": 14658144768306237323,
+      "context_hash": 5247285254635916758,
+      "translation": "이 프로젝트에서는 자신의 크레이트나 타사 크레이트를 임포트하는 것을 포함하여, 평소와 같이 Rust 코드를 작성할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "All the crates that make up your project are linked together at build time, and compiled to a _single_ Wasm component.",
+      "source_hash": 18437307899898115383,
+      "context_hash": 12924292805187881053,
+      "translation": "프로젝트를 구성하는 모든 크레이트는 빌드 시점에 함께 링크되어 *단일* Wasm 컴포넌트로 컴파일됩니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:1",
+      "source": "In this case, all the linking is happening at the Rust level: no WITs or component composition is involved.",
+      "source_hash": 13116701948470696052,
+      "context_hash": 15350388373495650837,
+      "translation": "이 경우, 모든 링킹은 Rust 수준에서 이루어지며, WIT나 컴포넌트 합성은 관여하지 않습니다.",
+      "glossary_snapshot": {
+        "composition": "합성",
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:2",
+      "source": "Only if you import Wasm interfaces do WIT and composition come into play.",
+      "source_hash": 1002140401118512218,
+      "context_hash": 626908383751641188,
+      "translation": "Wasm 인터페이스를 임포트하는 경우에만 WIT와 합성이 관여하게 됩니다.",
+      "glossary_snapshot": {
+        "composition": "합성"
+      },
+      "translated_at": "2026-09-12T05:50:07.908770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "2.",
+      "source_hash": 1210270714770233551,
+      "context_hash": 259575092076293552,
+      "translation": "2.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908771Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:1",
+      "source": "Write the relevant Rust",
+      "source_hash": 16984449707413636596,
+      "context_hash": 15382837324732504546,
+      "translation": "관련 Rust 코드 작성하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908771Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "The following code can be inserted into `runnable-example/src/main.rs`:",
+      "source_hash": 16697197053387982678,
+      "context_hash": 16500105013967195380,
+      "translation": "다음 코드를 `runnable-example/src/main.rs`에 삽입할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908771Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "3.",
+      "source_hash": 414013015342266677,
+      "context_hash": 2969565974738045059,
+      "translation": "3.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908771Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "Build the component",
+      "source_hash": 1951187176438432988,
+      "context_hash": 9235458566698613889,
+      "translation": "컴포넌트 빌드하기",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908771Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "To build the component, use `cargo`:",
+      "source_hash": 14801952503321355123,
+      "context_hash": 15927779379122582630,
+      "translation": "컴포넌트를 빌드하려면 `cargo`를 사용하십시오:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908771Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "The component can also be built in release mode:",
+      "source_hash": 12626102258399980151,
+      "context_hash": 9566288400678614645,
+      "translation": "컴포넌트는 릴리스 모드로도 빌드할 수 있습니다:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908771Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "4.",
+      "source_hash": 14789025571905875223,
+      "context_hash": 9139697059888470569,
+      "translation": "4.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:07.908772Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:1",
+      "source": "Run the component with `wasmtime`",
+      "source_hash": 17325153682112067914,
+      "context_hash": 7002257535931590048,
+      "translation": "`wasmtime`으로 컴포넌트 실행하기",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908772Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "To run your command component:",
+      "source_hash": 16607496704475368462,
+      "context_hash": 6945686448049027886,
+      "translation": "커맨드 컴포넌트를 실행하려면:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:07.908772Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "For a runnable component that exports the 0.3 `wasi:cli/run` interface, see the library/reactor pattern below.",
+      "source_hash": 15540378898354671623,
+      "context_hash": 7312300372397978816,
+      "translation": "0.3의 `wasi:cli/run` 인터페이스를 익스포트하는 실행 가능한 컴포넌트에 대해서는 아래의 라이브러리/리액터 패턴을 참조하십시오.",
+      "glossary_snapshot": {
+        "component": "컴포넌트",
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:07.908772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Enabling a library component to be run via the `wasi:cli/run` interface",
+      "source_hash": 13685340199944723408,
+      "context_hash": 7636058303714772322,
+      "translation": "`wasi:cli/run` 인터페이스를 통해 라이브러리 컴포넌트를 실행 가능하게 만들기",
+      "glossary_snapshot": {
+        "component": "컴포넌트",
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:07.908772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Sometimes, it is useful to create a component that can *both* be used as a library (via exported interface) and executed standalone like a command component.",
+      "source_hash": 13169031741781522203,
+      "context_hash": 13086662111593045278,
+      "translation": "때때로 라이브러리(익스포트된 인터페이스를 통해)로 사용*됨과 동시에* 커맨드 컴포넌트처럼 독립적으로 실행될 수도 있는 컴포넌트를 만드는 것이 유용합니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트",
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:07.908772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "While reactor (library-like) components export interfaces that are meant to be used directly, they can *also* export the [`wasi:cli/run` interface][wasi-cli-iface-run] from [WASI CLI][wasi-cli], and signal to consumers that the library can also be run similarly to a binary that would run via a command line interface.",
+      "source_hash": 7323631496614848692,
+      "context_hash": 11309113039629421150,
+      "translation": "리액터(라이브러리형) 컴포넌트는 직접 사용되도록 의도된 인터페이스를 익스포트하지만, [WASI CLI][wasi-cli]의 [`wasi:cli/run` 인터페이스][wasi-cli-iface-run]도 *함께* 익스포트하여, 이 라이브러리가 명령줄 인터페이스를 통해 실행되는 바이너리와 유사하게 실행될 수도 있음을 소비자에게 알릴 수 있습니다.",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:14.041678Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Unlike command components, library components have no `_start`, but by exporting the `wasi:cli/run` interface, tooling that recognizes these exports can easily execute a given WebAssembly binary (e.g. `wasmtime run`).",
+      "source_hash": 912547110962026770,
+      "context_hash": 14637306364440748904,
+      "translation": "커맨드 컴포넌트와 달리 라이브러리 컴포넌트에는 `_start`가 없지만, `wasi:cli/run` 인터페이스를 익스포트함으로써 이러한 익스포트를 인식하는 도구가 주어진 WebAssembly 바이너리를 쉽게 실행할 수 있습니다(예: `wasmtime run`).",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:14.041679Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "1.",
+      "source_hash": 4093818885034029453,
+      "context_hash": 14963563309227590158,
+      "translation": "1.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041679Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "Create a new Rust library project",
+      "source_hash": 10340806497139273118,
+      "context_hash": 3807210552341222635,
+      "translation": "새 Rust 라이브러리 프로젝트 생성하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041679Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "To build a simple component that exports `wasi:cli/run`, first create a new Rust project:",
+      "source_hash": 9656894845851621547,
+      "context_hash": 7228178930194712792,
+      "translation": "`wasi:cli/run`을 익스포트하는 간단한 컴포넌트를 빌드하려면, 먼저 새 Rust 프로젝트를 생성하십시오:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:14.041679Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "After creating the new project, ensure it is a `cdylib` crate by updating `runnable-example/Cargo.toml` and adding the following lines:",
+      "source_hash": 555050428565186918,
+      "context_hash": 15673345884033149455,
+      "translation": "새 프로젝트를 생성한 후, `runnable-example/Cargo.toml`을 업데이트하여 다음 줄을 추가함으로써 이를 `cdylib` 크레이트로 만드십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "We'll also be generating Rust bindings from WIT interfaces, so add `wit-bindgen`:",
+      "source_hash": 6463273385742280426,
+      "context_hash": 897012104070743281,
+      "translation": "또한 WIT 인터페이스로부터 Rust 바인딩을 생성할 것이므로, `wit-bindgen`을 추가하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }}",
+      "source_hash": 5343029586532118024,
+      "context_hash": 16013295288445823105,
+      "translation": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "{{#endtab }} {{#tab name=\"WASI 0.3\" }}",
+      "source_hash": 16226150611674683675,
+      "context_hash": 13484561858262548064,
+      "translation": "{{#endtab }} {{#tab name=\"WASI 0.3\" }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "The `async` feature enables `wit-bindgen`'s async code generation, which is needed for the 0.3 `async func run()` signature. {{#endtab }} {{#endtabs }}",
+      "source_hash": 7831968656408635329,
+      "context_hash": 7259816572686388362,
+      "translation": "`async` 기능은 `wit-bindgen`의 비동기 코드 생성을 활성화하며, 이는 0.3의 `async func run()` 시그니처에 필요합니다. {{#endtab }} {{#endtabs }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "2.",
+      "source_hash": 1210270714770233551,
+      "context_hash": 11895539161080734578,
+      "translation": "2.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "Add the appropriate WIT interfaces",
+      "source_hash": 2478201738201506860,
+      "context_hash": 3722086659717061086,
+      "translation": "적절한 WIT 인터페이스 추가하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Then, add the appropriate WIT interfaces.",
+      "source_hash": 11149762780608291867,
+      "context_hash": 1622967143372472770,
+      "translation": "그런 다음, 적절한 WIT 인터페이스를 추가하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "For example a simple component that prints \"Hello World\", add the following contents to `runnable-example/wit/component.wit`:",
+      "source_hash": 3387117678159951661,
+      "context_hash": 17585362823032641068,
+      "translation": "예를 들어 \"Hello World\"를 출력하는 간단한 컴포넌트를 만들려면, `runnable-example/wit/component.wit`에 다음 월드 내용을 추가하십시오:",
+      "glossary_snapshot": {
+        "world": "월드",
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:14.041680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }}",
+      "source_hash": 5343029586532118024,
+      "context_hash": 15797416064326652405,
+      "translation": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "{{#endtab }} {{#tab name=\"WASI 0.3\" }}",
+      "source_hash": 16226150611674683675,
+      "context_hash": 12933393419116116336,
+      "translation": "{{#endtab }} {{#tab name=\"WASI 0.3\" }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "In WASI 0.3, `wasi:cli/run` is declared as `run: async func() -> result`, so the generated `Guest` trait expects an `async fn`.",
+      "source_hash": 11564220185848496713,
+      "context_hash": 15535791093894067178,
+      "translation": "WASI 0.3에서는 `wasi:cli/run`이 `run: async func() -> result`로 선언되므로, 생성된 `Guest` 트레이트는 `async fn`을 요구합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "The pin here is `0.3.0-rc-2026-03-15` rather than the published `0.3.0` because Wasmtime, `wit-bindgen`, and other toolchain components currently ship this snapshot of the WIT.",
+      "source_hash": 1777873688874774781,
+      "context_hash": 10430937192227577915,
+      "translation": "여기서 고정된 버전이 게시된 `0.3.0`이 아니라 `0.3.0-rc-2026-03-15`인 이유는 Wasmtime, `wit-bindgen` 및 기타 툴체인 컴포넌트가 현재 이 WIT 스냅샷을 제공하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:1",
+      "source": "They are expected to refresh to `0.3.0` in upcoming releases. {{#endtab }} {{#endtabs }}",
+      "source_hash": 13032025502545696811,
+      "context_hash": 1693109897489945844,
+      "translation": "이들은 향후 릴리스에서 `0.3.0`으로 갱신될 것으로 예상됩니다. {{#endtab }} {{#endtabs }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Building a library component this way does two things:",
+      "source_hash": 14319709061364087488,
+      "context_hash": 6648825836021488093,
+      "translation": "이러한 방식으로 라이브러리 컴포넌트를 빌드하면 다음 두 가지가 이루어집니다:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "Enables *other* components/hosts to use the `greet` interface",
+      "source_hash": 12832987068721207763,
+      "context_hash": 13025915710747163656,
+      "translation": "*다른* 컴포넌트/호스트가 `greet` 인터페이스를 사용할 수 있게 합니다",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Exposes an interface (`wasi:cli/run`) that indicates this component can be run like a CLI",
+      "source_hash": 1165995405365693604,
+      "context_hash": 3389205067075271821,
+      "translation": "이 컴포넌트가 CLI처럼 실행될 수 있음을 나타내는 인터페이스(`wasi:cli/run`)를 노출합니다",
+      "glossary_snapshot": {
+        "component": "컴포넌트",
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:14.041681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Note that no guarantees are made about what the component *does* when it runs",
+      "source_hash": 10649806269061448884,
+      "context_hash": 5890548581340599089,
+      "translation": "이 컴포넌트가 실행될 때 *무엇을 하는지*에 대해서는 어떠한 보장도 이루어지지 않는다는 점에 유의하십시오",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:14.041682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "While we created `greet`, `wasi:cli` is a well-known interface.",
+      "source_hash": 1179307310175763067,
+      "context_hash": 13355173182181068178,
+      "translation": "`greet`는 우리가 만든 것이지만, `wasi:cli`는 잘 알려진 인터페이스입니다.",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:14.041682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:1",
+      "source": "We can resolve this interface to local WIT by using `wkg`:",
+      "source_hash": 4970513784793582930,
+      "context_hash": 16668533031404786865,
+      "translation": "`wkg`를 사용하여 이 인터페이스를 로컬 WIT로 해석할 수 있습니다:",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:14.041682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "For WASI 0.3, use `wkg` 0.15 or later.",
+      "source_hash": 3329358422419917404,
+      "context_hash": 8386607284550103399,
+      "translation": "WASI 0.3의 경우, `wkg` 0.15 이상을 사용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:1",
+      "source": "Earlier versions fail to decode the `wasi:cli@0.3.0-rc-2026-03-15` package.",
+      "source_hash": 13394766474095057806,
+      "context_hash": 13485536369924688606,
+      "translation": "이전 버전은 `wasi:cli@0.3.0-rc-2026-03-15` 패키지를 디코딩하지 못합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "At this point, you should have a `wit` folder with a `deps` subfolder and your original `component.wit`.",
+      "source_hash": 548302923452917345,
+      "context_hash": 6939546018100677067,
+      "translation": "이 시점에서는 `deps` 하위 폴더와 원래의 `component.wit`가 포함된 `wit` 폴더가 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "The component we will create to satisfy the WIT above can be used as a library, as other components or platforms can use the `greet` interface export.",
+      "source_hash": 609955964335091695,
+      "context_hash": 5186713408971865290,
+      "translation": "다른 컴포넌트나 플랫폼이 `greet` 인터페이스 익스포트를 사용할 수 있으므로, 위 WIT를 충족하기 위해 만들 컴포넌트는 라이브러리로 사용될 수 있습니다.",
+      "glossary_snapshot": {
+        "interface": "인터페이스",
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:14.041683Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:1",
+      "source": "More importantly, the component can *also* be recognized as a generically runnable component thanks to `wasi:cli/run`, so it can work with any tooling (ex. `wasmtime run`) that supports/recognizes the `wasi:cli` interface.",
+      "source_hash": 5230849404481621971,
+      "context_hash": 10844854543129467640,
+      "translation": "더 중요한 것은, `wasi:cli/run` 덕분에 이 컴포넌트가 일반적으로 실행 가능한 컴포넌트로도 *함께* 인식될 수 있어, `wasi:cli` 인터페이스를 지원/인식하는 모든 도구(예: `wasmtime run`)와 함께 작동할 수 있다는 점입니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트",
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:50:14.041683Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "3.",
+      "source_hash": 414013015342266677,
+      "context_hash": 3012707161831772944,
+      "translation": "3.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:50:14.041683Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:1",
+      "source": "Write the code for the component",
+      "source_hash": 5929613556254797686,
+      "context_hash": 11369838375774439453,
+      "translation": "컴포넌트 코드 작성하기",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:50:14.041683Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "The following code can be inserted into `runnable-example/src/lib.rs`:",
+      "source_hash": 4644887420582976174,
+      "context_hash": 9776285249131835081,
+      "translation": "다음 코드는 `runnable-example/src/lib.rs`에 삽입할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }}",
+      "source_hash": 5343029586532118024,
+      "context_hash": 11356601561513360079,
+      "translation": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "{{#endtab }} {{#tab name=\"WASI 0.3\" }}",
+      "source_hash": 16226150611674683675,
+      "context_hash": 9389388770928046528,
+      "translation": "{{#endtab }} {{#tab name=\"WASI 0.3\" }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "{{#endtab }} {{#endtabs }}",
+      "source_hash": 3918706306115405805,
+      "context_hash": 13445174362187495975,
+      "translation": "{{#endtab }} {{#endtabs }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "4.",
+      "source_hash": 14789025571905875223,
+      "context_hash": 15908693146711016070,
+      "translation": "4.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:1",
+      "source": "Build the component",
+      "source_hash": 1951187176438432988,
+      "context_hash": 15709463589955173219,
+      "translation": "컴포넌트 빌드하기",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:46:43.808419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }} To build the component, use `cargo`:",
+      "source_hash": 13896543036479783426,
+      "context_hash": 15927779379122582630,
+      "translation": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }} 컴포넌트를 빌드하려면 `cargo`를 사용합니다:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:46:43.808419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "The component can also be built in release mode:",
+      "source_hash": 12626102258399980151,
+      "context_hash": 18049995806237029580,
+      "translation": "컴포넌트는 릴리스 모드로도 빌드할 수 있습니다:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:46:43.808420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:0",
+      "source": "{{#endtab }} {{#tab name=\"WASI 0.3\" }} Build the component against `wasm32-wasip2` using a nightly Rust toolchain:",
+      "source_hash": 11939417551307701490,
+      "context_hash": 2028414050335022071,
+      "translation": "{{#endtab }} {{#tab name=\"WASI 0.3\" }} nightly Rust 툴체인을 사용하여 `wasm32-wasip2`에 대해 컴포넌트를 빌드합니다:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:46:43.808420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:46/seg:0",
+      "source": "Release mode:",
+      "source_hash": 12528455229136188786,
+      "context_hash": 16174505526905506578,
+      "translation": "릴리스 모드:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:48/seg:0",
+      "source": "A nightly toolchain is required because the `wasm-component-ld` bundled with current stable Rust cannot decode the component-type custom section that `wit-bindgen` 0.58 emits for 0.3 worlds.",
+      "source_hash": 7786803372946961250,
+      "context_hash": 11053681952439868394,
+      "translation": "현재 stable Rust에 번들된 `wasm-component-ld`가 `wit-bindgen` 0.58이 0.3 월드용으로 내보내는 컴포넌트 타입 커스텀 섹션을 디코딩할 수 없기 때문에 nightly 툴체인이 필요합니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:46:43.808420Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:48/seg:1",
+      "source": "Nightly ships a newer linker that handles it. {{#endtab }} {{#endtabs }}",
+      "source_hash": 11833677588505932335,
+      "context_hash": 8228227695942821156,
+      "translation": "nightly는 이를 처리할 수 있는 더 새로운 링커를 제공합니다. {{#endtab }} {{#endtabs }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808421Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:49/seg:0",
+      "source": "5.",
+      "source_hash": 17772220482873900580,
+      "context_hash": 10927037063854090512,
+      "translation": "5.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808421Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:49/seg:1",
+      "source": "Run the component with `wasmtime`",
+      "source_hash": 17325153682112067914,
+      "context_hash": 11338508414195733875,
+      "translation": "`wasmtime`으로 컴포넌트 실행하기",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:46:43.808421Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:50/seg:0",
+      "source": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }} You can run the component with `wasmtime`, and unlike a generic reactor component, you do not need to specify the interface and function to run (`wasi:cli/run` is detected and used automatically):",
+      "source_hash": 743303861210882651,
+      "context_hash": 10611702535144201963,
+      "translation": "{{#tabs global=\"wasi-version\" }} {{#tab name=\"WASI 0.2\" }} `wasmtime`으로 컴포넌트를 실행할 수 있으며, 일반적인 리액터 컴포넌트와 달리 실행할 인터페이스와 함수를 지정할 필요가 없습니다(`wasi:cli/run`이 자동으로 감지되어 사용됩니다):",
+      "glossary_snapshot": {
+        "component": "컴포넌트",
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:46:43.808422Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:52/seg:0",
+      "source": "Cargo converts hyphens to underscores in library crate names, so the artifact is `runnable_example.wasm` even though the package was created as `runnable-example`. {{#endtab }} {{#tab name=\"WASI 0.3\" }} Enable the WASI 0.3 ABI when running a 0.3 component, with Wasmtime 43 or later:",
+      "source_hash": 2324355510472790668,
+      "context_hash": 16273344823896968700,
+      "translation": "Cargo는 라이브러리 크레이트 이름에서 하이픈을 밑줄로 변환하므로, 패키지가 `runnable-example`로 생성되었더라도 산출물은 `runnable_example.wasm`입니다. {{#endtab }} {{#tab name=\"WASI 0.3\" }} Wasmtime 43 이상에서 0.3 컴포넌트를 실행할 때는 WASI 0.3 ABI를 활성화합니다:",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:46:43.808422Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:54/seg:0",
+      "source": "{{#endtab }} {{#endtabs }}",
+      "source_hash": 3918706306115405805,
+      "context_hash": 4414261775011981350,
+      "translation": "{{#endtab }} {{#endtabs }}",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808422Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:55/seg:0",
+      "source": "**Version pinning.** WASI 0.3 tools (`wit-bindgen`, Wasmtime, jco, and so on) must all target the same WIT version.",
+      "source_hash": 4364486817169711472,
+      "context_hash": 7829994745599290715,
+      "translation": "**버전 고정.** WASI 0.3 도구(`wit-bindgen`, Wasmtime, jco 등)는 모두 동일한 WIT 버전을 대상으로 해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808422Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:55/seg:1",
+      "source": "As of WASI 0.3.0's release on 2026-06-11, `wit-bindgen` 0.58 and Wasmtime 45 still ship the `0.3.0-rc-2026-03-15` snapshot of the WIT; pinning to the published `0.3.0` produces `no exported instance named wasi:cli/run@0.2.6` (or similar) errors at run time until those tools refresh.",
+      "source_hash": 3917276607615137084,
+      "context_hash": 15392218160984951665,
+      "translation": "2026-06-11에 출시된 WASI 0.3.0 기준으로, `wit-bindgen` 0.58과 Wasmtime 45는 여전히 WIT의 `0.3.0-rc-2026-03-15` 스냅샷을 제공합니다. 이러한 도구들이 갱신되기 전까지 게시된 `0.3.0`으로 고정하면 실행 시 `no exported instance named wasi:cli/run@0.2.6`(또는 이와 유사한) 오류가 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808422Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:55/seg:2",
+      "source": "Use the RC pin until then.",
+      "source_hash": 17867827391494906490,
+      "context_hash": 18192787069141568189,
+      "translation": "그때까지는 RC 고정 버전을 사용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:46:43.808422Z",
+      "issues": []
+    }
+  ]
+}

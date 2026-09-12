@@ -1,0 +1,805 @@
+{
+  "version": 1,
+  "source_hash": 2260189778999585853,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Migrating from WASI 0.2 to WASI 0.3",
+      "source_hash": 15112554926485894685,
+      "context_hash": 5461819028493587603,
+      "translation": "WASI 0.2에서 WASI 0.3으로 마이그레이션하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431240Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "WASI 0.3 reshapes WASI's interfaces around the [native async primitives](./async.md) `async func`, `stream<T>`, and `future<T>`.",
+      "source_hash": 5906986050525970501,
+      "context_hash": 2899956858234347020,
+      "translation": "WASI 0.3은 [네이티브 비동기 기본 요소](./async.md)인 `async func`, `stream<T>`, `future<T>`를 중심으로 WASI의 인터페이스를 재구성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Most of the changes in `wasi:cli`, `wasi:http`, `wasi:filesystem`, and `wasi:sockets` are consequences of moving to these primitives.",
+      "source_hash": 1004755171712776817,
+      "context_hash": 7780261680605726238,
+      "translation": "`wasi:cli`, `wasi:http`, `wasi:filesystem`, `wasi:sockets`의 변경 사항 대부분은 이러한 기본 요소로 전환한 데 따른 결과입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "This page covers the mapping between concepts in WASI 0.2 and WASI 0.3.",
+      "source_hash": 17644427060795126482,
+      "context_hash": 12916963841266126376,
+      "translation": "이 페이지에서는 WASI 0.2와 WASI 0.3 사이의 개념 매핑을 다룹니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "For a WIT-level comparison of every WASI 0.3 interface, see [WASI 0.3](https://wasi.dev/releases/wasi-p3) on WASI.dev.",
+      "source_hash": 15397551459189199942,
+      "context_hash": 11951991760414285325,
+      "translation": "모든 WASI 0.3 인터페이스에 대한 WIT 수준 비교는 WASI.dev의 [WASI 0.3](https://wasi.dev/releases/wasi-p3)을 참조하십시오.",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Do you need to migrate?",
+      "source_hash": 5251044846300014058,
+      "context_hash": 15765162340654703790,
+      "translation": "마이그레이션이 필요합니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Not immediately -- WASI 0.2 can be used in hosts just as before, WASI 0.3 is a purely additive change.",
+      "source_hash": 1809083161404732484,
+      "context_hash": 11708265746246146851,
+      "translation": "당장은 아닙니다 -- WASI 0.2는 이전과 마찬가지로 호스트에서 사용할 수 있으며, WASI 0.3은 순전히 추가적인 변경 사항입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Separately, WASI 0.3 runtimes can polyfill 0.2 by mapping 0.2 imports onto native 0.3 primitives at the host boundary, and Wasmtime's `wasmtime serve` already runs both 0.3 and 0.2 components from the same binary, dispatching per component.",
+      "source_hash": 15200102305291154994,
+      "context_hash": 4588138926318391173,
+      "translation": "별도로, WASI 0.3 런타임은 호스트 경계에서 0.2 임포트를 네이티브 0.3 기본 요소로 매핑함으로써 0.2를 폴리필할 수 있으며, Wasmtime의 `wasmtime serve`는 이미 동일한 바이너리에서 0.3과 0.2 컴포넌트를 모두 실행하여 컴포넌트별로 디스패치합니다.",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "Migration is the right call when you want:",
+      "source_hash": 11064708074414797707,
+      "context_hash": 18168488872339474123,
+      "translation": "다음을 원하는 경우 마이그레이션이 올바른 선택입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Composable async across component boundaries (the [sandwich problem](./async.md#the-async-problem-that-wasi-03-solves) goes away).",
+      "source_hash": 10028484501197016559,
+      "context_hash": 5634306871040697505,
+      "translation": "컴포넌트 경계를 넘나드는 합성 가능한 비동기 처리([샌드위치 문제](./async.md#the-async-problem-that-wasi-03-solves)가 사라집니다).",
+      "glossary_snapshot": {
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:49:02.431241Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "The newer interface shapes — in particular, `wasi:http`'s collapse of nine resources down to two.",
+      "source_hash": 9879380029129752432,
+      "context_hash": 4290451925173479137,
+      "translation": "더 새로운 인터페이스 형태 — 특히, `wasi:http`가 아홉 개의 리소스를 두 개로 축소한 것.",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:49:02.431242Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "First-class support in 0.3-targeted toolchains as they continue to land.",
+      "source_hash": 17699150224299155673,
+      "context_hash": 794270869847786925,
+      "translation": "계속해서 등장하고 있는 0.3 대상 툴체인에서의 퍼스트클래스 지원.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431242Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Concept mapping",
+      "source_hash": 16440850856747432883,
+      "context_hash": 10806257746108535988,
+      "translation": "개념 매핑",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431242Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "WASI 0.3 replaces every `wasi:io` resource with a Canonical ABI primitive.",
+      "source_hash": 13234552644401431405,
+      "context_hash": 15835895910531146557,
+      "translation": "WASI 0.3은 모든 `wasi:io` 리소스를 정규 ABI 기본 요소로 대체합니다.",
+      "glossary_snapshot": {
+        "canonical ABI": "정규 ABI",
+        "resource": "리소스"
+      },
+      "translated_at": "2026-09-12T05:49:02.431242Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "The translation is mostly one-to-one:",
+      "source_hash": 16229649092030275704,
+      "context_hash": 13926858918181699361,
+      "translation": "이 변환은 대부분 일대일 대응입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431242Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "WASI 0.2 (`wasi:io`)",
+      "source_hash": 4144453545020613021,
+      "context_hash": 10954097237972490088,
+      "translation": "WASI 0.2 (`wasi:io`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431242Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "WASI 0.3 (Component Model)",
+      "source_hash": 996151861343917442,
+      "context_hash": 16566406564795430817,
+      "translation": "WASI 0.3 (컴포넌트 모델)",
+      "glossary_snapshot": {
+        "component model": "컴포넌트 모델",
+        "component": "컴포넌트"
+      },
+      "translated_at": "2026-09-12T05:49:02.431242Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`resource pollable`",
+      "source_hash": 9704266864693988748,
+      "context_hash": 13672429371112176166,
+      "translation": "`resource pollable`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "`future<T>`",
+      "source_hash": 7613558726159602944,
+      "context_hash": 2494864132470430998,
+      "translation": "`future<T>`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "`resource input-stream`",
+      "source_hash": 1279778971365023394,
+      "context_hash": 3143573629650989624,
+      "translation": "`resource input-stream`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "`stream<u8>`",
+      "source_hash": 7072048485937037197,
+      "context_hash": 8871297661956481148,
+      "translation": "`stream<u8>`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "`resource output-stream`",
+      "source_hash": 14054450795252939435,
+      "context_hash": 107058908741963258,
+      "translation": "`resource output-stream`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "`stream<u8>` (passed *into* the call)",
+      "source_hash": 15401683334551468973,
+      "context_hash": 2343461731851032611,
+      "translation": "`stream<u8>` (호출에 *전달*됨)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "`poll(list<pollable>)`",
+      "source_hash": 12339044461091942405,
+      "context_hash": 2778931753507078141,
+      "translation": "`poll(list<pollable>)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "`await` on a future",
+      "source_hash": 2572301698053990594,
+      "context_hash": 6809127656633783243,
+      "translation": "퓨처에 대한 `await`",
+      "glossary_snapshot": {
+        "future": "퓨처"
+      },
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "`subscribe()` on a resource",
+      "source_hash": 9282734752775490978,
+      "context_hash": 12004823152742695858,
+      "translation": "리소스에 대한 `subscribe()`",
+      "glossary_snapshot": {
+        "resource": "리소스"
+      },
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "return a `future` from the call",
+      "source_hash": 14893935852236625269,
+      "context_hash": 2514958559215638223,
+      "translation": "호출에서 `future` 반환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "`start-foo` / `finish-foo`",
+      "source_hash": 4095990476734348505,
+      "context_hash": 68544079518432123,
+      "translation": "`start-foo` / `finish-foo`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431243Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "a single `func` or `async func`",
+      "source_hash": 4037382020874996438,
+      "context_hash": 15192876255216375006,
+      "translation": "단일 `func` 또는 `async func`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431244Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "What changed in WIT",
+      "source_hash": 12488564575925331799,
+      "context_hash": 1457562874064938713,
+      "translation": "WIT에서 변경된 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:02.431244Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Stream-plus-future for reads",
+      "source_hash": 9307996017067361282,
+      "context_hash": 6748042019598499449,
+      "translation": "읽기를 위한 스트림-플러스-퓨처",
+      "glossary_snapshot": {
+        "stream": "스트림",
+        "future": "퓨처"
+      },
+      "translated_at": "2026-09-12T05:49:02.431244Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "A WASI 0.2 read call returned a single `input-stream` resource and surfaced terminal errors only as you consumed it.",
+      "source_hash": 3170021555869886241,
+      "context_hash": 1934479517620460772,
+      "translation": "WASI 0.2의 read 호출은 단일 `input-stream` 리소스를 반환했으며, 종단 오류는 이를 소비하는 동안에만 드러났습니다.",
+      "glossary_snapshot": {
+        "resource": "리소스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743455Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "WASI 0.3 splits those concerns: the call returns a `stream<u8>` for the data and a `future<result<_, error-code>>` for the outcome, packed into a tuple.",
+      "source_hash": 17452888658161463392,
+      "context_hash": 6606929748906829972,
+      "translation": "WASI 0.3은 이러한 관심사를 분리합니다: 호출은 데이터를 위한 `stream<u8>`과 결과를 위한 `future<result<_, error-code>>`를 튜플로 묶어 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743456Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "In WASI 0.3, the caller does not have to drain the stream to learn whether the read finished cleanly; the future resolves either way.",
+      "source_hash": 6893582973499115550,
+      "context_hash": 16430849944870081756,
+      "translation": "WASI 0.3에서는 호출자가 read가 정상적으로 완료되었는지 알기 위해 스트림을 모두 소비할 필요가 없으며, 퓨처는 어느 경우든 해결됩니다.",
+      "glossary_snapshot": {
+        "stream": "스트림",
+        "future": "퓨처"
+      },
+      "translated_at": "2026-09-12T05:49:08.743456Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Write-direction flip",
+      "source_hash": 1271993624810436473,
+      "context_hash": 10801973188129668802,
+      "translation": "쓰기 방향의 전환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743456Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "WASI 0.2 write paths handed a guest some host-owned resource (an `output-stream`) and let the guest push bytes into it.",
+      "source_hash": 13582737916140470880,
+      "context_hash": 17139510917016133156,
+      "translation": "WASI 0.2의 write 경로는 게스트에게 호스트가 소유한 리소스(`output-stream`)를 넘겨주고, 게스트가 그 안에 바이트를 밀어 넣게 했습니다.",
+      "glossary_snapshot": {
+        "resource": "리소스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743457Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "WASI 0.3 inverts that: the guest supplies the data as a `stream<u8>` value, and the host returns a `future` that resolves once it has finished consuming the stream.",
+      "source_hash": 3474980218410575086,
+      "context_hash": 8904491296352779728,
+      "translation": "WASI 0.3은 이를 반전시킵니다: 게스트가 `stream<u8>` 값으로 데이터를 제공하고, 호스트는 스트림 소비를 마치면 해결되는 `future`를 반환합니다.",
+      "glossary_snapshot": {
+        "stream": "스트림"
+      },
+      "translated_at": "2026-09-12T05:49:08.743457Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Two-step calls collapsed",
+      "source_hash": 15121900945891803491,
+      "context_hash": 9024157219757749456,
+      "translation": "2단계 호출의 통합",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743457Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "WASI 0.2 modeled operations that could suspend as a `start-foo` / `finish-foo` pair, with a `pollable` for readiness in between.",
+      "source_hash": 15812101490489563581,
+      "context_hash": 17144990373889191165,
+      "translation": "WASI 0.2는 중단될 수 있는 연산을 `start-foo`/`finish-foo` 쌍으로 모델링했으며, 그 사이에 준비 상태를 나타내는 `pollable`이 있었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743457Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:1",
+      "source": "WASI 0.3 collapses each pair into a single call:",
+      "source_hash": 12848967766178015556,
+      "context_hash": 16930902737559968509,
+      "translation": "WASI 0.3은 각 쌍을 단일 호출로 통합합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743458Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "The collapsed call is `async func` when the operation needs to suspend in the host (such as `connect`); operations that historically only used the two-step shape for non-blocking dispatch may collapse to plain `func` instead (`bind`, `listen`).",
+      "source_hash": 16828847092545256574,
+      "context_hash": 7341924601471726039,
+      "translation": "통합된 호출은 연산이 호스트에서 중단되어야 하는 경우(예: `connect`)에는 `async func`이며, 역사적으로 비차단 디스패치를 위해서만 2단계 형태를 사용했던 연산은 대신 일반 `func`으로 통합될 수 있습니다(`bind`, `listen`).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743458Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Interface highlights",
+      "source_hash": 13913101097766448283,
+      "context_hash": 1200169632988911229,
+      "translation": "인터페이스 주요 변경 사항",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743458Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "The complete per-interface diff lives on [WASI 0.3](https://wasi.dev/releases/wasi-p3#what-changed-in-each-interface) at WASI.dev.",
+      "source_hash": 17842899253698003812,
+      "context_hash": 12982419737643119267,
+      "translation": "인터페이스별 전체 변경 사항은 WASI.dev의 [WASI 0.3](https://wasi.dev/releases/wasi-p3#what-changed-in-each-interface)에 있습니다.",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743458Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The three changes most likely to drive migration work are:",
+      "source_hash": 1644512007034884330,
+      "context_hash": 15742207301700851555,
+      "translation": "마이그레이션 작업을 가장 많이 유발할 가능성이 있는 세 가지 변경 사항은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743459Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "**`wasi:io` is gone.** The package has no 0.3.0 release.",
+      "source_hash": 15984496971224922068,
+      "context_hash": 14715734363285782069,
+      "translation": "**`wasi:io`가 사라졌습니다.** 이 패키지는 0.3.0 릴리스가 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743459Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "Every resource it exposed (`pollable`, `input-stream`, `output-stream`) is replaced by a Component Model primitive, per the [concept mapping](#concept-mapping) above.",
+      "source_hash": 13671891619358858847,
+      "context_hash": 13166229602805480347,
+      "translation": "이 패키지가 노출했던 모든 리소스(`pollable`, `input-stream`, `output-stream`)는 위의 [개념 매핑](#concept-mapping)에 따라 컴포넌트 모델 기본 요소로 대체됩니다.",
+      "glossary_snapshot": {
+        "component model": "컴포넌트 모델",
+        "component": "컴포넌트",
+        "resource": "리소스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743459Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "**`wasi:http` collapses from nine resources to two.** The incoming/outgoing × request/response/body matrix plus `future-trailers`, `future-incoming-response`, and `response-outparam` all become `request` and `response`, with `stream<u8>` bodies and a `future` for trailers.",
+      "source_hash": 4696228811163176960,
+      "context_hash": 18058921229978694377,
+      "translation": "**`wasi:http`는 아홉 개의 리소스에서 두 개로 통합됩니다.** incoming/outgoing × request/response/body 행렬과 `future-trailers`, `future-incoming-response`, `response-outparam`은 모두 `request`와 `response`가 되며, 본문은 `stream<u8>`로, 트레일러는 `future`로 표현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743460Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "The handler is now an `async func`:",
+      "source_hash": 4351412328194117285,
+      "context_hash": 8201466997642680633,
+      "translation": "핸들러는 이제 `async func`입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743460Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "The `proxy` world is replaced by `service`, and a new `middleware` world both imports and exports the handler.",
+      "source_hash": 1573365435536765798,
+      "context_hash": 6799320287218277617,
+      "translation": "`proxy` 월드는 `service`로 대체되며, 새로운 `middleware` 월드는 핸들러를 임포트하는 동시에 익스포트합니다.",
+      "glossary_snapshot": {
+        "world": "월드"
+      },
+      "translated_at": "2026-09-12T05:49:08.743460Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "**`wasi:sockets` drops its `network` resource.** Network access is granted at the world level instead of being threaded through every `bind`, `connect`, and DNS lookup.",
+      "source_hash": 2162375980457859303,
+      "context_hash": 7137000789924586823,
+      "translation": "**`wasi:sockets`는 `network` 리소스를 제거합니다.** 네트워크 접근 권한은 모든 `bind`, `connect`, DNS 조회에 개별적으로 전달되는 대신 월드 수준에서 부여됩니다.",
+      "glossary_snapshot": {
+        "world": "월드",
+        "resource": "리소스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743460Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "The seven WASI 0.2 socket interfaces consolidate into one `types` interface plus `ip-name-lookup`, and TCP `listen` returns `stream<tcp-socket>` directly instead of requiring a separate `accept` loop.",
+      "source_hash": 16620979911083277926,
+      "context_hash": 10857937424778867958,
+      "translation": "일곱 개의 WASI 0.2 소켓 인터페이스는 하나의 `types` 인터페이스와 `ip-name-lookup`으로 통합되며, TCP `listen`은 별도의 `accept` 루프를 요구하는 대신 `stream<tcp-socket>`을 직접 반환합니다.",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743460Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Smaller per-interface changes — filesystem methods becoming `async func`, the `wasi:clocks` rename pass (`wall-clock` → `system-clock`, `datetime` → `instant`), the `max-len` rename in `wasi:random`, the new shared `wasi:cli/types` interface — are documented in the WASI.dev page linked above.",
+      "source_hash": 17027676184215737548,
+      "context_hash": 2185443694555088582,
+      "translation": "파일시스템 메서드가 `async func`으로 바뀌는 것, `wasi:clocks`의 이름 변경(`wall-clock` → `system-clock`, `datetime` → `instant`), `wasi:random`의 `max-len` 이름 변경, 새로운 공유 `wasi:cli/types` 인터페이스 등 인터페이스별 소규모 변경 사항은 위에 링크된 WASI.dev 페이지에 문서화되어 있습니다.",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Tooling requirements",
+      "source_hash": 13561166514734941250,
+      "context_hash": 12722699830073384069,
+      "translation": "도구 요구 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Tool",
+      "source_hash": 7198353922982892662,
+      "context_hash": 7501082309331252386,
+      "translation": "도구",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Minimum",
+      "source_hash": 8450642071179090363,
+      "context_hash": 10811266349441672714,
+      "translation": "최소 버전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Notes",
+      "source_hash": 6248434630477978300,
+      "context_hash": 17231259549919765594,
+      "translation": "참고 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Wasmtime",
+      "source_hash": 10565699117338524320,
+      "context_hash": 13156082778881092196,
+      "translation": "Wasmtime",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "46+",
+      "source_hash": 2437570750062152048,
+      "context_hash": 8972936560945088653,
+      "translation": "46+",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "WASI 0.3 and `component-model-async` are on by default.",
+      "source_hash": 10363059699051020080,
+      "context_hash": 12764731004170684655,
+      "translation": "WASI 0.3과 `component-model-async`가 기본적으로 활성화되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "`wit-bindgen`",
+      "source_hash": 6044662023065433586,
+      "context_hash": 6757566993555580464,
+      "translation": "`wit-bindgen`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "0.46+",
+      "source_hash": 15645161556776127395,
+      "context_hash": 11293549357618100490,
+      "translation": "0.46+",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Use the `async` feature for 0.3 binding generation.",
+      "source_hash": 1898980420981332745,
+      "context_hash": 13855385120383579983,
+      "translation": "0.3 바인딩 생성을 위해 `async` 기능을 사용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "jco",
+      "source_hash": 1434665632083575010,
+      "context_hash": 988392125774563356,
+      "translation": "jco",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:49:08.743462Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "latest",
+      "source_hash": 4679138979887116043,
+      "context_hash": 761780084803592855,
+      "translation": "최신",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329510Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "0.3 host bindings ship in the `preview3-shim` package.",
+      "source_hash": 18254680676219078162,
+      "context_hash": 3439336475207149047,
+      "translation": "0.3 호스트 바인딩은 `preview3-shim` 패키지로 제공됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "`wkg`",
+      "source_hash": 6464978598815335969,
+      "context_hash": 15705679266477830519,
+      "translation": "`wkg`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "0.15+",
+      "source_hash": 14889281262274392312,
+      "context_hash": 2280708086754605199,
+      "translation": "0.15+",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "Required to fetch `wasi:cli@0.3.0` and related packages.",
+      "source_hash": 6937846692711369841,
+      "context_hash": 2270245054492369200,
+      "translation": "`wasi:cli@0.3.0` 및 관련 패키지를 가져오는 데 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Rust",
+      "source_hash": 10360202319622258134,
+      "context_hash": 18273240683399980362,
+      "translation": "Rust",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "nightly",
+      "source_hash": 12859171603101326828,
+      "context_hash": 2786282393768165601,
+      "translation": "nightly",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "Current stable bundles a `wasm-component-ld` too old for 0.3 outputs of `wit-bindgen` 0.58.",
+      "source_hash": 13625031046665460977,
+      "context_hash": 5535624433044977103,
+      "translation": "현재 stable 버전에는 `wit-bindgen` 0.58의 0.3 출력물을 다루기에 너무 오래된 `wasm-component-ld`가 번들되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 1411140818245455263,
+      "translation": "더 읽어보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "[Async, Streams, and Futures](./async.md) — the conceptual foundation",
+      "source_hash": 12898445683416161414,
+      "context_hash": 5864322121401040012,
+      "translation": "[비동기, 스트림, 그리고 퓨처](./async.md) — 개념적 기초",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329511Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "[Creating Runnable Components in Rust](../language-support/creating-runnable-components/rust.md) — worked Rust example with the 0.3 `async fn run()` pattern",
+      "source_hash": 8742496149631573624,
+      "context_hash": 5175223370567323335,
+      "translation": "[Rust로 실행 가능한 컴포넌트 만들기](../language-support/creating-runnable-components/rust.md) — 0.3 `async fn run()` 패턴을 사용한 실전 Rust 예제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-09-12T05:47:06.329512Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "[WASI 0.3](https://wasi.dev/releases/wasi-p3) on WASI.dev — full WIT-level diff per interface",
+      "source_hash": 14604139909177495448,
+      "context_hash": 22414021193628487,
+      "translation": "WASI.dev의 [WASI 0.3](https://wasi.dev/releases/wasi-p3) — 인터페이스별 전체 WIT 수준 차이점",
+      "glossary_snapshot": {
+        "interface": "인터페이스"
+      },
+      "translated_at": "2026-09-12T05:47:06.329512Z",
+      "issues": []
+    }
+  ]
+}

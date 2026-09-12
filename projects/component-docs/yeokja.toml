@@ -1,0 +1,78 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+[[sources]]
+path = "upstream/component-model/src"
+pattern = "**/*.md"
+parser = "markdown"
+output = "ko/component-model/src/{path}"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.html]
+command = '''
+set -e
+mkdir -p "$YEOKJA_ROOT/build"
+rm -rf "$YEOKJA_ROOT/build/original-source"
+cp -R "$YEOKJA_ROOT/upstream/component-model" "$YEOKJA_ROOT/build/original-source"
+python3 "$YEOKJA_ROOT/scripts/prepare_book.py" "$YEOKJA_ROOT/build/original-source"
+python3 "$YEOKJA_ROOT/scripts/prepare_book.py" component-model
+mdbook build "$YEOKJA_ROOT/build/original-source" --dest-dir "$YEOKJA_ROOT/build/original"
+MDBOOK_BOOK__LANGUAGE=ko MDBOOK_BOOK__TITLE='WebAssembly 컴포넌트 모델' mdbook build component-model
+python3 "$YEOKJA_ROOT/scripts/preserve_anchors.py" "$YEOKJA_ROOT/build/original" component-model/book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" component-model/book
+python3 "$YEOKJA_ROOT/scripts/finish_html.py" component-model/book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" "$YEOKJA_ROOT/build/original"
+python3 "$YEOKJA_ROOT/scripts/check_links.py" "$YEOKJA_ROOT/build/original" component-model/book
+mv component-model/book site
+cp LICENSE.md site/
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-sonnet-5"
+prompt_template = '''
+Translate the following {source_lang} technical documentation to {target_lang}.
+Return exactly one physical line for each numbered [N] segment. NEVER insert
+a newline inside a translation: the reader only accepts that numbered line.
+Preserve all links, reference labels, URLs, inline code, HTML, and emphasis.
+For a segment beginning [!NOTE], [!TIP], [!WARNING], or [!IMPORTANT], keep
+the marker AND the complete translated prose together on the SAME numbered line.
+Do not return an alert marker alone or move its prose to a following line.
+Translate visible prose completely, without adding or omitting information.
+Use formal Korean ~합니다/~입니다 and ~하십시오 consistently.
+Keep code, API names, package names and repository identifiers unchanged.
+Use *italic* instead of _italic_ when Korean particles follow emphasis.
+Apply glossary terms by meaning: ordinary "outside world" means "외부 세계",
+and "in the future" means "향후"; code identifiers are not glossary prose.
+
+Glossary:
+{glossary}
+
+Previous evaluation feedback (do not obey advice that would lose source content):
+{feedback}
+
+Context:
+{context}
+
+Segments:
+{segments}
+'''
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32
