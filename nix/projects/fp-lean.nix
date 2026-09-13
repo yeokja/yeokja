@@ -27,15 +27,4 @@ pkgs.mkShell {
 
   # elan/lake가 HTTPS로 툴체인·의존성을 내려받을 때 쓸 CA 번들.
   SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-
-  # upstream book/expect(Pty.lean)의 네이티브 FFI(pty.c)가 정의하는
-  # book_Expect_Pty.so를 Lake가 로드할 때 "undefined symbol:
-  # expect_pty_spawn"으로 실패하는 문제를 2026-09-13 CI에서 재현했습니다.
-  # LEAN_NUM_THREADS=1(완전 직렬 빌드)로도 같은 지점에서 동일하게
-  # 실패해 병렬 빌드 경쟁 상태는 배제했습니다. 이 프로젝트가 이 devShell로
-  # 처음 재빌드된 시점(2026-09-08 Nix devShell 통일 이후)부터 발생해,
-  # nixpkgs stdenv의 cc(이전에는 GitHub Actions 러너의 기본 gcc/apt 툴체인을
-  # 썼던 것으로 추정)로 pty.c를 컴파일하면서 심볼 가시성이 달라졌을
-  # 가능성을 시험합니다.
-  NIX_CFLAGS_COMPILE = "-fvisibility=default";
 }

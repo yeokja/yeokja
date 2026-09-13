@@ -234,33 +234,6 @@ jobs:
           cd projects/${{ matrix.project }}
           nix develop "path:../../nix#${{ matrix.project }}" -c ../../target/release/yeokja build ${{ matrix.target }}
 
-      # TEMP DEBUG (2026-09-13): fp-lean이 "undefined symbol: expect_pty_spawn"로
-      # 실패하는 원인 조사용. NIX_CFLAGS_COMPILE=-fvisibility=default(41f0570)를
-      # 적용해도 같은 지점에서 같은 에러가 재현되어, 애초에 이 devShell의 `cc`가
-      # nixpkgs stdenv cc가 맞는지, book_Expect_Pty.so에 실제로 어떤 심볼이
-      # 남는지를 직접 확인한다. 실패한 빌드 트리는 build/tree에 남는다(에러
-      # 메시지 "the tree is left at ... for inspection" 참고). 원인 특정 후 이
-      # 스텝은 제거한다.
-      - name: "[TEMP] Debug fp-lean native library"
-        if: failure() && matrix.project == 'fp-lean'
-        run: |
-          cd projects/fp-lean
-          nix develop "path:../../nix#fp-lean" -c bash -ux -c '
-            echo "--- which/cc --version ---"
-            which cc || true
-            cc --version || true
-            echo "--- elan --version ---"
-            elan --version || true
-            echo "--- lean/lake --version (inside book, has lean-toolchain) ---"
-            ( cd build/tree/book && lean --version; lake --version ) || true
-            echo "--- pty.o ---"
-            find build/tree/book -name "pty.o" -print -exec nm {} \; || true
-            echo "--- book_Expect_Pty.so ---"
-            find build/tree/book -name "book_Expect_Pty.so" -print -exec file {} \; -exec nm -D {} \; || true
-            echo "--- all Expect-related build artifacts ---"
-            find build/tree/book -ipath "*expect*" \( -name "*.so" -o -name "*.o" -o -name "*.olean" \) || true
-          ' || true
-
       # 빌드 명령이 스스로 `nix build`를 부르는 항목은 devShell(napkin의 경우
       # TeX Live 전체 6 GiB 남짓)을 실체화할 이유가 없습니다.
       - name: Build ${{ matrix.target }} without a devShell
