@@ -16,7 +16,7 @@ book = Path(sys.argv[1]) / "book.toml"
 text = book.read_text()
 # External link checking is a separate concern from producing reproducible HTML.
 text = text.replace("[output.linkcheck2]", "")
-# Root-relative redirects escape the component-docs subdirectory on Pages.
+# Root-relative redirects escape the webassembly-component-docs subdirectory on Pages.
 def relative_redirect(match):
     source, target = match.groups()
     target = posixpath.relpath(target.lstrip("/"), posixpath.dirname(source.lstrip("/")) or ".")

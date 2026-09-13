@@ -2,7 +2,7 @@
 #
 # 커밋된 state/에서 한 프로젝트의 번역 출력(ko/)을 재구성하고, 미번역
 # 세그먼트가 남아 있으면 실패합니다. 프로젝트마다 source 규칙이 달라
-# (devguide는 upstream 디렉터리 전체, PEP는 upstream/peps, zero-to-nix는
+# (cpython-devguide는 upstream 디렉터리 전체, PEP는 upstream/peps, zero-to-nix는
 # upstream/src/content, 나머지는 state 파일 하나당 원본 하나) 그 분기를 한 곳에
 # 모아 두고, plan 잡과 rebuild 잡이 같은 스크립트를 부릅니다.
 #
@@ -61,11 +61,11 @@ case "$project" in
     "$yeokja" translate upstream
     "$yeokja" status --check upstream
     ;;
-  devguide|learn-fpga)
+  cpython-devguide|learn-fpga)
     "$yeokja" translate upstream
     "$yeokja" status --check upstream
     ;;
-  component-docs)
+  webassembly-component-docs)
     "$yeokja" status --check upstream/component-model/src
     "$yeokja" translate upstream/component-model/src
     "$yeokja" status --check upstream/component-model/src

@@ -1,4 +1,4 @@
-# component-docs: mdbook + mdbook-tabs(언어별 탭 전처리기) + 빌드 스크립트가
+# webassembly-component-docs: mdbook + mdbook-tabs(언어별 탭 전처리기) + 빌드 스크립트가
 # 부르는 python3(scripts/*.py — 표준 라이브러리만 사용, venv 불필요).
 #
 # mdbook-tabs(https://crates.io/crates/mdbook-tabs, CI가 고정한 1.0.1)는

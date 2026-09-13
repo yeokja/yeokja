@@ -27,7 +27,7 @@ spec-driven 워크플로(design spec → implementation plan)를 따릅니다. �
    모델명은 반드시 **그 프로젝트의 `state/**/*.yeokja.json`에 실제로 기록된
    번역에 쓰인 모델**을 기준으로 합니다. `yeokja.toml`의 `[provider]`만 보고
    단정하지 마세요 — provider/model 설정이 이후 다른 프로젝트와 통일하기 위해
-   바뀌었지만 기존 번역은 재번역되지 않은 경우(예: `projects/devguide`)가
+   바뀌었지만 기존 번역은 재번역되지 않은 경우(예: `projects/cpython-devguide`)가
    있습니다. 실제 사용 모델은 `git log -p -- projects/<name>/yeokja.toml`로
    provider 변경 이력을 확인하고, `state/**/*.yeokja.json`의 `translated_at`
    타임스탬프를 변경 커밋 시각과 비교해 어느 모델로 번역된 세그먼트인지 확인한

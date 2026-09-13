@@ -43,7 +43,7 @@ class StagePagesTests(unittest.TestCase):
 
     def add_required_artifacts(self) -> None:
         self.write(self.artifacts / "dist-hott-pdf" / "HoTT-ko.pdf", "hott pdf")
-        self.add_site_artifact("dist-devguide", "devguide")
+        self.add_site_artifact("dist-cpython-devguide", "cpython-devguide")
         self.write(
             self.artifacts
             / "dist-chisel-book-pdf"
@@ -78,16 +78,16 @@ class StagePagesTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("published Pages baseline is missing index.html", result.stderr)
 
-    def test_missing_devguide_in_staged_tree_fails(self) -> None:
+    def test_missing_cpython_devguide_in_staged_tree_fails(self) -> None:
         result = self.run_stage()
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "required devguide site is missing from the staged tree", result.stderr
+            "required cpython-devguide site is missing from the staged tree", result.stderr
         )
 
     def test_missing_chisel_book_in_staged_tree_fails(self) -> None:
-        self.add_site_artifact("dist-devguide", "devguide")
+        self.add_site_artifact("dist-cpython-devguide", "cpython-devguide")
 
         result = self.run_stage()
 
@@ -97,7 +97,7 @@ class StagePagesTests(unittest.TestCase):
         )
 
     def test_missing_hott_pdf_prevents_publishing_a_broken_link(self) -> None:
-        self.add_site_artifact("dist-devguide", "devguide")
+        self.add_site_artifact("dist-cpython-devguide", "cpython-devguide")
         self.write(self.artifacts / "dist-chisel-book-pdf" / "Digital-Design-with-Chisel-ko.pdf", "pdf")
         result = self.run_stage()
         self.assertNotEqual(result.returncode, 0)
@@ -106,7 +106,7 @@ class StagePagesTests(unittest.TestCase):
     def test_required_files_preserved_from_published_tree_suffice(self) -> None:
         # plan 잡이 빌드를 건너뛰면 산출물은 없지만 보존된 트리에 이미 있습니다.
         self.write(self.site / "hott" / "HoTT-ko.pdf", "published hott")
-        self.write(self.site / "devguide" / "index.html", "published devguide")
+        self.write(self.site / "cpython-devguide" / "index.html", "published cpython-devguide")
         self.write(
             self.site / "chisel-book" / "Digital-Design-with-Chisel-ko.pdf",
             "published pdf",
@@ -116,8 +116,8 @@ class StagePagesTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(
-            (self.site / "devguide" / "index.html").read_text(encoding="utf-8"),
-            "published devguide",
+            (self.site / "cpython-devguide" / "index.html").read_text(encoding="utf-8"),
+            "published cpython-devguide",
         )
 
     def test_fingerprints_recorded_only_for_overlaid_artifacts(self) -> None:
@@ -129,7 +129,7 @@ class StagePagesTests(unittest.TestCase):
         self.add_site_artifact("dist-pypy", "new pypy")
         self.add_site_artifact("dist-pypy", "new rpython", "rpython-site")
         for artifact in (
-            "dist-devguide",
+            "dist-cpython-devguide",
             "dist-chisel-book-pdf",
             "dist-hott-pdf",
             "dist-mil",
@@ -146,7 +146,7 @@ class StagePagesTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         for artifact in (
-            "dist-devguide",
+            "dist-cpython-devguide",
             "dist-chisel-book-pdf",
             "dist-hott-pdf",
             "dist-mil",
@@ -166,14 +166,14 @@ class StagePagesTests(unittest.TestCase):
 
     def test_overlay_without_fingerprint_warns_and_records_nothing(self) -> None:
         self.add_required_artifacts()
-        self.add_fingerprint("dist-devguide", "fp-devguide")
+        self.add_fingerprint("dist-cpython-devguide", "fp-cpython-devguide")
 
         result = self.run_stage(with_fingerprints=True)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("no fingerprint for dist-chisel-book-pdf", result.stderr)
         recorded = self.site / "build-fingerprints"
-        self.assertTrue((recorded / "dist-devguide").is_file())
+        self.assertTrue((recorded / "dist-cpython-devguide").is_file())
         self.assertFalse((recorded / "dist-chisel-book-pdf").exists())
 
     def test_without_fingerprints_dir_nothing_is_recorded(self) -> None:
@@ -399,18 +399,18 @@ class StagePagesTests(unittest.TestCase):
             "new pdf",
         )
 
-    def test_required_devguide_and_landing_files_are_refreshed(self) -> None:
-        self.write(self.site / "devguide" / "old.html", "old devguide")
+    def test_required_cpython_devguide_and_landing_files_are_refreshed(self) -> None:
+        self.write(self.site / "cpython-devguide" / "old.html", "old cpython-devguide")
         self.write(self.site / "favicon.svg", "old favicon")
         self.add_required_artifacts()
 
         result = self.run_stage()
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((self.site / "devguide" / "old.html").exists())
+        self.assertFalse((self.site / "cpython-devguide" / "old.html").exists())
         self.assertEqual(
-            (self.site / "devguide" / "index.html").read_text(encoding="utf-8"),
-            "devguide",
+            (self.site / "cpython-devguide" / "index.html").read_text(encoding="utf-8"),
+            "cpython-devguide",
         )
         self.assertEqual(
             (self.site / "index.html").read_text(encoding="utf-8"), "new root"

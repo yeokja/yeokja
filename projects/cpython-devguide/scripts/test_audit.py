@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from projects.devguide.scripts.audit import audit_html, audit_translation
+from audit import audit_html, audit_translation
 
 
 class TranslationAuditTests(unittest.TestCase):

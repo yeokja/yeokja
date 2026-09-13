@@ -112,9 +112,9 @@ overlay_download "dist-napkin-pdf" "Napkin-ko.pdf"
 overlay_download "dist-napkin-epub" "Napkin-ko.epub"
 overlay_download "dist-chisel-book-pdf" "Digital-Design-with-Chisel-ko.pdf" "chisel-book"
 overlay_download "dist-hott-pdf" "HoTT-ko.pdf" "hott"
-overlay_site "dist-devguide" "site" "devguide"
+overlay_site "dist-cpython-devguide" "site" "cpython-devguide"
 overlay_site "dist-rust-forge" "site" "rust-forge"
-overlay_site "dist-component-docs" "site" "component-docs"
+overlay_site "dist-webassembly-component-docs" "site" "webassembly-component-docs"
 overlay_site "dist-rustc-dev-guide" "site" "rustc-dev-guide"
 overlay_site "dist-learn-fpga" "site" "learn-fpga"
 overlay_site "dist-zero-to-nix" "site" "zero-to-nix"
@@ -126,8 +126,8 @@ cp "$landing_dir/favicon.svg" "$site_dir/favicon.svg"
 
 # 필수 프로젝트는 산출물이 아니라 최종 트리를 기준으로 확인합니다 — plan 잡이
 # 빌드를 건너뛴 경우 산출물은 없지만 보존된 트리에 이미 들어 있습니다.
-test -s "$site_dir/devguide/index.html" || \
-  fail "required devguide site is missing from the staged tree"
+test -s "$site_dir/cpython-devguide/index.html" || \
+  fail "required cpython-devguide site is missing from the staged tree"
 test -s "$site_dir/chisel-book/Digital-Design-with-Chisel-ko.pdf" || \
   fail "required chisel-book PDF is missing from the staged tree"
 test -s "$site_dir/hott/HoTT-ko.pdf" || \

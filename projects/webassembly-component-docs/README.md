@@ -8,15 +8,15 @@
 - Model: `claude-sonnet-5` (Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다)
 - 번역 상태: `state/` (출력 `ko/`는 상태에서 재구성)
 - 빌드: mdBook 0.5.3, mdbook-tabs 1.0.1
-- 배포 경로: `component-docs/`
+- 배포 경로: `webassembly-component-docs/`
 
 저장소 루트에서 실행합니다.
 
 ```sh
-git submodule update --init projects/component-docs/upstream
-target/release/yeokja -C projects/component-docs translate upstream/component-model/src
-target/release/yeokja -C projects/component-docs status --check upstream/component-model/src
-target/release/yeokja -C projects/component-docs build html
+git submodule update --init projects/webassembly-component-docs/upstream
+target/release/yeokja -C projects/webassembly-component-docs translate upstream/component-model/src
+target/release/yeokja -C projects/webassembly-component-docs status --check upstream/component-model/src
+target/release/yeokja -C projects/webassembly-component-docs build html
 ```
 
 GitHub Pages는 커밋된 상태의 완역 여부를 먼저 검사한 뒤 한국어 소스를 재구성합니다.

@@ -29,27 +29,27 @@ yeokja.toml     번역, 조립, 평가 및 빌드 설정
 
 ```sh
 cargo build -p yeokja-cli
-./target/debug/yeokja -C projects/devguide status upstream
-./target/debug/yeokja -C projects/devguide translate upstream
-./target/debug/yeokja -C projects/devguide evaluate upstream --mechanical-only
-./target/debug/yeokja -C projects/devguide build html
+./target/debug/yeokja -C projects/cpython-devguide status upstream
+./target/debug/yeokja -C projects/cpython-devguide translate upstream
+./target/debug/yeokja -C projects/cpython-devguide evaluate upstream --mechanical-only
+./target/debug/yeokja -C projects/cpython-devguide build html
 ```
 
 파서가 놓친 산문과 표 선택 규칙을 감사하고, 번역 및 빌드 결과의 완결성을
 검사하는 정확한 명령은 다음과 같습니다.
 
 ```sh
-./target/debug/yeokja -C projects/devguide inspect upstream
-./target/debug/yeokja -C projects/devguide coverage upstream --min-lines 3
-python3 projects/devguide/scripts/audit.py translation
-python3 projects/devguide/scripts/audit.py html
+./target/debug/yeokja -C projects/cpython-devguide inspect upstream
+./target/debug/yeokja -C projects/cpython-devguide coverage upstream --min-lines 3
+python3 projects/cpython-devguide/scripts/audit.py translation
+python3 projects/cpython-devguide/scripts/audit.py html
 ```
 
 하나의 감사 스크립트가 제공하는 두 모드는 문제가 있으면 정렬된 진단을 출력하고
 0이 아닌 상태로 종료합니다.
 
 HTML 빌드는 Sphinx 경고를 오류로 취급합니다. 고정된 upstream의 빌드 의존성은
-`projects/devguide/upstream/requirements.txt`에 있습니다.
+`projects/cpython-devguide/upstream/requirements.txt`에 있습니다.
 
 ## 전체 이력이 필요한 이유
 
@@ -58,16 +58,16 @@ Git 이력을 사용하므로 upstream 전체 이력이 필요합니다. 새 체
 다음 조건을 확인합니다.
 
 ```sh
-git submodule update --init projects/devguide/upstream
-test "$(git -C projects/devguide/upstream rev-parse HEAD)" = 261dc2116ca81985c5c0cfc59db5a251d2c8db96
-test "$(git -C projects/devguide/upstream rev-list --count HEAD)" -gt 1
+git submodule update --init projects/cpython-devguide/upstream
+test "$(git -C projects/cpython-devguide/upstream rev-parse HEAD)" = 261dc2116ca81985c5c0cfc59db5a251d2c8db96
+test "$(git -C projects/cpython-devguide/upstream rev-list --count HEAD)" -gt 1
 ```
 
 ## upstream 갱신 절차
 
 자동으로 최신 커밋을 따라가지 않습니다. 갱신할 커밋과 라이선스·문서 범위를
-먼저 검토한 뒤 `git -C projects/devguide/upstream fetch origin`과
-`git -C projects/devguide/upstream checkout <검토한-커밋>`으로 gitlink를
+먼저 검토한 뒤 `git -C projects/cpython-devguide/upstream fetch origin`과
+`git -C projects/cpython-devguide/upstream checkout <검토한-커밋>`으로 gitlink를
 명시적으로 바꿉니다. 이어서 64개였던 RST 파일 범위의 변화를 확인하고,
 `status`, `inspect`, `coverage`, `translate`, `evaluate`, `build`와 `audit.py`의
 두 검사 모드를 다시 실행합니다. 모든 결과를 검토한 뒤에만 새 gitlink와 필요한 설정·

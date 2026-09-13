@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from projects.devguide.scripts.prepare import (
+from prepare import (
     BEGIN_MARKER,
     END_MARKER,
     MANAGED_BLOCK,
@@ -17,7 +17,7 @@ from projects.devguide.scripts.prepare import (
 )
 
 
-prepare_module = importlib.import_module("projects.devguide.scripts.prepare")
+prepare_module = importlib.import_module("prepare")
 
 
 class PartialWriter:
