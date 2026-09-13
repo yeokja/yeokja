@@ -37,3 +37,15 @@ spec-driven 워크플로(design spec → implementation plan)를 따릅니다. �
    상태로 작업하였습니다."
 
 수정은 해당 문장 주변만 최소로 바꾸고, README의 다른 내용은 건드리지 않습니다.
+
+## GitHub-flavored Markdown 경고 표시(alert) 마커를 번역하지 않기 (필수)
+
+`[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!IMPORTANT]`, `[!CAUTION]`은 GFM 문법
+토큰이며 렌더러가 그대로 인식해야 하므로, 대괄호 안 단어를 한국어로 옮기거나
+(`[!참고]`), 콜론 문구로 바꾸거나(`참고: ...`), 통째로 빠뜨려서는 안 됩니다.
+`crates/translate/src/prompt.rs`의 기본 프롬프트가 이 규칙을 강제하지만,
+프로젝트별 `yeokja.toml`에 `[provider].prompt_template`을 커스텀으로 두면
+이 규칙이 자동으로 포함되지 않으므로 **커스텀 템플릿을 쓰는 프로젝트는 이
+문장을 직접 명시**해야 합니다(예: `projects/webassembly-component-docs/yeokja.toml`).
+새 프로젝트를 추가하거나 기존 `state/**/*.yeokja.json`을 검토할 때는 원문의
+alert 마커가 번역문에도 영어 그대로 남아 있는지 확인하세요.

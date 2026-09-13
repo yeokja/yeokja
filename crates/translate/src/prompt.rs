@@ -44,6 +44,12 @@ pub fn build_prompt(request: &TranslateRequest) -> String {
     prompt.push_str(
         "Preserve all markup exactly: links, URLs, bold/italic markers, and inline code.\n",
     );
+    prompt.push_str(
+        "A segment beginning with a GitHub-flavored Markdown alert marker such as [!NOTE], \
+         [!TIP], [!WARNING], [!IMPORTANT], or [!CAUTION] must keep that marker exactly as \
+         written, untranslated, followed by the translated prose on the same line. Never \
+         translate the marker itself, drop it, or move it to its own line.\n",
+    );
     prompt.push_str(closing_rule(request.markup));
 
     // Korean drifts between registers unless the register is named: the same
@@ -270,6 +276,17 @@ mod tests {
         assert!(verso.contains("{role arguments}"));
         assert!(verso.contains("[labels]"));
         assert!(verso.contains("*arity*는"));
+    }
+
+    /// Observed against webassembly-component-docs, rust-forge and rustc-dev-guide: the
+    /// model translated `[!NOTE]`/`[!WARNING]` into Korean (`[!참고]`,
+    /// `경고:`) or dropped it, which breaks the GFM alert syntax.
+    #[test]
+    fn build_prompt_says_to_keep_gfm_alert_markers_untranslated() {
+        let prompt = build_prompt(&make_request());
+        assert!(prompt.contains("[!NOTE]"));
+        assert!(prompt.contains("[!WARNING]"));
+        assert!(prompt.contains("untranslated"));
     }
 
     #[test]
