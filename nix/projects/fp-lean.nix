@@ -27,4 +27,13 @@ pkgs.mkShell {
 
   # elan/lake가 HTTPS로 툴체인·의존성을 내려받을 때 쓸 CA 번들.
   SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+
+  # upstream book/expect(Pty.lean)의 네이티브 FFI(pty.c)가 정의하는
+  # book_Expect_Pty.so를 Lake가 병렬로 빌드할 때, 해당 .o가 링크되기 전에
+  # 의존 모듈이 .so를 로드해 "undefined symbol: expect_pty_spawn"으로
+  # 실패하는 경우를 2026-09-13 CI에서 두 차례 결정적으로 재현했습니다(같은
+  # 지점에서 재현됨). Lake는 병렬도를 낮추는 공식 플래그가 없고
+  # LEAN_NUM_THREADS만 지원하므로, 이 프로젝트에 한해 직렬 빌드로 강제해
+  # 경쟁 상태를 피합니다.
+  LEAN_NUM_THREADS = "1";
 }
