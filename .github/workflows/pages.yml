@@ -245,20 +245,20 @@ jobs:
         if: failure() && matrix.project == 'fp-lean'
         run: |
           cd projects/fp-lean
-          nix develop "path:../../nix#fp-lean" -c bash -eux -c '
+          nix develop "path:../../nix#fp-lean" -c bash -ux -c '
             echo "--- which/cc --version ---"
-            which cc
-            cc --version
-            echo "--- lean/lake/elan versions ---"
-            elan --version
-            lean --version
-            lake --version
+            which cc || true
+            cc --version || true
+            echo "--- elan --version ---"
+            elan --version || true
+            echo "--- lean/lake --version (inside book, has lean-toolchain) ---"
+            ( cd build/tree/book && lean --version; lake --version ) || true
             echo "--- pty.o ---"
-            find build/tree/book -name "pty.o" -print -exec nm {} \;
+            find build/tree/book -name "pty.o" -print -exec nm {} \; || true
             echo "--- book_Expect_Pty.so ---"
-            find build/tree/book -name "book_Expect_Pty.so" -print -exec file {} \; -exec nm -D {} \;
-            echo "--- other Expect .so files for comparison ---"
-            find build/tree/book -iname "*expect*pty*" -o -iname "*expect*.so"
+            find build/tree/book -name "book_Expect_Pty.so" -print -exec file {} \; -exec nm -D {} \; || true
+            echo "--- all Expect-related build artifacts ---"
+            find build/tree/book -ipath "*expect*" \( -name "*.so" -o -name "*.o" -o -name "*.olean" \) || true
           ' || true
 
       # 빌드 명령이 스스로 `nix build`를 부르는 항목은 devShell(napkin의 경우
