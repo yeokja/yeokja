@@ -1,0 +1,29 @@
+diff --git a/book/lakefile.lean b/book/lakefile.lean
+--- a/book/lakefile.lean
++++ b/book/lakefile.lean
+@@ -109,12 +109,22 @@ target pty.o pkg : System.FilePath := do
+   -- The Lean toolchain is part of the trace, because the object is compiled against its headers
+   buildO oFile src #["-I", (← getLeanIncludeDir).toString] #["-fPIC"] "cc" getLeanTrace
+ 
++-- yeokja: 'moreLinkObjs' on a 'lean_lib' is intentionally left out of each module's own
++-- precompiled dynlib (Lake avoids duplicate symbols when one library module imports another
++-- of the same library on Windows; see 'Module.recBuildDynlib'). Since 'Expect.Run' imports
++-- 'Expect.Pty' from within this same precompiled 'Expect' library, that per-module dynlib never
++-- linked in 'pty.o', so loading it failed with "undefined symbol: expect_pty_spawn". 'extern_lib'
++-- does not have this gap: Lake fetches every package external library as a dynlib dependency of
++-- *every* precompiled module (see 'mod.pkg.externLibs' in the same function), regardless of
++-- which library that module belongs to. The final 'fp-lean' executable link is unaffected: it
++-- already pulls in both 'moreLinkObjs' and 'externLibs' (see 'recComputeModuleLinkInfo').
++extern_lib libpty pkg := do
++  let job ← fetch <| pkg.target ``pty.o
++  buildStaticLib (pkg.staticLibDir / nameToStaticLib "pty") #[job]
++
+ lean_lib Expect where
+   srcDir := "expect"
+   precompileModules := true
+-  -- The terminal code is part of the library, so that a change to it reaches everything that
+-  -- elaborates against the library
+-  moreLinkObjs := #[pty.o]
+ 
+ lean_lib FPLean where
+   needs := #[syncBuildExamples]
