@@ -14,6 +14,14 @@ set -euo pipefail
 # 기록합니다. 다음 실행의 plan 잡은 이 기록과 현재 지문을 비교해 빌드를
 # 건너뛸지 정하므로, 지문은 반드시 그 산출물이 트리에 들어간 뒤에만 기록해야
 # 합니다. 기록이 트리와 함께 캐시·배포되므로 둘이 어긋날 일이 없습니다.
+#
+# 각 overlay_* 호출은 자신이 쓰는 최상위 디렉터리 이름을 known_dirs에
+# 등록합니다(산출물이 없어 이전 배포분을 보존만 하는 경우도 등록합니다 —
+# 여전히 유효한 프로젝트이기 때문입니다). 모든 overlay_* 호출이 끝나면
+# known_dirs와 고정 항목(index.html 등)에 없는 최상위 디렉터리를 지웁니다.
+# 그래서 프로젝트를 저장소에서 뺄 때 이 파일의 overlay_* 호출 한 줄만
+# 지우면(어차피 해야 하는 일입니다) 지난 배포분도 다음 실행에서 자동으로
+# 지워집니다 — 별도의 삭제 단계를 덧붙일 필요가 없습니다.
 
 if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
   echo "usage: $0 <artifacts-dir> <site-dir> <landing-dir> [<fingerprints-dir>]" >&2
@@ -24,6 +32,7 @@ artifacts_dir=$1
 site_dir=$2
 landing_dir=$3
 fingerprints_dir=${4:-}
+known_dirs=()
 
 fail() {
   echo "error: $1" >&2
@@ -52,6 +61,7 @@ overlay_site() {
   source_name=$2
   destination_name=$3
   source_path="$artifacts_dir/$artifact_name/$source_name"
+  known_dirs+=("$destination_name")
 
   if [ ! -d "$source_path" ]; then
     warn_preserved "$destination_name" "$artifact_name"
@@ -65,6 +75,7 @@ overlay_site() {
 
 overlay_pypy() {
   artifact_path="$artifacts_dir/dist-pypy"
+  known_dirs+=("pypy" "rpython")
   if [ ! -d "$artifact_path/site" ] || [ ! -d "$artifact_path/rpython-site" ]; then
     warn_preserved "pypy and rpython" "dist-pypy"
     return
@@ -81,6 +92,7 @@ overlay_download() {
   file_name=$2
   destination_name=${3:-napkin}
   source_path="$artifacts_dir/$artifact_name/$file_name"
+  known_dirs+=("$destination_name")
 
   if [ ! -f "$source_path" ]; then
     warn_preserved "$destination_name/$file_name" "$artifact_name"
@@ -90,6 +102,26 @@ overlay_download() {
   mkdir -p "$site_dir/$destination_name"
   cp "$source_path" "$site_dir/$destination_name/$file_name"
   record_fingerprint "$artifact_name"
+}
+
+# known_dirs에 등록되지 않은 최상위 디렉터리를 지웁니다 — 어떤 overlay_*
+# 호출도 더 이상 가리키지 않는, 제거된 프로젝트의 지난 배포분입니다.
+# index.html/favicon.svg/build-fingerprints는 이 함수들이 아니라 스크립트
+# 자신이 직접 관리하는 고정 항목이라 known_dirs가 아닌 별도의 허용 목록으로
+# 지킵니다. 숨김 파일(dotfiles)은 건드리지 않습니다.
+prune_orphaned_site_entries() {
+  fixed_entries=(index.html favicon.svg build-fingerprints)
+  for entry_path in "$site_dir"/*; do
+    [ -e "$entry_path" ] || continue
+    entry_name=$(basename "$entry_path")
+    for keep in "${known_dirs[@]}" "${fixed_entries[@]}"; do
+      if [ "$entry_name" = "$keep" ]; then
+        continue 2
+      fi
+    done
+    echo "notice: removing orphaned site entry $entry_name; no overlay_* call produces it anymore" >&2
+    rm -rf "$entry_path"
+  done
 }
 
 test -s "$site_dir/index.html" || \
@@ -118,6 +150,8 @@ overlay_site "dist-learn-fpga" "site" "learn-fpga"
 overlay_site "dist-zero-to-nix" "site" "zero-to-nix"
 overlay_site "dist-nix-dev" "site" "nix-dev"
 overlay_site "dist-raytracing" "site" "raytracing"
+
+prune_orphaned_site_entries
 
 cp "$landing_dir/index.html" "$site_dir/index.html"
 cp "$landing_dir/favicon.svg" "$site_dir/favicon.svg"
