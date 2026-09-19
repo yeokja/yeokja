@@ -10,7 +10,8 @@
 //! * Math (`$..$`, `$$..$$`, `\(..\)`, `\[..\]`, `\begin{..}..\end{..}`) is
 //!   filled with `x`, so nothing inside it reads as Markdown. Inline math
 //!   stays in the segment text; a block that is only math is not offered.
-//! * An admonition, details or tab header becomes a list item.
+//! * An admonition, details or tab header becomes a list item whose content
+//!   column is the body indentation (see `scan_block_header`).
 //! * YAML front matter is blanked (its closing `---` may carry trailing
 //!   whitespace); only a `title:` value is offered.
 //! * Jinja statement lines (`{% include ... %}`) are blanked.
@@ -181,9 +182,36 @@ fn scan(source: &str) -> Layout {
     layout
 }
 
-/// Admonition/details/tab headers; implemented in Task 3.
-fn scan_block_header(_source: &str, _line: Range<usize>, _layout: &mut Layout) -> bool {
-    false
+/// `!!! type "title"`, `??? type "title"`, `???+ ...`, `=== "title"`.
+///
+/// The header becomes the list item `-   ***` in the shadow: a bullet whose
+/// content column is the header indentation plus four and whose first content
+/// is a thematic break (the mixed `-`/`*` line is not itself a break). The
+/// body, indented four columns (spaces or a tab) past the header, then parses
+/// as the item's content even across blank lines — the structure
+/// Python-Markdown gets by dedenting it. A non-empty bullet item interrupts a
+/// paragraph, so a header right after a paragraph line works too.
+fn scan_block_header(source: &str, line: Range<usize>, layout: &mut Layout) -> bool {
+    let text = &source[line.clone()];
+    let indent = text.len() - text.trim_start_matches([' ', '\t']).len();
+    let rest = &text[indent..];
+    let marker = ["???+", "!!!", "???", "==="].into_iter().find(|m| rest.starts_with(m));
+    let Some(marker) = marker else { return false };
+    let after = &rest[marker.len()..];
+    if !after.starts_with([' ', '\t']) {
+        return false;
+    }
+    if let (Some(open), Some(close)) = (after.find('"'), after.rfind('"'))
+        && close > open + 1
+    {
+        let base = line.start + indent + marker.len();
+        layout.extras.push(Extra { range: base + open + 1..base + close, block_type: BlockType::Heading });
+    }
+    let start = line.start + indent;
+    fill(&mut layout.shadow, start..line.end, b' ');
+    let item: &[u8] = if line.end - start >= 7 { b"-   ***" } else { b"- ***" };
+    layout.shadow[start..start + item.len()].copy_from_slice(item);
+    true
 }
 
 /// Math spans as pymdownx.arithmatex (generic mode) finds them, skipping code.
@@ -465,5 +493,44 @@ mod tests {
     #[test]
     fn mask_math_replaces_each_span_with_one_placeholder() {
         assert_eq!(mask_math("a $x_1$ b $$y$$"), "a ⟦M⟧ b ⟦M⟧");
+    }
+
+    #[test]
+    fn admonition_title_and_body_are_separate_prose() {
+        let source = "Before.\n\n!!! info \"Lemma\"\n    The body is prose.\n    It spans lines.\n\nAfter.\n";
+        assert_eq!(sources(source), ["Before.", "Lemma", "The body is prose.", "It spans lines.", "After."]);
+        assert_eq!(
+            translate_all(source, ko),
+            "가 Before.\n\n!!! info \"가 Lemma\"\n    가 The body is prose. 가 It spans lines.\n\n가 After.\n"
+        );
+    }
+
+    #[test]
+    fn body_after_a_blank_line_is_prose_not_code() {
+        let source = "??? hint \"Solution\"\n\n    Use a stack.\n\n    ```cpp\n    int x;\n\n    int y;\n    ```\n\nDone.\n";
+        assert_eq!(sources(source), ["Solution", "Use a stack.", "Done."]);
+    }
+
+    #[test]
+    fn tab_indented_body_and_header_after_paragraph() {
+        let source = "Intro line\n!!! note\n\tBody with tab.\n";
+        assert_eq!(sources(source), ["Intro line", "Body with tab."]);
+    }
+
+    #[test]
+    fn tabs_keep_code_out_of_prose() {
+        let source = "=== \"C++\"\n    ```cpp\n    int main() {}\n    ```\n=== \"Python\"\n    ```py\n    print(1)\n    ```\n";
+        assert_eq!(sources(source), ["C++", "Python"]);
+    }
+
+    #[test]
+    fn nested_admonition_and_list_inside_body() {
+        let source = "!!! example \"Outer\"\n    - item one\n      continues\n\n    !!! note \"Inner\"\n        Inner body.\n";
+        assert_eq!(sources(source), ["Outer", "item one continues", "Inner", "Inner body."]);
+    }
+
+    #[test]
+    fn admonition_without_title_offers_only_body() {
+        assert_eq!(sources("!!! warning\n    Careful.\n"), ["Careful."]);
     }
 }
