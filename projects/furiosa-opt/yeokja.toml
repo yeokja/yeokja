@@ -17,6 +17,23 @@ base = "upstream"
 path = "ko"
 require_base = true
 
+[build.html]
+command = '''
+set -e
+mkdir -p "$YEOKJA_ROOT/build"
+rm -rf "$YEOKJA_ROOT/build/original"
+mdbook build "$YEOKJA_ROOT/upstream/docs" --dest-dir "$YEOKJA_ROOT/build/original"
+MDBOOK_BOOK__LANGUAGE=ko MDBOOK_BOOK__TITLE='Tensor Contraction Processor 프로그래밍' mdbook build docs
+python3 "$YEOKJA_ROOT/scripts/preserve_anchors.py" "$YEOKJA_ROOT/build/original" docs/book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" docs/book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" "$YEOKJA_ROOT/build/original"
+cp "$YEOKJA_ROOT/upstream/LICENSE" "$YEOKJA_ROOT/upstream/NOTICE" docs/book/
+python3 "$YEOKJA_ROOT/scripts/finish_html.py" docs/book
+python3 "$YEOKJA_ROOT/scripts/check_links.py" "$YEOKJA_ROOT/build/original" docs/book
+mv docs/book site
+'''
+outputs = ["site"]
+
 [provider]
 type = "claude_code"
 model = "claude-sonnet-5"
