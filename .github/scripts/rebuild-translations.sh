@@ -64,6 +64,12 @@ case "$project" in
     "$yeokja" translate upstream/src
     "$yeokja" status --check upstream/src
     ;;
+  furiosa-opt)
+    # docs/ mdBook 책 전체를 한 번에 확인해 upstream이 새로 추가한 문서가
+    # state 없이 빠지는 경우도 배포를 막습니다.
+    "$yeokja" translate upstream/docs/src
+    "$yeokja" status --check upstream/docs/src
+    ;;
   zero-to-nix)
     # Astro 사이트의 MDX 본문만 번역 대상이므로 [[sources]] 경로 전체를
     # 한 번에 확인해 새 문서가 state 없이 빠지는 경우도 배포를 막습니다.
