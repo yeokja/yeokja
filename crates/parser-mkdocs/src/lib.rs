@@ -149,6 +149,8 @@ fn scan(source: &str) -> Layout {
         }
         first = end + 1;
     }
+    let body_start = lines.get(first).map_or(source.len(), |l| l.start);
+    layout.math = math_spans_from(source, body_start);
     let mut fence = None;
     for line in &lines[first..] {
         let text = &source[line.clone()];
@@ -172,14 +174,70 @@ fn scan(source: &str) -> Layout {
         if let Some(hash) = unspaced_atx(text) {
             layout.shadow[line.start + hash] = b' ';
         }
+        scan_heading_attr_list(source, line.clone(), &mut layout);
     }
-    let body_start = lines.get(first).map_or(source.len(), |l| l.start);
-    layout.math = math_spans_from(source, body_start);
     for m in &layout.math {
         fill(&mut layout.shadow, m.clone(), b'x');
     }
     layout.extras.sort_by_key(|e| e.range.start);
     layout
+}
+
+/// Whether `line` is an ATX heading, at any indentation (headings inside an
+/// admonition body are indented) and with or without a space after the `#`s.
+fn is_atx_heading(line: &str) -> bool {
+    let rest = line.trim_start_matches([' ', '\t']);
+    let hashes = rest.bytes().take_while(|&b| b == b'#').count();
+    (1..=6).contains(&hashes) && rest[hashes..].chars().next().is_none_or(|c| c != '#')
+}
+
+/// The `{...}` Python-Markdown's attr_list takes from the end of a heading
+/// line (`HEADER_RE`: `[ ]+\{\:?[ ]*([^\}\n ][^\n]*)[ ]*\}[ ]*$`, leftmost
+/// match), as a range within `line`.
+fn heading_attr_list(line: &str) -> Option<Range<usize>> {
+    let t = line.trim_end_matches(' ');
+    if !t.ends_with('}') {
+        return None;
+    }
+    let b = t.as_bytes();
+    t.match_indices(" {").find_map(|(i, _)| {
+        let open = i + 1;
+        let mut k = open + 1;
+        if b.get(k) == Some(&b':') {
+            k += 1;
+        }
+        while b.get(k) == Some(&b' ') {
+            k += 1;
+        }
+        (k < t.len() - 1).then_some(open..t.len())
+    })
+}
+
+/// Keep a heading's attr_list out of its title and offer the value of a
+/// `data-toc-label` in it, which the table of contents shows instead of the
+/// title.
+fn scan_heading_attr_list(source: &str, line: Range<usize>, layout: &mut Layout) {
+    let text = &source[line.clone()];
+    if !is_atx_heading(text) {
+        return;
+    }
+    let Some(attrs) = heading_attr_list(text) else { return };
+    let start = line.start + attrs.start;
+    if layout.math.iter().any(|m| m.contains(&start)) {
+        return;
+    }
+    fill(&mut layout.shadow, start..line.start + attrs.end, b' ');
+    let inner = &text[attrs.clone()];
+    if let Some(at) = inner.find("data-toc-label=") {
+        let value = at + "data-toc-label=".len();
+        if let Some(&q @ (b'"' | b'\'')) = inner.as_bytes().get(value)
+            && let Some(len) = inner[value + 1..].find(q as char)
+            && len > 0
+        {
+            let begin = start + value + 1;
+            layout.extras.push(Extra { range: begin..begin + len, block_type: BlockType::Heading });
+        }
+    }
 }
 
 /// `!!! type "title"`, `??? type "title"`, `???+ ...`, `=== "title"`.
@@ -527,6 +585,35 @@ mod tests {
     fn nested_admonition_and_list_inside_body() {
         let source = "!!! example \"Outer\"\n    - item one\n      continues\n\n    !!! note \"Inner\"\n        Inner body.\n";
         assert_eq!(sources(source), ["Outer", "item one continues", "Inner", "Inner body."]);
+    }
+
+    /// Python-Markdown's attr_list takes everything from the first ` {` of a
+    /// heading line that ends in `}`. The toc label is visible text (the
+    /// table of contents shows it), so its value is offered on its own.
+    #[test]
+    fn heading_attr_list_is_kept_and_its_toc_label_offered() {
+        let source = "## Paths of length $k$ {data-toc-label=\"Paths of length k\"}\n\nBody.\n";
+        assert_eq!(sources(source), ["Paths of length $k$", "Paths of length k", "Body."]);
+        assert_eq!(
+            translate_all(source, ko),
+            "## 가 Paths of length $k$ {data-toc-label=\"가 Paths of length k\"}\n\n가 Body.\n"
+        );
+    }
+
+    #[test]
+    fn toc_label_with_raw_html_and_an_id_in_the_attr_list() {
+        let source = "### Definition of $g(i)$ { #def data-toc-label='Definition of <script type=\"math/tex\">g(i)</script>' }\n";
+        assert_eq!(
+            sources(source),
+            ["Definition of $g(i)$", "Definition of <script type=\"math/tex\">g(i)</script>"]
+        );
+    }
+
+    #[test]
+    fn heading_attr_list_without_label_is_not_title_text() {
+        assert_eq!(sources("## Sets {a, b}\n"), ["Sets"]);
+        assert_eq!(sources("## Title {: #tid }\n"), ["Title"]);
+        assert_eq!(sources("## Sets{a}\n"), ["Sets{a}"]);
     }
 
     #[test]
