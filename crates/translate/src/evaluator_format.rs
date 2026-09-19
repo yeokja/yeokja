@@ -9,6 +9,21 @@ impl TranslationEvaluator for FormatEvaluator {
         &self,
         context: &EvaluationContext,
     ) -> Result<EvaluationResult, EvaluationError> {
+        if context.markup == Markup::MkDocs {
+            let mut issues = mkdocs_issues(&context.source, &context.translation);
+            // Formulas are copied verbatim (checked above); hide them so their
+            // `_`, `*` and backticks do not count as Markdown emphasis or code.
+            let masked = EvaluationContext {
+                source: yeokja_parser_mkdocs::mask_math(&context.source),
+                translation: yeokja_parser_mkdocs::mask_math(&context.translation),
+                markup: Markup::Markdown,
+                ..context.clone()
+            };
+            issues.extend(self.evaluate(&masked).await?.issues);
+            let passed = !issues.iter().any(|i| i.severity == IssueSeverity::Error);
+            return Ok(EvaluationResult { passed, issues });
+        }
+
         let mut issues = Vec::new();
 
         // Counted by run, not by character: `` ``code`` `` marks the same one
@@ -407,7 +422,7 @@ fn chars(text: &str) -> Vec<char> {
 fn constrained_marks(markup: Markup) -> &'static [(char, &'static str)] {
     match markup {
         Markup::Asciidoc => &[('`', "``code``"), ('*', "**bold**"), ('_', "__italic__")],
-        Markup::Markdown | Markup::Verso => &[('_', "*italic*")],
+        Markup::Markdown | Markup::MkDocs | Markup::Verso => &[('_', "*italic*")],
         // reStructuredText pairs are checked by `rst_broken_pairs`: every one
         // of its marker forms is constrained, so the doubled-form advice these
         // entries carry would be wrong there.
@@ -608,6 +623,58 @@ fn latex_accent_command(command: &str) -> bool {
         command,
         "\"" | "'" | "^" | "~" | "=" | "b" | "c" | "d" | "H" | "k" | "r" | "t" | "u" | "v"
     )
+}
+
+/// Checks only MkDocs needs: math copied verbatim, and no new Jinja
+/// delimiters (the macros plugin renders every page as a template).
+fn mkdocs_issues(source: &str, translation: &str) -> Vec<EvaluationIssue> {
+    let spans = |text: &str| -> Vec<String> {
+        let mut v: Vec<String> = yeokja_parser_mkdocs::math_spans(text).into_iter().map(|r| text[r].to_string()).collect();
+        v.sort_unstable();
+        v
+    };
+    let (required, available) = (spans(source), spans(translation));
+    let mut issues = Vec::new();
+    if !is_multiset_subset(&required, &available) {
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: format!(
+                "Math changed: copy every $...$, $$...$$, \\(...\\) and \\[...\\] expression \
+                 byte-for-byte and translate nothing inside it; put Korean particles after the \
+                 closing delimiter. Source math: {required:?}; translation math: {available:?}"
+            ),
+        });
+    }
+    // Repeating a source formula can suit Korean word order; a formula the
+    // source never had is text turned into math (`O(N)` → `$O(N)$`, which a
+    // navigation label prints with its dollars) or a sentence pulled in from
+    // a neighbouring segment.
+    let added: Vec<&String> = available.iter().filter(|m| !required.contains(m)).collect();
+    if !added.is_empty() {
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: format!(
+                "Math added: the translation has formulas the source sentence does not have \
+                 {added:?}. Do not turn plain text into $...$ math, and translate only this \
+                 sentence, not its neighbours."
+            ),
+        });
+    }
+    for delimiter in ["{{", "{%", "{#"] {
+        if translation.matches(delimiter).count() > source.matches(delimiter).count() {
+            issues.push(EvaluationIssue {
+                severity: IssueSeverity::Error,
+                kind: IssueKind::FormatLost,
+                message: format!(
+                    "`{delimiter}` added: MkDocs renders pages as Jinja templates, so the \
+                     translation must not introduce `{{{{`, `{{%` or `{{#`."
+                ),
+            });
+        }
+    }
+    issues
 }
 
 fn is_multiset_subset(required: &[String], available: &[String]) -> bool {
@@ -2401,5 +2468,42 @@ mod tests {
             let ctx = context_in(Markup::Latex, r"By \cref{thm:main}, it holds.", translation);
             assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
         }
+    }
+
+    fn mkdocs_ctx(source: &str, translation: &str) -> EvaluationContext {
+        context_in(Markup::MkDocs, source, translation)
+    }
+
+    #[tokio::test]
+    async fn mkdocs_math_must_survive_byte_for_byte() {
+        let ok = FormatEvaluator.evaluate(&mkdocs_ctx("Let $a_i$ be $O(n)$.", "$a_i$를 $O(n)$이라 하자.")).await.unwrap();
+        assert!(ok.passed, "{:?}", ok.issues);
+        let changed = FormatEvaluator.evaluate(&mkdocs_ctx("Let $a_i$ be $O(n)$.", "$a_{i}$를 $O(n)$이라 하자.")).await.unwrap();
+        assert!(!changed.passed);
+        let dropped = FormatEvaluator.evaluate(&mkdocs_ctx("Let $a_i$ be x.", "a_i를 x라 하자.")).await.unwrap();
+        assert!(!dropped.passed);
+    }
+
+    #[tokio::test]
+    async fn mkdocs_underscore_inside_math_is_not_emphasis() {
+        let result = FormatEvaluator.evaluate(&mkdocs_ctx("If $x_1 < y_1$ then $z_2$.", "$x_1 < y_1$이면 $z_2$입니다.")).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+    }
+
+    /// Observed in the cp-algorithms pilot: plain "O(N)" in a navigation
+    /// label came back as `$O(N)$`, which the sidebar prints with its dollars,
+    /// and a sentence pulled in from the next segment brought its formula.
+    #[tokio::test]
+    async fn mkdocs_formula_absent_from_the_source_is_an_error() {
+        let added = FormatEvaluator.evaluate(&mkdocs_ctx("[Finding Bridges in O(N+M)](graph/bridge-searching.md)", "[$O(N+M)$에 다리 찾기](graph/bridge-searching.md)")).await.unwrap();
+        assert!(!added.passed);
+        let repeated = FormatEvaluator.evaluate(&mkdocs_ctx("For each vertex $v$ in $V$.", "$V$의 각 정점 $v$에 대해 $v$를 봅니다.")).await.unwrap();
+        assert!(repeated.passed, "{:?}", repeated.issues);
+    }
+
+    #[tokio::test]
+    async fn mkdocs_added_jinja_delimiter_is_an_error() {
+        let result = FormatEvaluator.evaluate(&mkdocs_ctx("Use a set.", "{# 집합 #}을 사용합니다.")).await.unwrap();
+        assert!(!result.passed);
     }
 }

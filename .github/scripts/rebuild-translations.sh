@@ -82,6 +82,15 @@ case "$project" in
     "$yeokja" translate upstream/peps
     "$yeokja" status --check upstream/peps
     ;;
+  cp-algorithms)
+    # 문서 디렉터리 전체와 홈 본문(README → src/index_body)을 함께 확인해
+    # upstream이 추가한 문서가 state 없이 빠지는 경우도 배포를 막습니다.
+    # 재구성 전에 확인하므로 CI가 번역 provider를 부르지 않습니다.
+    "$yeokja" status --check upstream/src
+    "$yeokja" status --check upstream/README.md
+    "$yeokja" translate upstream/src
+    "$yeokja" translate upstream/README.md
+    ;;
   nix-dev)
     # nix.dev의 문서는 모두 upstream/source 아래의 MyST Markdown입니다. 디렉터리
     # 전체를 확인해야 upstream이 새로 추가한 문서가 state 없이 빠지는 경우도

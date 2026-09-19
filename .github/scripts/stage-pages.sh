@@ -151,6 +151,7 @@ overlay_site "dist-learn-fpga" "site" "learn-fpga"
 overlay_site "dist-zero-to-nix" "site" "zero-to-nix"
 overlay_site "dist-nix-dev" "site" "nix-dev"
 overlay_site "dist-raytracing" "site" "raytracing"
+overlay_site "dist-cp-algorithms" "site" "cp-algorithms"
 
 prune_orphaned_site_entries
 

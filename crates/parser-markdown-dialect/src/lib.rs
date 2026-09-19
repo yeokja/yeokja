@@ -86,23 +86,32 @@ impl ParseState<'_> {
         });
     }
 
-    /// Shrink a heading run so an MDX custom id (`\{#id}` or `{#id}`) stays
-    /// outside the span, verbatim after the translated title.
+    /// Shrink a heading run so an explicit id stays outside the span, verbatim
+    /// after the translated title: MDX `\{#id}`/`{#id}` and Python-Markdown
+    /// attr_list `{ #id }`/`{: #id .class }`, together with an ATX closing
+    /// sequence written before it (`Title ### {#id}`).
     fn strip_heading_id(&self, span: Range<usize>) -> Range<usize> {
         let raw = &self.source[span.clone()];
         let trimmed = raw.trim_end();
         let Some(open) = trimmed.strip_suffix('}').and_then(|s| s.rfind('{')) else {
             return span;
         };
-        let inner = &trimmed[open + 1..trimmed.len() - 1];
-        if !inner.starts_with('#') || inner.len() < 2 || inner.contains(char::is_whitespace) {
+        let inner = trimmed[open + 1..trimmed.len() - 1].trim();
+        let inner = inner.strip_prefix(':').unwrap_or(inner).trim();
+        let has_id = inner.split_whitespace().any(|t| t.len() > 1 && t.starts_with('#'));
+        if !has_id {
             return span;
         }
         let mut cut = open;
         if trimmed[..cut].ends_with('\\') {
             cut -= 1;
         }
-        span.start..span.start + raw[..cut].trim_end().len()
+        let mut title = trimmed[..cut].trim_end();
+        let without_hashes = title.trim_end_matches('#');
+        if without_hashes.len() < title.len() && without_hashes.ends_with(char::is_whitespace) {
+            title = without_hashes.trim_end();
+        }
+        span.start..span.start + title.len()
     }
 
     fn current_block_type(&self) -> (BlockType, Option<u8>) {
@@ -131,7 +140,13 @@ impl ParseState<'_> {
         }
         match &mut self.run {
             Some(run) => run.end = run.end.max(range.end),
-            None => self.run = Some(range),
+            None => {
+                let mut range = range;
+                if starts_after_escape(self.source.as_bytes(), range.start) {
+                    range.start -= 1;
+                }
+                self.run = Some(range);
+            }
         }
     }
 
@@ -174,7 +189,7 @@ impl ParseState<'_> {
             let untrimmed = &raw[prose.clone()];
             let text = untrimmed.trim();
             let leading = untrimmed.len() - untrimmed.trim_start().len();
-            let nested = parse_events(text, text, false, Vec::new(), false);
+            let nested = parse_events(text, text, self.preserve_heading_ids, Vec::new(), false);
             for block in nested.sections.into_iter().flat_map(|section| section.blocks) {
                 if let Some(span) = block.span {
                     let offset = range.start + prose.start + leading;
@@ -212,6 +227,17 @@ impl ParseState<'_> {
             self.block_idx = 0;
         }
     }
+}
+
+/// pulldown-cmark reports an escaped character (`\[`) without its backslash.
+/// A run that starts there must take the backslash along, or the splice
+/// leaves it in front of the translation.
+fn starts_after_escape(bytes: &[u8], at: usize) -> bool {
+    if at == 0 || bytes[at - 1] != b'\\' || !bytes.get(at).is_some_and(u8::is_ascii_punctuation) {
+        return false;
+    }
+    let backslashes = bytes[..at].iter().rev().take_while(|&&b| b == b'\\').count();
+    backslashes % 2 == 1
 }
 
 fn heading_level_num(level: HeadingLevel) -> u8 {
@@ -361,5 +387,46 @@ fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: 
     Document {
         sections,
         source: source.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn heading_sources(source: &str) -> Vec<String> {
+        parse_with(source, source, true, Vec::new())
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect()
+    }
+
+    #[test]
+    fn attr_list_ids_stay_outside_heading_span() {
+        assert_eq!(heading_sources("## Implementation { #implementation }\n"), ["Implementation"]);
+        assert_eq!(heading_sources("## Title {: #tid .cls }\n"), ["Title"]);
+        assert_eq!(heading_sources("## Title {#tid}\n"), ["Title"]);
+        assert_eq!(heading_sources("## Title \\{#tid}\n"), ["Title"]);
+    }
+
+    #[test]
+    fn closing_hashes_before_attr_list_stay_outside() {
+        assert_eq!(heading_sources("## Implementation ### { #implementation}\n"), ["Implementation"]);
+    }
+
+    /// cp-algorithms puts an anchor `<div>` right above a heading, so the
+    /// heading line is part of the HTML block and reaches the nested parse.
+    #[test]
+    fn heading_id_inside_an_html_block_stays_outside() {
+        assert_eq!(
+            heading_sources("<div id=\"old\"></div>\n### Title {: #tid }\n\nBody.\n"),
+            ["Title", "Body."]
+        );
+    }
+
+    #[test]
+    fn braces_without_an_id_are_title_text() {
+        assert_eq!(heading_sources("## Sets {a, b}\n"), ["Sets {a, b}"]);
     }
 }

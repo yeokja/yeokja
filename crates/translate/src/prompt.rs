@@ -109,6 +109,20 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              puts a suffix straight after an italicised term, use * instead: _arity_ → \
              *arity*는.\n"
         }
+        Markup::MkDocs => {
+            "A closing _ that a letter follows does not close the pair. When the translation \
+             puts a suffix straight after an italicised term, use * instead: _arity_ → \
+             *arity*는. Copy every math expression between $...$, $$...$$, \\(...\\) and \
+             \\[...\\] byte-for-byte — never translate, respace or rewrite anything inside it — \
+             and attach Korean particles after the closing delimiter ($n$개, $O(n)$의). Never \
+             add math the sentence does not have: plain text such as O(N) stays plain text. \
+             Never add {{, {% or {#. A list item that is only a link [label](page.md) must stay \
+             exactly one link with only the label translated. The title of an external \
+             problem, contest or judge in link text is a proper name: copy \
+             [Codeforces - Jzzhu and Cities](url) or [SPOJ - SHPATH](url) unchanged. Keep \
+             each translation on its one [N] line: an inline <br> stays inline, with the text \
+             after it on the same line.\n"
+        }
         Markup::Rst => {
             "A closing `, ``, * or ** that a letter follows is not recognized: \
              reStructuredText requires whitespace or punctuation after it, and doubling the \
@@ -276,6 +290,31 @@ mod tests {
         assert!(verso.contains("{role arguments}"));
         assert!(verso.contains("[labels]"));
         assert!(verso.contains("*arity*는"));
+    }
+
+    #[test]
+    fn mkdocs_rule_mentions_math_and_jinja() {
+        let rule = closing_rule(yeokja_core::parser::Markup::MkDocs);
+        assert!(rule.contains("$...$"));
+        assert!(rule.contains("{%"));
+    }
+
+    /// cp-algorithms pilot: plain "O(N)" in a link label came back as
+    /// `$O(N)$`, and practice-problem titles were translated in some list
+    /// items and not in others.
+    #[test]
+    fn mkdocs_rule_forbids_new_math_and_keeps_problem_titles() {
+        let rule = closing_rule(yeokja_core::parser::Markup::MkDocs);
+        assert!(rule.contains("O(N)"));
+        assert!(rule.contains("[Codeforces - Jzzhu and Cities]"));
+    }
+
+    /// cp-algorithms full run: after an inline `<br>` the model started a new
+    /// physical line, and everything after it was dropped with that line.
+    #[test]
+    fn mkdocs_rule_keeps_text_after_br_on_the_same_line() {
+        let rule = closing_rule(yeokja_core::parser::Markup::MkDocs);
+        assert!(rule.contains("<br>"));
     }
 
     /// Observed against webassembly-component-docs, rust-forge and rustc-dev-guide: the

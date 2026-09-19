@@ -23,6 +23,9 @@ pub enum Markup {
     Latex,
     /// Verso manual syntax embedded in a Lean `#doc` command.
     Verso,
+    /// MkDocs (Python-Markdown + pymdown-extensions): Markdown whose spans may
+    /// carry `$`/`$$`/`\(`/`\[` math that must survive translation verbatim.
+    MkDocs,
 }
 
 pub trait DocumentParser: Send + Sync {
