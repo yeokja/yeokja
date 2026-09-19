@@ -646,6 +646,22 @@ fn mkdocs_issues(source: &str, translation: &str) -> Vec<EvaluationIssue> {
             ),
         });
     }
+    // Repeating a source formula can suit Korean word order; a formula the
+    // source never had is text turned into math (`O(N)` → `$O(N)$`, which a
+    // navigation label prints with its dollars) or a sentence pulled in from
+    // a neighbouring segment.
+    let added: Vec<&String> = available.iter().filter(|m| !required.contains(m)).collect();
+    if !added.is_empty() {
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: format!(
+                "Math added: the translation has formulas the source sentence does not have \
+                 {added:?}. Do not turn plain text into $...$ math, and translate only this \
+                 sentence, not its neighbours."
+            ),
+        });
+    }
     for delimiter in ["{{", "{%", "{#"] {
         if translation.matches(delimiter).count() > source.matches(delimiter).count() {
             issues.push(EvaluationIssue {
@@ -2472,6 +2488,17 @@ mod tests {
     async fn mkdocs_underscore_inside_math_is_not_emphasis() {
         let result = FormatEvaluator.evaluate(&mkdocs_ctx("If $x_1 < y_1$ then $z_2$.", "$x_1 < y_1$이면 $z_2$입니다.")).await.unwrap();
         assert!(result.passed, "{:?}", result.issues);
+    }
+
+    /// Observed in the cp-algorithms pilot: plain "O(N)" in a navigation
+    /// label came back as `$O(N)$`, which the sidebar prints with its dollars,
+    /// and a sentence pulled in from the next segment brought its formula.
+    #[tokio::test]
+    async fn mkdocs_formula_absent_from_the_source_is_an_error() {
+        let added = FormatEvaluator.evaluate(&mkdocs_ctx("[Finding Bridges in O(N+M)](graph/bridge-searching.md)", "[$O(N+M)$에 다리 찾기](graph/bridge-searching.md)")).await.unwrap();
+        assert!(!added.passed);
+        let repeated = FormatEvaluator.evaluate(&mkdocs_ctx("For each vertex $v$ in $V$.", "$V$의 각 정점 $v$에 대해 $v$를 봅니다.")).await.unwrap();
+        assert!(repeated.passed, "{:?}", repeated.issues);
     }
 
     #[tokio::test]
