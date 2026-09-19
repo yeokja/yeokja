@@ -104,7 +104,7 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              BOTH ends so the pair still closes: `heap` → ``heap``에, *bold* → **bold**를. \
              Doubling one end only (`heap``에) closes neither way and prints the marks.\n"
         }
-        Markup::Markdown => {
+        Markup::Markdown | Markup::MkDocs => {
             "A closing _ that a letter follows does not close the pair. When the translation \
              puts a suffix straight after an italicised term, use * instead: _arity_ → \
              *arity*는.\n"

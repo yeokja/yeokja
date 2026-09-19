@@ -66,6 +66,7 @@ fn parser_by_name(
             parser_manifest.unwrap_or_default(),
         )),
         "myst" => Box::new(yeokja_parser_myst::MystParser),
+        "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
