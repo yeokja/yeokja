@@ -119,7 +119,9 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              Never add {{, {% or {#. A list item that is only a link [label](page.md) must stay \
              exactly one link with only the label translated. The title of an external \
              problem, contest or judge in link text is a proper name: copy \
-             [Codeforces - Jzzhu and Cities](url) or [SPOJ - SHPATH](url) unchanged.\n"
+             [Codeforces - Jzzhu and Cities](url) or [SPOJ - SHPATH](url) unchanged. Keep \
+             each translation on its one [N] line: an inline <br> stays inline, with the text \
+             after it on the same line.\n"
         }
         Markup::Rst => {
             "A closing `, ``, * or ** that a letter follows is not recognized: \
@@ -305,6 +307,14 @@ mod tests {
         let rule = closing_rule(yeokja_core::parser::Markup::MkDocs);
         assert!(rule.contains("O(N)"));
         assert!(rule.contains("[Codeforces - Jzzhu and Cities]"));
+    }
+
+    /// cp-algorithms full run: after an inline `<br>` the model started a new
+    /// physical line, and everything after it was dropped with that line.
+    #[test]
+    fn mkdocs_rule_keeps_text_after_br_on_the_same_line() {
+        let rule = closing_rule(yeokja_core::parser::Markup::MkDocs);
+        assert!(rule.contains("<br>"));
     }
 
     /// Observed against webassembly-component-docs, rust-forge and rustc-dev-guide: the
