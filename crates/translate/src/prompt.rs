@@ -104,10 +104,19 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              BOTH ends so the pair still closes: `heap` → ``heap``에, *bold* → **bold**를. \
              Doubling one end only (`heap``에) closes neither way and prints the marks.\n"
         }
-        Markup::Markdown | Markup::MkDocs => {
+        Markup::Markdown => {
             "A closing _ that a letter follows does not close the pair. When the translation \
              puts a suffix straight after an italicised term, use * instead: _arity_ → \
              *arity*는.\n"
+        }
+        Markup::MkDocs => {
+            "A closing _ that a letter follows does not close the pair. When the translation \
+             puts a suffix straight after an italicised term, use * instead: _arity_ → \
+             *arity*는. Copy every math expression between $...$, $$...$$, \\(...\\) and \
+             \\[...\\] byte-for-byte — never translate, respace or rewrite anything inside it — \
+             and attach Korean particles after the closing delimiter ($n$개, $O(n)$의). Never \
+             add {{, {% or {#. A list item that is only a link [label](page.md) must stay \
+             exactly one link with only the label translated.\n"
         }
         Markup::Rst => {
             "A closing `, ``, * or ** that a letter follows is not recognized: \
@@ -276,6 +285,13 @@ mod tests {
         assert!(verso.contains("{role arguments}"));
         assert!(verso.contains("[labels]"));
         assert!(verso.contains("*arity*는"));
+    }
+
+    #[test]
+    fn mkdocs_rule_mentions_math_and_jinja() {
+        let rule = closing_rule(yeokja_core::parser::Markup::MkDocs);
+        assert!(rule.contains("$...$"));
+        assert!(rule.contains("{%"));
     }
 
     /// Observed against webassembly-component-docs, rust-forge and rustc-dev-guide: the
