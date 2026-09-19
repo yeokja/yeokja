@@ -20,7 +20,14 @@ require_base = true
 [build.html]
 command = '''
 set -e
-RUN_BLACKSMITH=1 mdbook build
+rm -rf "$YEOKJA_ROOT/build/original-source"
+cp -R "$YEOKJA_ROOT/upstream" "$YEOKJA_ROOT/build/original-source"
+RUN_BLACKSMITH=1 mdbook build "$YEOKJA_ROOT/build/original-source" --dest-dir "$YEOKJA_ROOT/build/original"
+RUN_BLACKSMITH=1 MDBOOK_BOOK__LANGUAGE=ko mdbook build
+python3 "$YEOKJA_ROOT/scripts/preserve_anchors.py" "$YEOKJA_ROOT/build/original/html" book/html
+python3 "$YEOKJA_ROOT/scripts/build_print.py" book/html
+python3 "$YEOKJA_ROOT/scripts/build_print.py" "$YEOKJA_ROOT/build/original/html"
+python3 "$YEOKJA_ROOT/scripts/check_links.py" "$YEOKJA_ROOT/build/original/html" book/html
 mv book/html site
 '''
 outputs = ["site"]

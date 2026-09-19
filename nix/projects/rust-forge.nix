@@ -1,5 +1,6 @@
 # rust-forge: mdbook + blacksmith 전처리기(cargo run, RUN_BLACKSMITH=1)를 위한
-# Rust 툴체인. blacksmith(projects/rust-forge/upstream/blacksmith)는
+# Rust 툴체인 + 빌드 스크립트가 부르는 python3(scripts/*.py — 표준 라이브러리만
+# 사용, venv 불필요). blacksmith(projects/rust-forge/upstream/blacksmith)는
 # reqwest(기본 native-tls 백엔드)를 쓰며 Cargo.lock에 openssl-sys가 있어
 # Linux에서는 pkg-config + openssl이 필요합니다(darwin은 native-tls가
 # Security.framework를 쓰므로 불필요 — nix/flake.nix의 default 셸과 같은 패턴).
@@ -17,6 +18,7 @@ pkgs.mkShell {
       rustc
       mdbook
       pkg-config
+      python3
     ]
     ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
       openssl
