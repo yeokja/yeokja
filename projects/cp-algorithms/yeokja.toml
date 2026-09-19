@@ -24,6 +24,27 @@ base = "upstream"
 path = "ko"
 require_base = true
 
+[[derive.overlay]]
+path = "overlay"
+
+[[derive.step]]
+kind = "generate"
+command = 'python3 "$YEOKJA_ROOT/scripts/prepare_site.py" .'
+
+[build.html]
+command = '''
+set -e
+rm -rf "$YEOKJA_ROOT/build/original-source" "$YEOKJA_ROOT/build/original"
+cp -RL "$YEOKJA_ROOT/upstream" "$YEOKJA_ROOT/build/original-source"
+cp -R "$YEOKJA_ROOT/overlay/src/." "$YEOKJA_ROOT/build/original-source/src/"
+python3 "$YEOKJA_ROOT/scripts/prepare_site.py" --english "$YEOKJA_ROOT/build/original-source"
+(cd "$YEOKJA_ROOT/build/original-source" && mkdocs build --strict -d "$YEOKJA_ROOT/build/original")
+python3 "$YEOKJA_ROOT/scripts/extract_heading_ids.py" "$YEOKJA_ROOT/build/original" "$YEOKJA_ROOT/build/en-heading-ids.json"
+KO_ANCHOR_IDS="$YEOKJA_ROOT/build/en-heading-ids.json" mkdocs build --strict -d site
+python3 "$YEOKJA_ROOT/scripts/check_links.py" "$YEOKJA_ROOT/build/original" site
+'''
+outputs = ["site"]
+
 [provider]
 type = "claude_code"
 model = "claude-sonnet-5"
