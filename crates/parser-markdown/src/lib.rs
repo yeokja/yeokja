@@ -366,4 +366,23 @@ mod tests {
         assert!(MarkdownParser.parse(source).translatable_segments().is_empty());
     }
 
+    #[test]
+    fn escaped_bracket_at_paragraph_start_stays_in_segment() {
+        let parser = MarkdownParser;
+        let source = "\\[ x^2 \\] is a formula.\n";
+        let doc = parser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments[0].source, "\\[ x^2 \\] is a formula.");
+        let mut translations = TranslationMap::new();
+        translations.insert(segments[0].id.clone(), "\\[ x^2 \\]는 식입니다.".to_string());
+        assert_eq!(parser.reconstruct(&doc, &translations), "\\[ x^2 \\]는 식입니다.\n");
+    }
+
+    #[test]
+    fn escaped_backslash_before_text_is_not_pulled_in_twice() {
+        let parser = MarkdownParser;
+        let doc = parser.parse("\\\\ path and more.\n");
+        assert_eq!(doc.translatable_segments()[0].source, "\\\\ path and more.");
+    }
+
 }
