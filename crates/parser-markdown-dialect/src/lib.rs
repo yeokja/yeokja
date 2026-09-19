@@ -189,7 +189,7 @@ impl ParseState<'_> {
             let untrimmed = &raw[prose.clone()];
             let text = untrimmed.trim();
             let leading = untrimmed.len() - untrimmed.trim_start().len();
-            let nested = parse_events(text, text, false, Vec::new(), false);
+            let nested = parse_events(text, text, self.preserve_heading_ids, Vec::new(), false);
             for block in nested.sections.into_iter().flat_map(|section| section.blocks) {
                 if let Some(span) = block.span {
                     let offset = range.start + prose.start + leading;
@@ -413,6 +413,16 @@ mod tests {
     #[test]
     fn closing_hashes_before_attr_list_stay_outside() {
         assert_eq!(heading_sources("## Implementation ### { #implementation}\n"), ["Implementation"]);
+    }
+
+    /// cp-algorithms puts an anchor `<div>` right above a heading, so the
+    /// heading line is part of the HTML block and reaches the nested parse.
+    #[test]
+    fn heading_id_inside_an_html_block_stays_outside() {
+        assert_eq!(
+            heading_sources("<div id=\"old\"></div>\n### Title {: #tid }\n\nBody.\n"),
+            ["Title", "Body."]
+        );
     }
 
     #[test]
