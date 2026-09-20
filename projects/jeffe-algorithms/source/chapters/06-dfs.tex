@@ -1,0 +1,1279 @@
+% Reconstructed from upstream/Algorithms-JeffE.pdf, PDF pages 243-274 (printed 225-256).
+\epigraph{And, for the hous is crinkled to and fro,\\And hath so queinte weyes for to go---\\For hit is shapen as the mase is wroght---\\Therto have I a remedie in my thoght,\\That, by a clewe of twyne, as he hath goon,\\The same wey he may returne anoon,\\Folwing alwey the threed, as he hath come.}{Geoffrey Chaucer, \textit{The Legend of Good Women} (c. 1385)}
+
+\epigraph{“Com’è bello il mondo e come sono brutti i labirinti!” dissi sollevato.\\“Come sarebbe bello il mondo se ci fosse una regola per girare nei labirinti,” rispose il mio maestro.\par[“How beautiful the world is, and how ugly labyrinths are,” I said, relieved.\\“How beautiful the world would be if there were a procedure for moving through labyrinths,” my master replied.]}{Umberto Eco, \textit{Il nome della rosa} (1980)\\English translation (\textit{The Name of the Rose}) by William Weaver (1983)}
+
+\chapter{Depth-First Search}
+\label{ch:6}
+
+In the previous chapter, we considered a generic algorithm---whatever-first search---for traversing arbitrary graphs, both undirected and directed.
+In this chapter, we focus on a particular instantiation of this algorithm called \textit{depth-first search}, and primarily on the behavior of this algorithm in directed graphs.
+
+Although depth-first search can be accurately described as “whatever-first search with a stack”, the algorithm is normally implemented recursively, rather than using an explicit stack:
+
+\begin{pseudocode}
+\Header{\Proc{DFS}$(v)$:}\\
+if $v$ is unmarked\\
+\Indent mark $v$\\
+\Indent for each edge $\arc{v}{w}$\\
+\Indent\Indent \Proc{DFS}$(w)$
+\end{pseudocode}
+We can make this algorithm slightly faster (in practice) by checking whether a node is marked \textit{before} we recursively explore it.
+This modification ensures that we call \Proc{DFS}$(v)$ only once for each vertex $v$.
+We can further modify the algorithm to compute other useful information about the vertices and edges, by introducing two black-box subroutines, \Proc{PreVisit} and \Proc{PostVisit}, which we leave unspecified for now.
+
+\begin{pseudocode}
+\Header{\Proc{DFS}$(v)$:}\\
+mark $v$\\
+\leavevmode{\color{JEred}\bfseries \Proc{PreVisit}$(\symbfit{v})$}\\
+for each edge $vw$\\
+\Indent if $w$ is unmarked\\
+\Indent\Indent $\Var{parent}(w) \gets v$\\
+\Indent\Indent \Proc{DFS}$(w)$\\
+\leavevmode{\color{JEgreen!75!black}\bfseries \Proc{PostVisit}$(\symbfit{v})$}
+\end{pseudocode}
+
+Recall that a node $w$ is \textit{reachable} from another node $v$ in a directed graph $G$---or more simply, $v$ can reach $w$---if and only if $G$ contains a directed path from $v$ to $w$.
+Let \textbf{\Var{reach}}$\symbfit{(v)}$ denote the set of vertices reachable from $v$ (including $v$ itself).
+If we unmark all vertices in $G$, and then call \Proc{DFS}$(v)$, the set of marked vertices is precisely $\Var{reach}(v)$.
+
+Reachability in undirected graphs is symmetric: $v$ can reach $w$ if and only if $w$ can reach $v$.
+As a result, after unmarking all vertices of an undirected graph $G$, calling \Proc{DFS}$(v)$ traverses the entire component of $v$, and the parent pointers define a spanning tree of that component.
+
+The situation is more subtle with directed graphs, as shown in the figure below.
+Even though the graph is “connected”, different vertices can reach different, and potentially overlapping, portions of the graph.
+The parent pointers assigned by \Proc{DFS}$(v)$ define a tree rooted at $v$ whose vertices are precisely $\Var{reach}(v)$, but this is not necessarily a spanning tree of the graph.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p244-Im105}
+\caption{Depth-first trees rooted at different vertices in the same directed graph.}
+\label{fig:6.1}
+\end{figure}
+
+As usual, we can extend our reachability algorithm to traverse the \textit{entire} input graph, even if it is disconnected, using the standard wrapper function shown on the left in \figref{fig:6.2}.
+Here we add a generic black-box subroutine \Proc{Preprocess} to perform any necessary preprocessing for the \Proc{PreVisit} and \Proc{PostVisit} functions.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.47\linewidth}
+\begin{pseudocode}
+\Header{\Proc{DFSAll}$(G)$:}\\
+\leavevmode{\color{JEblue}\bfseries \Proc{Preprocess}$(\symbfit{G})$}\\
+for all vertices $v$\\
+\Indent unmark $v$\\
+for all vertices $v$\\
+\Indent if $v$ is unmarked\\
+\Indent\Indent \Proc{DFS}$(v)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.47\linewidth}
+\begin{pseudocode}
+\Header{\Proc{DFSAll}$(G)$:}\\
+\leavevmode{\color{JEblue}\bfseries \Proc{Preprocess}$(\symbfit{G})$}\\
+add vertex $s$\\
+for all vertices $v$\\
+\Indent add edge $\arc{s}{v}$\\
+\Indent unmark $v$\\
+\Proc{DFS}$(s)$
+\end{pseudocode}
+\end{minipage}
+\caption{Two formulations of the standard wrapper algorithm for depth-first search}
+\label{fig:6.2}
+\end{figure}
+
+Alternatively, if we are allowed to modify the graph, we can add a new \textit{source} vertex $s$, with edges to every other vertex in $G$, and then make a single call to \Proc{DFS}$(s)$, as shown on the right of \figref{fig:6.2}.
+Now the resulting parent pointers always define a spanning tree of the \textit{augmented} input graph, but not of the \textit{original} input graph.
+Otherwise, the two wrapper functions have essentially identical behavior; choosing one or the other is entirely a matter of convenience.\footnote{The equivalence of these two wrapper functions is a specific feature of \textbf{\textit{depth}}-first search. In particular, wrapping \textit{breadth}-first search in a for-loop to visit every vertex does \textit{not} yield the same traversal order as adding a source vertex and invoking breadth-first search at $s$.}
+
+Again, this algorithm behaves slightly differently for undirected and directed graphs.
+In undirected graphs, as we saw in the previous chapter, it is easy to adapt \Proc{DFSAll} to count the components of a graph; in particular, the parent pointers computed by \Proc{DFSAll} define a spanning forest of the input graph, containing a spanning tree for each component.
+When the graph is directed, however, \Proc{DFSAll} may discover any number of “components” between $1$ and $V$, even when the graph is “connected”, depending on the precise structure of the graph and the order in which the wrapper algorithm visits the vertices.
+
+\section{Preorder and Postorder}
+\label{sec:6.1}
+
+Hopefully you are already familiar with preorder and postorder traversals of rooted \textit{trees}, both of which can be computed using depth-first search.
+Similar traversal orders can be defined for arbitrary directed graphs---even if they are disconnected---by passing around a counter, as shown in \figref{fig:6.3}.
+Equivalently, we can use our generic depth-first-search algorithm with the following subroutines \Proc{Preprocess}, \Proc{PreVisit}, and \Proc{PostVisit}.
+
+\begin{center}
+\begin{minipage}[c]{0.3\linewidth}
+\begin{pseudocode}
+\leavevmode{\color{JEblue}\Header{\Proc{Preprocess}$(G)$:}}\\
+\leavevmode{\color{JEblue}$\Var{clock} \gets 0$}
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.33\linewidth}
+\begin{pseudocode}
+\leavevmode{\color{JEred}\Header{\Proc{PreVisit}$(v)$:}}\\
+\leavevmode{\color{JEred}$\Var{clock} \gets \Var{clock} + 1$}\\
+\leavevmode{\color{JEred}$v.\Var{pre} \gets \Var{clock}$}
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.33\linewidth}
+\begin{pseudocode}
+\leavevmode{\color{JEgreen!75!black}\Header{\Proc{PostVisit}$(v)$:}}\\
+\leavevmode{\color{JEgreen!75!black}$\Var{clock} \gets \Var{clock} + 1$}\\
+\leavevmode{\color{JEgreen!75!black}$v.\Var{post} \gets \Var{clock}$}
+\end{pseudocode}
+\end{minipage}
+\end{center}
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.44\linewidth}
+\begin{pseudocode}
+\Header{\Proc{DFSAll}$(G)$:}\\
+\leavevmode{\color{JEblue}$\Var{clock} \gets 0$}\\
+for all vertices $v$\\
+\Indent unmark $v$\\
+for all vertices $v$\\
+\Indent if $v$ is unmarked\\
+\Indent\Indent $\Var{clock} \gets \Proc{DFS}(v, \Var{clock})$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.52\linewidth}
+\begin{pseudocode}
+\Header{\Proc{DFS}$(v, \Var{clock})$:}\\
+mark $v$\\
+\leavevmode{\color{JEred}$\Var{clock} \gets \Var{clock} + 1$; \ $v.\Var{pre} \gets \Var{clock}$}\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w$ is unmarked\\
+\Indent\Indent $w.\Var{parent} \gets v$\\
+\Indent\Indent $\Var{clock} \gets \Proc{DFS}(w, \Var{clock})$\\
+\leavevmode{\color{JEgreen!75!black}$\Var{clock} \gets \Var{clock} + 1$; \ $v.\Var{post} \gets \Var{clock}$}\\
+return \Var{clock}
+\end{pseudocode}
+\end{minipage}
+\caption{Defining preorder and postorder via depth-first search.}
+\label{fig:6.3}
+\end{figure}
+
+In either formulation, this algorithm assigns assigns $v.\Var{pre}$ (and advances the clock) just after pushing $v$ onto the recursion stack, and it assigns $v.\Var{post}$ (and advances the clock) just before popping $v$ off the recursion stack.
+It follows that for any two vertices $u$ and $v$, the intervals $[u.\Var{pre}, u.\Var{post}]$ and $[v.\Var{pre}, v.\Var{post}]$ are either disjoint or nested.
+Moreover, $[u.\Var{pre}, u.\Var{post}]$ contains $[v.\Var{pre}, v.\Var{post}]$ if and only if \Proc{DFS}$(v)$ is called during the execution of \Proc{DFS}$(u)$, or equivalently, if and only if $u$ is an ancestor of $v$ in the final forest of parent pointers.
+
+After \Proc{DFSAll} labels every node in the graph, the labels $v.\Var{pre}$ define a \textbf{\textit{preordering}} of the vertices, and the labels $v.\Var{post}$ define a \textbf{\textit{postordering}} of the vertices.\footnote{Confusingly, \textit{both} of these orders are sometimes called “depth-first ordering”. Please don’t do that.}
+With a few trivial exceptions, every graph has several different pre- and postorderings, depending on the order that \Proc{DFS} considers edges leaving each vertex, and the order that \Proc{DFSAll} considers vertices.
+
+For the rest of this chapter, we refer to $v.\Var{pre}$ as the \textit{starting time} of $v$ (or less formally, “when $v$ starts”), $v.\Var{post}$ as the \textit{finishing time} of $v$ (or less formally, “when $v$ finishes”), and the interval between the starting and finishing times as the \textit{active interval} of $v$ (or less formally, “while $v$ is active”).
+
+\subsection{Classifying Vertices and Edges}
+
+During the execution of \Proc{DFSAll}, each vertex $v$ of the input graph has one of three states:
+\begin{itemize}
+\item \textbf{\textit{new}} if \Proc{DFS}$(v)$ has not been called, that is, if $\Var{clock} < v.\Var{pre}$;
+\item \textbf{\textit{active}} if \Proc{DFS}$(v)$ has been called but has not returned, that is, if $v.\Var{pre} \le \Var{clock} < v.\Var{post}$;
+\item \textbf{\textit{finished}} if \Proc{DFS}$(v)$ has returned, that is, if $v.\Var{post} \le \Var{clock}$.
+\end{itemize}
+Because starting and finishing times correspond to pushes and pops on the recursion stack, a vertex is active if and only if it is on the recursion stack.
+It follows that the active nodes always comprise a directed path in $G$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p247-Im106}
+\caption{A depth-first forest of a directed graph, and the corresponding active intervals of its vertices, defining the preordering {\rmfamily\Var{abfgchdlokpeinjm}} and the postordering {\rmfamily\Var{dkoplhcgfbamjnie}}. Forest edges are solid; dashed edges are explained in \figref{fig:6.5}.}
+\label{fig:6.4}
+\end{figure}
+
+The edges of the input graph fall into four different classes, depending on how their active intervals intersect.
+Fix your favorite edge $\arc{u}{v}$.
+\begin{itemize}
+\item If $v$ is new when \Proc{DFS}$(u)$ begins, then \Proc{DFS}$(v)$ must be called during the execution of \Proc{DFS}$(u)$, either directly or through some intermediate recursive calls.
+In either case, $u$ is a proper ancestor of $v$ in the depth-first forest, and $u.\Var{pre} < v.\Var{pre} < v.\Var{post} < u.\Var{post}$.
+\begin{itemize}[label=\normalfont\bfseries\textendash]
+\item If \Proc{DFS}$(u)$ calls \Proc{DFS}$(v)$ directly, then $u = v.\Var{parent}$ and $\arc{u}{v}$ is called a \textbf{\textit{tree edge}}.
+\item Otherwise, $\arc{u}{v}$ is called a \textbf{\textit{forward edge}}.
+\end{itemize}
+\item If $v$ is active when \Proc{DFS}$(u)$ begins, then $v$ is already on the recursion stack, which implies the opposite nesting order $v.\Var{pre} < u.\Var{pre} < u.\Var{post} < v.\Var{post}$.
+Moreover, $G$ must contain a directed path from $v$ to $u$.
+Edges satisfying this condition are called \textbf{\textit{back edges}}.
+\item If $v$ is finished when \Proc{DFS}$(u)$ begins, we immediately have $v.\Var{post} < u.\Var{pre}$.
+Edges satisfying this condition are called \textbf{\textit{cross edges}}.
+\item Finally, the fourth ordering $u.\Var{post} < v.\Var{pre}$ is impossible.
+\end{itemize}
+These edge classes are illustrated in \figref{fig:6.5}.
+Again, the actual classification of edges depends on the order in which \Proc{DFSAll} considers vertices and the order in which \Proc{DFS} considers the edges leaving each vertex.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p248-Im107}
+\caption{Classification of edges by depth-first search.}
+\label{fig:6.5}
+\end{figure}
+
+Finally, the following key lemma characterizes ancestors and descendants in any depth-first forest according to vertex states during the traversal.
+
+\medskip
+\noindent\textbf{Lemma 6.1.} \textsl{Fix an arbitrary depth-first traversal of any directed graph $G$. The following statements are equivalent for all vertices $u$ and $v$ of $G$.}
+\begin{enumerate}[label=\textsl{(\alph*)}]
+\item \textsl{$u$ is an ancestor of $v$ in the depth-first forest.}
+\item \textsl{$u.\Var{pre} \le v.\Var{pre} < v.\Var{post} \le u.\Var{post}$.}
+\item \textsl{Just after \Proc{DFS}$(v)$ is called, $u$ is active.}
+\item \textsl{Just before \Proc{DFS}$(u)$ is called, there is a path from $u$ to $v$ in which every vertex (including $u$ and $v$) is new.}
+\end{enumerate}
+
+\medskip
+\noindent\textbf{Proof:} First, suppose $u$ is an ancestor of $v$ in the depth-first forest.
+Then by definition there is a path $P$ of tree edges $u$ to $v$.
+By induction on the path length, we have $u.\Var{pre} \le w.\Var{pre} < w.\Var{post} \le u.\Var{post}$ for every vertex $w$ in $P$, and thus every vertex in $P$ is new before \Proc{DFS}$(u)$ is called.
+In particular, we have $u.\Var{pre} \le v.\Var{pre} < v.\Var{post} \le u.\Var{post}$, which implies that $u$ is active while \Proc{DFS}$(v)$ is executing.
+
+Because parent pointers correspond to recursive calls, $u.\Var{pre} \le v.\Var{pre} < v.\Var{post} \le u.\Var{post}$ implies that $u$ is an ancestor of $v$.
+
+Suppose $u$ is active just after \Proc{DFS}$(v)$ is called.
+Then $u.\Var{pre} \le v.\Var{pre} < v.\Var{post} \le u.\Var{post}$, which implies that there is a path of (zero or more) tree edges from $u$, through the intermediate nodes on the recursion stack (if any), to $v$.
+
+Finally, suppose $u$ is not an ancestor of $v$.
+Fix an arbitrary path $P$ from $u$ to $v$, let $x$ be the first vertex in $P$ that is not a descendant of $u$, and let $w$ be the predecessor of $x$ in $P$.
+The edge $\arc{w}{x}$ guarantees that $x.\Var{pre} < w.\Var{post}$, and $w.\Var{post} < u.\Var{post}$ because $w$ is a descendant of $u$, so $x.\Var{pre} < u.\Var{post}$.
+It follows that $x.\Var{pre} < u.\Var{pre}$, because otherwise $x$ would be a descendant of $u$.
+Because active intervals are properly nested, there are only two possibilities:
+\begin{itemize}
+\item If $u.\Var{post} < x.\Var{post}$, then $x$ is active when \Proc{DFS}$(u)$ is called.
+\item If $x.\Var{post} < u.\Var{pre}$, then $x$ is already finished when \Proc{DFS}$(u)$ is called.
+\end{itemize}
+We conclude that \textit{every} path from $u$ to $v$ contains a vertex that is not new when \Proc{DFS}$(u)$ is called.\hfill$\mdlgwhtsquare$
+
+\section{Detecting Cycles}
+\label{sec:6.2}
+
+A \textbf{\textit{directed acyclic graph}} or \textbf{\textit{dag}} is a directed graph with no directed cycles.
+Any vertex in a dag that has no incoming vertices is called a \textbf{\textit{source}}; any vertex with no outgoing edges is called a \textbf{\textit{sink}}.
+An isolated vertex with no incident edges at all is both a source and a sink.
+Every dag has at least one source and one sink, but may have more than one of each.
+For example, in the graph with $n$ vertices but no edges, every vertex is a source and every vertex is a sink.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p249-Im108}
+\caption{A directed acyclic graph. Vertices $e$, $f$, and $j$ are sources; vertices $b$, $c$, and $p$ are sinks.}
+\label{fig:6.6}
+\end{figure}
+
+Recall from our earlier case analysis that if $u.\Var{post} < v.\Var{post}$ for any edge $\arc{u}{v}$, the graph contains a directed path from $v$ to $u$, and therefore contains a directed \textit{cycle} through the edge $\arc{u}{v}$.
+Thus, we can determine whether a given directed graph $G$ is a dag in $O(V+E)$ time by computing a postordering of the vertices and then checking each edge by brute force.
+
+Alternatively, instead of numbering the vertices, we can explicitly maintain the status of each vertex and immediately return \Const{False} if we ever discover an edge to an active vertex.
+This algorithm also runs in $O(V+E)$ time; see \figref{fig:6.7}.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.47\linewidth}
+\begin{pseudocode}
+\footnotesize\Header{\Proc{IsAcyclic}$(G)$:}\\
+for all vertices $v$\\
+\Indent $v.\Var{status} \gets \Const{New}$\\
+for all vertices $v$\\
+\Indent if $v.\Var{status} = \Const{New}$\\
+\Indent\Indent if \Proc{IsAcyclicDFS}$(v) = \Const{False}$\\
+\Indent\Indent\Indent return \Const{False}\\
+return \Const{True}
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.49\linewidth}
+\begin{pseudocode}
+\footnotesize\Header{\Proc{IsAcyclicDFS}$(v)$:}\\
+$v.\Var{status} \gets \Const{Active}$\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w.\Var{status} = \Const{Active}$\\
+\Indent\Indent return \Const{False}\\
+\Indent else if $w.\Var{status} = \Const{New}$\\
+\Indent\Indent if \Proc{IsAcyclicDFS}$(w) = \Const{False}$\\
+\Indent\Indent\Indent return \Const{False}\\
+$v.\Var{status} \gets \Const{Finished}$\\
+return \Const{True}
+\end{pseudocode}
+\end{minipage}
+\caption{A linear-time algorithm to determine if a graph is acyclic.}
+\label{fig:6.7}
+\end{figure}
+
+\section{Topological Sort}
+\label{sec:6.3}
+
+A \textbf{\textit{topological ordering}} of a directed graph $G$ is a total order $\prec$ on the vertices such that $u \prec v$ for every edge $\arc{u}{v}$.
+Less formally, a topological ordering arranges the vertices along a horizontal line so that all edges point from left to right.
+A topological ordering is clearly impossible if the graph $G$ has a directed cycle---the rightmost vertex of the cycle would have an edge pointing to the left!
+
+On the other hand, consider an arbitrary postordering of an arbitrary directed graph $G$.
+Our earlier analysis implies that $u.\Var{post} < v.\Var{post}$ for any edge $\arc{u}{v}$, then $G$ contains a directed path from $v$ to $u$, and therefore contains a directed cycle through $\arc{u}{v}$.
+Equivalently, if $G$ is acyclic, then $u.\Var{post} > v.\Var{post}$ for every edge $\arc{u}{v}$.
+It follows that every directed acyclic graph $G$ has a topological ordering; in particular, the reversal of any postordering of $G$ is a topological ordering of $G$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p250-Im109}\\[1ex]
+\includegraphics{p250-Im110}
+\caption{Reversed postordering of the dag from \figref{fig:6.6}.}
+\label{fig:6.8}
+\end{figure}
+
+If we require the topological ordering in a separate data structure, we can simply write the vertices into an array in reverse postorder, in $O(V+E)$ time, as shown in \figref{fig:6.9}.
+
+\subsection{Implicit Topological Sort}
+
+But recording the topological order into a separate data structure is usually overkill.
+In most applications of topological sort, the ordered list of the vertices is not our actual goal; rather, we want to perform some fixed computation at each vertex of the graph, either in topological order or in reverse topological order.
+For these applications, it is not necessary to \textit{record} the topological order at all!
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.47\linewidth}
+\begin{pseudocode}
+\footnotesize\Header{\Proc{TopologicalSort}$(G)$:}\\
+for all vertices $v$\\
+\Indent $v.\Var{status} \gets \Const{New}$\\
+\leavevmode{\color{JEred}\bfseries $\Var{clock} \gets \symbfit{V}$}\\
+for all vertices $v$\\
+\Indent if $v.\Var{status} = \Const{New}$\\
+\Indent\Indent {\color{JEred}\bfseries $\Var{clock} \gets$} \Proc{TopSortDFS}$(v, \mbox{\color{JEred}\bfseries\Var{clock}})$\\
+\leavevmode{\color{JEred}\bfseries return $\symbfit{S}[\symbfit{1} \,..\, \symbfit{V}]$}
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.47\linewidth}
+\begin{pseudocode}
+\footnotesize\Header{\Proc{TopSortDFS}$(v, \mbox{\color{JEred}\bfseries\Var{clock}})$:}\\
+$v.\Var{status} \gets \Const{Active}$\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w.\Var{status} = \Const{New}$\\
+\Indent\Indent {\color{JEred}\bfseries $\Var{clock} \gets$} \Proc{TopSortDFS}$(v, \mbox{\color{JEred}\bfseries\Var{clock}})$\\
+\Indent else if $w.\Var{status} = \Const{Active}$\\
+\Indent\Indent fail gracefully\\
+$v.\Var{status} \gets \Const{Finished}$\\
+\leavevmode{\color{JEred}\bfseries $\symbfit{S}[\Var{clock}] \gets \symbfit{v}$}\\
+\leavevmode{\color{JEred}\bfseries $\Var{clock} \gets \Var{clock} - \symbfit{1}$}\\
+\leavevmode{\color{JEred}\bfseries return \Var{clock}}
+\end{pseudocode}
+\end{minipage}
+\caption{Explicit topological sort}
+\label{fig:6.9}
+\end{figure}
+
+If we want to process a directed acyclic graph in \textit{reverse} topological order, it suffices to process each vertex at the end of its recursive depth-first search.
+After all, topological order is the same as reversed postorder!
+
+\begin{center}
+\begin{minipage}[c]{0.46\linewidth}
+\begin{pseudocode}
+\Header{\Proc{PostProcess}$(G)$:}\\
+for all vertices $v$\\
+\Indent $v.\Var{status} \gets \Const{New}$\\
+for all vertices $v$\\
+\Indent if $v$ is unmarked\\
+\Indent\Indent \Proc{PostProcessDFS}$(v)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.5\linewidth}
+\begin{pseudocode}
+\Header{\Proc{PostProcessDFS}$(v)$:}\\
+$v.\Var{status} \gets \Const{Active}$\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w.\Var{status} = \Const{New}$\\
+\Indent\Indent \Proc{PostProcessDFS}$(w)$\\
+\Indent else if $w.\Var{status} = \Const{Active}$\\
+\Indent\Indent fail gracefully\\
+$v.\Var{status} \gets \Const{Finished}$\\
+\Proc{Process}$(v)$
+\end{pseudocode}
+\end{minipage}
+\end{center}
+If we already \textit{know} that the input graph is acyclic, we can further simplify the algorithm by simply marking vertices instead of recording their search status.
+
+\begin{center}
+\begin{minipage}[c]{0.48\linewidth}
+\begin{pseudocode}
+\Header{\Proc{PostProcessDag}$(G)$:}\\
+for all vertices $v$\\
+\Indent unmark $v$\\
+for all vertices $v$\\
+\Indent if $v$ is unmarked\\
+\Indent\Indent \Proc{PostProcessDagDFS}$(s)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.48\linewidth}
+\begin{pseudocode}
+\Header{\Proc{PostProcessDagDFS}$(v)$:}\\
+mark $v$\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w$ is unmarked\\
+\Indent\Indent \Proc{PostProcessDagDFS}$(w)$\\
+\Proc{Process}$(v)$
+\end{pseudocode}
+\end{minipage}
+\end{center}
+This is just the standard depth-first search algorithm, with \Proc{PostVisit} renamed to \Proc{Process}!
+
+Because it is such a common operation on directed acyclic graphs, I sometimes express postorder processing of a dag idiomatically as follows:
+
+\begin{pseudocode}
+\Header{\Proc{PostProcessDag}$(G)$:}\\
+for all vertices $v$ in postorder\\
+\Indent \Proc{Process}$(v)$
+\end{pseudocode}
+For example, our earlier explicit topological sort algorithm can be written as follows:
+
+\begin{pseudocode}
+\Header{\Proc{TopologicalSort}$(G)$:}\\
+$\Var{clock} \gets V$\\
+for all vertices $v$ in postorder\\
+\Indent $S[\Var{clock}] \gets v$\\
+\Indent $\Var{clock} \gets \Var{clock} - 1$\\
+return $S[1\,..\,V]$
+\end{pseudocode}
+
+To process a dag in \textit{forward} topological order, we can record a topological ordering of the vertices into an array and then run a simple for-loop.
+Alternatively, we can apply depth-first search to the \textbf{\textit{reversal}} of $G$, denoted \textbf{\Var{rev}}$\symbfit{(G)}$, obtained by replacing each each $\arc{v}{w}$ with its reversal $\arc{w}{v}$.
+Reversing a directed cycle gives us another directed cycle with the opposite orientation, so the reversal of a dag is another dag.
+Every source in $G$ is a sink in $\Var{rev}(G)$ and vice versa; it follows inductively that every topological ordering of $\Var{rev}(G)$ is the reversal of a topological ordering of $G$.\footnote{A postordering of the reversal of $G$ is not necessarily the reversal of a postordering of $G$, even though both are topological orderings of $G$.}
+The reversal of any directed graph (represented in a standard adjacency list) can be computed in $O(V+E)$ time; the details of this construction are left as an easy exercise.
+
+\section{Memoization and Dynamic Programming}
+\label{sec:6.4}
+
+Our topological sort algorithm is arguably the model for a wide class of dynamic programming algorithms.
+Recall that the \textbf{\textit{dependency graph}} of a recurrence has a vertex for every recursive subproblem and an edge from one subproblem to another if evaluating the first subproblem requires a recursive evaluation of the second.
+The dependency graph must be acyclic, or the naïve recursive algorithm would never halt.
+
+Evaluating any recurrence with memoization is \textit{exactly} the same as performing a depth-first search of the dependency graph.
+In particular, a vertex of the dependency graph is “marked” if the value of the corresponding subproblem has already been computed.
+The black-box subroutines \Proc{PreVisit} and \Proc{PostVisit} are proxies for the actual value computation.
+See \figref{fig:6.10}.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.55\linewidth}
+\begin{pseudocode}
+\Header{\Proc{Memoize}$(x):$}\\
+if $\Var{value}[x]$ is undefined\\
+\Indent initialize $\Var{value}[x]$\\
+\mbox{}\\
+\Indent for all subproblems $y$ of $x$\\
+\Indent\Indent \Proc{Memoize}$(y)$\\
+\Indent\Indent update $\Var{value}[x]$ based on $\Var{value}[y]$\\
+\Indent finalize $\Var{value}[x]$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.4\linewidth}
+\begin{pseudocode}
+\Header{\Proc{DFS}$(v):$}\\
+if $v$ is unmarked\\
+\Indent mark $v$\\
+\Indent \Proc{PreVisit}$(x)$\\
+\Indent for all edges $\arc{v}{w}$\\
+\Indent\Indent \Proc{DFS}$(w)$\\
+\mbox{}\\
+\Indent \Proc{PostVisit}$(x)$
+\end{pseudocode}
+\end{minipage}
+\caption{Memoized recursion is depth-first search. Depth-first search is memoized recursion.}
+\label{fig:6.10}
+\end{figure}
+
+Carrying this analogy further, evaluating a recurrence \textit{using dynamic programming} is the same as evaluating all subproblems in the dependency graph of the recurrence in reverse topological order---every subproblem is considered \textit{after} the subproblems it depends on.
+Thus, \textit{every} dynamic programming algorithm is equivalent to a postorder traversal of the dependency graph of its underlying recurrence!
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{DynamicProgramming}$(G):$}\\
+for all subproblems $x$ in postorder\\
+\Indent initialize $\Var{value}[x]$\\
+\Indent for all subproblems $y$ of $x$\\
+\Indent\Indent update $\Var{value}[x]$ based on $\Var{value}[y]$\\
+\Indent finalize $\Var{value}[x]$
+\end{pseudocode}
+\caption{Dynamic programming is postorder traversal.}
+\label{fig:6.11}
+\end{figure}
+
+However, there are some minor differences between most dynamic programming algorithms and topological sort.
+First, in most dynamic programming algorithms, the dependency graph is \textit{implicit}---the nodes and edges are not explicitly stored in memory, but rather are encoded by the underlying recurrence.
+But this difference really is minor; as long as we can enumerate recursive subproblems in constant time each, we can traverse the dependency graph exactly \textit{as if} it were explicitly stored in an adjacency list.
+
+More significantly, most dynamic programming recurrences have highly structured dependency graphs.
+For example, as we discussed in \chapref{ch:5}, the dependency graph for the edit distance recurrence is a regular grid with diagonals, and the dependency graph for optimal binary search trees is an upper triangular grid with all possible rightward and upward edges.
+This regular structure allows us to hard-wire a suitable evaluation order directly into the algorithm, typically as a collection of nested loops, so there is no need to topologically sort the dependency graph at run time.
+We previously called the reverse topological order an \textit{evaluation order}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p254-Im79}
+\caption{The dependency \textbf{dag} of the edit distance recurrence.}
+\label{fig:6.12}
+\end{figure}
+
+\subsection{Dynamic Programming in Dags}
+
+Conversely, we can use depth-first search to build dynamic programming algorithms for problems with less structured dependency graphs.
+For example, consider the \textbf{\textit{longest path}} problem, which asks for the path of \textit{maximum} total weight from one node $s$ to another node $t$ in a directed graph $G$ with weighted edges.
+In general directed graphs, the longest path problem is NP-hard (by an easy reduction from the traveling salesman problem; see \chapref{ch:12}), but it is easy to if the input graph $G$ is acyclic, we can compute the longest path in $G$ in linear time, as follows.
+
+Fix the target vertex $t$, and for any node $v$, let \textbf{\Var{LLP}}$\symbfit{(v)}$ denote the Length of the Longest Path in $G$ from $v$ to $t$.
+If $G$ is a dag, this function satisfies the recurrence
+\[
+\Var{LLP}(v) = \begin{cases}
+0 & \text{if $v = t$,}\\
+\max\bigl\{\ell(\arc{v}{w}) + \Var{LLP}(w) \bigm| \arc{v}{w} \in E\bigr\} & \text{otherwise,}
+\end{cases}
+\]
+where $\ell(\arc{v}{w})$ denotes the given weight (“length”) of edge $\arc{v}{w}$, and $\max \emptyset = -\infty$.
+In particular, if $v$ is a \textit{sink} but not equal to $t$, then $\Var{LLP}(v) = -\infty$.
+
+The dependency graph for this recurrence is the input graph $G$ itself: subproblem $\Var{LLP}(v)$ depends on subproblem $\Var{LLP}(w)$ if and only if $\arc{v}{w}$ is an edge in $G$.
+Thus, we can evaluate this recursive function in $O(V+E)$ time by performing a depth-first search of $G$, starting at $s$.
+The algorithm memoizes each length $\Var{LLP}(v)$ into an extra field in the corresponding node $v$.
+
+\begin{pseudocode}
+\Header{\Proc{LongestPath}$(v, t)$:}\\
+if $v = t$\\
+\Indent return $0$\\
+if $v.\Var{LLP}$ is undefined\\
+\Indent $v.\Var{LLP} \gets -\infty$\\
+\Indent for each edge $\arc{v}{w}$\\
+\Indent\Indent $v.\Var{LLP} \gets \max\bigl\{v.\Var{LLP},\ \ell(\arc{v}{w}) + \Proc{LongestPath}(w, t)\bigr\}$\\
+\Indent return $v.\Var{LLP}$
+\end{pseudocode}
+
+In principle, we can transform this memoized recursive algorithm into a dynamic programming algorithm via topological sort:
+
+\begin{pseudocode}
+\Header{\Proc{LongestPath}$(s, t)$:}\\
+for each node $v$ in postorder\\
+\Indent if $v = t$\\
+\Indent\Indent $v.\Var{LLP} \gets 0$\\
+\Indent else\\
+\Indent\Indent $v.\Var{LLP} \gets -\infty$\\
+\Indent\Indent for each edge $\arc{v}{w}$\\
+\Indent\Indent\Indent $v.\Var{LLP} \gets \max\bigl\{v.\Var{LLP},\ \ell(\arc{v}{w}) + w.\Var{LLP}\bigr\}$\\
+return $s.\Var{LLP}$
+\end{pseudocode}
+These two algorithms are arguably identical---the recursion in the first algorithm and the for-loop in the second algorithm represent the “same” depth-first search!
+Choosing one of these formulations over the other is entirely a matter of convenience.
+
+Almost any dynamic programming problem that asks for an optimal \textit{sequence} of decisions can be recast as finding an optimal \textit{path} in some associated dag.
+For example, the text segmentation, subset sum, longest increasing subsequence, and edit distance problems we considered in Chapters~\ref{ch:2} and~\ref{ch:3} can all be reformulated as finding either a longest path or a shortest path in a dag, possibly with weighted vertices or edges.
+In each case, the dag in question is the dependency graph of the underlying recurrence.
+On the other hand, “tree-shaped” dynamic programming problems, like finding optimal binary search trees or maximum independent sets in trees, cannot be recast as finding an optimal \textit{path} in a dag.
+
+\section{Strong Connectivity}
+\label{sec:6.5}
+
+Let’s go back to the proper definition of connectivity in directed graphs.
+Recall that one vertex $u$ can \textit{reach} another vertex $v$ in a directed graph $G$ if $G$ contains a directed path from $u$ to $v$, and that $\Var{reach}(u)$ denotes the set of all vertices that $u$ can reach.
+Two vertices $u$ and $v$ are \textbf{\textit{strongly connected}} if $u$ can reach $v$ and $v$ can reach $u$.
+A directed graph is strongly connected if and only if every pair of vertices is strongly connected.
+
+Tedious definition-chasing implies that strong connectivity is an equivalence relation over the set of vertices of any directed graph, just like connectivity in undirected graphs.
+The equivalence classes of this relation are called the \textbf{\textit{strongly connected components}}---or more simply, the \textbf{\textit{strong components}}---of $G$.
+Equivalently, a strong component of $G$ is a maximal strongly connected subgraph of $G$.
+A directed graph $G$ is strongly connected if and only if $G$ has exactly one strong component; at the other extreme, $G$ is a dag if and only if every strong component of $G$ consists of a single vertex.
+
+The \textbf{\textit{strong component graph \Var{scc}}}$\symbfit{(G)}$ is another directed graph obtained from $G$ by contracting each strong component to a single vertex and collapsing parallel edges.
+(The strong component graph is sometimes also called the \textit{meta-graph} or \textit{condensation} of $G$.)
+It’s not hard to prove (hint, hint) that $\Var{scc}(G)$ is always a dag.
+Thus, at least in principle, it is possible to topologically order the strong components of $G$; that is, the vertices can be ordered so that every \textit{back} edge joins two edges in the same strong component.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p256-Im111}
+\caption{The strong components of a graph $G$ and the strong component graph \Var{scc}$(G)$.}
+\label{fig:6.13}
+\end{figure}
+
+It is straightforward to compute the strong component of a single vertex $v$ in $O(V+E)$ time.
+First we compute $\Var{reach}(v)$ via whatever-first search.
+Then we compute $\Var{reach}^{-1}(v) = \{u \mathrel{|} v \in \Var{reach}(u)\}$ by searching the reversal of $G$.
+Finally, the strong component of $v$ is the intersection $\Var{reach}(v) \cap \Var{reach}^{-1}(v)$.
+In particular, we can determine whether the entire graph is strongly connected in $O(V+E)$ time.
+
+Similarly, we can compute \textit{all} the strong components in a directed graph by combining the previous algorithm with our standard wrapper function.
+However, the resulting algorithm runs in $O(VE)$ time; there are at most $V$ strong components, and each requires $O(E)$ time to discover, even when the graph is a dag.
+Surely we can do better!
+After all, we only need $O(V+E)$ time to decide whether every strong component is a single vertex.
+
+\section{Strong Components in Linear Time}
+\label{sec:6.6}
+
+In fact, there are several algorithms to compute strong components in $O(V+E)$ time, all of which rely on the following observation.
+
+\medskip
+\noindent\textbf{Lemma 6.2.} \textsl{Fix a depth-first traversal of any directed graph $G$. Each strong component $C$ of $G$ contains exactly one node that does not have a parent in $C$. (Either this node has a parent in another strong component, or it has no parent.)}
+
+\medskip
+\noindent\textbf{Proof:} Let $C$ be an arbitrary strong component of $G$.
+Consider any path from one vertex $v \in C$ to another vertex $w \in C$.
+Every vertex on this path can reach $w$, and thus can reach every vertex in $C$; symmetrically, every node on this path can be reached by $v$, and thus can be reached by every vertex in $C$.
+We conclude that every vertex on this path is also in $C$.
+
+Let $v$ be the vertex in $C$ with the earliest starting time.
+If $v$ has a parent, then $\Var{parent}(v)$ starts before $v$ and thus cannot be in $C$.
+
+Now let $w$ be another vertex in $C$.
+Just before \Proc{DFS}$(v)$ is called, every vertex in $C$ is new, so there is a path of new vertices from $v$ to $w$.
+Lemma 6.1 now implies that $w$ is a descendant of $v$ in the depth-first forest.
+Every vertex on the path of tree edges $v$ to $w$ lies in $C$; in particular, $\Var{parent}(w) \in C$.\hfill$\mdlgwhtsquare$
+
+\medskip
+The previous lemma implies that each strong component of a directed graph $G$ defines a connected subtree of any depth-first forest of $G$.
+In particular, for any strong component $C$, the vertex in $C$ with the earliest starting time is the lowest common ancestor of all vertices in $C$; we call this vertex the \textbf{\textit{root}} of $C$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p257-Im112}
+\caption{Strong components are contiguous in the depth-first forest.}
+\label{fig:6.14}
+\end{figure}
+
+I’ll present two algorithms, both of which follow the same intuitive outline.
+Let $C$ be any strong component of $G$ that is a sink in $\Var{scc}(G)$; we call $C$ a \textbf{\textit{sink component}}.
+Equivalently, $C$ is a sink component if the reach of any vertex in $C$ is precisely $C$.
+We can find all the strong components in $G$ by repeatedly finding a vertex $v$ in some sink component (somehow), finding the vertices reachable from $v$, and removing that sink component from the input graph, until no vertices remain.
+This isn’t quite an algorithm yet, because it’s not clear how to find a vertex in a sink component!
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{StrongComponents}$(G)$:}\\
+$\Var{count} \gets 0$\\
+while $G$ is non-empty\\
+\Indent $C \gets \emptyset$\\
+\Indent $\Var{count} \gets \Var{count} + 1$\\
+\Indent {\color{JEred}$v \gets$ any vertex in a sink component of $G$} \Comment{Magic!}\\
+\Indent for all vertices $w$ in $\Var{reach}(v)$\\
+\Indent\Indent $w.\Var{label} \gets \Var{count}$\\
+\Indent\Indent add $w$ to $C$\\
+\Indent remove $C$ and its incoming edges from $G$
+\end{pseudocode}
+\caption{Almost an algorithm to compute strong components.}
+\label{fig:6.15}
+\end{figure}
+
+\subsection{Kosaraju and Sharir’s Algorithm}
+
+At first glance, finding a vertex in a sink component \textit{quickly} seems quite difficult.
+However, it’s actually quite easy to find a vertex in a \textit{source} component---a strong component of $G$ that corresponds to a \textit{source} in $\Var{scc}(G)$---using depth-first search.
+
+\medskip
+\noindent\textbf{Lemma 6.3.} \textsl{The last vertex in any postordering of $G$ lies in a source component of $G$.}
+
+\medskip
+\noindent\textbf{Proof:} Fix a depth-first traversal of $G$, and let $v$ be the last vertex in the resulting postordering.
+Then \Proc{DFS}$(v)$ must be the last direct call to \Proc{DFS} made by the wrapper algorithm \Proc{DFSAll}.
+Moreover, $v$ is the root of one of the trees in the depth-first forest, so any node $x$ with $x.\Var{post} > v.\Var{pre}$ is a descendant of $v$.
+Finally, $v$ is the root of its strong component $C$.
+
+For the sake of argument, suppose there is an edge $\arc{x}{y}$ such that $x \notin C$ and $y \in C$.
+Then $x$ can reach $y$, and $y$ can reach $v$, so $x$ can reach $v$.
+Because $v$ is the root of $C$, vertex $y$ is a descendant of $v$, and thus $v.\Var{pre} < y.\Var{pre}$.
+The edge $\arc{x}{y}$ guarantees that $y.\Var{pre} < x.\Var{post}$ and therefore $v.\Var{pre} < x.\Var{post}$.
+It follows that $x$ is a descendant of $v$.
+But then $v$ can reach $x$ (through tree edges), contradicting our assumption that $x \notin C$.\hfill$\mdlgwhtsquare$
+
+\medskip
+It is easy to check (hint, hint) that $\Var{rev}(\Var{scc}(G)) = \Var{scc}(\Var{rev}(G))$ for any directed graph $G$.
+Thus, the \textit{last} vertex in a postordering of $\Var{rev}(G)$ lies in a \textit{sink} component of the original graph $G$.
+Thus, if we traverse the graph a second time, where the wrapper function follows a reverse postordering of $\Var{rev}(G)$, then each call to \Proc{DFS} visits exactly one strong component of $G$.\footnote{Again: A reverse postordering of $\Var{rev}(G)$ is not the same as a postordering of $G$.}
+
+Putting everything together, we obtain the algorithm shown in \figref{fig:6.16}, which counts and labels the strong components of any directed graph in $O(V+E)$ time.
+This algorithm was discovered (but never published) by Rao Kosaraju in 1978, and later independently rediscovered by Micha Sharir in 1981.\footnote{There are rumors that the same algorithm appears in the Russian literature even before Kosaraju, but I haven’t found a reliable source for that rumor yet.}
+The Kosaraju-Sharir algorithm has two phases.
+The first phase performs a depth-first search of $\Var{rev}(G)$, pushing each vertex onto a stack when it is finished.
+In the second phase, we perform a \textit{whatever}-first traversal of the original graph $G$, considering vertices in the order they appear on the stack.
+The algorithm labels each vertex with the root of its strong component (with respect to the second depth-first traversal).
+
+\figref{fig:6.17} shows the Kosaraju-Sharir algorithm running on our example graph.
+With only minor modifications to the algorithm, we can also compute the strong component graph $\Var{scc}(G)$ in $O(V+E)$ time.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.45\linewidth}
+\begin{pseudocode}
+\Header{\Proc{KosarajuSharir}$(G)$:}\\
+$S \gets$ new empty stack\\
+for all vertices $v$\\
+\Indent unmark $v$\\
+\Indent $v.\Var{root} \gets \Const{None}$\\
+\Comment{Phase 1: Push in postorder in rev(G)}\\
+for all vertices $v$\\
+\Indent if $v$ is unmarked\\
+\Indent\Indent \Proc{PushPostRevDFS}$(v, S)$\\
+\Comment{Phase 2: DFS again in stack order}\\
+while $S$ is non-empty\\
+\Indent {\color{JEblue}\bfseries\itshape $\symbfit{v} \gets$ \Proc{Pop}$\symbfit{(S)}$}\\
+\Indent if $v.\Var{root} = \Const{None}$\\
+\Indent\Indent \Proc{LabelOneDFS}$(v, v)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.51\linewidth}
+\begin{pseudocode}
+\Header{\Proc{PushPostRevDFS}$(v, S)$:}\\
+mark $v$\\
+for each edge {\color{JEblue}\bfseries $\arc{\symbfit{u}}{\symbfit{v}}$} \Comment{Reversed!}\\
+\Indent if $u$ is unmarked\\
+\Indent\Indent \Proc{PushPostRevDFS}$(u, S)$\\
+\leavevmode{\color{JEblue}\bfseries\itshape \Proc{Push}$\symbfit{(v, S)}$}
+\end{pseudocode}
+\begin{pseudocode}
+\Header{\Proc{LabelOneDFS}$(v, r)$:}\\
+$v.\Var{root} \gets r$\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w.\Var{root} = \Const{None}$\\
+\Indent\Indent \Proc{LabelOneDFS}$(w, r)$
+\end{pseudocode}
+\end{minipage}
+\caption{The Kosaraju-Sharir strong components algorithm}
+\label{fig:6.16}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p259-Im113}
+\caption{The Kosaraju-Sharir algorithm in action. Top: Depth-first traversal of the reversed graph. Bottom: Depth-first traversal of the original graph, visiting root vertices in reversed postorder from the first traversal.}
+\label{fig:6.17}
+\end{figure}
+
+\subsection{\difficulty{H}Tarjan’s Algorithm}
+
+An earlier but considerably more subtle linear-time algorithm to compute strong components was published by Bob Tarjan in 1972.\footnote{According to legend, Kosaraju apparently discovered his algorithm \textit{during} an algorithms lecture. He was supposed to present Tarjan’s algorithm, but he forgot his notes, so he had to make up something else on the fly. The only aspect of this story that I find surprising is that nobody tells it about Sharir or Tarjan.}
+Intuitively, Tarjan’s algorithm identifies a \textit{source} component of $G$, “deletes” it, and then “recursively” finds the remaining strong components; however, the entire computation happens during a single depth-first search.
+
+Fix an arbitrary depth-first traversal of some directed graph $G$.
+For each vertex $v$, let \textbf{\Var{low}}$\symbfit{(v)}$ denote the smallest \textit{starting time} among all vertices reachable from $v$ by a path of tree edges followed by \textit{at most one} non-tree edge.
+Trivially, $\Var{low}(v) \le v.\Var{pre}$, because $v$ can reach itself through zero tree edges followed by zero non-tree edges.
+Tarjan observed that sink components can be characterized in terms of this \Var{low} function.
+
+\medskip
+\noindent\textbf{Lemma 6.4.} \textsl{A vertex $v$ is the root of a sink component of $G$ if and only if $\Var{low}(v) = v.\Var{pre}$ and $\Var{low}(w) < w.\Var{pre}$ for every proper descendant $w$ of $v$.}
+
+\medskip
+\noindent\textbf{Proof:} First, let $v$ be a vertex such that $\Var{low}(v) = v.\Var{pre}$.
+Then there is no edge $\arc{w}{x}$ where $w$ is a descendant of $v$ and $x.\Var{pre} < v.\Var{pre}$.
+On the other hand, $v$ cannot reach any vertex $y$ such that $y.\Var{pre} > v.\Var{post}$.
+It follows that $v$ can reach only its descendants, and therefore any descendant of $v$ can reach only descendants of $v$.
+In particular, $v$ cannot reach its parent (if it has one), so $v$ is the root of its strong component.
+
+Now suppose in addition that $\Var{low}(w) < w.\Var{pre}$ for every descendant $w$ of $v$.
+Then each descendant $w$ can reach another vertex $x$ (which must be another descendant of $v$) such that $x.\Var{pre} < w.\Var{pre}$.
+Thus, by induction, every descendant of $v$ can reach $v$.
+It follows that the descendants of $v$ comprise the strong component $C$ whose root is $v$.
+Moreover, $C$ must be a sink component, because $v$ cannot reach any vertex outside of $C$.
+
+On the other hand, suppose $v$ is the root of a sink component $C$.
+Then $v$ can reach another vertex $w$ if and only if $w \in C$.
+But $v$ can reach all of its descendants, and every vertex in $C$ is a descendant of $v$, so $v$’s descendants comprise $C$.
+If $\Var{low}(w) = w.\Var{pre}$ for any other node $w \in C$, then $w$ would be another root of $C$, which is impossible.\hfill$\mdlgwhtsquare$
+
+\medskip
+Computing $\Var{low}(v)$ for every vertex $v$ via depth-first search is straightforward; see \figref{fig:6.18}.
+
+Lemma 6.4 implies that after running \Proc{FindLow}, we can identify the root of \textit{every} sink component in $O(V+E)$ time (by a global whatever-first search), and then mark and delete those sink components in $O(V+E)$ additional time (by calling whatever-first search at each root), and then recurse.
+Unfortunately, the resulting algorithm might require $V$ iterations, each removing only a single vertex, naively giving us a total running time of $O(VE)$.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.42\linewidth}
+\begin{pseudocode}
+\Header{\Proc{FindLow}$(G)$:}\\
+$\Var{clock} \gets 0$\\
+for all vertices $v$\\
+\Indent unmark $v$\\
+\Indent for all vertices $v$\\
+\Indent\Indent if $v$ is unmarked\\
+\Indent\Indent\Indent \Proc{FindLowDFS}$(v)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.54\linewidth}
+\begin{pseudocode}
+\Header{\Proc{FindLowDFS}$(v)$:}\\
+mark $v$\\
+$\Var{clock} \gets \Var{clock} + 1$\\
+$v.\Var{pre} \gets \Var{clock}$\\
+$v.\Var{low} \gets v.\Var{pre}$\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w$ is unmarked\\
+\Indent\Indent \Proc{FindLowDFS}$(w)$\\
+\Indent\Indent $v.\Var{low} \gets \min\{v.\Var{low}, w.\Var{low}\}$\\
+\Indent else\\
+\Indent\Indent $v.\Var{low} \gets \min\{v.\Var{low}, w.\Var{pre}\}$
+\end{pseudocode}
+\end{minipage}
+\caption{Computing \Var{low}$(v)$ for every vertex $v$.}
+\label{fig:6.18}
+\end{figure}
+
+To speed up this strategy, Tarjan’s algorithm maintains an auxiliary stack of vertices (separate from the recursion stack).
+Whenever we start a new vertex $v$, we push it onto the stack.
+Whenever we finish a vertex $v$, we compare $v.\Var{low}$ with $v.\Var{pre}$.
+Then the \textit{first} time we discover that $v.\Var{low} = v.\Var{pre}$, we know three things:
+\begin{itemize}
+\item Vertex $v$ is the root of a sink component $C$.
+\item All vertices in $C$ appear consecutively at the top of the auxiliary stack.
+\item The \textit{deepest} vertex in $C$ on the auxiliary stack is $v$.
+\end{itemize}
+At this point, we can identify the vertices in $C$ by popping them off the auxiliary stack one by one, stopping when we pop $v$.
+
+We could delete the vertices in $C$ and recursively compute the strong components of the remaining graph, but that would be wasteful, because we would repeat \textit{verbatim} all computation done before visiting $v$.
+Instead, we \textit{label} each vertex in $C$, identifying $v$ as the root of its strong component, and then ignore labeled vertices for the rest of the depth-first search.
+Formally, this modification changes the definition of $\Var{low}(v)$ to the smallest starting time among all vertices \textbf{\textit{in the same strong component as $\symbfit{v}$}} that $v$ can reach by a path of tree edges followed by at most one non-tree edge.
+But to prove correctness, it’s easier to observe that ignoring labeled vertices leads the algorithm to exactly the same behavior as actually deleting them.
+
+Finally, Tarjan’s algorithm is shown in \figref{fig:6.19}, with the necessary modifications from \Proc{FindLow} (\figref{fig:6.18}) indicated in bold red.
+The running time of the algorithm can be split into two parts.
+Each vertex is pushed onto $S$ once and popped off $S$ once, so the total time spent maintaining the auxiliary stack (the red stuff) is $O(V)$.
+If we ignore the auxiliary stack maintenance, the rest of the algorithm is just a standard depth-first search.
+We conclude that the algorithm runs in $\symbfit{O(V+E)}$ \textbf{\textit{time}}.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.42\linewidth}
+\begin{pseudocode}
+\Header{\Proc{Tarjan}$(G)$:}\\
+$\Var{clock} \gets 0$\\
+\leavevmode{\color{JEred}\bfseries $\symbfit{S} \gets$ new empty stack}\\
+for all vertices $v$\\
+\Indent unmark $v$\\
+\Indent $v.\Var{root} \gets \Const{None}$\\
+for all vertices $v$\\
+\Indent if $v$ is unmarked\\
+\Indent\Indent \Proc{TarjanDFS}$(v)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.54\linewidth}
+\begin{pseudocode}
+\Header{\Proc{TarjanDFS}$(v)$:}\\
+mark $v$\\
+$\Var{clock} \gets \Var{clock} + 1$\\
+$v.\Var{pre} \gets \Var{clock}$\\
+$v.\Var{low} \gets v.\Var{pre}$\\
+\leavevmode{\color{JEred}\bfseries \Proc{Push}$\symbfit{(S, v)}$}\\
+for each edge $\arc{v}{w}$\\
+\Indent if $w$ is unmarked\\
+\Indent\Indent \Proc{TarjanDFS}$(w)$\\
+\Indent\Indent $v.\Var{low} \gets \min\{v.\Var{low}, w.\Var{low}\}$\\
+\Indent else {\color{JEred}\bfseries if $\symbfit{w}.\Var{root} = \Const{None}$}\\
+\Indent\Indent $v.\Var{low} \gets \min\{v.\Var{low}, w.\Var{pre}\}$\\
+\leavevmode{\color{JEred}\bfseries if $\symbfit{v}.\Var{low} = \symbfit{v}.\Var{pre}$}\\
+\Indent {\color{JEred}\bfseries repeat}\\
+\Indent\Indent {\color{JEred}\bfseries $\symbfit{w} \gets$ \Proc{Pop}$\symbfit{(S)}$}\\
+\Indent\Indent {\color{JEred}\bfseries $\symbfit{w}.\Var{root} \gets \symbfit{v}$}\\
+\Indent {\color{JEred}\bfseries until $\symbfit{w} = \symbfit{v}$}
+\end{pseudocode}
+\end{minipage}
+\caption{Tarjan’s strong components algorithm.}
+\label{fig:6.19}
+\end{figure}
+
+\begin{exercises}\global\csname @newlistfalse\endcsname
+\end{enumerate}
+
+\subsection*{Depth-first search, topological sort, and strong components}
+
+\begin{enumerate}[label=\arabic*.,ref=\thechapter.\arabic*,leftmargin=*,align=left,itemsep=1.5ex plus 0.5ex,start=0]
+\item
+\begin{enumerate}
+\item Describe an algorithm to compute the reversal $\Var{rev}(G)$ of a directed graph in $O(V+E)$ time.
+\item Prove that for every directed graph $G$, the strong component graph $\Var{scc}(G)$ is acyclic.
+\item Prove that $\Var{scc}(\Var{rev}(G)) = \Var{rev}(\Var{scc}(G))$ for every directed graph $G$.
+\item Fix an arbitrary directed graph $G$.
+For any vertex $v$ of $G$, let $S(v)$ denote the strong component of $G$ that contains $v$.
+For all vertices $u$ and $v$ of $G$, prove that $u$ can reach $v$ in $G$ if and only if $S(u)$ can reach $S(v)$ in $\Var{scc}(G)$.
+\end{enumerate}
+
+\item A directed graph $G$ is \textit{semi-connected} if, for every pair of vertices $u$ and $v$, either $u$ is reachable from $v$ or $v$ is reachable from $u$ (or both).
+\begin{enumerate}
+\item Give an example of a directed acyclic graph with a unique source that is \textit{not} semi-connected.
+\item Describe and analyze an algorithm to determine whether a given directed \textit{acyclic} graph is semi-connected.
+\item Describe and analyze an algorithm to determine whether an arbitrary directed graph is semi-connected.
+\end{enumerate}
+
+\item The police department in the city of Sham-Poobanana has made every street in the city one-way.
+Despite widespread complaints from confused motorists, the mayor claims that it is possible to legally drive from any intersection in Sham-Poobanana to any other intersection.
+\begin{enumerate}
+\item The city needs to either verify or refute the mayor’s claim.
+Formalize this problem in terms of graphs, and then describe and analyze an algorithm to solve it.
+\item After running your algorithm from part (a), the mayor reluctantly admits that she was \ooalign{lying\cr\leaders\hrule height 0.6ex depth -0.55ex\hfill\cr} misinformed.
+Call an intersection $x$ \textit{good} if, for any intersection $y$ that one can legally reach from $x$, it is possible to legally drive from $y$ back to $x$.
+Now the mayor claims that over 95\% of the intersections in Sham-Poobanana are good.
+Describe and analyze an efficient algorithm to verify or refute her claim.
+\end{enumerate}
+For full credit, both algorithms should run in linear time.
+
+\item Suppose we are given a directed acyclic graph $G$ with a unique source $s$ and a unique sink $t$.
+A vertex $v \notin \{s, t\}$ is called an \textbf{\textit{$\symbfit{(s, t)}$-cut vertex}} if every path from $s$ to $t$ passes through $v$, or equivalently, if deleting $v$ makes $t$ unreachable from $s$.
+Describe and analyze an algorithm to find every $(s, t)$-cut vertex in $G$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p263-Im114}
+\caption{A directed acyclic graph with three $(s, t)$-cut vertices.}
+\label{fig:6.20}
+\end{figure}
+
+\item A vertex $v$ in a connected undirected graph $G$ is called a \textbf{\textit{cut vertex}} if the subgraph $G - v$ (obtained by removing $v$ from $G$) is disconnected.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p263-Im115}
+\caption{An undirected graph with four cut vertices.}
+\label{fig:6.21}
+\end{figure}
+
+\begin{enumerate}
+\item Describe a linear-time algorithm that determines, given an undirected graph $G$ and a vertex $v$, whether $v$ is a cut vertex in $G$.
+What is the running time to find all cut vertices by trying your algorithm for each vertex?
+\item Let $T$ be a depth-first spanning tree of an undirected graph $G$.
+\begin{enumerate}[label=\roman*.]
+\item Prove that the root of $T$ is a cut vertex of $G$ if and only if it has more than one child in $T$.
+\item Prove that a non-root vertex $v$ is a cut vertex of $G$ if and only if at least one descendant (in $T$) of each child of $v$ (in $T$) is a neighbor (in $G$) of some proper ancestor of $v$ (in $T$).
+\end{enumerate}
+\Hint{These claims no longer hold if $T$ not a depth-first spanning tree and/or $G$ is a directed graph.}
+\item Describe an algorithm that identifies every cut vertex in a given undirected graph in $O(V+E)$ time.
+\end{enumerate}
+
+\item An edge $e$ in a connected undirected graph $G$ is called a \textit{bridge} (or a \textit{cut edge}) if the subgraph $G - e$ (obtained by removing $e$ from $G$) is disconnected.
+\begin{enumerate}
+\item Given $G$ and edge $e$ describe a linear-time algorithm that determines whether $e$ is a bridge or not.
+What is the running time to find all bridges by trying your algorithm for each edge?
+\item Let $T$ be an arbitrary spanning tree of $G$.
+Prove that \textit{every} bridges of $G$ is also an edge in $T$.
+This claim implies that $G$ has at most $V-1$ bridges.
+How does this information improve your algorithm from part (a) to find all bridges?
+\item Now suppose we root $T$ at an arbitrary vertex $r$.
+For any vertex $v$, let $T_v$ denote the subtree of $T$ rooted at $v$; for example, $T_r = T$.
+Let $uv$ be an arbitrary edge of $T$, where $u$ is the parent of $v$.
+Prove that $uv$ is a bridge of $G$ if and only if $uv$ is the only edge in $G$ with exactly one endpoint in $T_v$.
+\item Describe a linear-time algorithm to identify every bridge in $G$.
+\Hint{Let $T$ be a depth-first spanning tree of $G$.}
+\end{enumerate}
+
+\item The \textbf{\textit{transitive closure}} $\symbfit{G^T}$ of a directed graph $G$ is a directed graph with the same vertices as $G$, that contains any edge $\arc{u}{v}$ if and only if there is a directed path from $u$ to $v$ in $G$.
+A \textbf{\textit{transitive reduction}} of $G$ is a graph with the smallest possible number of edges whose transitive closure is $G^T$.
+The same graph may have several transitive reductions.
+\begin{enumerate}
+\item Describe an efficient algorithm to compute the transitive closure of a given directed graph.
+\item Prove that a directed graph $G$ has a \textit{unique} transitive reduction if and only if $G$ is acyclic.
+\item Describe an efficient algorithm to compute a transitive reduction of a given directed graph.
+\end{enumerate}
+
+\item One of the oldest algorithms for exploring arbitrary connected graphs was proposed by Gaston Tarry in 1895, as a systematic procedure for solving mazes.\footnote{Even older graph-traversal algorithms were described by Charles Trémaux in 1882, by Christian Wiener in 1873, by Carl Hierholzer in 1873, and (implicitly) by Leonhard Euler in 1736. In particular, Wiener’s algorithm is equivalent to depth-first search in connected undirected graphs.}
+The input to Tarry’s algorithm is an undirected graph $G$; however, for ease of presentation, we formally split each undirected edge $uv$ into two directed edges $\arc{u}{v}$ and $\arc{v}{u}$.
+(In an actual implementation, this split is trivial; the algorithm simply uses the given adjacency list for $G$ \textit{as though} $G$ were directed.)
+
+\begin{center}
+\begin{minipage}[c]{0.37\linewidth}
+\begin{pseudocode}
+\Header{\Proc{Tarry}$(G)$:}\\
+unmark all vertices of $G$\\
+color all edges of $G$ white\\
+$s \gets$ any vertex in $G$\\
+\Proc{RecTarry}$(s)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.6\linewidth}
+\begin{pseudocode}
+\Header{\Proc{RecTarry}$(v)$:}\\
+mark $v$ \Comment{“visit” $v$}\\
+if there is a white arc $\arc{v}{w}$\\
+\Indent if $w$ is unmarked\\
+\Indent\Indent color $\arc{w}{v}$ {\color{JEgreen!75!black}green}\\
+\Indent color $\arc{v}{w}$ {\color{JEred}red} \Comment{“traverse” $\arc{v}{w}$}\\
+\Indent \Proc{RecTarry}$(w)$\\
+else if there is a {\color{JEgreen!75!black}green} arc $\arc{v}{w}$\\
+\Indent color $\arc{v}{w}$ {\color{JEred}red} \Comment{“traverse” $\arc{v}{w}$}\\
+\Indent \Proc{RecTarry}$(w)$
+\end{pseudocode}
+\end{minipage}
+\end{center}
+We informally say that Tarry’s algorithm “visits” vertex $v$ every time it marks $v$, and it “traverses” edge $\arc{v}{w}$ when it colors that edge \textcolor{JEred}{red} and recursively calls \Proc{RecTarry}$(w)$.
+Unlike our earlier graph traversal algorithm, Tarry’s algorithm can mark same vertex multiple times.
+\begin{enumerate}
+\item Describe how to implement Tarry’s algorithm so that it runs in $O(V+E)$ time.
+\item Prove that no directed edge in $G$ is traversed more than once.
+\item When the algorithm visits a vertex $v$ for the $k$th time, exactly how many edges into $v$ are \textcolor{JEred}{red}, and exactly how many edges out of $v$ are \textcolor{JEred}{red}?
+\Hint{Consider the starting vertex $s$ separately from the other vertices.}
+\item Prove each vertex $v$ is visited at most $\deg(v)$ times, except the starting vertex $s$, which is visited at most $\deg(s)+1$ times.
+This claim immediately implies that \Proc{Tarry}$(G)$ terminates.
+\item Prove that the last vertex visited by \Proc{Tarry}$(G)$ is the starting vertex $s$.
+\item For every vertex $v$ that \Proc{Tarry}$(G)$ visits, prove that all edges into $v$ and out of $v$ are \textcolor{JEred}{red} when \Proc{Tarry}$(G)$ halts.
+\Hint{Consider the vertices in the order that they are marked for the first time, starting with $s$, and prove the claim by induction.}
+\item Prove that \Proc{Tarry}$(G)$ visits every vertex of $G$.
+This claim and the previous claim imply that \Proc{Tarry}$(G)$ traverses every edge of $G$ exactly once.
+\end{enumerate}
+
+\item Consider the following variant of Tarry’s graph-traversal algorithm; this variant traverses green edges without recoloring them red and assigns two numerical labels to every vertex:
+
+\begin{center}
+\begin{minipage}[c]{0.37\linewidth}
+\begin{pseudocode}
+\Header{\Proc{Tarry2}$(G)$:}\\
+unmark all vertices of $G$\\
+color all edges of $G$ white\\
+$s \gets$ any vertex in $G$\\
+\Proc{RecTarry}$2(s, 1)$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.6\linewidth}
+\begin{pseudocode}
+\Header{\Proc{RecTarry2}$(v, \Var{clock})$:}\\
+if $v$ is unmarked\\
+\Indent $v.\Var{pre} \gets \Var{clock}$; \ $\Var{clock} \gets \Var{clock} + 1$\\
+\Indent mark $v$\\
+if there is a white arc $\arc{v}{w}$\\
+\Indent if $w$ is unmarked\\
+\Indent\Indent color $\arc{w}{v}$ {\color{JEgreen!75!black}green}\\
+\Indent color $\arc{v}{w}$ red\\
+\Indent \Proc{RecTarry}$2(w, \Var{clock})$\\
+else if there is a {\color{JEgreen!75!black}green} arc $\arc{v}{w}$\\
+\Indent $v.\Var{post} \gets \Var{clock}$; \ $\Var{clock} \gets \Var{clock} + 1$\\
+\Indent \Proc{RecTarry}$2(w, \Var{clock})$
+\end{pseudocode}
+\end{minipage}
+\end{center}
+
+Prove or disprove the following claim: When \Proc{Tarry}$2(G)$ halts, the green edges define a spanning tree and the labels $v.\Var{pre}$ and $v.\Var{post}$ define a preorder and postorder labeling that are all consistent with a single depth-first search of $G$.
+In other words, prove or disprove that \Proc{Tarry2} produces the same \textit{output} as depth-first search, even though it visits the edges in a completely different order.
+
+\item You have a collection of $n$ lock-boxes and $m$ gold keys.
+Each key unlocks \textit{at most} one box.
+However, each box might be unlocked by one key, by multiple keys, or by no keys at all.
+There are only two ways to open each box once it is locked: Unlock it properly (which requires having one matching key in your hand), or smash it to bits with a hammer.
+
+Your baby brother, who loves playing with shiny objects, has somehow managed to lock all your keys inside the boxes!
+Luckily, your home security system recorded everything, so you know exactly which keys (if any) are inside each box.
+You need to get all the keys back out of the boxes, because they are made of gold.
+Clearly you have to smash at least one box.
+\begin{enumerate}
+\item Your baby brother has found the hammer and is eagerly eyeing one of the boxes.
+Describe and analyze an algorithm to determine if it is possible to retrieve all the keys without smashing any box except the one your brother has chosen.
+\item Describe and analyze an algorithm to compute the minimum number of boxes that must be smashed to retrieve all the keys.
+\end{enumerate}
+
+\item Suppose you are teaching an algorithms course.
+In your second midterm, you give your students a drawing of a graph and ask then to indicate a breadth-first search tree and a depth-first search tree rooted at a particular vertex.
+Unfortunately, once you start grading the exam, you realize that the graph you gave the students has several such spanning trees---far too many to list.
+Instead, you need a way to tell whether each student’s submission is correct!
+
+In each of the following problems, suppose you are given a connected graph $G$, a start vertex $s$, and a spanning tree $T$ of $G$.
+\begin{enumerate}
+\item Suppose $G$ is \textit{undirected}.
+Describe and analyze an algorithm to decide whether $T$ is a \textit{depth}-first spanning tree rooted at $s$.
+\item Suppose $G$ is \textit{undirected}.
+Describe and analyze an algorithm to decide whether $T$ is a \textit{breadth}-first spanning tree rooted at $s$.
+\Hint{It’s not enough for $T$ to be an unweighted shortest-path tree. Yes, this is the right chapter for this problem!}
+\item Suppose $G$ is \textit{directed}.
+Describe and analyze an algorithm to decide whether $T$ is a \textit{breadth}-first spanning tree rooted at $s$.
+\Hint{Solve part (b) first.}
+\item Suppose $G$ is \textit{directed}.
+Describe and analyze an algorithm to decide whether $T$ is a \textit{depth}-first spanning tree rooted at $s$.
+\end{enumerate}
+
+\item Several modern programming languages, including JavaScript, Python, Perl, and Ruby, include a feature called \textbf{\textit{parallel assignment}}, which allows multiple assignment operations to be encoded in a single line of code.
+For example, the Python code \Str{x,y = 0,1} simultaneously sets \Str{x} to $0$ and \Str{y} to $1$.
+The values of the right-hand side of the assignment are all determined by the \textit{old} values of the variables.
+Thus, the Python code \Str{a,b = b,a} swaps the values of \Str{a} and \Str{b}, and the following Python code computes the \Str{n}th Fibonacci number:
+\[
+\begin{array}{l}
+\mbox{\Str{def fib(n):}}\\
+\mbox{\Str{\hspace*{2em}prev, curr = 1, 0}}\\
+\mbox{\Str{\hspace*{2em}while n > 0:}}\\
+\mbox{\Str{\hspace*{4em}prev, curr, n = curr, prev+curr, n-1}}\\
+\mbox{\Str{\hspace*{2em}return curr}}
+\end{array}
+\]
+
+Suppose the interpreter you are writing needs to convert every parallel assignment into an equivalent sequence of individual assignments.
+For example, the parallel assignment \Str{a,b = 0,1} can be serialized in either order---either \Str{a=0; b=1} or \Str{a=0; b=1}---but the parallel assignment \Str{x,y = x+1,x+y} can only be serialized as \Str{y=x+y; x=x+1}.
+Serialization may require one or more additional temporary variables; for example, serializing \Str{a,b = b,a} requires one temporary variable, and serializing \Str{x,y = x+y,x-y} requires two temporary variables.
+\begin{enumerate}
+\item Describe an algorithm to determine whether a given parallel assignment can be serialized without additional temporary variables.
+\item Describe an algorithm to determine whether a given parallel assignment can be serialized with \textit{exactly one} additional temporary variable.
+\end{enumerate}
+Assume that the given parallel assignment involves only simple integer variables (no indirection via pointers or arrays); no variable appears on the left side more than once; and expressions on the right side have no side effects.
+Don’t worry about the details of parsing the assignment statement; just assume (but describe!) an appropriate graph representation.
+\end{enumerate}
+
+\subsection*{Dynamic Programming}
+
+\begin{enumerate}[label=\arabic*.,ref=\thechapter.\arabic*,leftmargin=*,align=left,itemsep=1.5ex plus 0.5ex,start=12]
+\item Suppose we are given a directed acyclic graph $G$ whose nodes represent jobs and whose edges represent precedence constraints; that is. each edge $\arc{u}{v}$ indicates the job $u$ must be completed before job $v$ begins.
+Each node $v$ also has a weight $T(v)$ indicating the time required to execute job $v$.
+\begin{enumerate}
+\item Describe an algorithm to determine the shortest interval of time in which all jobs in $G$ can be executed.
+\item Suppose the first job starts at time $0$.
+Describe an algorithm to determine, for each vertex $v$, the earliest time when job $v$ can begin.
+\item Now describe an algorithm to determine, for each vertex $v$, the \textit{latest} time when job $v$ can begin without violating the precedence constraints or increasing the overall completion time (computed in part (a)), assuming that every job except $v$ starts at its earliest start time (computed in part (b)).
+\end{enumerate}
+
+\item Let $G$ be a directed acyclic graph with a unique source $s$ and a unique sink $t$.
+\begin{enumerate}
+\item A \textit{Hamiltonian path} in $G$ is a directed path in $G$ that contains every vertex in $G$.
+Describe an algorithm to determine whether $G$ has a Hamiltonian path.
+\item Suppose the \textit{vertices} of $G$ have weights.
+Describe an efficient algorithm to find the path from $s$ to $t$ with maximum total weight.
+\item Suppose we are also given an integer $\ell$.
+Describe an efficient algorithm to find the maximum-weight path from $s$ to $t$ that contains at most $\ell$ edges.
+(Assume there is at least one such path.)
+\item Suppose some of the vertices of $G$ are marked as \textit{important}, and we are also given an integer $k$.
+Describe an efficient algorithm to find the maximum-weight path from $s$ to $t$ that visits at least $k$ important vertices.
+(Assume there is at least one such path.)
+\item Describe an algorithm to compute the number of paths from $s$ to $t$ in $G$.
+(Assume that you can add arbitrarily large integers in $O(1)$ time.)
+\end{enumerate}
+
+\item Let $G$ be a directed acyclic graph whose vertices have labels from some fixed alphabet, and let $A[1\,..\,\ell]$ be a string over the same alphabet.
+Any directed path in $G$ has a label, which is a string obtained by concatenating the labels of its vertices.
+\begin{enumerate}
+\item Describe an algorithm that either finds a path in $G$ whose label is $A$ or correctly reports that there is no such path.
+\item Describe an algorithm to find the \textit{number} of paths in $G$ whose label is $A$.
+(Assume that you can add arbitrarily large integers in $O(1)$ time.)
+\item Describe an algorithm to find the longest path in $G$ whose label is a subsequence of $A$.
+\item Describe an algorithm to find the \textit{shortest} path in $G$ whose label is a \textit{supersequence} of $A$.
+\item Describe an algorithm to find a path in $G$ whose label has minimum edit distance from $A$.
+\end{enumerate}
+
+\item A \textbf{\textit{polygonal path}} is a sequence of line segments joined end-to-end; the endpoints of these line segments are called the \textbf{\textit{vertices}} of the path.
+The \textbf{\textit{length}} of a polygonal path is the sum of the lengths of its segments.
+A polygonal path with vertices $(x_1, y_1), (x_2, y_2), \dots, (x_k, y_k)$ is \textbf{\textit{monotonically increasing}} if $x_i < x_{i+1}$ and $y_i < y_{i+1}$ for every index $i$---informally, each vertex of the path is above and to the right of its predecessor.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p269-Im116}
+\caption{A monotonically increasing polygonal path with seven vertices through a set of points}
+\label{fig:6.22}
+\end{figure}
+
+Suppose you are given a set $S$ of $n$ points in the plane, represented as two arrays $X[1\,..\,n]$ and $Y[1\,..\,n]$.
+Describe and analyze an algorithm to compute the length of the longest monotonically increasing path with vertices in $S$.
+Assume you have a subroutine \Proc{Length}$(x, y, x', y')$ that returns the length of the segment from $(x, y)$ to $(x', y')$.
+
+\item For any two nodes $u$ and $w$ in a directed acyclic graph $G$, the \textbf{\textit{interval}} $\symbfit{G[u, w]}$ is the union of all directed paths in $G$ from $u$ to $v$.
+Equivalently, $G[u, w]$ consists of all vertices $v$ such that $v \in \Var{reach}(u)$ and $w \in \Var{reach}(x)$, together with all the edges in $G$ connecting those vertices.
+
+Suppose we are given a directed acyclic graph $G$, in which every vertex has a numerical weight, which may be positive, negative, or zero.
+\begin{enumerate}
+\item Describe an efficient algorithm to find the maximum-weight interval in $G$, where the weight of each interval is the sum of the weights of its vertices.
+\item Describe an efficient algorithm to find the largest vertex weight in every interval in $G$.
+Your algorithm should compute a two-dimensional array $\Var{MaxWt}[1\,..\,V, 1\,..\,V]$ where each entry $\Var{MaxWt}[u, w]$ is the maximum weight among all vertices in the interval $G[u, w]$.
+In particular, if $G[u, w]$ is empty, then $\Var{MaxWt}[u, w]$ should be $-\infty$.
+\end{enumerate}
+
+\item Let $G$ be a directed acyclic graph whose vertices have labels from some fixed alphabet.
+Any directed path in $G$ has a label, which is a string obtained by concatenating the labels of its vertices.
+Recall that a \textit{palindrome} is a string that is equal to its reversal.
+\begin{enumerate}
+\item Describe and analyze an algorithm to find the length of the longest palindrome that is the label of a path in $G$.
+For example, given the graph in \figref{fig:6.23}, your algorithm should return the integer $6$, which is the length of the palindrome \Str{HANNAH}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p270-Im117}
+\caption{A dag whose longest palindrome path label has length $6$.}
+\label{fig:6.23}
+\end{figure}
+
+\item Describe an algorithm to find the longest palindrome that is a subsequence of the label of a path in $G$.
+\item Suppose $G$ has a single source $s$ and a single sink $t$.
+Describe an algorithm to find the shortest palindrome that is a supersequence of the label of a path in $G$ from $s$ to $t$.
+\end{enumerate}
+
+\item Suppose you are given two directed acyclic graphs $G$ and $H$ in which every node has a \textit{label} from some finite alphabet; different nodes may have the same label.
+The label of a \textit{path} in either dag is the string obtained by concatenating the labels of its vertices.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute the length of the longest string that is both the label of a path in $G$ and the label of a path in $H$.
+\item Describe and analyze an algorithm to compute the length of the longest string that is both a subsequence of the label of a path in $G$ and a subsequence of the label of a path in $H$.
+\item Describe and analyze an algorithm to compute the length of the shortest string that is both a supersequence of the label of a path in $G$ and a supersequence of the label of a path in $H$.
+\Hint{This is easier than it looks.}
+\end{enumerate}
+
+\item Let $G$ be an arbitrary (\textit{not} necessarily acyclic) directed graph in which every vertex $v$ has an integer weight $w(v)$.
+\begin{enumerate}
+\item Describe an algorithm to find the longest directed path in $G$ whose vertex weights define an increasing sequence.
+\item Describe and analyze an algorithm to determine the maximum-weight vertex reachable from each vertex in $G$.
+That is, for each vertex $v$, your algorithm needs to compute $\Var{maxreach}(v) := \max\{w(x) \mathrel{|} x \in \Var{reach}(v)\}$.
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Suppose you are given a directed acyclic graph $G$ with $n$ vertices and an integer $k \le n$.
+Describe an efficient algorithm to find a set of at most $k$ vertex-disjoint paths that visit every vertex in $G$.
+\item Now suppose the edges of the input dag $G$ have weights, which may be positive, negative, or zero.
+Describe an efficient algorithm to find a set of at most $k$ vertex-disjoint paths \textit{with minimum total weight} that visit every vertex in $G$.
+\end{enumerate}
+Your algorithms should run in $O(n^{k+c})$ time for some small constant $c$.
+A single vertex is a path with weight zero.
+(We will see a more efficient algorithm for part (a) in \chapref{ch:11}.)
+
+\item Kris is a professional rock climber who is competing in the U.S. climbing nationals.
+The competition requires Kris to use as many holds on the climbing wall as possible, using only transitions that have been explicitly allowed by the route-setter.
+
+The climbing wall has $n$ holds.
+Kris is given a list of $m$ pairs $(x, y)$ of holds, each indicating that moving directly from hold $x$ to hold $y$ is allowed; however, moving directly from $y$ to $x$ is not allowed unless the list also includes the pair $(y, x)$.
+Kris needs to figure out a sequence of allowed transitions that uses as many holds as possible, since each new hold increases his score by one point.
+The rules allow Kris to choose the first and last hold in his climbing route.
+The rules also allow him to use each hold as many times as he likes; however, only the first use of each hold increases Kris’s score.
+\begin{enumerate}
+\item Define the natural graph representing the input.
+Describe and analyze an algorithm to solve Kris’s climbing problem if you are guaranteed that the input graph is a dag.
+\item Describe and analyze an algorithm to solve Kris’s climbing problem with no restrictions on the input graph.
+\end{enumerate}
+Both of your algorithms should output the maximum possible score that Kris can earn.
+
+\item There are $n$ galaxies connected by $m$ intergalactic teleport-ways.
+Each teleport-way joins two galaxies and can be traversed in both directions.
+However, the company that runs the teleport-ways has established an extremely lucrative cost structure: Anyone can teleport \textit{further} from their home galaxy at no cost whatsoever, but teleporting \textit{toward} their home galaxy is prohibitively expensive.
+
+Judy has decided to take a sabbatical tour of the universe by visiting as many galaxies as possible, starting at her home galaxy.
+To save on travel expenses, she wants to teleport away from her home galaxy at every step, except for the very last teleport home.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute the maximum number of galaxies that Judy can visit.
+Your input consists of an undirected graph $G$ with $n$ vertices and $m$ edges describing the teleport-way network, an integer $1 \le s \le n$ identifying Judy’s home galaxy, and an array $D[1\,..\,n]$ containing the distances of each galaxy from $s$.
+\item \difficulty{h} Just before embarking on her universal tour, Judy wins the space lottery, giving her just enough money to afford \textit{two} teleports toward her home galaxy.
+Describe a new algorithm to compute the maximum number of distinct galaxies Judy can visit.
+She can visit the same galaxy more than once, but crucially, only the first visit counts toward her total.
+\end{enumerate}
+
+\item The Doctor and River Song decide to play a game on a directed acyclic graph $G$, which has one source $s$ and one sink $t$.\footnote{The labels $s$ and $t$ are abbreviations for the Untempered {\bfseries S}chism and the {\bfseries T}ime Vortex, or the Shining World of the Seven Systems (also known as Gallifrey) and Trenzalore, or Skaro and Telos, or Something else Timey-wimey. It’s all very complicated, never mind.}
+
+Each player has a token on one of the vertices of $G$.
+At the start of the game, The Doctor’s token is on the source vertex $s$, and River’s token is on the sink vertex $t$.
+The players alternate turns, with The Doctor moving first.
+On each of his turns, the Doctor moves his token forward along a directed edge; on each of her turns, River moves her token \textit{backward} along a directed edge.
+
+If the two tokens ever meet on the same vertex, River wins the game.
+(“Hello, Sweetie!”) If the Doctor’s token reaches $t$ or River’s token reaches $s$ before the two tokens meet, then the Doctor wins the game.
+
+Describe and analyze an algorithm to determine who wins this game, assuming both players play perfectly.
+That is, if the Doctor can win \textit{no matter how River moves}, then your algorithm should output “Doctor”, and if River can win \textit{no matter how the Doctor moves}, your algorithm should output “River”.
+(Why are these the only two possibilities?)
+The input to your algorithm is the graph $G$.
+
+\item \difficulty{ch} Let $x = x_1 x_2 \dots x_n$ be a given $n$-character string over some finite alphabet $\Sigma$, and let $A$ be a deterministic finite-state machine with $m$ states over the same alphabet.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute the length of the longest subsequence of $x$ that is accepted by $A$.
+For example, if $A$ accepts the language $($\Str{AR}$)^*$ and $x = {}$\Str{{\bfseries\underline{A}}B{\bfseries\underline{R}}AC{\bfseries\underline{A}}DAB{\bfseries\underline{R}}A}, your algorithm should output the number 4, which is the length of the subsequence \Str{ARAR}.
+\item Describe and analyze an algorithm to compute the length of the shortest supersequence of $x$ that is accepted by $A$.
+For example, if $A$ accepts the language $($\Str{ABCDR}$)^*$ and $x = {}$\Str{ABRACADABRA}, your algorithm should output the number 25, which is the length of the supersequence \Str{{\bfseries\underline{AB}}CD{\bfseries\underline{RA}}B{\bfseries\underline{C}}DR{\bfseries\underline{A}}BC{\bfseries\underline{D}}R{\bfseries\underline{AB}}CD{\bfseries\underline{RA}}BCDR}.
+\end{enumerate}
+Analyze your algorithms in terms of the length $n$ of the input string, the number $m$ of states in the finite-state machine, and the size of the alphabet $\Sigma$.
+
+\item Not \textit{every} dynamic programming algorithm can be modeled as finding an optimal path through a directed acyclic graph, but every dynamic programming algorithm does process some underlying dependency graph in postorder.
+\begin{enumerate}
+\item Suppose we are given a directed acyclic graph $G$ where every node stores a numerical search key.
+Describe and analyze an algorithm to find the largest binary search tree that is a subgraph of $G$.
+\item Suppose we are given a directed acyclic graph $G$ and two vertices $s$ and $t$.
+Describe an algorithm to compute the number of directed paths in $G$ from $s$ to $t$.
+(Assume that any arithmetic operation requires $O(1)$ time.)
+\item Let $G$ be a directed acyclic graph with the following features:
+\begin{itemize}
+\item $G$ has a single source $s$ and several sinks $t_1, t_2, \dots, t_k$.
+\item Each edge $\arc{v}{w}$ has an associated weight $p(\arc{v}{w})$ between $0$ and $1$.
+\item For each non-sink vertex $v$, the total weight of all edges leaving $v$ is $1$; that is, $\sum_w p(\arc{v}{w}) = 1$.
+\end{itemize}
+The weights $p(\arc{v}{w})$ define a random walk in $G$ from the source $s$ to some sink $t_i$; after reaching any non-sink vertex $v$, the walk follows edge $\arc{v}{w}$ with probability $p(\arc{v}{w})$.
+All probabilities are mutually independent.
+Describe and analyze an algorithm to compute the probability that this random walk reaches sink $t_i$, for every index $i$.
+(Assume that each arithmetic operation takes only $O(1)$ time.)
+\end{enumerate}
+\end{exercises}

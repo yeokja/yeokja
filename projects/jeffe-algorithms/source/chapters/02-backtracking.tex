@@ -1,0 +1,861 @@
+% Reconstructed from upstream/Algorithms-JeffE.pdf, PDF pages 89-114 (printed 71-96).
+\epigraph{Where, however, the ambiguity cannot be cleared up, either by the rule of faith or by the context, there is nothing to hinder us to point the sentence according to any method we choose of those that suggest themselves.}{Augustine of Hippo, \textit{De doctrina Christiana} (397CE)\\Translated by Marcus Dods (1892)}
+
+\epigraph{I dropped my dinner, and ran back to the laboratory. There, in my excitement, I tasted the contents of every beaker and evaporating dish on the table. Luckily for me, none contained any corrosive or poisonous liquid.}{Constantine Fahlberg on his discovery of saccharin,\\\textit{Scientific American} (1886)}
+
+\epigraph{The greatest challenge to any thinker is stating the problem in a way that will allow a solution.}{attributed to Bertrand Russell}
+
+\epigraph{When you come to a fork in the road, take it.}{Yogi Berra (giving directions to his house)}
+
+\chapter{Backtracking}
+\label{ch:2}
+
+This chapter describes another important recursive strategy called \textbf{\textit{backtracking}}.
+A backtracking algorithm tries to construct a solution to a computational problem incrementally, one small piece at a time.
+Whenever the algorithm needs to decide between multiple alternatives to the next component of the solution, it recursively evaluates \textbf{\textit{every}} alternative and then chooses the best one.
+
+\section{N Queens}
+\label{sec:2.1}
+
+The prototypical backtracking problem is the classical \textbf{\textit{$\symbfit{n}$ Queens Problem}}, first proposed by German chess enthusiast Max Bezzel in 1848 (under his pseudonym “Schachfreund”) for the standard $8 \times 8$ board and by François-Joseph Eustache Lionnet in 1869 for the more general $n \times n$ board.
+The problem is to place $n$ queens on an $n \times n$ chessboard, so that no two queens are attacking each other.
+For readers not familiar with the rules of chess, this means that no two queens are in the same row, the same column, or the same diagonal.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p090-Im41}
+\caption{Gauss’s first solution to the 8 queens problem, represented by the array $[5,7,1,4,2,8,6,3]$}
+\label{fig:2.1}
+\end{figure}
+
+In a letter written to his friend Heinrich Schumacher in 1850, the eminent mathematician Carl Friedrich Gauss wrote that one could easily confirm Franz Nauck’s claim that the Eight Queens problem has 92 solutions by trial and error in a few hours.
+(“\textit{Schwer ist es übrigens nicht, durch ein methodisches Tatonniren sich diese Gewissheit zu verschaffen, wenn man 1 oder ein paar Stunden daran wenden will.}”)
+His description \textit{Tatonniren} comes from the French \textit{tâtonner}, meaning to feel, grope, or fumble around blindly, as if in the dark.
+
+Gauss’s letter described the following recursive strategy for solving the $n$-queens problem; the same strategy was described in 1882 by the French recreational mathematician Édouard Lucas, who attributed the method to Emmanuel Laquière.
+We place queens on the board one row at a time, starting with the top row.
+To place the $r$th queen, we methodically try all $n$ squares in row $r$ from left to right in a simple for loop.
+If a particular square is attacked by an earlier queen, we ignore that square; otherwise, we tentatively place a queen on that square and \textit{recursively} grope for consistent placements of the queens in later rows.
+
+\figref{fig:2.2} shows the resulting algorithm, which recursively enumerates \textit{all} complete $n$-queens solutions that are consistent with a given partial solution.
+Following Gauss, we represent the positions of the queens using an array $Q[1\,..\,n]$, where $Q[i]$ indicates which square in row $i$ contains a queen.
+When \Proc{PlaceQueens} is called, the input parameter $r$ is the index of the first empty row, and the prefix $Q[1\,..\,r-1]$ contains the positions of the first $r-1$ queens.
+In particular, to compute all $n$-queens solutions with no restrictions, we would call \Proc{PlaceQueens}$(Q[1\,..\,n], 1)$.
+The outer for-loop considers all possible placements of a queen on row $r$; the inner for-loop checks whether a candidate placement of row $r$ is consistent with the queens that are already on the first $r-1$ rows.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{PlaceQueens}$(Q[1\,..\,n], r)$:}\\
+if $r = n+1$\\
+\Indent print $Q[1\,..\,n]$\\
+else\\
+\Indent for $j \gets 1$ to $n$\\
+\Indent\Indent $\Var{legal} \gets \Const{True}$\\
+\Indent\Indent for $i \gets 1$ to $r-1$\\
+\Indent\Indent\Indent if $(Q[i] = j)$ or $(Q[i] = j+r-i)$ or $(Q[i] = j-r+i)$\\
+\Indent\Indent\Indent\Indent $\Var{legal} \gets \Const{False}$\\
+\Indent\Indent if \Var{legal}\\
+\Indent\Indent\Indent $Q[r] \gets j$\\
+\Indent\Indent\Indent \Proc{PlaceQueens}$(Q[1\,..\,n], r+1)$ \Comment{Recursion!}
+\end{pseudocode}
+\caption{Gauss and Laquière’s backtracking algorithm for the $n$ queens problem.}
+\label{fig:2.2}
+\end{figure}
+
+The execution of \Proc{PlaceQueens} can be illustrated using a \textbf{\textit{recursion tree}}.
+Each node in this tree corresponds to a recursive subproblem, and thus to a legal partial solution; in particular, the root corresponds to the empty board (with $r = 0$).
+Edges in the recursion tree correspond to recursive calls.
+Leaves correspond to partial solutions that cannot be further extended, either because there is already a queen on every row, or because every position in the next empty row is attacked by an existing queen.
+The backtracking search for complete solutions is equivalent to a depth-first search of this tree.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p091-Im42}
+\caption{The complete recursion tree of Gauss and Laquière’s algorithm for the 4 queens problem.}
+\label{fig:2.3}
+\end{figure}
+
+\section{Game Trees}
+\label{sec:2.2}
+
+Consider the following simple two-player game\footnote{I don’t know what this game is called, or even if I’m reporting the rules correctly; I learned it (or something like it) from Lenny Pitt, who recommended playing it with fake-sugar packets at restaurants.} played on an $n \times n$ square grid with a border of squares; let’s call the players Horace Fahlberg-Remsen and Vera Rebaudi.\footnote{Constantin Fahlberg and Ira Remsen synthesized saccharin for the first time in 1878, while Fahlberg was a postdoc in Remsen’s lab investigating coal tar derivatives. In 1900, Ovidio Rebaudi published the first chemical analysis of \textit{ka’a he’ê}, a medicinal plant cultivated by the Guaraní for more than 1500 years, now more commonly known as \textit{Stevia rebaudiana}.}
+Each player has $n$ tokens that they move across the board from one side to the other.
+Horace’s tokens start in the left border, one in each row, and move \textbf{\textit{hor}}izontally to the right; symmetrically, Vera’s tokens start in the top border, one in each column, and move \textbf{\textit{ver}}tically downward.
+The players alternate turns.
+In each of his turns, Horace either \textit{moves} one of his tokens one step to the right into an empty square, or \textit{jumps} one of his tokens over exactly one of Vera’s tokens into an empty square two steps to the right.
+If no legal moves or jumps are available, Horace simply passes.
+Similarly, Vera either moves or jumps one of her tokens downward in each of her turns, unless no moves or jumps are possible.
+The first player to move all their tokens off the edge of the board wins.
+(It’s not hard to prove that as long as there are tokens on the board, at least one player can legally move, and therefore someone eventually wins.)
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p092-Im43}
+\caption{Vera wins the 3${}\times{}$3 fake-sugar-packet game.}
+\label{fig:2.4}
+\end{figure}
+
+Unless you’ve seen this game before\footnote{If you have, please tell me where!}, you probably don’t have any idea how to play it well.
+Nevertheless, there is a relatively simple backtracking algorithm that can play this game---or any two-player game without randomness or hidden information that ends after a finite number of moves---\textit{perfectly}.
+That is, if we drop you into the middle of a game, and it is \textit{possible} to win against another perfect player, the algorithm will tell you how to win.
+
+A \textbf{\textit{state}} of the game consists of the locations of all the pieces and the identity of the current player.
+These states can be connected into a \textit{game tree}, which has an edge from state $x$ to state $y$ if and only if the current player in state $x$ can legally move to state $y$.
+The root of the game tree is the initial position of the game, and every path from the root to a leaf is a complete game.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p093-Im44}
+\caption{The first two levels of the fake-sugar-packet game tree.}
+\label{fig:2.5}
+\end{figure}
+
+To navigate through this game tree, we recursively define a game state to be \textbf{\textit{good}} or \textbf{\textit{bad}} as follows:
+\begin{itemize}
+\item A game state is \textit{good} if either the current player has already won, or if the current player can move to a bad state for the opposing player.
+\item A game state is \textit{bad} if either the current player has already lost, or if every available move leads to a good state for the opposing player.
+\end{itemize}
+Equivalently, a non-leaf node in the game tree is good if it has at least one bad child, and a non-leaf node is bad if all its children are good.
+By induction, any player that finds the game in a good state on their turn can win the game, even if their opponent plays perfectly; on the other hand, starting from a bad state, a player can win only if their opponent makes a mistake.
+This recursive definition was proposed by Ernst Zermelo in 1913.\footnote{In fact, Zermelo considered the more subtle class of games that have a finite number of states, but that allow infinite sequences of moves. (Zermelo defined infinite play to be a draw.)}
+
+This recursive definition immediately suggests the following recursive backtracking algorithm to determine whether a given game state is good or bad.
+At its core, this algorithm is just a depth-first search of the game tree; equivalently, the game tree is the recursion tree of the algorithm!
+A simple modification of this backtracking algorithm finds a good move (or even all possible good moves) if the input is a good game state.
+
+\begin{pseudocode}
+\Header{\Proc{PlayAnyGame}$(X, \Var{player})$:}\\
+if \Var{player} has already won in state $X$\\
+\Indent return \Const{Good}\\
+if \Var{player} has already lost in state $X$\\
+\Indent return \Const{Bad}\\
+for all legal moves $X \leadsto Y$\\
+\Indent if \Proc{PlayAnyGame}$(Y, \neg\Var{player}) = \Const{Bad}$\\
+\Indent\Indent return \Const{Good} \Comment{$X \leadsto Y$ is a good move}\\
+return \Const{Bad} \Comment{There are no good moves}
+\end{pseudocode}
+
+All game-playing programs are ultimately based on this simple backtracking strategy.
+However, since most games have an enormous number of states, it is not possible to traverse the entire game tree in practice.
+Instead, game programs employ other heuristics\footnote{A heuristic is an algorithm that doesn’t work. (Except in practice. Sometimes. Maybe.)} to \textit{prune} the game tree, by ignoring states that are obviously (or “obviously”) good or bad, or at least better or worse than other states, and/or by cutting off the tree at a certain depth (or \textit{ply}) and using a more efficient heuristic to evaluate the leaves.
+
+\section{Subset Sum}
+\label{sec:2.3}
+
+Let’s consider a more complicated problem, called \Proc{SubsetSum}: Given a set $X$ of positive integers and \textit{target} integer $T$, is there a subset of elements in $X$ that add up to $T$?
+Notice that there can be more than one such subset.
+For example, if $X = \{8, 6, 7, 5, 3, 10, 9\}$ and $T = 15$, the answer is \Const{True}, because the subsets $\{8, 7\}$ and $\{7, 5, 3\}$ and $\{6, 9\}$ and $\{5, 10\}$ all sum to $15$.
+On the other hand, if $X = \{11, 6, 5, 1, 7, 13, 12\}$ and $T = 15$, the answer is \Const{False}.
+
+There are two trivial cases.
+If the target value $T$ is zero, then we can immediately return \Const{True}, because the empty set is a subset of \textit{every} set $X$, and the elements of the empty set add up to zero.\footnote{\dots because what else could they add up to?}
+On the other hand, if $T < 0$, or if $T \neq 0$ but the set $X$ is empty, then we can immediately return \Const{False}.
+
+For the general case, consider an arbitrary element $x \in X$.
+(We’ve already handled the case where $X$ is empty.)
+There is a subset of $X$ that sums to $T$ if and only if one of the following statements is true:
+\begin{itemize}
+\item There is a subset of $X$ that \textit{includes} $x$ and whose sum is $T$.
+\item There is a subset of $X$ that \textit{excludes} $x$ and whose sum is $T$.
+\end{itemize}
+In the first case, there must be a subset of $X \setminus \{x\}$ that sums to $T - x$; in the second case, there must be a subset of $X \setminus \{x\}$ that sums to $T$.
+So we can solve \Proc{SubsetSum}$(X, T)$ by reducing it to two simpler instances: \Proc{SubsetSum}$(X \setminus \{x\}, T - x)$ and \Proc{SubsetSum}$(X \setminus \{x\}, T)$.
+The resulting recursive algorithm is shown below.
+
+\begin{pseudocode}
+\Comment{Does any subset of $X$ sum to $T$?}\\
+\Header{\Proc{SubsetSum}$(X, T)$:}\\
+if $T = 0$\\
+\Indent return \Const{True}\\
+else if $T < 0$ or $X = \emptyset$\\
+\Indent return \Const{False}\\
+else\\
+\Indent $x \gets$ any element of $X$\\
+\Indent $\Var{with} \gets \Proc{SubsetSum}(X \setminus \{x\}, T - x)$ \Comment{Recurse!}\\
+\Indent $\Var{wout} \gets \Proc{SubsetSum}(X \setminus \{x\}, T)$ \Comment{Recurse!}\\
+\Indent return $(\Var{with} \vee \Var{wout})$
+\end{pseudocode}
+
+\subsection{Correctness}
+
+Proving this algorithm correct is a straightforward exercise in induction.
+If $T = 0$, then the elements of the empty subset sum to $T$, so \Const{True} is the correct output.
+Otherwise, if $T$ is negative or the set $X$ is empty, then no subset of $X$ sums to $T$, so \Const{False} is the correct output.
+Otherwise, if there is a subset that sums to $T$, then either it contains $X[n]$ or it doesn’t, and the Recursion Fairy correctly checks for each of those possibilities.
+Done.
+
+\subsection{Analysis}
+
+In order to analyze the algorithm, we have to describe a few implementation details more precisely.
+To begin, let’s assume that the input set $X$ is given as an array $X[1\,..\,n]$.
+
+The previous recursive algorithm allows us to choose \textit{any} element $x \in X$ in the main recursive case.
+Purely for the sake of efficiency, it is helpful to choose an element $x$ such that the remaining subset $X \setminus \{x\}$ has a concise description, which can be computed quickly, so that setting up the recursive calls requires minimal overhead.
+Specifically, we will let $x$ be the last element $X[n]$; then the subset $X \setminus \{x\}$ is stored in the prefix $X[1\,..\,n-1]$.
+Passing a complete \textit{copy} of this prefix to the recursive calls would take too long---we need $\Theta(n)$ time just to make the copy---so instead, we push only two values: a reference to the array (or its starting address) and the length of the prefix.
+(Alternatively, we could avoid passing a reference to $X$ to \textit{every} recursive call by making $X$ a global variable.)
+
+\begin{pseudocode}
+\Comment{Does any subset of $X[1\,..\,i]$ sum to $T$?}\\
+\Header{\Proc{SubsetSum}$(X, i, T)$:}\\
+if $T = 0$\\
+\Indent return \Const{True}\\
+else if $T < 0$ or $i = 0$\\
+\Indent return \Const{False}\\
+else\\
+\Indent $\Var{with} \gets \Proc{SubsetSum}(X, i-1, T - X[i])$ \Comment{Recurse!}\\
+\Indent $\Var{wout} \gets \Proc{SubsetSum}(X, i-1, T)$ \Comment{Recurse!}\\
+\Indent return $(\Var{with} \vee \Var{wout})$
+\end{pseudocode}
+
+With these implementation choices, the running time $T(n)$ of our algorithm satisfies the recurrence $T(n) \le 2T(n-1) + O(1)$.
+The solution $T(n) = O(2^n)$ follows easily using either recursion trees or the even simpler “Oh yeah, we already solved this recurrence for the Tower of Hanoi” method.
+In the worst case---for example, when $T$ is larger than the sum of all elements of $X$---the recursion tree for this algorithm is a complete binary tree with depth $n$, and the algorithm considers all $2^n$ subsets of $X$.
+
+\subsection{Variants}
+
+With only minor changes, we can solve several variants of \Proc{SubsetSum}.
+For example, \figref{fig:2.6} shows an algorithm that actually \textit{constructs} a subset of $X$ that sums to $T$, if one exists, or returns the error value \Const{None} if no such subset exists; this algorithm uses exactly the same recursive strategy as our earlier decision algorithms.
+This algorithm also runs in $O(2^n)$ time; the analysis is simplest if we assume a set data structure that allows us to insert a single element in $O(1)$ time (for example, a linked list), but in fact the running time is still $O(2^n)$ even if insertion requires $O(n)$ time (for example, a \textit{sorted} linked list).
+Similar variants allow us to count subsets that sum to a particular value, or choose the \textit{best} subset (according to some other criterion) that sums to a particular value.
+
+Most other problems that are solved by backtracking have this property: the same recursive strategy can be used to solve many different variants of the same problem.
+For example, it is easy to modify the recursive strategy described in the previous section, which determines whether a given game position is good or bad, to instead return a good move, or a list of all good moves.
+For this reason, when we \textit{design} backtracking algorithms, we should aim for the simplest possible variant of the problem, computing a number or even a single boolean instead of more complex information or structure.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Comment{Return a subset of $X[1\,..\,i]$ that sums to $T$}\\
+\Comment{or \Const{None} if no such subset exists}\\
+\Header{\Proc{ConstructSubset}$(X, i, T)$:}\\
+if $T = 0$\\
+\Indent return $\emptyset$\\
+if $T < 0$ or $n = 0$\\
+\Indent return \Const{None}\\
+$Y \gets \Proc{ConstructSubset}(X, i-1, T)$\\
+if $Y \neq \Const{None}$\\
+\Indent return $Y$\\
+$Y \gets \Proc{ConstructSubset}(X, i-1, T - X[i])$\\
+if $Y \neq \Const{None}$\\
+\Indent return $Y \cup \{X[i]\}$\\
+return \Const{None}
+\end{pseudocode}
+\caption{A recursive backtracking algorithm for the construction version of \Proc{SubsetSum}.}
+\label{fig:2.6}
+\end{figure}
+
+\section{The General Pattern}
+\label{sec:2.4}
+
+Backtracking algorithms are commonly used to make a \textit{sequence of decisions}, with the goal of building a recursively defined structure satisfying certain constraints.
+Often (but not always) this goal structure is itself a sequence.
+For example:
+\begin{itemize}
+\item In the $n$-queens problem, the goal is a sequence of queen positions, one in each row, such that no two queens attack each other.
+For each row, the algorithm \textit{decides} where to place the queen.
+\item In the game tree problem, the goal is a sequence of legal moves, such that each move is as good as possible for the player making it.
+For each game state, the algorithm \textit{decides} the best possible next move.
+\item In the \Proc{SubsetSum} problem, the goal is a sequence of input elements that have a particular sum.
+For each input element, the algorithm \textit{decides} whether to include it in the output sequence or not.
+\end{itemize}
+(Hang on, why is the goal of \textit{subset} sum finding a \textit{sequence}?
+That was a deliberate design decision.
+We imposed a convenient ordering on the input set---by representing it using an array, as opposed to some other more amorphous data structure---that we can exploit in our recursive algorithm.)
+
+In each recursive call to the backtracking algorithm, we need to make \textbf{\textit{exactly one}} decision, and our choice must be consistent with all previous decisions.
+Thus, each recursive call requires not only the portion of the input data we have not yet processed, but also a suitable summary of the decisions we have already made.
+For the sake of efficiency, the summary of past decisions should be as small as possible.
+For example:
+\begin{itemize}
+\item For the $n$-queens problem, we must pass in not only the number of empty rows, but the positions of all previously placed queens.
+Here, unfortunately, we must remember our past decisions in complete detail.
+\item For the game tree problem, we only need to pass in the current state of the game, including the identity of the next player.
+We don’t need to remember \textit{anything} about our past decisions, because who wins from a given game state does not depend on the moves that created that state.\footnote{Many games \textit{appear} to violate this independence condition. For example, the standard rules of both chess and checkers allow a player to declare a draw if the same arrangement of pieces occurs three times, and the Chinese rules for go simply forbid repeating any earlier arrangement of stones. Thus, for these games, a game state formally includes not only the current positions of the pieces but the entire history of previous moves.}
+\item For the \Proc{SubsetSum} problem, we need to pass in both the remaining available integers and the remaining target value, which is the original target value minus the \textit{sum} of the previously chosen elements.
+Precisely which elements were previously chosen is unimportant.
+\end{itemize}
+When we design new recursive backtracking algorithms, we must figure out \textit{in advance} what information we will need about past decisions \textit{in the middle of the algorithm}.
+If this information is nontrivial, our recursive algorithm might need to solve a more general problem than the one we were originally asked to solve.
+(We’ve seen this kind of generalization before: To find the \textit{median} of an unsorted array in linear time, we derived an algorithm to select the $k$th smallest element for \textit{arbitrary} $k$.)
+
+Finally, once we’ve figured out what recursive problem we \textit{really} need to solve, we solve that problem by \textbf{\textit{recursive brute force}}: Try \textit{all} possibilities for the next decision that are consistent with past decisions, and let the Recursion Fairy worry about the rest.
+No being clever here.
+No skipping “obviously” stupid choices.
+Try everything.
+You can make the algorithm faster later.
+
+\section{Text Segmentation (\textit{Interpunctio Verborum})}
+\label{sec:2.5}
+
+Suppose you are given a string of letters representing text in some foreign language, but without any spaces or punctuation, and you want to break this string into its individual constituent words.
+For example, you might be given the following passage from Cicero’s famous oration in defense of Lucius Licinius Murena in 62\textsc{bce}, in the standard \textit{scriptio continua} of classical Latin:\footnote{In·fact·most·classical·Latin·manuscripts·separated·words·with·small·dots·called·\textit{interpuncts}. Interpunctuation all but disappeared by the 3rd century in favor of \textit{scriptio continua}. Empty spaces between words were introduced by Irish monks in the 8th century and slowly spread across Europe over the next several centuries. \textit{Scriptio continua} survives in early 21st-century English in the form of URLs and hashtags. \textsf{\#octotherps4lyfe}}
+\[
+\begin{array}{c}
+\mbox{PRIMVSDIGNITASINTAMTENVISCIENTIANONPOTEST}\\
+\mbox{ESSERESENIMSVNTPARVAEPROPEINSINGVLISLITTERIS}\\
+\mbox{ATQVEINTERPVNCTIONIBUSVERBORVMOCCVPATAE}
+\end{array}
+\]
+A fluent Latin reader would parse this string (in modern orthography) as \textit{Primus dignitas in tam tenui scientia non potest esse; res enim sunt parvae, prope in singulis litteris atque interpunctionibus verborum occupatae}.\footnote{Loosely translated: “First of all, dignity in such paltry knowledge is impossible; this is trivial stuff, mostly concerned with individual letters and the placement of points between words.” Cicero was openly mocking the legal expertise of his friend(!) and noted jurist Servius Sulpicius Rufus, who had accused Murena of bribery, after Murena defeated Rufus in election for consul. Murena was acquitted, thanks in part to Cicero’s acerbic defense, although he was almost certainly guilty. \textsf{\#librapondo \#nunquamestfidelis}}
+Text segmentation is not only a problem in classical Latin and Greek, but in several modern languages and scripts including Balinese, Burmese, Chinese, Japanese, Javanese, Khmer, Lao, Thai, Tibetan, and Vietnamese.
+Similar problems arise in segmenting unpunctuated English text into sentences,\footnote{St.\ Augustine’s \textit{De doctrina Christiana} devotes an entire chapter to removing ambiguity from Latin scripture by adding punctuation.} segmenting text into lines for typesetting, speech and handwriting recognition, curve simplification, and several types of time-series analysis.
+For purposes of illustration, I’ll stick to segmenting sequences of letters in the modern English alphabet into modern English words.
+
+Of course, some strings can be segmented in several different ways; for example, \Str{BOTHEARTHANDSATURNSPIN} can be decomposed into English words as either \Str{BOTH·EARTH·AND·SATURN·SPIN} or \Str{BOT·HEART·HANDS·AT·URNS·PIN}, among many other possibilities.
+For now, let’s consider an extremely simple segmentation problem: Given a string of characters, can it be segmented into English words \textit{at all}?
+
+To make the problem concrete (and language-agnostic), let’s assume we have access to a subroutine \Proc{IsWord}$(w)$ that takes a string $w$ as input, and returns \Const{True} if $w$ is a “word”, or \Const{False} if $w$ is not a “word”.
+For example, if we are trying to decompose the input string into palindromes, then a “word” is a synonym for “palindrome”, and therefore \Proc{IsWord}$($\Str{ROTATOR}$) = \Const{True}$ but \Proc{IsWord}$($\Str{PALINDROME}$) = \Const{False}$.
+
+Just like the \Proc{SubsetSum} problem, the \textit{input} structure is a sequence, this time containing letters instead of numbers, so it is natural to consider a decision process that consumes the input characters in order from left to right.
+Similarly, the \textit{output} structure is a sequence of words, so it is natural to consider a process that produces the output words in order from left to right.
+Thus, jumping into the middle of the segmentation process, we might imagine the following picture:
+\[
+\Segments{BLUE,STEM,UNIT,ROBOT}{HEARTHANDSATURNSPIN}
+\]
+Here the black bar separates our past decisions---splitting the first 17 letters into four words---from the portion of the input string that we have not yet processed.
+
+The next stage in our imagined process is to \textbf{\textit{decide}} where the next word in the output sequence ends.
+For this specific example, there are four possibilities for the next output word---\Str{HE}, \Str{HEAR}, \Str{HEART}, and \Str{HEARTH}.
+We have \textit{no idea} which of these choices, if any, is consistent with a complete segmentation of the input string.
+We could be “smart” at this point and try to \textit{figure out} which choices are good, but that would require \textit{thinking}!
+Instead, let’s “stupidly” try every possibility by brute force, and let the Recursion Fairy do all the real work.
+\begin{itemize}
+\item First \textit{tentatively} accept \Str{HE} as the next word, and let the Recursion Fairy make the rest of the decisions.
+\[
+\Segments{BLUE,STEM,UNIT,ROBOT,HE}{ARTHANDSATURNSPIN}
+\]
+\item Then \textit{tentatively} accept \Str{HEAR} as the next word, and let the Recursion Fairy make the rest of the decisions.
+\[
+\Segments{BLUE,STEM,UNIT,ROBOT,HEAR}{THANDSATURNSPIN}
+\]
+\item Then \textit{tentatively} accept \Str{HEART} as the next word, and let the Recursion Fairy make the rest of the decisions.
+\[
+\Segments{BLUE,STEM,UNIT,ROBOT,HEART}{HANDSATURNSPIN}
+\]
+\item Finally, \textit{tentatively} accept \Str{HEARTH} as the next word, and let the Recursion Fairy make the rest of the decisions.
+\[
+\Segments{BLUE,STEM,UNIT,ROBOT,HEARTH}{ANDSATURNSPIN}
+\]
+\end{itemize}
+As long as the Recursion Fairy reports success at least once, we report success.
+On the other hand, if the Recursion Fairy \textit{never} reports success---in particular, if the set of possible next words is empty---then we report failure.
+
+None of our past decisions affect which choices are available now; all that matters is the suffix of characters that we have not yet processed.
+In particular, several different sequences of past decisions could lead us to the same suffix, but they all leave us with exactly the same set of choices for that suffix.
+\[
+\begin{array}{c}
+\Segments{BLUE,STEM,UNIT,ROBOT}{HEARTHANDSATURNSPIN}\\[1ex]
+\Segments{BLUEST,EMU,NITRO,BOT}{HEARTHANDSATURNSPIN}
+\end{array}
+\]
+Thus, we can simplify our picture of the recursive process by discarding \textit{everything} left of the black bar:
+\[
+\Segments{}{HEARTHANDSATURNSPIN}
+\]
+We are now left with a simple and natural backtracking strategy: \textit{Select the first output word, and recursively segment the rest of the input string.}
+
+To get a complete recursive algorithm, we need a base case.
+Our recursive strategy breaks down when we reach the end of the input string, because there is no next word.
+Fortunately, the empty string has a unique segmentation into zero words!
+
+Putting all the pieces together, we arrive at the following simple recursive algorithm:
+
+\begin{pseudocode}
+\Header{\Proc{Splittable}$(A[1\,..\,n])$:}\\
+if $n = 0$\\
+\Indent return \Const{True}\\
+for $i \gets 1$ to $n$\\
+\Indent if \Proc{IsWord}$(A[1\,..\,i])$\\
+\Indent\Indent if \Proc{Splittable}$(A[i+1\,..\,n])$\\
+\Indent\Indent\Indent return \Const{True}\\
+return \Const{False}
+\end{pseudocode}
+
+\subsection{Index Formulation}
+
+In practice, passing arrays as input parameters is rather slow; we should really find a more compact way to describe our recursive subproblems.
+\textit{For purposes of designing the algorithm}, it’s incredibly useful to treat the original input array as a global variable, and then reformulate the problem and the algorithm in terms of array indices instead of explicit subarrays.
+
+For our string segmentation problem, the argument of any recursive call is always a \textbf{\textit{suffix}} $A[i\,..\,n]$ of the original input array.
+So if we treat the input array $A[1\,..\,n]$ as a global variable, we can reformulate our recursive problem as follows:
+\begin{problembox}
+Given an index $i$, find a segmentation of the suffix $A[i\,..\,n]$.
+\end{problembox}
+To describe our algorithm, we need two boolean functions:
+\begin{itemize}
+\item For any indices $i$ and $j$, let $\Proc{IsWord}(i, j) = \Const{True}$ if and only if the substring $A[i\,..\,j]$ is a word.
+(We’re assuming this function is given to us.)
+\item For any index $i$, let $\Var{Splittable}(i) = \Const{True}$ if and only if the suffix $A[i\,..\,n]$ can be split into words.
+(This is the function we need to implement.)
+\end{itemize}
+For example, $\Proc{IsWord}(1, n) = \Const{True}$ if and only if the entire input string is a single word, and $\Var{Splittable}(1) = \Const{True}$ if and only if the entire input string can be segmented.
+Our earlier recursive strategy gives us the following recurrence:
+\[
+\Var{Splittable}(i) = \begin{cases}
+\Const{True} & \text{if } i > n\\[1ex]
+\displaystyle\bigvee_{j=i}^{n} \bigl(\Proc{IsWord}(i, j) \wedge \Var{Splittable}(j+1)\bigr) & \text{otherwise}
+\end{cases}
+\]
+This is \textit{exactly} the same algorithm as we saw earlier; the only thing we’ve changed is the notation.
+The similarity is even more apparent if we rewrite the recurrence in pseudocode:
+
+\begin{pseudocode}
+\Comment{Is the suffix $A[i\,..\,n]$ Splittable?}\\
+\Header{\Proc{Splittable}$(i)$:}\\
+if $i > n$\\
+\Indent return \Const{True}\\
+for $j \gets i$ to $n$\\
+\Indent if \Proc{IsWord}$(i, j)$\\
+\Indent\Indent if \Proc{Splittable}$(j+1)$\\
+\Indent\Indent\Indent return \Const{True}\\
+return \Const{False}
+\end{pseudocode}
+
+Although it may look like a trivial notational difference, using index notation instead of array notation is an important habit, not only to speed up backtracking algorithms in practice, but for developing dynamic programming algorithms, which we discuss in the next chapter.
+
+\subsection{\difficulty{H}Analysis}
+
+It should come as no surprise that most backtracking algorithms have exponential worst-case running times.
+Analyzing the precise running times of many of these algorithms requires techniques that are beyond the scope of this book.
+Fortunately, most of the backtracking algorithms we will encounter \textit{in this book} are only intermediate results on the way to more efficient algorithms, which means their exact worst-case running time is not actually important.
+(First make it work; then make it fast.)
+
+But just for fun, let’s analyze the running time of our recursive algorithm \Proc{Splittable}.
+Because we don’t know what \Proc{IsWord} is doing, we can’t know how long each call to \Proc{IsWord} takes, so we’re forced to analyze the running time in terms of the number of calls to \Proc{IsWord}.\footnote{In fact, as long as \Proc{IsWord} runs in \textit{polynomial} time, \Proc{Splittable} runs in $O(2^n)$ time.}
+\Proc{Splittable} calls \Proc{IsWord} on every prefix of the input string, and \textit{possibly} calls itself recursively on every suffix of the output string.
+Thus, the “running time” of \Proc{Splittable} obeys the scary-looking recurrence
+\[
+T(n) \le \sum_{i=0}^{n-1} T(i) + O(n)
+\]
+This really isn’t as bad as it looks, especially once you’ve seen the trick.
+
+First, we replace the $O(n)$ term with an explicit expression $\alpha n$, for some unknown (and ultimately unimportant) constant $\alpha$.
+Second, we conservatively assume that the algorithm actually makes every possible recursive call.\footnote{This assumption is wildly conservative for English \textit{word} segmentation, since most strings of letters are not English words, but \textit{not} for the similar problem of segmenting sequences of English \textit{words} into grammatically correct English \textit{sentences}. Consider, for example, a sequence of $n$ copies of the word “buffalo”, or $n$ copies of the work “police”, or $n$ copies of the word “can”, for any positive integer $n$. (At the Moulin Rouge, dances that are preservable in metal cylinders by other dances have the opportunity to fire dances that happen in prison restroom trash receptacles.)}
+Then we can transform the “full history” recurrence into a “limited history” recurrence by subtracting the recurrence for $T(n-1)$, as follows:
+\begin{align*}
+T(n) &= \sum_{i=0}^{n-1} T(i) + \alpha n\\
+T(n-1) &= \sum_{i=0}^{n-2} T(i) + \alpha(n-1)\\
+\implies T(n) - T(n-1) &= T(n-1) + \alpha
+\end{align*}
+This final recurrence simplifies to $T(n) = 2T(n-1) + \alpha$.
+At this point, we can confidently guess (or derive via recursion trees, or remember from our Tower of Hanoi analysis) that $T(n) = O(2^n)$; indeed, this upper bound is not hard to prove by induction from the original full-history recurrence.
+
+Moreover, this analysis is tight.
+There are exactly $2^{n-1}$ possible ways to segment a string of length $n$---each input character either ends a word or doesn’t, except the last input character, which always ends the last word.
+In the worst case, our \Proc{Splittable} algorithm explores each of these $2^{n-1}$ possibilities.
+
+\subsection{Variants}
+
+Now that we have the basic recursion pattern in hand, we can use it to solve many different variants of the segmentation problem, just as we did for the \Proc{SubsetSum} problem.
+Here I’ll describe just one example; more variations are considered in the exercises.
+As usual, the original input to our problem is an array $A[1\,..\,n]$.
+
+If a string can be segmented in more than one sequence of words, we may want to find the \textit{best} segmentation according to some criterion; conversely, if the input string cannot be segmented into words, we may want to compute the best segmentation we can find, rather than merely reporting failure.
+To meet both of these goals, suppose we have access to a second function \Proc{Score} that takes a string as input and returns a numerical value.
+For example, we might assign higher scores to longer or more common words, lower scores to shorter or more obscure words, slightly negative scores for minor spelling errors, and more negative scores to obvious non-words.
+Our goal is to find a segmentation that maximizes the sum of the scores of the segments.
+
+For any index $i$, let $\Var{MaxScore}(i)$ denote the maximum score of any segmentation of the suffix $A[i\,..\,n]$; we need to compute $\Var{MaxScore}(1)$.
+This function satisfies the following recurrence:
+\[
+\Var{MaxScore}(i) = \begin{cases}
+0 & \text{if } i > n\\
+\displaystyle\max_{i \le j \le n} \bigl(\Proc{Score}(A[i\,..\,j]) + \Var{MaxScore}(j+1)\bigr) & \text{otherwise}
+\end{cases}
+\]
+This is essentially the same recurrence as the one we developed for \Var{Splittable}; the only difference is that the boolean operations $\vee$ and $\wedge$ have been replaced by the numerical operations $\max$ and $+$.
+
+\section{Longest Increasing Subsequence}
+\label{sec:2.6}
+
+For any sequence $S$, a \textbf{\textit{subsequence}} of $S$ is another sequence obtained from $S$ by deleting zero or more elements, without changing the order of the remaining elements; the elements of the subsequence need not be contiguous in $S$.
+For example, when you drive down a major street in any city, you drive through a \textit{sequence} of intersections with traffic lights, but you only have to stop at a \textit{subsequence} of those intersections, where the traffic lights are red.
+If you’re very lucky, you never stop at all: the empty sequence is a subsequence of $S$.
+On the other hand, if you’re very unlucky, you may have to stop at every intersection: $S$ is a subsequence of itself.
+
+As another example, the strings \Str{BENT}, \Str{ACKACK}, \Str{SQUARING}, and \Str{SUBSEQUENT} are all subsequences of the string \Str{SUBSEQUENCEBACKTRACKING}, as are the empty string and the entire string \Str{SUBSEQUENCEBACKTRACKING}, but the strings \Str{QUEUE} and \Str{EQUUS} and \Str{TALLYHO} are not.
+A subsequence whose elements are contiguous in the original sequence is called a \textbf{\textit{substring}}; for example, \Str{MASHER} and \Str{LAUGHTER} are both subsequences of \Str{MANSLAUGHTER}, but only \Str{LAUGHTER} is a substring.
+
+Now suppose we are given a sequence of \textit{integers}, and we need to find the longest subsequence whose elements are in increasing order.
+More concretely, the input is an integer array $A[1\,..\,n]$, and we need to compute the longest possible sequence of indices $1 \le i_1 < i_2 < \cdots < i_\ell \le n$ such that $A[i_k] < A[i_{k+1}]$ for all $k$.
+
+One natural approach to building this \textbf{\textit{longest increasing subsequence}} is to \textit{decide}, for each index $j$ in order from $1$ to $n$, whether or not to include $A[j]$ in the subsequence.
+Jumping into the middle of this decision sequence, we might imagine the following picture:
+\[
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6,-5,-3}{?5,8,9,7,9,3,2,3,8,4,6,2,6}
+\]
+As in our earlier text segmentation examples, the black bar separates our past decisions from the portion of the input we have not yet processed.
+Numbers we have already decided to include are highlighted and bold; numbers we have already decided to exclude are grayed out.
+(Notice that the numbers we’ve decided to include are increasing!)
+Our algorithm must decide whether or not to include the number immediately after the black bar.
+
+In this example, we definitely \textit{cannot} include $5$, because then the selected numbers would no longer be in increasing order.
+So let’s skip ahead to the next decision:
+\[
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6,-5,-3,-5}{?8,9,7,9,3,2,3,8,4,6,2,6}
+\]
+Now we \textit{can} include $8$, but it’s not obvious whether we \textit{should}.
+Rather than trying to be “smart”, our backtracking algorithm will use simple brute force.
+\begin{itemize}
+\item First \textit{tentatively} include the $8$, and let the Recursion Fairy make the rest of the decisions.
+\item Then \textit{tentatively} exclude the $8$, and let the Recursion Fairy make the rest of the decisions.
+\end{itemize}
+Whichever choice leads to a longer increasing subsequence is the right one.
+(This is precisely the same recursion pattern we used to solve \Proc{SubsetSum}.)
+
+Now for the key question: \textit{What do we need to remember about our past decisions?}
+We can only include $A[j]$ if the resulting subsequence is in increasing order.
+If we assume (inductively!) that the numbers previously selected from $A[1\,..\,j-1]$ are in increasing order, then we can include $A[j]$ if and only if $A[j]$ is larger than the last number selected from $A[1\,..\,j-1]$.
+Thus, the only information we need about the past is \textbf{\textit{the last number selected so far}}.
+We can now revise our pictures by erasing everything we don’t need:
+\[
+\begin{array}{c}
+\Decisions{+6}{?5,8,9,7,9,3,2,3,8,4,6,2,6}\\[1ex]
+\Decisions{+6}{?8,9,7,9,3,2,3,8,4,6,2,6}
+\end{array}
+\]
+So the problem our recursive strategy is \textit{actually} solving is the following:
+\begin{problembox}
+Given an integer \Var{prev} and an array $A[1\,..\,n]$, find the longest increasing subsequence of $A$ in which every element is larger than \Var{prev}.
+\end{problembox}
+
+As usual, our recursive strategy requires a base case.
+Our current strategy breaks down when we get to the end of the array, because there is no “next number” to consider.
+But an empty array has exactly one subsequence, namely, the \textit{empty} sequence.
+Vacuously, every element in the empty sequence is larger than whatever value you want, and every pair of elements in the empty sequence appears in increasing order.
+Thus, the longest increasing subsequence of the empty array has length $0$.
+
+Here’s the resulting recursive algorithm:
+
+\begin{pseudocode}
+\Header{\Proc{LISbigger}$(\Var{prev}, A[1\,..\,n])$:}\\
+if $n = 0$\\
+\Indent return $0$\\
+else if $A[1] \le \Var{prev}$\\
+\Indent return \Proc{LISbigger}$(\Var{prev}, A[2\,..\,n)$\\
+else\\
+\Indent $\Var{skip} \gets \Proc{LISbigger}(\Var{prev}, A[2\,..\,n])$\\
+\Indent $\Var{take} \gets \Proc{LISbigger}(A[1], A[2\,..\,n]) + 1$\\
+\Indent return $\max\{\Var{skip}, \Var{take}\}$
+\end{pseudocode}
+
+Okay, but remember that passing arrays around on the call stack is expensive; let’s try to rephrase everything in terms of array indices, assuming that the array $A[1\,..\,n]$ is a global variable.
+The integer \Var{prev} is typically an array element $A[i]$, and the remaining array is always a suffix $A[j\,..\,n]$ of the original input array.
+So we can reformulate our recursive \textit{problem} as follows:
+\begin{problembox}
+Given two indices $i$ and $j$, where $i < j$, find the longest increasing subsequence of $A[j\,..\,n]$ in which every element is larger than $A[i]$.
+\end{problembox}
+Let $\Var{LISbigger}(i, j)$ denote the \textit{length} of the longest increasing subsequence of $A[j\,..\,n]$ in which every element is larger than $A[i]$.
+Our recursive strategy gives us the following recurrence:
+\[
+\Var{LISbigger}(i, j) = \begin{cases}
+0 & \text{if } j > n\\
+\Var{LISbigger}(i, j+1) & \text{if } A[i] \ge A[j]\\
+\max\left\{\begin{array}{c} \Var{LISbigger}(i, j+1)\\ 1 + \Var{LISbigger}(j, j+1) \end{array}\right\} & \text{otherwise}
+\end{cases}
+\]
+Alternatively, if you prefer pseudocode:
+
+\begin{pseudocode}
+\Header{\Proc{LISbigger}$(i, j)$:}\\
+if $j > n$\\
+\Indent return $0$\\
+else if $A[i] \ge A[j]$\\
+\Indent return \Proc{LISbigger}$(i, j+1)$\\
+else\\
+\Indent $\Var{skip} \gets \Proc{LISbigger}(i, j+1)$\\
+\Indent $\Var{take} \gets \Proc{LISbigger}(j, j+1) + 1$\\
+\Indent return $\max\{\Var{skip}, \Var{take}\}$
+\end{pseudocode}
+
+Finally, we need to connect our recursive strategy to the original problem: Finding the longest increasing subsequence of an array \textit{with no other constraints}.
+The simplest approach is to add an artificial sentinel value $-\infty$ to the beginning of the array.
+
+\begin{pseudocode}
+\Header{\Proc{LIS}$(A[1\,..\,n])$:}\\
+$A[0] \gets -\infty$\\
+return \Proc{LISbigger}$(0, 1)$
+\end{pseudocode}
+
+The running time of \Proc{LISbigger} satisfies the Hanoi recurrence $T(n) \le 2T(n-1) + O(1)$, which as usual implies that $T(n) = O(2^n)$.
+We really shouldn’t be surprised by this running time; in the worst case, the algorithm examines each of the $2^n$ subsequences of the input array.
+
+\section{Longest Increasing Subsequence, Take 2}
+\label{sec:2.7}
+
+This is not the only backtracking strategy we can use to find longest increasing subsequences.
+Instead of considering the \textit{input} sequence one element at a time, we could try to construct the \textit{output} sequence one element at a time.
+That is, instead of asking “Is $A[i]$ the next element of the output sequence?”, we could ask directly, “Where is the next element of the output sequence, if any?”
+
+Jumping into the middle of this strategy, we might be faced with the following picture.
+Suppose we just decided to include the $6$ just left of the black bar in our output sequence, and we need to decide which element to the right of the bar to include next.
+\[
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6}{?5,?3,?5,?8,?9,?7,?9,?3,?2,?3,?8,?4,?6,?2,?6}
+\]
+Of course, we can only include numbers on the right that are greater than $6$; otherwise, our output sequence would not be increasing.
+\[
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6}{-5,-3,-5,?8,?9,?7,?9,-3,-2,-3,?8,-4,-6,-2,-6}
+\]
+But we have no idea \textit{which} of those larger numbers is the best choice, and trying to cleverly \textit{figure out} the best choice is too much work, and it’s only going to get us into trouble anyway.
+Instead, we enumerate all possibilities by brute force, and let the Recursion Fairy evaluate each one.
+\[
+\begin{array}{c}
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6,-5,-3,-5,+8}{9,7,9,3,2,3,8,4,6,2,6}\\[1ex]
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6,-5,-3,-5,-8,+9}{7,9,3,2,3,8,4,6,2,6}\\[1ex]
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6,-5,-3,-5,-8,-9,+7}{9,3,2,3,8,4,6,2,6}\\[1ex]
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6,-5,-3,-5,-8,-9,-7,+9}{3,2,3,8,4,6,2,6}\\[1ex]
+\Decisions{-3,+1,+4,-1,+5,-9,-2,+6,-5,-3,-5,-8,-9,-7,-9,-3,-2,-3,+8}{4,6,2,6}
+\end{array}
+\]
+
+The subset of numbers we can consider as the next element depends \textit{only} on the last number we decided to include.
+Thus, we can simplify our picture of the decision process by discarding everything to the left of the bar \textit{except} the last number we decided to include.
+\[
+\Decisions{+6}{5,3,5,8,9,7,9,3,2,3,8,4,6,2,6}
+\]
+The remaining sequence of numbers is just a suffix of the original input array.
+Thus, if we think of the input array $A[1\,..\,n]$ as a global variable, we can formally express our recursive problem in terms of indices as follows:
+\begin{problembox}
+Given an index $i$, find the longest increasing subsequence of $A[i\,..\,n]$ that begins with $A[i]$.
+\end{problembox}
+Let $\Var{LISfirst}(i)$ denote the length of the longest increasing subsequence of $A[i\,..\,n]$ that begins with $A[i]$.
+We can now formulate our recursive backtracking strategy as the following recursive definition:
+\[
+\Var{LISfirst}(i) = 1 + \max\bigl\{\Var{LISfirst}(j) \bigm| j > i \text{ and } A[j] > A[i]\bigr\}
+\]
+Because we are dealing with sets of natural numbers, we define $\max\emptyset = 0$.
+Then we automatically have $\Var{LISfirst}(i) = 1$ if $A[j] \le A[i]$ for all $j > i$; in particular, $\Var{LISfirst}(n) = 1$.
+These are the base cases for our recurrence.
+
+We can also express this recursive definition in pseudocode as follows:
+
+\begin{pseudocode}
+\Header{\Proc{LISfirst}$(i)$:}\\
+$\Var{best} \gets 0$\\
+for $j \gets i+1$ to $n$\\
+\Indent if $A[j] > A[i]$\\
+\Indent\Indent $\Var{best} \gets \max\{\Var{best}, \Proc{LISfirst}(j)\}$\\
+return $1 + \Var{best}$
+\end{pseudocode}
+
+Finally, we need to reconnect this recursive algorithm to our original problem---finding the longest increasing subsequence without knowing its first element.
+One natural approach that works is to try all possible first elements by brute force.
+Equivalently, we can add a sentinel element $-\infty$ to the beginning of the array, find the longest increasing subsequence that starts with the sentinel, and finally ignore the sentinel.
+
+\begin{center}
+\begin{minipage}[c]{0.55\linewidth}
+\begin{pseudocode}
+\Header{\Proc{LIS}$(A[1\,..\,n])$:}\\
+$\Var{best} \gets 0$\\
+for $i \gets 1$ to $n$\\
+\Indent $\Var{best} \gets \max\{\Var{best}, \Proc{LISfirst}(i)\}$\\
+return \Var{best}
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.42\linewidth}
+\begin{pseudocode}
+\Header{\Proc{LIS}$(A[1\,..\,n])$:}\\
+$A[0] \gets -\infty$\\
+return $\Proc{LISfirst}(0) - 1$
+\end{pseudocode}
+\end{minipage}
+\end{center}
+
+\section{Optimal Binary Search Trees}
+\label{sec:2.8}
+
+Our final example combines recursive backtracking with the divide-and-conquer strategy.
+Recall that the running time for a successful search in a binary search tree is proportional to the number of ancestors of the target node.\footnote{An \textit{ancestor} of a node $v$ is either the node itself or an ancestor of the parent of $v$. A \textit{proper} ancestor of $v$ is either the parent of $v$ or a proper ancestor of the parent of $v$.}
+As a result, the worst-case search time is proportional to the depth of the tree.
+Thus, to minimize the worst-case search time, the height of the tree should be as small as possible; by this metric, the ideal tree is perfectly balanced.
+
+In many applications of binary search trees, however, it is more important to minimize the total cost of several searches rather than the worst-case cost of a single search.
+If $x$ is a more frequent search target than $y$, we can save time by building a tree where the depth of $x$ is smaller than the depth of $y$, even if that means increasing the overall depth of the tree.
+A perfectly balanced tree is \textit{not} the best choice if some items are significantly more popular than others.
+In fact, a totally unbalanced tree with depth $\Omega(n)$ might actually be the best choice!
+
+This situation suggests the following problem.
+Suppose we are given a sorted array of \textbf{\textit{keys}} $A[1\,..\,n]$ and an array of corresponding \textbf{\textit{access frequencies}} $f[1\,..\,n]$.
+Our task is to build the binary search tree that minimizes the \textit{total} search time, assuming that there will be exactly $f[i]$ searches for each key $A[i]$.
+
+Before we think about how to solve this problem, we should first come up with a good recursive definition of the function we are trying to optimize!
+Suppose we are also given a binary search tree $T$ with $n$ nodes.
+Let $v_1, v_2, \dots, v_n$ be the nodes of $T$, indexed in sorted order, so that each node $v_i$ stores the corresponding key $A[i]$.
+Then ignoring constant factors, the total cost of performing all the binary searches is given by the following expression:
+\begin{equation*}
+\Var{Cost}(T, f[1\,..\,n]) := \sum_{i=1}^{n} f[i] \cdot \#\text{ancestors of $v_i$ in $T$} \tag{$*$}
+\end{equation*}
+Now suppose $v_r$ is the root of $T$; by definition, $v_r$ is an ancestor of every node in $T$.
+If $i < r$, then all ancestors of $v_i$ except the root are in the left subtree of $T$.
+Similarly, if $i > r$, then all ancestors of $v_i$ except the root are in the right subtree of $T$.
+Thus, we can partition the cost function into three parts as follows:
+\begin{align*}
+\Var{Cost}(T, f[1\,..\,n]) = \sum_{i=1}^{n} f[i] &+ \sum_{i=1}^{r-1} f[i] \cdot \#\text{ancestors of $v_i$ in $\Var{left}(T)$}\\
+&+ \sum_{i=r+1}^{n} f[i] \cdot \#\text{ancestors of $v_i$ in $\Var{right}(T)$}
+\end{align*}
+The second and third summations look exactly like our original definition $(*)$ for $\Var{Cost}(T, f[1\,..\,n])$.
+Simple substitution now gives us a recurrence for \Var{Cost}:
+\begin{align*}
+\Var{Cost}(T, f[1\,..\,n]) = \sum_{i=1}^{n} f[i] &+ \Var{Cost}(\Var{left}(T), f[1\,..\,r-1])\\
+&+ \Var{Cost}(\Var{right}(T), f[r+1\,..\,n])
+\end{align*}
+The base case for this recurrence is, as usual, $n = 0$; the cost of performing no searches in the empty tree is zero.
+
+Now our task is to compute the tree $T_{\textup{opt}}$ that minimizes this cost function.
+Suppose we somehow magically knew that the root of $T_{\textup{opt}}$ is $v_r$.
+Then the recursive definition of $\Var{Cost}(T, f)$ immediately implies that the left subtree $\Var{left}(T_{\textup{opt}})$ must be the optimal search tree for the keys $A[1\,..\,r-1]$ and access frequencies $f[1\,..\,r-1]$.
+Similarly, the right subtree $\Var{right}(T_{\textup{opt}})$ must be the optimal search tree for the keys $A[r+1\,..\,n]$ and access frequencies $f[r+1\,..\,n]$.
+\textbf{Once we choose the correct key to store at the root, the Recursion Fairy will construct the rest of the optimal tree.}
+
+More generally, let $\Var{OptCost}(i, k)$ denote the total cost of the optimal search tree for the interval of frequencies $f[i\,..\,k]$.
+This function obeys the following recurrence.
+\[
+\Var{OptCost}(i, k) = \begin{cases}
+0 & \text{if } i > k\\[1ex]
+\displaystyle\sum_{j=i}^{k} f[i] + \min_{i \le r \le k} \left\{\begin{aligned} &\Var{OptCost}(i, r-1)\\ &\quad + \Var{OptCost}(r+1, k) \end{aligned}\right\} & \text{otherwise}
+\end{cases}
+\]
+The base case correctly indicates that the minimum possible cost to perform zero searches into the empty set is zero!
+Our original problem is to compute $\Var{OptCost}(1, n)$.
+
+This recursive definition can be translated mechanically into a recursive backtracking algorithm to compute $\Var{OptCost}(1, n)$.
+Not surprisingly, the running time of this algorithm is exponential.
+In the next chapter, we’ll see how to reduce the running time to polynomial, so there’s not much point in computing the precise running time\dots
+
+\subsection{\difficulty{H}Analysis}
+
+\dots unless you’re into that sort of thing.
+Just for the fun of it, let’s figure out how slow this backtracking algorithm actually is.
+The running time satisfies the recurrence
+\[
+T(n) = \sum_{k=1}^{n} \bigl(T(k-1) + T(n-k)\bigr) + O(n).
+\]
+The $O(n)$ term comes from computing the total number of searches $\sum_{i=1}^{n} f[i]$.
+Yeah, that’s one ugly recurrence, but we can solve it using exactly the same subtraction trick we used before.
+We replace the $O()$ notation with an explicit constant, regroup and collect identical terms, subtract the recurrence for $T(n-1)$ to get rid of the summation, and then regroup again.
+\begin{align*}
+T(n) &= 2\sum_{k=0}^{n-1} T(k) + \alpha n\\
+T(n-1) &= 2\sum_{k=0}^{n-2} T(k) + \alpha(n-1)\\
+T(n) - T(n-1) &= 2T(n-1) + \alpha\\
+T(n) &= 3T(n-1) + \alpha
+\end{align*}
+Hey, that doesn’t look so bad after all.
+The recursion tree method immediately gives us the solution $\symbfit{T(n) = O(3^n)}$ (or we can just guess and confirm by induction).
+
+This analysis implies that our recursive algorithm does \textit{not} examine all possible binary search trees!
+The number of binary search trees with $n$ vertices satisfies the recurrence
+\[
+N(n) = \sum_{r=1}^{n-1} \bigl(N(r-1) \cdot N(n-r)\bigr),
+\]
+which has the closed-form solution $N(n) = \Theta(4^n/\sqrt{n})$.
+(No, that’s not obvious.)
+Our algorithm saves considerable time by searching \textit{independently} for the optimal left and right subtrees for each root.
+A full enumeration of binary search trees would consider all possible \textit{pairs} of left and right subtrees; hence the product in the recurrence for $N(n)$.
+
+\begin{exercises}
+\item Describe recursive algorithms for the following generalizations of the \Proc{SubsetSum} problem:
+\begin{enumerate}
+\item Given an array $X[1\,..\,n]$ of positive integers and an integer $T$, compute the \textit{number} of subsets of $X$ whose elements sum to $T$.
+\item Given two arrays $X[1\,..\,n]$ and $W[1\,..\,n]$ of positive integers and an integer $T$, where each $W[i]$ denotes the \textit{weight} of the corresponding element $X[i]$, compute the \textit{maximum weight} subset of $X$ whose elements sum to $T$.
+If no subset of $X$ sums to $T$, your algorithm should return $-\infty$.
+\end{enumerate}
+
+\item Describe recursive algorithms for the following variants of the text segmentation problem.
+Assume that you have a subroutine \Proc{IsWord} that takes an array of characters as input and returns \Const{True} if and only if that string is a “word”.
+\begin{enumerate}
+\item Given an array $A[1\,..\,n]$ of characters, compute the number of partitions of $A$ into words.
+For example, given the string \Str{ARTISTOIL}, your algorithm should return $2$, for the partitions \Str{ARTIST·OIL} and \Str{ART·IS·TOIL}.
+\item Given two arrays $A[1\,..\,n]$ and $B[1\,..\,n]$ of characters, decide whether $A$ and $B$ can be partitioned into words at the same indices.
+For example, the strings \Str{BOTHEARTHANDSATURNSPIN} and \Str{PINSTARTRAPSANDRAGSLAP} can be partitioned into words at the same indices as follows:
+\[
+\begin{array}{c}
+\mbox{\Str{BOT·HEART·HAND·SAT·URNS·PIN}}\\
+\mbox{\Str{PIN·START·RAPS·AND·RAGS·LAP}}
+\end{array}
+\]
+\item Given two arrays $A[1\,..\,n]$ and $B[1\,..\,n]$ of characters, compute the number of different ways that $A$ and $B$ can be partitioned into words at the same indices.
+\end{enumerate}
+
+\item An \textit{addition chain} for an integer $n$ is an increasing sequence of integers that starts with $1$ and ends with $n$, such that each entry after the first is the sum of two earlier entries.
+More formally, the integer sequence $x_0 < x_1 < x_2 < \cdots < x_\ell$ is an addition chain for $n$ if and only if
+\begin{itemize}
+\item $x_0 = 1$,
+\item $x_\ell = n$, and
+\item for every index $k > 0$, there are indices $i \le j < k$ such that $x_k = x_i + x_j$.
+\end{itemize}
+The $\ell$ength of an addition chain is the number of elements minus $1$; we don’t bother to count the first entry.
+For example, $\langle 1, 2, 3, 5, 10, 20, 23, 46, 92, 184, 187, 374\rangle$ is an addition chain for $374$ of length $11$.
+\begin{enumerate}
+\item Describe a recursive backtracking algorithm to compute a minimum-length addition chain for a given positive integer $n$.
+\textbf{\textit{Don’t}} analyze or optimize your algorithm’s running time, except to satisfy your own curiosity.
+A correct algorithm whose running time is exponential in $n$ is sufficient for full credit.
+\Hint{This problem is a lot more like $n$ Queens than text segmentation.}
+\item \difficulty{h} Describe a recursive backtracking algorithm to compute a minimum-length addition chain for a given positive integer $n$ \textit{in time that is sub-exponential in} $n$.
+\Hint{You may find the results of certain Egyptian rope-fasteners, Indus-River prosodists, and Russian peasants helpful.}
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Let $A[1\,..\,m]$ and $B[1\,..\,n]$ be two arbitrary arrays.
+A \textit{common subsequence} of $A$ and $B$ is both a subsequence of $A$ and a subsequence of $B$.
+Give a simple recursive definition for the function $\Var{lcs}(A, B)$, which gives the length of the \textit{longest} common subsequence of $A$ and $B$.
+\item Let $A[1\,..\,m]$ and $B[1\,..\,n]$ be two arbitrary arrays.
+A \textit{common supersequence} of $A$ and $B$ is another sequence that contains both $A$ and $B$ as subsequences.
+Give a simple recursive definition for the function $\Var{scs}(A, B)$, which gives the length of the \textit{shortest} common supersequence of $A$ and $B$.
+\item Call a sequence $X[1\,..\,n]$ of numbers \textbf{\textit{bitonic}} if there is an index $i$ with $1 < i < n$, such that the prefix $X[1\,..\,i]$ is increasing and the suffix $X[i\,..\,n]$ is decreasing.
+Give a simple recursive definition for the function $\Var{lbs}(A)$, which gives the length of the longest bitonic subsequence of an arbitrary array $A$ of integers.
+\item Call a sequence $X[1\,..\,n]$ \textit{oscillating} if $X[i] < X[i+1]$ for all even $i$, and $X[i] > X[i+1]$ for all odd $i$.
+Give a simple recursive definition for the function $\Var{los}(A)$, which gives the length of the longest oscillating subsequence of an arbitrary array $A$ of integers.
+\item Give a simple recursive definition for the function $\Var{sos}(A)$, which gives the length of the shortest oscillating supersequence of an arbitrary array $A$ of integers.
+\item Call a sequence $X[1\,..\,n]$ \textit{convex} if $2 \cdot X[i] < X[i-1] + X[i+1]$ for all $i$.
+Give a simple recursive definition for the function $\Var{lxs}(A)$, which gives the length of the longest convex subsequence of an arbitrary array $A$ of integers.
+\end{enumerate}
+
+\item For each of the following problems, the input consists of two arrays $X[1\,..\,k]$ and $Y[1\,..\,n]$ where $k \le n$.
+\begin{enumerate}
+\item Describe a recursive backtracking algorithm to determine whether $X$ is a subsequence of $Y$.
+For example, the string \Str{PPAP} is a subsequence of the string \Str{\StrMark{P}EN\StrMark{P}INE\StrMark{A}PPLEAPPLE\StrMark{P}EN}.
+\item Describe a recursive backtracking algorithm to find the smallest number of symbols that can be removed from $Y$ so that $X$ is no longer a subsequence.
+Equivalently, your algorithm should find the longest subsequence of $Y$ that is \textit{not} a supersequence of $X$.
+For example, after removing removing two symbols from the string \Str{PENPINE\StrMark{A}PPLE\StrMark{A}PPLEPEN}, the string \Str{PPAP} is no longer a subsequence.
+\item \difficulty{h} Describe a recursive backtracking algorithm to determine whether $X$ occurs as two \textit{disjoint} subsequences of $Y$.
+For example, the string \Str{PPAP} appears as two disjoint subsequences in the string \Str{\StrMark{P}EN\StrMark{P}INE\StrMark{A}\StrMarkAlt{PP}LE\StrMarkAlt{A}\StrMark{P}PLE\StrMarkAlt{P}EN}.
+\end{enumerate}
+\textbf{\textit{Don’t}} analyze the running times of your algorithms, except to satisfy your own curiosity.
+All three algorithms run in exponential time; we’ll improve that later, so the precise running time isn’t particularly important.
+
+\item This problem asks you to design backtracking algorithms to find the cost of an optimal binary search tree that satisfies additional balance constraints.
+Your input consists of a sorted array $A[1\,..\,n]$ of search keys and an array $f[1\,..\,n]$ of frequency counts, where $f[i]$ is the number of searches for $A[i]$.
+This is exactly the same cost function as described in \secref{sec:2.8}.
+But now your task is to compute an optimal tree that satisfies some additional constraints.
+\begin{enumerate}
+\item \textbf{\textit{AVL trees}} were the earliest self-balancing balanced binary search trees, first described in 1962 by Georgy Adelson-Velsky and Evgenii Landis.
+An AVL tree is a binary search tree where for every node $v$, the height of the left subtree of $v$ and the height of the right subtree of $v$ differ by at most one.
+
+Describe a recursive backtracking algorithm to construct an optimal AVL tree for a given set of search keys and frequencies.
+\item \textbf{\textit{Symmetric binary B-trees}} are another self-balancing binary trees, first described by Rudolf Bayer in 1972; these are better known by the name \textbf{\textit{red-black trees}}, after a somewhat simpler reformulation by Leo Guibas and Bob Sedgwick in 1978.
+A red-black tree is a binary search tree with the following additional constraints:
+\begin{itemize}
+\item Every node is either red or black.
+\item Every red node has a black parent.
+\item Every root-to-leaf path contains the same number of black nodes.
+\end{itemize}
+Describe a recursive backtracking algorithm to construct an optimal red-black tree for a given set of search keys and frequencies.
+\item \textbf{\textit{AA trees}} were proposed by proposed by Arne Andersson in 1993 and slightly simplified (and named) by Mark Allen Weiss in 2000.
+AA trees are also known as \textit{left-leaning red-black trees}, after a symmetric reformulation (with different rebalancing algorithms) by Bob Sedgewick in 2006.
+An AA tree is a red-black tree with one additional constraint:
+\begin{itemize}
+\item No left child is red.\footnote{Sedgwick’s reformulation requires that no \textit{right} child is red. Whatever. Andersson and Sedgwick are strangely silent on which end of the egg to eat first.}
+\end{itemize}
+Describe a recursive backtracking algorithm to construct an optimal AA tree for a given set of search keys and frequencies.
+\end{enumerate}
+\textbf{\textit{Don’t}} analyze the running times of your algorithms, except to satisfy your own curiosity.
+All three algorithms run in exponential time; we’ll improve that later, so the precise running times aren’t particularly important.
+\end{exercises}
+
+\begin{problembox}
+\textbf{\textit{For more backtracking exercises, see the next chapter!}}
+\end{problembox}

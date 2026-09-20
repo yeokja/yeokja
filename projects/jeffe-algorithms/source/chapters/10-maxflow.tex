@@ -1,0 +1,827 @@
+% Reconstructed from upstream/Algorithms-JeffE.pdf, PDF pages 345-370 (printed 327-352).
+\epigraph{A process cannot be understood by stopping it. Understanding must move with
+the flow of the process, must join it and flow with it.
+}{The First Law of Mentat, in Frank Herbert’s \textit{Dune} (1965)}
+
+\epigraph{Contrary to expectation, flow usually happens not during relaxing moments of
+leisure and entertainment, but rather when we are actively involved in a difficult
+enterprise, in a task that stretches our mental and physical abilities.... Flow is hard
+to achieve without effort. Flow is not “wasting time.”
+}{Mihaly Csíkszentmihályi, \textit{Flow: The Psychology of Optimal Experience} (1990)}
+
+\epigraph{There’s a difference between knowing the path and walking the path.
+}{Morpheus [Laurence Fishburne], \textit{The Matrix} (1999)}
+
+\chapter{Maximum Flows \& Minimum Cuts}
+\label{ch:10}
+
+In the mid-1950s, U. S. Air Force researcher Theodore E. Harris and retired U. S. Army general Frank S. Ross wrote a classified report studying the rail network that linked the Soviet Union to its satellite countries in Eastern Europe. The network was modeled as a graph with 44 vertices, representing geographic regions, and 105 edges, representing links between those regions in the rail network. Each edge was given a weight, representing the rate at which material could be shipped from one region to the next. Essentially by trial and error, they determined both the maximum amount of stuff that could be moved from Russia into Europe, as well as the cheapest way to disrupt the network by removing links (or in less abstract terms, blowing up train tracks), which they called “the bottleneck”. Their report, which included the drawing of the network in \figref{fig:10.1}, was only declassified in 1999.\footnote{I learned this story from Alexander Schrijver’s fascinating survey “On the history of
+combinatorial optimization (till 1960)”; the Harris-Ross report was declassified at Schrijver’s
+request. Ford and Fulkerson (who we will meet shortly) credit Harris for formulating the
+maximum-flow problem, although the precise chronology is somewhat muddled; Harris and Ross
+thank George Dantzig “for assistance in formulating the problem”.}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=355.6bp]{p346-img0}
+\caption{Harris and Ross’s map of the Warsaw Pact rail network. (See Image Credits at the end of the book.)}
+\label{fig:10.1}
+\end{figure}
+
+This one of the first recorded applications of the \textbf{\textit{maximum flow}} and \textbf{\textit{minimum cut}} problems. For both problems, the input is a directed graph $G = (V, E)$ with two special vertices $s$ and $t$, called the \textit{source} and \textit{target}. As in previous chapters, I will write $\arc{u}{v}$ to denote the directed edge from vertex $u$ to vertex $v$. Intuitively, the maximum flow problem asks for the maximum rate at which some resource can be moved from $s$ to $t$; the minimum cut problem asks for the minimum damage needed to separate $s$ from $t$.
+
+\section{Flows}
+\label{sec:10.1}
+
+An $\symbfit{(s,t)}$\textbf{\textit{-flow}} (or just a \textbf{\textit{flow}} if the source and target vertices are clear from context) is a function $f : E \to \mathbb{R}$ that satisfies the following \textbf{\textit{conservation constraint}} at every vertex $v$ except possibly $s$ and $t$:
+\[
+\sum_u f(\arc{u}{v}) = \sum_w f(\arc{v}{w}).
+\]
+In English, the total flow into $v$ is equal to the total flow out of $v$. To keep the notation simple, we define $f(\arc{u}{v}) = 0$ if there is no edge $\arc{u}{v}$ in the graph.
+
+The \textbf{\textit{value}} of the flow $f$, denoted $|f|$, is the total net flow out of the source vertex $s$:
+\[
+|f| := \sum_w f(\arc{s}{w}) - \sum_u f(\arc{u}{s}).
+\]
+It’s not hard to prove that $|f|$ is also equal to the total net flow \textit{into} the target vertex $t$, as follows.
+To simplify notation, let $\symbfit{\partial f(v)}$ denote the total net flow out of any vertex $v$:
+\[
+\partial f(v) := \sum_u f(\arc{u}{v}) - \sum_w f(\arc{v}{w}).
+\]
+The conservation constraint implies that $\partial f(v) = 0$ or every vertex $v$ except $s$ and $t$, so
+\[
+\sum_v \partial f(v) = \partial f(s) + \partial f(t).
+\]
+On the other hand, any flow that leaves one vertex must enter another vertex, so we must have $\sum_v \partial f(v) = 0$.
+It follows immediately that $|f| = \partial f(s) = -\partial f(t)$.
+
+Now suppose we have another function $c : E \to \mathbb{R}_{\ge 0}$ that assigns a non-negative \textbf{\textit{capacity}} $c(e)$ to each edge $e$.
+We say that a flow $f$ is \textbf{\textit{feasible}} (with respect to $c$) if $0 \le f(e) \le c(e)$ for every edge $e$.
+Most of the time we consider only flows that are feasible with respect to some fixed capacity function $c$.
+We say that a flow $f$ \textbf{\textit{saturates}} edge $e$ if $f(e) = c(e)$, and \textbf{\textit{avoids}} edge $e$ if $f(e) = 0$.
+The \textbf{\textit{maximum flow problem}} is to compute a feasible $(s,t)$-flow in a given directed graph, with a given capacity function, whose value is as large as possible.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p347-Im142}
+\caption{A feasible $(s,t)$-flow with value 10. Each edge is labeled with its flow/capacity.}
+\label{fig:10.2}
+\end{figure}
+
+\section{Cuts}
+\label{sec:10.2}
+
+An $\symbfit{(s,t)}$\textbf{\textit{-cut}} (or just \textbf{\textit{cut}} if the source and target vertices are clear from context) is a partition of the vertices into disjoint subsets $S$ and $T$---meaning $S \cup T = V$ and $S \cap T = \emptyset$---where $s \in S$ and $t \in T$.
+
+If we have a capacity function $c : E \to \mathbb{R}_{\ge 0}$, the \textbf{\textit{capacity}} of a cut is the sum of the capacities of the edges that start in $S$ and end in $T$:
+\[
+\symbfit{\lVert S, T\rVert} := \sum_{v \in S} \sum_{w \in T} c(\arc{v}{w}).
+\]
+(Again, if $\arc{v}{w}$ is not an edge in the graph, we assume $c(\arc{v}{w}) = 0$.)
+Notice that the definition is asymmetric; edges that start in $T$ and end in $S$ are unimportant.
+The \textbf{\textit{minimum cut problem}} is to compute an $(s,t)$-cut whose capacity is as small as possible.
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p348-Im143}
+\caption{An $(s,t)$-cut with capacity 15. Each edge is labeled with its capacity.}
+\label{fig:10.3}
+\end{figure}
+
+Intuitively, the minimum cut is the cheapest way to disrupt all flow from $s$ to $t$. Indeed, it is not hard to show the following relationship between flows and cuts:
+
+\noindent\textbf{Lemma 10.1.} \textsl{Let $f$ be \textbf{any} feasible $(s,t)$-flow, and let $(S,T)$ be \textbf{any} $(s,t)$-cut. The value of $f$ is at most the capacity of $(S,T)$. Moreover, $|f| = \lVert S,T\rVert$ if and only if $f$ saturates every edge from $S$ to $T$ and avoids every edge from $T$ to $S$.}
+
+\noindent\textbf{Proof:} Choose your favorite flow $f$ and your favorite cut $(S,T)$, and then follow the bouncing inequalities:
+
+\begin{flalign*}
+|f| &= \partial f(s) & \text{[by definition]} &&\\
+&= \sum_{v \in S} \partial f(v) & \text{[conservation constraint]} &&\\
+&= \sum_{v \in S} \sum_{w} f(\arc{v}{w}) \;-\; \sum_{v \in S} \sum_{u} f(\arc{u}{v}) & \text{[math, definition of $\partial$]} &&\\
+&= \sum_{v \in S} \sum_{w \notin S} f(\arc{v}{w}) \;-\; \sum_{v \in S} \sum_{u \notin S} f(\arc{u}{v}) & \text{[removing edges from $S$ to $S$]} &&\\
+&= \sum_{v \in S} \sum_{w \in T} f(\arc{v}{w}) \;-\; \sum_{v \in S} \sum_{u \in T} f(\arc{u}{v}) & \text{[definition of cut]} &&\\
+&\mathrel{\color{JEred}\le} \sum_{v \in S} \sum_{w \in T} f(\arc{v}{w}) & \text{[because $f(\arc{u}{v}) \ge 0$]} &&\\
+&\mathrel{\color{JEred}\le} \sum_{v \in S} \sum_{w \in T} c(\arc{v}{w}) & \text{[because $f(\arc{v}{w}) \le c(\arc{v}{w})$]} &&\\
+&= \lVert S,T\rVert & \text{[by definition]} &&
+\end{flalign*}
+In the second step, we are just adding zeros, because $\partial f(v) = 0$ for every vertex $v \in S \setminus \{s\}$.
+In the fourth step, we are removing flow values $f(\arc{x}{y})$ where both $x$ and $y$ are in $S$, because they appear in both sums: positively when $v = x$ and $w = y$, and negatively when $v = y$ and $u = x$.
+
+The first inequalities in this derivation is actually an equality if and only if $f$ avoids every edge from $T$ to $S$.
+Similarly, the second inequality is actually an equality if and only if $f$ saturates every edge from $S$ to $T$.\hfill$\mdlgwhtsquare$
+
+This lemma immediately implies that if $|f| = \lVert S,T\rVert$, then $f$ must be a maximum flow, and $(S,T)$ must be a minimum cut.
+
+\section{The Maxflow-Mincut Theorem}
+\label{sec:10.3}
+
+Surprisingly, in every flow network, there is a feasible $(s,t)$-flow $f$ and an $(s,t)$-cut $(S,T)$ such that $|f| = \lVert S,T\rVert$.
+This is the famous \textit{Maxflow-Mincut Theorem}, first proved by Lester Ford (of shortest-path fame) and Delbert Fulkerson in 1954 and independently by Peter Elias, Amiel Feinstein, and Claude Shannon (of information-theory and maze-solving-robot fame) in 1956.
+
+\noindent\textbf{The Maxflow-Mincut Theorem.} \textsl{In every flow network with source $s$ and target $t$, the value of the maximum $(s,t)$-flow is }equal\textsl{ to the capacity of the minimum $(s,t)$-cut.}
+
+Ford and Fulkerson proved this theorem as follows. Fix a graph$ G$, vertices$ s$
+
+and $t$, and a capacity function $c : E \to \mathbb{R}_{\ge 0}$.
+The proof will be easier if we assume that $G$ is \textbf{\textit{reduced}}, meaning there is at most one edge between any two vertices $u$ and $v$.
+In particular, either $c(\arc{u}{v}) = 0$ or $c(\arc{v}{u}) = 0$.
+This assumption is easy to enforce: Subdivide each edge $\arc{u}{v}$ in $G$ with a new vertex $x$, replacing $\arc{u}{v}$ with a path $\arc{\arc{u}{x}}{v}$, and define $c(\arc{u}{x}) = c(\arc{x}{v}) = c(\arc{u}{v})$.
+The modified graph has the same maximum flow value and minimum cut capacity as the original graph.
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p349-Im144}
+\caption{Enforcing the one-direction assumption.}
+\label{fig:10.4}
+\end{figure}
+
+Let $f$ be an arbitrary feasible $(s,t)$-flow in $G$.
+We define a new capacity function $c_f : V \times V \to \mathbb{R}$, called the \textbf{\textit{residual capacity}}, as follows:
+\[
+c_f(\arc{u}{v}) =
+\begin{cases}
+c(\arc{u}{v}) - f(\arc{u}{v}) & \text{if $\arc{u}{v} \in E$}\\
+f(\arc{v}{u}) & \text{if $\arc{v}{u} \in E$}\\
+0 & \text{otherwise}
+\end{cases}
+\]
+
+Intuitively, the residual capacity of an edge indicates how much \textit{more} flow can be pushed through that edge.
+Because $f \ge 0$ and $f \le c$, these residual capacities are always non-negative.
+It is possible to have $c_f(\arc{u}{v}) > 0$ even if $\arc{u}{v}$ is not an edge in the original graph $G$.
+Thus, we define the \textbf{\textit{residual graph}} $G_f = (V, E_f)$, where $E_f$ is the set of edges whose residual capacity is positive.
+Most residual graphs are \textit{not} reduced; in particular, if $0 < f(\arc{u}{v}) < c(\arc{u}{v})$, then the residual graph $G_f$ contains both $\arc{u}{v}$ and its reversal $\arc{v}{u}$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p350-Im145}\hfil\includegraphics{p350-Im146}
+\caption{A flow $f$ in a weighted graph $G$ and the corresponding residual graph $G_f$.}
+\label{fig:10.5}
+\end{figure}
+
+Now we have two cases to consider: Either there is a directed path from the source vertex $s$ to the target vertex $t$ in the residual graph $G^f$, or there isn’t.
+
+First suppose the residual graph $G_f$ contains a directed path $P$ from $s$ to $t$; we call $P$ an \textbf{\textit{augmenting path}}.
+Let $F = \min_{\arc{u}{v} \in P} c_f(\arc{u}{v})$ denote the maximum amount of flow that we can push through $P$.
+We define a new flow $f' : E \to \mathbb{R}$ (in the original graph) as follows:
+\[
+f'(\arc{u}{v}) =
+\begin{cases}
+f(\arc{u}{v}) + F & \text{if $\arc{u}{v} \in P$}\\
+f(\arc{u}{v}) - F & \text{if $\arc{v}{u} \in P$}\\
+f(\arc{u}{v}) & \text{otherwise}
+\end{cases}
+\]
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p350-Im147}\hfil\includegraphics{p350-Im148}
+\caption{An augmenting path with value $F = 5$ and the resulting augmented flow $f'$.}
+\label{fig:10.6}
+\end{figure}
+
+I claim that this new flow $f'$ is feasible with respect to the original capacities $c$, meaning $f' \ge 0$ and $f' \le c$ everywhere.
+Consider an edge $\arc{u}{v}$ in the original graph $G$.
+There are three cases to consider.
+\begin{itemize}
+\item If the augmenting path $P$ contains $\arc{u}{v}$, then
+\[
+f'(\arc{u}{v}) \;=\; f(\arc{u}{v}) + F \;>\; f(\arc{u}{v}) \;\ge\; 0
+\]
+
+because $f$ is feasible, and
+\begin{flalign*}
+f'(\arc{u}{v}) &= f(\arc{u}{v}) + F & \text{by definition of $f'$} &&\\
+&\le f(\arc{u}{v}) + c_f(\arc{u}{v}) & \text{by definition of $F$} &&\\
+&= f(\arc{u}{v}) + c(\arc{u}{v}) - f(\arc{u}{v}) & \text{by definition of $c_f$} &&\\
+&= c(\arc{u}{v}) & \text{Duh.} &&
+\end{flalign*}
+\item If the augmenting path $P$ contains the reversed edge $\arc{v}{u}$, then
+\[
+f'(\arc{u}{v}) \;=\; f(\arc{u}{v}) - F \;<\; f(\arc{u}{v}) \;\le\; c(\arc{u}{v}),
+\]
+again because $f$ is feasible, and
+\begin{flalign*}
+f'(\arc{u}{v}) &= f(\arc{u}{v}) - F & \text{by definition of $f'$} &&\\
+&\ge f(\arc{u}{v}) - c_f(\arc{v}{u}) & \text{by definition of $F$} &&\\
+&= f(\arc{u}{v}) - f(\arc{u}{v}) & \text{by definition of $c_f$} &&\\
+&= 0 & \text{Duh.} &&
+\end{flalign*}
+\item Finally, if neither $\arc{u}{v}$ nor $\arc{v}{u}$ is in the augmenting path, then $f'(\arc{u}{v}) = f(\arc{u}{v})$, and therefore $0 \le f'(\arc{u}{v}) \le c(\arc{u}{v})$, because $f$ is feasible.
+\end{itemize}
+\noindent So $f$ is indeed feasible.
+
+Finally, only the first edge in the augmenting path leaves $s$, which implies $|f'| = |f| + F > |f|$.
+Thus, $f'$ is a feasible flow with larger value than $f$.
+We conclude that if there is a path from $s$ to $t$ in the residual graph $G_f$, then $f$ is \textit{not} a maximum flow.
+
+On the other hand, suppose the residual graph $G_f$ does \textit{not} contain a directed path from $s$ to $t$.
+Let $S$ be the set of vertices that are reachable from $s$ in $G_f$, and let $T = V \setminus S$.
+The partition $(S,T)$ is clearly an $(s,t)$-cut.
+For every vertex $u \in S$ and $v \in T$, we have
+\[
+c_f(\arc{u}{v}) \;=\; (c(\arc{u}{v}) - f(\arc{u}{v})) + f(\arc{v}{u}) \;=\; 0.
+\]
+The feasibility of $f$ implies $c(\arc{u}{v}) - f(\arc{u}{v}) \ge 0$ and $f(\arc{v}{u}) \ge 0$, so in fact we must have $c(\arc{u}{v}) - f(\arc{u}{v}) = 0$ and $f(\arc{v}{u}) = 0$.
+In other words, our flow $f$ saturates every edge from $S$ to $T$ and avoids every edge from $T$ to $S$.
+Lemma 10.1 now implies that $|f| = \lVert S,T\rVert$, which means $f$ is a maximum flow and $(S,T)$ is a minimum cut.
+
+This completes the proof!\hfill$\mdlgwhtsquare$
+
+\section{Ford and Fulkerson’s augmenting-path algorithm}
+\label{sec:10.4}
+
+Ford and Fulkerson’s proof of the Maxflow-Mincut Theorem immediately suggests an algorithm to compute maximum flows: Starting with the zero flow, repeatedly augment the flow along \textbf{any} path from $s$ to $t$ in the residual graph, until there is no such path.
+
+This algorithm has an important but straightforward corollary:
+
+\noindent\textbf{Integrality Theorem.} \textsl{If all capacities in a flow network are integers, then there is a maximum flow such that the flow through every edge is an integer.}
+
+\noindent\textbf{Proof:} We argue by induction that after each iteration of the augmenting path algorithm, all flow values and all residual capacities are integers.
+\begin{itemize}
+\item Before the first iteration, all flow values are $0$ (which is an integer), and all residual capacities are the original capacities, which are integers by definition.
+\item In each later iteration, the induction hypothesis implies that the capacity $F$ of the augmenting path is an integer, so augmenting changes the flow on each edge, and therefore the residual capacity of each edge, by an integer.
+\end{itemize}
+\noindent In particular, each iteration of the augmenting path algorithm increases the value of the flow by a positive integer.
+It follows that the algorithm eventually halts and returns a maximum flow.\hfill$\mdlgwhtsquare$
+
+If every edge capacity is an integer, then conservatively, the Ford-Fulkerson algorithm halts after at most $|f^*|$ iterations, where $f^*$ is the actual maximum flow.
+In each iteration, we can build the residual graph $G_f$ and perform a whatever-first-search to find an augmenting path in $O(E)$ time.
+Thus, in this setting, the algorithm runs in $\symbfit{O(E|f^*|)}$ time in the worst case.
+
+Jack Edmonds and Richard Karp observed that this running time analysis is essentially tight.
+Consider the 4-node network in \figref{fig:10.7}, where $X$ is some large integer.
+The maximum flow in this network is clearly $2X$.
+However, Ford-Fulkerson might alternate between pushing one unit of flow along the augmenting path $\arc{\arc{\arc{s}{u}}{v}}{t}$ and then pushing one unit of flow along the augmenting path $\arc{\arc{\arc{s}{v}}{u}}{t}$, leading to a running time of $\Theta(X) = \Omega(|f^*|)$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p352-Im149}
+\caption{Edmonds and Karp’s bad example for the Ford-Fulkerson algorithm.}
+\label{fig:10.7}
+\end{figure}
+Ford and Fulkerson’s algorithm is usually fast in practice, and it is always fast when the maximum flow value $|f^*|$ is small, but without further constraints on the augmenting paths, this is \textit{not} an efficient algorithm in worst case.
+Edmonds and Karp’s bad example network can be described using only $O(\log X)$ bits; thus, the running time of Ford-Fulkerson is actually \textit{exponential} in the input size.
+
+\subsection{\difficulty{H}Irrational Capacities}
+
+But what if the capacities are \textit{not} integers?
+If we multiply all the capacities by the same (positive) constant, the maximum flow increases everywhere by the same constant factor.
+It follows that if all the edge capacities are \textit{rational}, then the Ford-Fulkerson algorithm eventually halts, although still in exponential time (in the number of bits used to described the input).
+
+However, if we allow \textit{irrational} capacities, the algorithm can actually loop forever, always finding smaller and smaller augmenting paths.
+Worse yet, this infinite sequence of augmentations may not even converge to the maximum flow, or even to a significant fraction of the maximum flow!
+The smallest network that exhibits this bad behavior was discovered by Uri Zwick in 1993.\footnote{In 1962, Ford and Fulkerson described a more complex network, with 10 vertices and 48 edges, with the same bad behavior.}
+
+Consider the six-node network shown in \figref{fig:10.8}.
+Six of the nine edges have some large integer capacity $X$, two have capacity $1$, and one has capacity $\phi = (\sqrt{5} - 1)/2 \approx 0.618034$, chosen so that $1 - \phi = \phi^2$.
+To prove that the Ford-Fulkerson algorithm can get stuck, we can watch the residual capacities of the three horizontal edges as the algorithm progresses.
+(The residual capacities of the other six edges will always be at least $X - 3$.)
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p353-Im150}
+\caption{Uri Zwick’s non-terminating flow example, and three augmenting paths.}
+\label{fig:10.8}
+\end{figure}
+
+Suppose the Ford-Fulkerson algorithm starts by choosing the central augmenting path, shown at the top of \figref{fig:10.8}.
+The three horizontal edges, in order from left to right, now have residual capacities $1$, $0$, and $\phi$.
+Suppose inductively that the horizontal residual capacities are $\phi^{k-1}$, $0$, and $\phi^k$ for some non-negative integer $k$.
+\begin{enumerate}
+\item Augment along path $B$, adding $\phi^k$ to the flow; the residual capacities are now $\phi^{k+1}$, $\phi^k$, and $0$.
+\item Augment along path $C$, adding $\phi^k$ to the flow; the residual capacities are now $\phi^{k+1}$, $0$, and $\phi^k$.
+\item Augment along path $B$, adding $\phi^{k+1}$ to the flow; the residual capacities are now $0$, $\phi^{k+1}$, and $\phi^{k+2}$.
+\item Augment along path $A$, adding $\phi^{k+1}$ to the flow; the residual capacities are now $\phi^{k+1}$, $0$, and $\phi^{k+2}$.
+\end{enumerate}
+\noindent It follows by induction that after $4n+1$ augmentation steps, the horizontal edges have residual capacities $\phi^{2n-2}$, $0$, and $\phi^{2n-1}$.
+As the number of augmentations grows to infinity, the value of the flow converges to
+\[
+1 + 2\sum_{i=1}^{\infty} \phi^i = 1 + \frac{2}{1-\phi} = 4 + \sqrt{5} < 7,
+\]
+even though the maximum flow value is clearly $2X + 1 \gg 7$.
+
+Practically-minded readers might wonder why anyone should care about irrational capacities; after all, computers can’t represent anything but (small) integers or (small dyadic) rationals exactly. Good question! The mathematician’s answer is that the restriction to integer capacities is literally \textit{artificial}; it’s an \textit{artifact} of digital computational hardware (or perhaps the otherwise irrelevant laws of physics), not an inherent feature of the abstract computational problem. But a more practical reason is that the behavior of the algorithm with irrational inputs tells us something about its worst-case behavior \textit{in practice} with floating-point capacities---terrible! Even with very reasonable capacities, a careless implementation of Ford-Fulkerson could enter an infinite loop, simply because of round-off error, without ever coming close to the correct answer.
+
+\section{Combining and Decomposing Flows}
+\label{sec:10.5}
+
+Flows are normally defined as functions on the edges of a graph satisfying certain constraints at the vertices. However, flows have a second characterization that is more natural and useful in certain contexts.
+
+Consider an arbitrary graph $G$ with source vertex $s$ and target vertex $t$.
+Fix any two $(s,t)$-flows $f$ and $g$ and any two real numbers $\alpha$ and $\beta$, and consider the function $h : E \to \mathbb{R}$ defined by setting
+\[
+h(\arc{u}{v}) := \alpha \cdot f(\arc{u}{v}) + \beta \cdot g(\arc{u}{v})
+\]
+for every edge $\arc{u}{v}$; we can write this definition more simply as $h = \alpha f + \beta g$.
+Straightforward definition-chasing implies that $h$ is also an $(s,t)$-flow with value $|h| = \alpha|f| + \beta|g|$.
+More generally, any linear combination of $(s,t)$-flows is also an $(s,t)$-flow.
+
+It turns out that any $(s,t)$-flow can be written as a weighted sum of flows with a special structure.
+For any directed path $P$ from $s$ to $t$, we define a corresponding \textbf{\textit{path flow}} as follows:
+\[
+P(\arc{u}{v}) =
+\begin{cases}
+1 & \text{if $\arc{u}{v} \in P$,}\\
+-1 & \text{if $\arc{v}{u} \in P$,}\\
+0 & \text{otherwise.}
+\end{cases}
+\]
+Straightforward definition-chasing implies that the function $P : E \to \mathbb{R}$ is indeed an $(s,t)$-flow with value $1$.
+I am deliberately overloading the variable $P$ to mean both the path (a sequence of vertices and directed edges) and the unit flow along that path.
+
+Similarly, for any directed cycle $C$, we define a corresponding \textbf{\textit{cycle flow}} by setting
+\[
+C(\arc{u}{v}) =
+\begin{cases}
+1 & \text{if $\arc{u}{v} \in C$,}\\
+-1 & \text{if $\arc{v}{u} \in C$,}\\
+0 & \text{otherwise.}
+\end{cases}
+\]
+Again, it is easy to verify that $C : E \to \mathbb{R}$ is an $(s,t)$-flow with value zero.
+
+Our earlier argument implies that any linear combination of path flows and cycle flows is another flow; this weighted sum is called a \textbf{\textit{flow decomposition}}.
+Moreover, \textit{every} non-negative flow has a flow decomposition with the following special structure.
+
+\noindent\textbf{Flow Decomposition Theorem.} \textsl{Every non-negative $(s,t)$-flow $f$ can be written as a positive linear combination of directed $(s,t)$-paths and directed cycles. Moreover, a directed edge $\arc{u}{v}$ appears in at least one of these paths or cycles if and only if $f(\arc{u}{v}) > 0$, and the total number of paths and cycles is at most the number of edges in the network.}
+
+\noindent\textbf{Proof:} We prove the theorem by induction on the number of edges carrying non-zero flow, intuitively by running the Ford-Fulkerson algorithm backward.
+As long as at least one edge in the graph carries positive flow, we can find either an $(s,t)$-path or a directed cycle that carries flow.
+Subtracting as much flow as possible from that path or cycle empties at least one edge, so the Recursion Fairy can give us the rest of the decomposition.
+
+To formalize this argument, we first consider the special case of \textbf{\textit{circulations}}; these are flows with value $0$, where flow is conserved at \textit{every} vertex.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p356-Im151}\\
+\includegraphics{p356-Im152}
+\caption{Decomposing a circulation into weighted directed cycles.}
+\label{fig:10.9}
+\end{figure}
+
+\noindent Fix an arbitrary circulation $f$ in an arbitrary flow network, and let $\symbfit{\#f}$ denote the number of edges $\arc{u}{v}$ such that $f(\arc{u}{v}) > 0$.
+We prove that $f$ can be decomposed into a positive linear combination of at most $\max\{0, \#f - 1\}$ cycles, by induction on $\#f$.
+There are three cases to consider:
+\begin{itemize}
+\item If $\#f = 0$, then $f$ is vacuously a linear combination of zero cycles.
+\item Suppose $f(\arc{u}{v}) > 0$ for a single directed cycle of edges $\arc{u}{v}$.
+Then $\#f \ge 2$, and $f$ is trivially a linear combination of one cycle.
+\item Otherwise, pick an arbitrary edge $\arc{u}{v}$ with $f(\arc{u}{v}) > 0$.
+Consider an arbitrary walk $\arc{\arc{\arc{v_0}{v_1}}{v_2}}{\cdots}$ with $v_0 = u$ and $v_1 = v$, such that $f(\arc{v_{i-1}}{v_i}) > 0$ for every index $i$.
+The conservation constraint implies that every vertex with incoming flow also has outgoing flow, so we can make this walk arbitrarily long; in particular, the walk must eventually visit some vertex more than once.
+Let $k$ be the smallest index such that $v_j = v_k$ for some index $j < k$.
+The subwalk $\arc{\arc{\arc{v_j}{v_{j-1}}}{\cdots}}{v_k}$ is a simple directed cycle $C$.
+
+Define $F := \min_{e \in C} f(e)$, and consider the function $f' := f - F \cdot C$, or more verbosely,
+\[
+f'(\arc{u}{v}) :=
+\begin{cases}
+f(\arc{u}{v}) - F & \text{if $\arc{u}{v} \in C$,}\\
+f(\arc{u}{v}) & \text{otherwise.}
+\end{cases}
+\]
+\end{itemize}
+\noindent Straightforward definition-chasing shows that $f'$ is another feasible circulation in $G$.
+There is at least one edge $e \in C$ such that $f(e) = F$, and therefore $f'(e) = 0$, which implies $\#f' \le \#f - 1$.
+Since fewer edges carry flow in $f'$ than in $f$, the Recursion Fairy can decompose $f'$ into at most $\#f' - 1 \le \#f - 2$ cycles.
+Adding $F$ units of flow around cycle $C$ gives us a flow decomposition for $f$; more succinctly: $f = f' + F \cdot C$.
+Now let $f$ be an arbitrary $(s,t)$-flow in an arbitrary flow network, such that $|f| > 0$.
+Add an edge $\arc{t}{s}$ to the network, and define a circulation $f'$ by setting $f'(\arc{t}{s}) = |f|$ and $f'(\arc{u}{v}) = f(\arc{u}{v})$ for every original edge $\arc{u}{v}$; observe that $\#f' = \#f + 1 \ge 2$.
+The previous argument implies that the circulation $f'$ is a positive linear combination of at most $\#f' - 1$ directed cycles.
+Deleting the edge $\arc{t}{s}$ gives us a decomposition of the original flow $f$ into at most $\#f' - 1 = \#f$ paths and cycles.
+Specifically, cycles in $f'$ that include $\arc{t}{s}$ become $(s,t)$-paths in $f$, and cycles in $f'$ that do not include $\arc{t}{s}$ remain cycles in $f$.\hfill$\mdlgwhtsquare$
+
+The proof of the Flow Decomposition Theorem implies stronger results in two interesting special cases.
+\begin{itemize}
+\item Any circulation can be decomposed into a weighted sum of cycles; no paths are necessary.
+\item Any \textbf{\textit{acyclic}} $(s,t)$-flow can be decomposed into a weighted sum of $(s,t)$-paths; no cycles are necessary.
+\end{itemize}
+\noindent Moreover, by canceling flow cycles until no more remain, we can transform any flow into an acyclic flow with the same value.
+In particular, every flow network supports a maximum $(s,t)$-flow that is acyclic.
+
+The proof also immediately translates directly into an algorithm, similar to Ford-Fulkerson, to decompose any $(s,t)$-flow into paths and cycles.
+The algorithm repeatedly seeks either a directed $(s,t)$-path or a directed cycle in the remaining flow, and then subtracts as much flow as possible along that path or cycle, until the flow is empty.
+We can find a flow path or cycle in $O(V)$ time as follows:
+\begin{itemize}
+\item If any edge leaving $s$ has positive flow, follow an arbitrary walk from $s$ in the flow graph until it either reaches $t$ (giving us a flow path) or reaches some vertex for the second time (giving us a flow cycle).
+\item If no edge leaving $s$ has positive flow, find any other vertex $v$ with positive outflow, and follow an arbitrary walk from $v$ in the flow graph until it reaches some vertex for the second time (giving us a flow cycle).
+\end{itemize}
+\noindent In both cases, the conservation constraint implies that this algorithm will never get stuck.
+Each iteration takes $O(V)$ time and removes at least one edge from the flow graph; thus, the entire decomposition algorithm runs in $\symbfit{O(VE)}$ \textbf{\textit{time}}.
+
+Flow decompositions provide a natural lower bound on the running time of any maximum-flow algorithm that builds the flow one path or cycle at a time.
+Every flow can be decomposed into at most $E$ paths and cycles, each of which uses at most $V$ edges, so the overall complexity of the flow decomposition is $O(VE)$.
+Moreover, it is easy to construct flows for which \textit{every} flow decomposition has complexity $\Omega(VE)$.
+Thus, any maximum-flow algorithm that explicitly constructs a flow one path or cycle at a time---in particular, any implementation of Ford and Fulkerson’s augmenting path algorithm---must take $\Omega(VE)$ time in the worst case.
+
+\section{Edmonds and Karp’s Algorithms}
+\label{sec:10.6}
+
+Ford and Fulkerson’s algorithm does not specify which path in the residual graph to augment; the poor worst-case behavior of the algorithm can be blamed on poor choices for the augmenting path.
+In the early 1970s, Jack Edmonds and Richard Karp published two natural rules for choosing augmenting paths, both of which led to more efficient algorithms.
+
+\subsection{Fattest Augmenting Paths}
+
+Edmonds and Karp’s first rule is essentially a greedy algorithm:
+
+\begin{problembox}
+Choose the augmenting path with largest bottleneck value.
+\end{problembox}
+
+It’s not hard to show that the maximum-bottleneck $(s,t)$-path in a directed graph can be computed in $O(E \log V)$ time using a “best-first” traversal, similar to Jarník’s minimum-spanning-tree algorithm or Dijkstra’s shortest-path algorithm.
+The algorithm grows a directed tree $T$, rooted at $s$, one vertex at a time, by repeatedly adding the highest-capacity edge leaving $T$ to $T$, until $T$ contains a path from $s$ to $t$.
+Alternately, one could emulate Kruskal’s algorithm---insert edges one at a time in decreasing capacity order until there is a path from $s$ to $t$---although this approach is less efficient, at least when the graph is directed.
+
+To complete the running-time analysis of the flow algorithm, we need an upper bound on the number of iterations before the algorithm halts.
+In fact, for arbitrary real capacities, the algorithm may \textit{never} halt; see Exercise 18.
+For integer capacities, however, we can bound the number of iterations as a function of the maximum flow value $|f^*|$, as follows.
+
+Let $f$ be any flow in $G$, and let $f'$ be the maximum flow \textit{in the current residual graph} $G_f$.
+(At the beginning of the algorithm, $G_f = G$ and $f' = f^*$.)
+We have already proved that $f'$ can be decomposed into at most $E$ paths and cycles.
+A simple averaging argument implies that at least one of the paths in this decomposition must carry at least $|f'|/E$ units of flow.
+It follows immediately that the \textit{fattest} $(s,t)$-path in $G_f$ carries at least $|f'|/E$ units of flow.
+
+Thus, augmenting $f$ along the maximum-bottleneck path in $G_f$ multiplies the value of the remaining maximum flow in $G_f$ by a factor of at most $1 - 1/E$.
+In other words, the residual maximum flow value \textit{decays exponentially} with the number of iterations.
+After $E \cdot \ln|f^*|$ iterations, the maximum flow value in $G_f$ is at most
+\[
+|f^*| \cdot (1 - 1/E)^{E \cdot \ln|f^*|} < |f^*| e^{-\ln|f^*|} = 1.
+\]
+(That’s Euler’s constant $e$, not the edge $e$. Sorry.)
+In particular, after $E \cdot \ln|f^*|$ iterations, the residual maximum flow value is less than $1$.
+\textit{If all capacities are integers}, the residual maximum flow value is also an integer, so it must be $0$; in other words, $f$ is a maximum flow!
+
+We conclude that for graphs with integer capacities, the Edmonds-Karp “fattest path” algorithm runs in $\symbfit{O(E^2 \log E \log|f^*|)}$ time.
+Unlike the worst-case running time of raw Ford-Fulkerson, this time bound is actually a polynomial function of the input size.
+
+Just like the original Ford-Fulkerson algorithm, the "fattest path" algorithm can get stuck in an infinite loop in networks with arbitrary real capacities.
+However, our analysis implies that even if the algorithm never halts, it maintains a flow $f$ that approaches a maximum flow in the limit.
+
+\subsection{Shortest Augmenting Paths}
+
+The second Edmonds-Karp rule was actually proposed as a practical heuristic by Ford and Fulkerson in their original maximum-flow paper; a variant of this rule was independently proposed in 1970 by the Russian mathematician Yefim Dinitz.\footnote{Specifically, Dinitz discovered a more complex maximum-flow algorithm, while he was a student in an algorithms class taught by Georgy Adelson-Velsky (the “AV” in AVL trees), in response to an in-class exercise. Dinitz’s algorithm also pushes flows along shortest paths, but with additional bookkeeping to reduce the running time from $O(VE^2)$ to $O(V^2E)$.}
+
+\begin{problembox}
+Choose the augmenting path with the smallest number of edges.
+\end{problembox}
+
+The shortest augmenting path can be found in $O(E)$ time by running breadth-first search in the residual graph.
+Surprisingly, the resulting algorithm halts after a polynomial number of iterations, independent of the actual edge capacities!
+
+The proof of this polynomial upper bound relies on two observations about the evolution of the residual graph.
+Let $f_i$ be the current flow after $i$ augmentation steps, let $G_i$ be the corresponding residual graph.
+In particular, $f_0$ is zero everywhere and $G_0 = G$.
+For each vertex $v$, let \textbf{\Var{level}}$\symbfit{{}_i(v)}$ denote the unweighted shortest-path distance from $s$ to $v$ in $G_i$, or equivalently, the \textit{level} of $v$ in a breadth-first search tree of $G_i$ rooted at $s$.
+In particular, if there is no path from $s$ to $v$ in $G_i$, then $\Var{level}_i(v) = \infty$ (because $\min \emptyset = \infty$).
+
+Our first observation is that the level of a vertex can only increase over time.
+
+\noindent\textbf{Lemma 10.2.} \textsl{$\Var{level}_i(v) \ge \Var{level}_{i-1}(v)$ for all vertices $v$ and all integers $i > 0$.}
+
+\noindent\textbf{Proof:} Fix an arbitrary positive integer $i > 0$ and an arbitrary vertex $v$.
+We prove the claim by induction on $\Var{level}_i(v)$ (and \textit{not} on the integer $i$).
+As an inductive hypothesis, assume for every vertex $u$ such that $\Var{level}_i(u) < \Var{level}_i(v)$, that $\Var{level}_i(u) \ge \Var{level}_{i-1}(u)$.
+There are three cases to consider.
+\begin{itemize}
+\item If $v = s$, we immediately have $\Var{level}_i(s) = \Var{level}_{i-1}(s) = 0$.
+
+\item If there is no path from $s$ to $v$ in $G_i$, then $\Var{level}_i(v) = \infty \ge \Var{level}_{i-1}(v)$.
+\item Otherwise, let $\arc{\arc{s}{\cdots}}{\arc{u}{v}}$ be any unweighted shortest path from $s$ to $v$ in the graph $G_i$.
+Because this is a shortest path, we have $\Var{level}_i(v) = \Var{level}_i(u)+1$, so the inductive hypothesis implies $\Var{level}_i(u) \ge \Var{level}_{i-1}(u)$.
+To complete the proof, we need to show that $\Var{level}_{i-1}(u) \ge \Var{level}_{i-1}(v) - 1$.
+We have two subcases to consider.
+\begin{itemize}
+\item[--] If $\arc{u}{v}$ is an edge in $G_{i-1}$, then $\Var{level}_{i-1}(v) \le \Var{level}_{i-1}(u) + 1$, because the levels are defined by breadth-first traversal.
+\item[--] On the other hand, if $\arc{u}{v}$ is not an edge in $G_{i-1}$, then its reversal $\arc{v}{u}$ must be an edge in the $i$th augmenting path, which by definition is the shortest path from $s$ to $t$ in $G_{i-1}$.
+It follows that $\Var{level}_{i-1}(v) = \Var{level}_{i-1}(u) \mathbin{\color{JEred}-} 1 \le \Var{level}_{i-1}(u) \mathbin{\color{JEred}+} 1$.
+\end{itemize}
+
+In both subcases, we conclude that $\Var{level}_i(v) = \Var{level}_i(u)+1 \ge \Var{level}_{i-1}(u) + 1 \ge \Var{level}_{i-1}(v)$.\hfill$\mdlgwhtsquare$
+\end{itemize}
+
+Whenever we augment the flow, the bottleneck edge in the augmenting path disappears from the residual graph, and some edges in the \textit{reversal} of the augmenting path may (re-)appear.
+Our second observation is that an edge cannot appear or disappear too many times.
+
+\noindent\textbf{Lemma 10.3.} \textsl{During the execution of the Edmonds-Karp shortest-augmenting-path algorithm, each edge $\arc{u}{v}$ disappears from the residual graph $G_f$ at most $V/2$ times.}
+
+\noindent\textbf{Proof:} Suppose $\arc{u}{v}$ is in two residual graphs $G_i$ and $G_{j+1}$, but not in any of the intermediate residual graphs $G_{i+1},\dots,G_j$, for some $i < j$.
+Then $\arc{u}{v}$ must be in the $i$th augmenting path, so $\Var{level}_i(v) = \Var{level}_i(u) + 1$, and $\arc{v}{u}$ must be on the $j$th augmenting path, so $\Var{level}_j(v) = \Var{level}_j(u) - 1$.
+The previous lemma implies that
+\[
+\Var{level}_j(u) \;=\; \Var{level}_j(v) + 1 \;\ge\; \Var{level}_i(v) + 1 \;=\; \Var{level}_i(u) + 2.
+\]
+In other words, between the disappearance and reappearance of $\arc{u}{v}$, the distance from $s$ to $u$ increased by at least $2$.
+Because every level is either less than $V$ or infinite, the number of disappearances is at most $V/2$.\hfill$\mdlgwhtsquare$
+
+Now we can derive an upper bound on the number of iterations.
+Because each edge disappears at most $V/2$ times, there are at most $EV/2$ edge disappearances overall.
+But at least one edge disappears on each iteration, so the algorithm must halt after at most $EV/2$ iterations.
+Finally, each iteration requires $O(E)$ time, so the overall algorithm runs in $\symbfit{O(VE^2)}$ \textbf{\textit{time}}.
+
+\section{Further Progress}
+\label{sec:10.7}
+
+This is nowhere near the end of the story for maximum-flow algorithms.
+Decades of further research have led to several faster algorithms, some of which are summarized in \figref{fig:10.10}.\footnote{To keep this table short, I have deliberately omitted algorithms whose running time depends on edge capacities or the maximum flow value. Even with this restriction, the list is embarrassingly incomplete!}
+All the listed algorithms listed compute a maximum flow in several iterations.
+Most of these algorithms have two variants: a simpler version that performs each iteration by brute force, and a faster variant that uses sophisticated data structures to maintain a spanning tree of the flow network, so that each iteration can be performed (and the spanning tree updated) in logarithmic time.
+There is no reason to believe that the best algorithms known so far are optimal; indeed, maximum flows are still a very active area of research.
+
+\begin{figure}[ht]
+\centering
+{\sffamily\fontsize{8.1}{12}\selectfont
+\begin{tabular}{@{}l@{\hspace{0.7em}}l@{\hspace{0.7em}}l@{\hspace{0.7em}}p{4.1cm}@{}}
+\textbf{Technique} & \textbf{Direct} & \textbf{With dynamic trees} & \textbf{Source(s)}\\
+\hline
+Blocking flow & $O(V^2E)$ & $O(VE \log V)$ & [Dinitz; Karzanov; Even and Itai;\newline\hspace*{1em}Sleator and Tarjan]\\
+Network simplex & $O(V^2E)$ & $O(VE \log V)$ & [Dantzig; Goldfarb and Hao;\newline\hspace*{1em}Goldberg, Grigoriadis, and Tarjan]\\
+Push-relabel (generic) & $O(V^2E)$ & --- & [Goldberg and Tarjan]\\
+Push-relabel (FIFO) & $O(V^3)$ & $O(VE \log(V^2/E))$ & [Goldberg and Tarjan]\\
+Push-relabel (highest label) & $O(V^2\sqrt{E})$ & --- & [Cheriyan and Maheshwari; Tunçel]\\
+Push-relabel-add games & --- & $O(VE \log_{E/(V \log V)} V)$ & [Cheriyan and Hagerup;\newline\hspace*{1em}King, Rao, and Tarjan]\\
+Pseudoflow & $O(V^2E)$ & $O(VE \log V)$ & [Hochbaum]\\
+Pseudoflow (highest label) & $O(V^3)$ & $O(VE \log(V^2/E))$ & [Hochbaum and Orlin]\\
+Incremental BFS & $O(V^2E)$ & $O(VE \log(V^2/E))$ & [Goldberg, Held, Kaplan, Tarjan,\newline\hspace*{1em}and Werneck]\\
+Compact networks & --- & $O(VE)$ & [Orlin]\\
+\hline
+\end{tabular}
+}
+\caption{Several purely combinatorial maximum-flow algorithms and their running times.}
+\label{fig:10.10}
+\end{figure}
+
+The fastest known (purely combinatorial) maximum-flow algorithm, announced by James Orlin in 2012, runs in $\symbfit{O(VE)}$ \textbf{\textit{time}}, exactly matching the worst-case complexity of a flow decomposition.
+The details of Orlin’s algorithm are far beyond the scope of this book; in addition to his own new techniques, Orlin uses several older algorithms and data structures as black boxes, most of which are themselves quite complicated.
+In particular, Orlin’s algorithm does \textit{not} construct an explicit flow decomposition; in fact, for graphs with only $O(V)$ edges, an extension of his algorithm actually runs in only $O(V^2/\log V)$ time!
+Nevertheless, for purposes of analyzing algorithms that \textit{use} maximum flows, this is the time bound you should cite.
+So write the following sentence on your cheat sheets and cite it in your homeworks:
+
+\begin{problembox}
+\textbf{\textit{Maximum flows can be computed in}} $\symbfit{O(VE)}$ \textbf{\textit{time.}}
+\end{problembox}
+
+Finally, faster maximum-flow algorithms are known for \textit{unit-capacity} networks, where every edge has capacity $1$.
+In 1973, Alexander Karzanov proved that Dinitz’s blocking-flow algorithm---the first algorithm listed in the table above---runs in $O(\min\{V^{2/3}, E^{1/2}\} E)$ time in this setting.
+(This time bound appears to break the $\Omega(VE)$ flow decomposition barrier, but in fact Karzanov’s analysis implies that any flow in a unit-capacity network can be decomposed into paths with total complexity $O(\min\{V^{2/3}, E^{1/2}\} E)$.)
+This was the fastest algorithm known in this setting for four decades.
+Karzanov’s record was finally broken in 2013, when Aleksander Mądry announced a truly remarkable algorithm that computes maximum flows in unit-capacity networks in $O(E^{10/7} \operatorname{polylog} E)$ time.
+Again, the details of Mądry’s algorithm are far beyond the scope of this book, or indeed the expertise of its author.
+
+\begin{exercises}
+\setcounter{enumi}{-1}
+\item Suppose you are given a directed graph $G = (V,E)$, two vertices $s$ and $t$, a capacity function $c : E \to \mathbb{R}^+$, and a second function $f : E \to \mathbb{R}$.
+Describe an algorithm to determine whether $f$ is a maximum $(s,t)$-flow in $G$.
+
+\item Let $f$ and $f'$ be two feasible $(s,t)$-flows in a flow network $G$, such that $|f'| > |f|$.
+Prove that there is a feasible $(s,t)$-flow with value $|f'|-|f|$ in the residual network $G_f$.
+
+\item Let $\arc{u}{v}$ be an arbitrary edge in an arbitrary flow network $G$.
+Prove that if there is a minimum $(s,t)$-cut $(S,T)$ such that $u \in S$ and $v \in T$, then there is \textit{no} minimum cut $(S',T')$ such that $u \in T'$ and $v \in S'$.
+
+\item Let $(S,T)$ and $(S',T')$ be minimum $(s,t)$-cuts in some flow network $G$.
+Prove that $(S \cap S', T \cup T')$ and $(S \cup S', T \cap T')$ are also minimum $(s,t)$-cuts in $G$.
+
+\item Let $G$ be a flow network that contains an opposing pair of edges $\arc{u}{v}$ and $\arc{v}{u}$, both with positive capacity.
+Let $G'$ be the flow network obtained from $G$ by decreasing the capacities of both of these edges by $\min\{c(\arc{u}{v}), c(\arc{v}{u})\}$.
+In other words:
+\begin{itemize}
+\item If $c(\arc{u}{v}) > c(\arc{v}{u})$, change the capacity of $\arc{u}{v}$ to $c(\arc{u}{v}) - c(\arc{v}{u})$ and delete $\arc{v}{u}$.
+\item If $c(\arc{u}{v}) < c(\arc{v}{u})$, change the capacity of $\arc{v}{u}$ to $c(\arc{v}{u}) - c(\arc{u}{v})$ and delete $\arc{u}{v}$.
+\item Finally, if $c(\arc{u}{v}) = c(\arc{v}{u})$, delete both $\arc{u}{v}$ and $\arc{v}{u}$.
+\end{itemize}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p363-Im153}
+\caption{Enforcing the one-direction assumption.}
+\label{fig:10.11}
+\end{figure}
+
+\begin{enumerate}
+\item Prove that every maximum $(s,t)$-flow in $G'$ is also a maximum $(s,t)$-flow in $G$.
+(Thus, by simplifying \textit{every} opposing pair of edges in $G$, we obtain a new reduced flow network with the same maximum flow value as $G$.)
+\item Prove that every minimum $(s,t)$-cut in $G$ is also a minimum $(s,t)$-cut in $G'$ \textit{and vice versa}.
+\item Prove that there is at least one maximum $(s,t)$-flow in $G$ that is \textbf{\textit{not}} a maximum $(s,t)$-flow in $G'$.
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Describe an efficient algorithm to determine whether a given flow network contains a \textit{unique} maximum $(s,t)$-flow.
+\item Describe an efficient algorithm to determine whether a given flow network contains a \textit{unique} minimum $(s,t)$-cut.
+\item Describe a flow network that contains a unique maximum $(s,t)$-flow but does not contain a unique minimum $(s,t)$-cut.
+\item Describe a flow network that contains a unique minimum $(s,t)$-cut but does not contain a unique maximum $(s,t)$-flow.
+\end{enumerate}
+
+\item An $(s,t)$-flow in a network $G$ is \textit{acyclic} if there are no directed cycles where every edge has a positive flow value; that is, the subgraph of edges with positive flow value is a dag.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute an \textit{acyclic} maximum $(s,t)$-flow in a given flow network.
+Your algorithm should have the same asymptotic running time as Ford-Fulkerson.
+\item Describe and analyze an algorithm to determine whether \textit{every} maximum $(s,t)$-flow in a given flow network is acyclic.
+\end{enumerate}
+
+\item Let $G = (V,E)$ be a flow network in which every edge has capacity $1$ and the shortest-path distance from $s$ to $t$ is at least $d$.
+\begin{enumerate}
+\item Prove that the value of the maximum $(s,t)$-flow is at most $E/d$.
+\item Now suppose that $G$ is \textit{simple}, meaning that for all vertices $u$ and $v$, there is at most one edge from $u$ to $v$.
+(Flow networks can have parallel edges.)
+Prove that the value of the maximum $(s,t)$-flow is at most $O(V^2/d^2)$.
+\Hint{How many nodes are in the average level of a BFS tree rooted at $s$?}
+\end{enumerate}
+
+\item Suppose we are given a flow network $G = (V,E)$ in which every edge has capacity $1$, together with an integer $k$.
+Describe and analyze an algorithm to identify $k$ edges in $G$ such that after deleting those $k$ edges, the value of the maximum $(s,t)$-flow in the remaining graph is as small as possible.
+
+\item The analysis in our proof of the Flow Decomposition Theorem can be tightened.
+Let $G = (V,E)$ be an arbitrary flow network, and let $f$ be an arbitrary $(s,t)$-flow in $G$.
+\begin{enumerate}
+\item Prove that if $|f| = 0$, then $f$ is the weighted sum of at most $E - V + 1$ directed cycles, where $f(e) > 0$ for every edge $e$ in each of these cycles.
+\item Prove that if $|f| > 0$, then $f$ is the weighted sum of at most $E - V + 2$ directed paths and directed cycles, where $f(e) > 0$ for every edge $e$ in each of these paths and cycles.
+\item Prove that both of the previous upper bounds are tight: There are graphs in which some circulations cannot be decomposed into less than $E - V + 1$ cycles, and some flows cannot be decomposed into less than $E - V + 2$ paths and cycles.
+\Hint{This is easy.}
+\end{enumerate}
+
+\item \difficulty{c} Our observation that any linear combination of $(s,t)$-flows is itself an $(s,t)$-flow implies that the set of all (not necessarily feasible) $(s,t)$-flows in any graph actually define a real \textit{vector space}, which we can call the \textbf{\textit{flow space}} of the graph.
+\begin{enumerate}
+\item Prove that the flow space of any connected graph $G = (V,E)$ has dimension $E - V + 2$.
+\item Let $T$ be any spanning tree of $G$.
+Prove that the following collection of paths and cycles define a basis for the flow space:
+\begin{itemize}
+\item The unique path in $T$ from $s$ to $t$;
+\item The unique cycle in $T \cup \{e\}$, for every edge $e \notin T$.
+\end{itemize}
+\item Let $T$ be any spanning tree of $G$, and let $F$ be the forest obtained by deleting any single edge in $T$.
+Prove that the following collection of paths and cycles define a basis for the flow space:
+\begin{itemize}
+\item The unique path in $F \cup \{e\}$ from $s$ to $t$, for every edge $e \notin F$ that has one endpoint in each component of $F$;
+\item The unique cycle in $F \cup \{e\}$, for every edge $e \notin F$ with both endpoints in the same component of $F$.
+\end{itemize}
+\item Prove or disprove the following claim: Every connected flow network has a flow basis that consists entirely of simple paths from $s$ to $t$.
+\end{enumerate}
+
+\item Cuts are sometimes defined as subsets of the edges of the graph, instead of as partitions of its vertices.
+In this problem, you will prove that these two definitions are \textit{almost} equivalent.
+
+We say that a subset $X$ of (directed) edges \textit{separates $s$ and $t$} if every directed path from $s$ to $t$ contains at least one (directed) edge in $X$.
+For any subset $S$ of \textit{vertices}, let $\symbfit{\delta S}$ denote the set of directed edges leaving $S$; that is, $\delta S := \{\arc{u}{v} \mid u \in S, v \notin S\}$.
+\begin{enumerate}
+\item Prove that if $(S,T)$ is an $(s,t)$-cut, then $\delta S$ separates $s$ and $t$.
+\item Let $X$ be an arbitrary subset of edges that separates $s$ and $t$.
+Prove that there is an $(s,t)$-cut $(S,T)$ such that $\delta S \subseteq X$.
+\item Let $X$ be a \textit{minimal} subset of edges that separates $s$ and $t$.
+(Such a set of edges is sometimes called a \textbf{\textit{bond}}.)
+Prove that there is an $(s,t)$-cut $(S,T)$ such that $\delta S = X$.
+\end{enumerate}
+
+\item Suppose instead of capacities, we consider networks where each edge $\arc{u}{v}$ has a non-negative \textbf{\textit{demand}} $d(\arc{u}{v})$.
+Now an $(s,t)$-flow $f$ is \textit{feasible} if and only if $f(\arc{u}{v}) \ge d(\arc{u}{v})$ for every edge $\arc{u}{v}$.
+(Feasible flow values can now be arbitrarily large.)
+A natural problem in this setting is to find a feasible $(s,t)$-flow of \textit{minimum} value.
+\begin{enumerate}
+\item Describe an efficient algorithm to compute a feasible $(s,t)$-flow, given the graph, the demand function, and the vertices $s$ and $t$ as input.
+\Hint{Find a flow that is non-zero everywhere, and then scale it up to make it feasible.}
+\item Suppose you have access to a subroutine \Proc{MaxFlow} that computes \textit{maximum} flows in networks with edge capacities.
+Describe an efficient algorithm to compute a \textit{minimum} flow in a given network with edge demands; your algorithm should call \Proc{MaxFlow} exactly once.
+\item State and prove an analogue of the max-flow min-cut theorem for this setting.
+(Do minimum flows correspond to maximum cuts?)
+\end{enumerate}
+
+\item For any flow network $G$ and any vertices $u$ and $v$, let $\Var{bottleneck}_G(u,v)$ denote the maximum, over all paths $\pi$ in $G$ from $u$ to $v$, of the minimum-capacity edge along $\pi$.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute $\Var{bottleneck}_G(s,t)$ in $O(E \log V)$ time.
+This is the amount of flow that the Edmonds-Karp fattest-augmenting-paths algorithm pushes in the first iteration.
+\item Now suppose the flow network $G$ is undirected; equivalently, suppose $c(\arc{u}{v}) = c(\arc{v}{u})$ for every pair of vertices $u$ and $v$.
+Describe and analyze an algorithm to compute $\Var{bottleneck}_G(s,t)$ in $O(V+E)$ time.
+\Hint{Find the median edge capacity.}
+Why doesn’t this speedup work for directed graphs?
+\item \difficulty{h} Again, suppose the flow network $G$ is undirected.
+Describe and analyze an algorithm to construct a spanning tree $T$ of $G$ such that $\Var{bottleneck}_T(u,v) = \Var{bottleneck}_G(u,v)$ for \textit{all} vertices $u$ and $v$.
+(Edges in $T$ inherit their capacities from $G$.)
+For full credit, your algorithm should run in $O(E)$ time.
+\end{enumerate}
+
+\item Suppose you are given a flow network $G$ with \textbf{\textit{integer}} edge capacities and an \textbf{\textit{integer}} maximum flow $f^*$ in $G$.
+Describe algorithms for the following operations:
+\begin{enumerate}
+\item \Proc{Increment}$(e)$: Increase the capacity of edge $e$ by $1$ and update the maximum flow.
+\item \Proc{Decrement}$(e)$: Decrease the capacity of edge $e$ by $1$ and update the maximum flow.
+\end{enumerate}
+Both algorithms should modify $f^*$ so that it is still a maximum flow, more quickly than recomputing a maximum flow from scratch.
+
+\item Let $G$ be a network with integer edge capacities.
+An edge in $G$ is \textit{upper-binding} if increasing its capacity by $1$ also increases the value of the maximum flow in $G$.
+Similarly, an edge is \textit{lower-binding} if decreasing its capacity by $1$ also decreases the value of the maximum flow in $G$.
+\begin{enumerate}
+\item Does every network $G$ have at least one upper-binding edge? Prove your answer is correct.
+\item Does every network $G$ have at least one lower-binding edge? Prove your answer is correct.
+\item Describe an algorithm to find all upper-binding edges in $G$, given both $G$ and a maximum flow in $G$ as input, in $O(E)$ time.
+\item Describe an algorithm to find all lower-binding edges in $G$, given both $G$ and a maximum flow in $G$ as input, in $O(EV)$ time.
+\end{enumerate}
+
+\item A given flow network $G$ may have more than one minimum $(s,t)$-cut.
+Let’s define the \textbf{\textit{best}} minimum $(s,t)$-cut to be any minimum cut $(S,T)$ with the smallest number of edges crossing from $S$ to $T$.
+\begin{enumerate}
+\item Describe an efficient algorithm to find the best minimum $(s,t)$-cut when the capacities are integers.
+\item Describe an efficient algorithm to find the best minimum $(s,t)$-cut for \textit{arbitrary} edge capacities.
+\item Describe an efficient algorithm to determine whether a given flow network contains a unique \textit{best} minimum $(s,t)$-cut.
+\end{enumerate}
+
+\item A new assistant professor, teaching maximum flows for the first time, suggests the following greedy modification to the generic Ford-Fulkerson augmenting path algorithm.
+Instead of maintaining a residual graph, just\footnote{The adverb \textit{just} is almost always subconscious shorthand for “I’m too lazy to figure out the details, but you should believe me anyway”, or more succinctly, “This is probably wrong.” See also \textit{merely}, \textit{simply}, \textit{clearly}, and \textit{obviously}.} reduce the capacity of edges along the augmenting path!
+In particular, whenever we saturate an edge, just remove it from the graph.
+Who needs all that residual graph nonsense?
+
+\begin{pseudocode}
+\Header{\Proc{GreedyFlow}$(G, c, s, t)$:}\\
+for every edge $e$ in $G$\\
+\Indent $f(e) \gets 0$\\
+while there is a path from $s$ to $t$\\
+\Indent $\pi \gets$ an arbitrary path from $s$ to $t$\\
+\Indent $F \gets$ minimum capacity of any edge in $\pi$\\
+\Indent for every edge $e$ in $\pi$\\
+\Indent\Indent $f(e) \gets f(e) + F$\\
+\Indent\Indent if $c(e) = F$\\
+\Indent\Indent\Indent remove $e$ from $G$\\
+\Indent\Indent else\\
+\Indent\Indent\Indent $c(e) \gets c(e) - F$\\
+return $f$
+\end{pseudocode}
+
+\begin{enumerate}
+\item Show that \Proc{GreedyFlow} does not always compute a maximum flow.
+\item Show that \Proc{GreedyFlow} is not even guaranteed to compute a good approximation to the maximum flow.
+That is, for any constant $\alpha > 1$, there is a flow network $G$ such that the value of the maximum flow is more than $\alpha$ times the value of the flow computed by \Proc{GreedyFlow}.
+\Hint{Assume that \Proc{GreedyFlow} chooses the worst possible path $\pi$ at each iteration.}
+\end{enumerate}
+
+\item In 1980 Maurice Queyranne published an example of a flow network, shown below, where Edmonds and Karp’s “fattest path” heuristic does not halt.
+As in Zwick’s bad example for the original Ford-Fulkerson algorithm, $\phi$ denotes the inverse golden ratio $(\sqrt{5}-1)/2$.
+The three vertical edges play essentially the same role as the horizontal edges in Zwick’s example.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p368-Im154}\\
+\includegraphics{p368-Im155}
+\caption{Queyranne’s network, and a sequence of “fattest path” augmentations.}
+\label{fig:10.12}
+\end{figure}
+
+\begin{enumerate}
+\item Show that the following infinite sequence of path augmentations is a valid execution of the Edmonds-Karp “fattest path” algorithm.
+(See the bottom of \figref{fig:10.12}.)
+
+\begin{pseudocode}
+\Header{\Proc{QueyranneFatPaths}:}\\
+for $i \gets 1$ to $\infty$\\
+\Indent push $\phi^{3i-2}$ units of flow along $\arc{\arc{\arc{\arc{\arc{\arc{\arc{\arc{s}{a}}{f}}{g}}{b}}{h}}{c}}{d}}{t}$\\
+\Indent push $\phi^{3i-1}$ units of flow along $\arc{\arc{\arc{\arc{\arc{\arc{\arc{s}{f}}{a}}{b}}{g}}{h}}{c}}{t}$\\
+\Indent push $\phi^{3i}$ units of flow along $\arc{\arc{\arc{\arc{\arc{\arc{\arc{\arc{s}{e}}{f}}{a}}{g}}{b}}{c}}{h}}{t}$
+\end{pseudocode}
+
+\item Describe a sequence of $O(1)$ path augmentations that yields a maximum flow in Queyranne’s network.
+\end{enumerate}
+
+\item \difficulty{h} An $\symbfit{(s,t)}$\textbf{\textit{-series-parallel}} graph is a directed acyclic graph with two distinguished vertices $s$ and $t$ and with one of the following structures:
+\begin{itemize}
+\item \textbf{Base case:} A single directed edge from $s$ to $t$.
+\item \textbf{Series:} The union of an $(s,u)$-series-parallel graph and a $(u,t)$-series-parallel graph that share a common vertex $u$ but no other vertices or edges.
+\item \textbf{Parallel:} The union of two smaller $(s,t)$-series-parallel graphs with the same source $s$ and target $t$, but with no other vertices or edges in common.
+\end{itemize}
+Every $(s,t)$-series-parallel graph $G$ can be represented by a \textbf{\textit{decomposition tree}}, which is a binary tree with three types of nodes: leaves (which corresponding to edges in $G$), series nodes (which correspond to vertices other than $s$ and $t$), and parallel nodes.
+The same series-parallel graph could be represented by many different decomposition trees.
+\begin{enumerate}
+\item Suppose you are given a directed graph $G$ with two special vertices $s$ and $t$.
+Describe and analyze an algorithm that either builds a decomposition tree for $G$ or correctly reports that $G$ is not $(s,t)$-series-parallel.
+\Hint{Build the tree from the bottom up.}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p369-Im156}
+\caption{A series-parallel graph and a corresponding decomposition tree. Squares in the decomposition tree are leaves; diamonds are parallel nodes.}
+\label{fig:10.13}
+\end{figure}
+
+\item Describe and analyze an algorithm to compute a maximum $(s,t)$-flow in a given $(s,t)$-series-parallel flow network with arbitrary edge capacities.
+\Hint{In light of part (a), you can assume that you are actually given the decomposition tree. First compute the maximum-flow value, then compute an actual maximum flow.}
+\end{enumerate}
+
+\item We can speed up the Edmonds-Karp “fattest path” algorithm, at least for networks with small integer capacities, by relaxing our requirements for the next augmenting path.
+Instead of finding the augmenting path with maximum bottleneck capacity, we find a path whose bottleneck capacity is at least half of maximum, using the following \textbf{\textit{capacity scaling}} algorithm.
+(This algorithm was actually proposed by Edmonds and Karp.)
+
+Assume all the edge capacities are positive integers less than $U = 2^k$ for some integer $k$.
+The scaling algorithm maintains a bottleneck threshold $\Delta$; initially, we set $\Delta \gets U$.
+In each \textit{phase}, the algorithm augments along paths from $s$ to $t$ in which every edge has residual capacity at least $\Delta$.
+When there is no such path, the phase ends, we set $\Delta \gets \lfloor \Delta/2 \rfloor$, and the next phase begins.
+The algorithm ends when $\Delta = 0$.
+\begin{enumerate}
+\item How many phases will this algorithm execute in the worst case?
+\item Let $f$ be the flow at the end of a phase for a particular value of $\Delta$.
+Prove that the capacity of a minimum cut in the residual graph $G_f$ is at most $E \cdot \Delta$.
+\item Prove that in each phase of the scaling algorithm, there are at most $2E$ augmentations.
+\item What is the overall running time of the capacity scaling algorithm?
+\end{enumerate}
+\end{exercises}

@@ -1,0 +1,1070 @@
+% Reconstructed from upstream/Algorithms-JeffE.pdf, PDF pages 291-326 (printed 273-308).
+\epigraph{I study my Bible as I gather apples. First I shake the whole tree, that the ripest might fall. Then I climb the tree and shake each limb, and then each branch and then each twig, and then I look under each leaf.}{attributed to Martin Luther (c.~1500)}
+
+\epigraph{Life is an unfoldment, and the further we travel the more truth we can comprehend. To understand the things that are at our door is the best preparation for understanding those that lie beyond.}{attributed to Hypatia of Alexandria (c.~400) by Elbert Hubbard\\in \textit{Little Journeys to the Homes of Great Teachers} (1908)}
+
+\epigraph{Your mind will answer most questions if you learn to relax and wait for the answer. Like one of those thinking machines, you feed in your question, sit back, and wait \dots}{William S. Burroughs, \textit{Naked Lunch} (1959)}
+
+\epigraph{The methods given in this paper require no foresight or ingenuity, and hence deserve to be called algorithms.}{Edward R. Moore, “The Shortest Path Through a Maze” (1959)}
+
+\chapter{Shortest Paths}
+\label{ch:8}
+
+Suppose we are given a weighted \textit{directed} graph $G = (V, E, w)$ with two special vertices, and we want to find the shortest path from a \textit{source} vertex $s$ to a \textit{target} vertex $t$.
+That is, we want to find the directed path $P$ starting at $s$ and ending at $t$ that minimizes the function
+\[
+w(P) := \sum_{\arc{u}{v} \in P} w(\arc{u}{v}).
+\]
+For example, if I want to answer the question “What’s the fastest way to drive from my old apartment in Champaign, Illinois to my wife’s old apartment in Columbus, Ohio?”, I might use a graph whose vertices are cities, edges are roads, weights are driving times, $s$ is Champaign, and $t$ is Columbus.\footnote{West on Church, north on Prospect, east on I-74, south on I-465, east on Airport Expressway, north on I-65, east on I-70, north on Grandview, east on 5th, north on Olentangy River, east on Dodridge, north on High, west on Kelso, south on Neil. Depending on traffic. We live in Urbana now.}
+The graph is directed, because driving times along the same road might be different in different directions.
+(At one time, there was a speed trap on I-70 just east of the Indiana/Ohio border, but only for eastbound traffic.)
+
+\section{Shortest Path Trees}
+\label{sec:8.1}
+
+Almost every algorithm known for computing shortest paths from one vertex to another actually solves (large portions of) the following more general \textbf{\textit{single source shortest path}} or \textbf{\textit{SSSP}} problem: Find shortest paths from the source vertex $s$ to \textit{every} other vertex in the graph.
+This problem is usually solved by finding a \textbf{\textit{shortest path tree}} rooted at $s$ that contains all the desired shortest paths.
+
+It’s not hard to see that if shortest paths are unique, then they form a tree, because any subpath of a shortest path is itself a shortest path.
+If there are multiple shortest paths to some vertices, we can always choose one shortest path to each vertex so that the union of the paths is a tree.
+If there are shortest paths from $s$ to two vertices $u$ and $v$ that diverge, then meet, then diverge again, we can modify one of the paths without changing its length, so that the two paths only diverge once.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p292-Im125}
+\caption{If $\arc{s}{a}\arc{}{b}\arc{}{c}\arc{}{d}\arc{}{v}$ (solid) and $\arc{s}{a}\arc{}{x}\arc{}{y}\arc{}{d}\arc{}{u}$ (dashed) are shortest paths, then $\arc{s}{a}\arc{}{b}\arc{}{c}\arc{}{d}\arc{}{u}$ (along the top) is also a shortest path.}
+\label{fig:8.1}
+\end{figure}
+
+Although they are both optimal spanning trees, shortest-path trees and minimum spanning trees are very different creatures.
+Shortest-path trees are rooted and directed; minimum spanning trees are unrooted and undirected.
+Shortest-path trees are most naturally defined for directed graphs; minimum spanning trees are more naturally defined for undirected graphs.
+If edge weights are distinct, there is only one minimum spanning tree, but every source vertex induces a different shortest-path tree; moreover, it is possible for \textit{every} shortest path tree to use a different set of edges from the minimum spanning tree.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p293-Im126}
+\caption{A minimum spanning tree and a shortest path tree of the same undirected graph.}
+\label{fig:8.2}
+\end{figure}
+
+\section{\difficulty{H}Negative Edges}
+\label{sec:8.2}
+
+For most shortest-path problems, where the edge weights correspond to distance or length or time, it is natural to assume that all edge weights are non-negative, or even positive.
+However, for many applications of shortest-path algorithms, it is natural to consider edges with negative weight.
+For example, the weight of an edge might represent the \textit{cost} of moving from one vertex to another, so negative-weight edges represent transitions with negative cost, or equivalently, transitions that earn a profit.
+
+Negative edges are a thorn in the side of most shortest-path problems, because the presence of a negative \textit{cycle} might imply that shortest paths may not be well-defiend.
+To be precise, a shortest path from $s$ to $t$ exists if and only if there is at least one path from $s$ to $t$, but there is no path from $s$ to $t$ that touches a negative cycle.
+For \textit{any} path from $s$ to $t$ that touches a negative cycle, there is a shorter path from $s$ to $t$ that goes around the cycle one more time.\footnote{Technically, we should be discussing shortest \textit{walks} here, rather than shortest \textit{paths}, but the abuse of terminology is standard. If $s$ can reach $t$, there must be a shortest simple path from $s$ to $t$; it’s just NP-hard to compute (when there are negative cycles), by an easy reduction from the Hamiltonian path problem. On the other hand, if there is a shortest \textit{walk} from $s$ to $t$, that walk must be a simple path, and therefore must be the shortest simple path from $s$ to $t$. Blerg.}
+Thus, if at least one path from $s$ to $t$ touches a negative cycle, there is no shortest path from $s$ to $t$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p293-Im127}
+\caption{There is no shortest walk from $s$ to $t$.}
+\label{fig:8.3}
+\end{figure}
+
+In part because we need to consider negative edge weights, this chapter explicitly considers \textit{only} directed graphs.
+All of the algorithms described here also work for undirected graphs with essentially trivial modifications, \textit{if and only if} negative edges are prohibited.
+Correctly handling negative edges in undirected graphs is considerably more subtle.
+We cannot simply replace every undirected edge with a pair of directed edges, because this would transform any negative edge into a short negative cycle.
+Subpaths of an \textit{undirected} shortest path that contains a negative edge are \textit{not} necessarily shortest paths; consequently, the set of all undirected shortest paths from a single source vertex may not define a tree, even if shortest paths are unique.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p294-Im128}
+\caption{An undirected graph where shortest paths from $s$ are unique but do not define a tree.}
+\label{fig:8.4}
+\end{figure}
+
+A complete treatment of undirected graphs with negative edges is beyond the scope of this book.
+I will only mention, for people who want to follow up via Google, that a \textit{single} shortest path in an undirected graph with negative edges can be computed in $O(VE + V^2 \log V)$ time, by a reduction to maximum weighted matching.
+
+\section{The Only SSSP Algorithm}
+\label{sec:8.3}
+
+Just like graph traversal and minimum spanning trees, many different SSSP algorithms can be described as special cases of a single generic algorithm, first proposed by Lester Ford in 1956 and independently described by George Dantzig in 1957\footnote{Specifically, Dantzig showed that the shortest path problem can be phrased as a linear programming problem, and then described an interpretation of his simplex method in terms of the original graph. His description is (morally) equivalent to Ford’s relaxation strategy.} and again by George Minty in 1958.
+Each vertex $v$ in the graph stores two values, which (inductively) describe a \textit{tentative} shortest path from $s$ to $v$.
+\begin{itemize}
+\item $\Var{dist}(v)$ is the length of the tentative shortest $s \leadsto v$ path, or $\infty$ if there is no such path.
+\item $\Var{pred}(v)$ is the predecessor of $v$ in the tentative shortest $s \leadsto v$ path, or \Const{Null} if there is no such vertex.
+\end{itemize}
+The predecessor pointers automatically define a tentative shortest-path \textit{tree} rooted at $s$; these pointers are exactly the same as the parent pointers in our generic graph traversal algorithm.
+At the beginning of the algorithm, we initialize the distances and predecessors as follows:
+
+\begin{pseudocode}
+\Header{\Proc{InitSSSP}$(s)$:}\\
+$\Var{dist}(s) \gets 0$\\
+$\Var{pred}(s) \gets \Const{Null}$\\
+for all vertices $v \neq s$\\
+\Indent $\Var{dist}(v) \gets \infty$\\
+\Indent $\Var{pred}(v) \gets \Const{Null}$
+\end{pseudocode}
+During the execution of the algorithm, an edge $\arc{u}{v}$ is \textbf{\textit{tense}} if $\Var{dist}(u) + w(\arc{u}{v}) < \Var{dist}(v)$.
+If $\arc{u}{v}$ is tense, the tentative shortest path $s \leadsto v$ is clearly incorrect, because the path $s \leadsto \arc{u}{v}$ is shorter.
+We can correct (or at least improve) this obvious overestimate by \textbf{\textit{relaxing}} the edge as follows:
+
+\begin{pseudocode}
+\Header{\Proc{Relax}$(\arc{u}{v})$:}\\
+$\Var{dist}(v) \gets \Var{dist}(u) + w(\arc{u}{v})$\\
+$\Var{pred}(v) \gets u$
+\end{pseudocode}
+
+Now that everything is set up, Ford’s generic algorithm has a simple one-line description:
+\begin{problembox}
+\textbf{Repeatedly relax tense edges, until there are no more tense edges.}
+\end{problembox}
+
+\begin{pseudocode}
+\Header{\Proc{FordSSSP}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+while there is at least one tense edge\\
+\Indent \Proc{Relax} any tense edge
+\end{pseudocode}
+If \Proc{FordSSSP} eventually terminates (because there are no more tense edges), then the predecessor pointers correctly define a shortest-path tree, and each value $\Var{dist}(v)$ is the actual shortest-path distance from $s$ to $v$.
+In particular, if $s$ cannot reach $v$, then $\Var{dist}(v) = \infty$, and if any negative cycle is reachable from $s$, then the algorithm never terminates.
+
+The correctness of Ford’s generic algorithm follows from the following series of simpler claims:
+\begin{enumerate}
+\item At any moment during the execution of the algorithm, for every vertex $v$, the distance $\Var{dist}(v)$ is either $\infty$ or the length of a walk from $s$ to $v$.
+This claim can be proved by induction on the number of relaxations.
+\item If the graph has no negative cycles, then $\Var{dist}(v)$ is either $\infty$ or the length of some \textit{simple path} from $s$ to $v$.
+Specifically, if $\Var{dist}(v)$ is the length of a walk from $s$ to $v$ that contains a directed cycle, that cycle must have negative length.
+This claim implies that if $G$ has no negative cycles, the relaxation algorithm eventually halts, because there are only a finite number of simple paths in $G$.
+\item If no edge in $G$ is tense, then for every vertex $v$, the distance $\Var{dist}(v)$ is the length of the predecessor path $\arc{s}{\cdots}\Var{pred}(\Var{pred}(v))\arc{}{\Var{pred}(v)}\arc{}{v}$.
+Specifically, if $v$ violates this condition but its predecessor $\Var{pred}(v)$ does not, the edge $\arc{\Var{pred}(v)}{v}$ is tense.
+\item If no edge in $G$ is tense, then for every vertex $v$, the path of predecessor edges $\arc{s}{\cdots}\arc{}{\Var{pred}(\Var{pred}(v))}\arc{}{\Var{pred}(v)}\arc{}{v}$ is in fact a shortest path from $s$ to $v$.
+Specifically, if $v$ violates this condition but its predecessor $u$ \textit{in some shortest path} does not, the edge $\arc{u}{v}$ is tense.
+This claim also implies that if $G$ has a negative cycle, then some edge is \textit{always} tense, so the generic algorithm never halts.
+\end{enumerate}
+So far I haven’t said anything about how to find tense edges, or which tense edge(s) to relax if there is more than one.
+Just like whatever-first search, there are several different instantiations of Ford’s generic relaxation algorithm.
+Unlike whatever-first search, however, the efficiency and correctness of each search strategy depends on the structure of the input graph.
+
+The rest of this chapter considers the four most common instantiations of Ford’s algorithm, each of which is the best choice for a different class of input graphs.
+I’ll leave the remaining details of the generic correctness proof as exercises, and instead give (more informative, self-contained) correctness proofs for each of these four specific algorithms.
+
+\section{Unweighted Graphs: Breadth-First Search}
+\label{sec:8.4}
+
+In the simplest special case of the shortest path problem, all edges have weight $1$, and the length of a path is just the number of edges.
+This special case can be solved by a species of our generic graph-traversal algorithm called \textbf{\textit{breadth-first search}}.
+Breadth-first search is often attributed to Edward Moore, who described it in 1957 (as “Algorithm A”) as the first published method to find the shortest path through a maze.\footnote{Moore was motivated by a weakness in Claude Shannon’s maze-solving robot “Theseus”, which Shannon designed and constructed in 1950. (Theseus used a memoized version of depth-first search, implemented using electromechanical relays; this was almost certainly the first \textit{implementation} of depth-first search in graphs.) According to Moore, “When this machine was used with a maze which had more than one solution, a visitor asked why it had not been built to always find the shortest path. Shannon and I each attempted to find economical methods of doing this by machine. He found several methods suitable for analog computation,\footnotemark{} and I obtained these algorithms.”}\footnotetext{Analog methods for computing shortest paths through mazes have been proposed using ball bearings, fluid/plasma flow, chemical reaction waves, chemotaxis, resistor networks, electric circuits with LEDs, memristor networks, glow discharge in microfluidic chips, growing plants, slime mold, amoebas, ants, bees, nematodes, and tourists.}
+Especially in the context of VLSI wiring and robot path planning, breadth-first search is sometimes attributed to Chin Yang Lee, who described several applications of Moore’s “Algorithm A” (with proper credit to Moore) in 1961.
+However, in 1945, more than a decade before Moore considered mazes, Konrad Zuse described an implementation of breadth-first search, as a method to count and label the components of a disconnected graph.\footnote{Konrad Zuse was one of the early pioneers of computing; he designed and built his first programmable computer (later dubbed the Z1) in the late 1930s from metal strips and rods in his parents’ living room; the Z1 and its original blueprints were destroyed by a British air raid in 1944. Zuse’s 1945 PhD thesis describes the very first high-level programming language, called \textit{Plankalkül}. The first complete example of a Plankalkül program in Zuse’s thesis is an implementation of breadth-first search to count components, along with a pseudocode explanation and an illustrated step-by-step trace of the algorithm’s execution on a disconnected graph with eight vertices. Due to the collapse of the Nazi government, Zuse was unable to submit his PhD thesis, and Plankalkül remained unpublished until 1972. The first Plankalkül compiler was finally implemented in 1975 by Joachim Hohmann.}
+
+Breadth-first search maintains a first-in-first-out queue of vertices, which initially contains only the source vertex $s$.
+At each iteration, the algorithm \Proc{Pulls} a vertex $u$ from the front of the queue and examines each of its outgoing edges $\arc{u}{v}$.
+Whenever the algorithm discovers an outgoing tense edge $\arc{u}{v}$, it relaxes that edge and \Proc{Pushes} vertex $v$ onto the queue.
+The algorithm ends when the queue becomes empty.
+
+\begin{pseudocode}
+\Header{\Proc{BFS}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+\Proc{Push}$(s)$\\
+while the queue is not empty\\
+\Indent $u \gets \Proc{Pull}(\,)$\\
+\Indent for all edges $\arc{u}{v}$\\
+\Indent\Indent if $\Var{dist}(v) > \Var{dist}(u) + 1$ \Comment{if $\arc{u}{v}$ is tense}\\
+\Indent\Indent\Indent $\Var{dist}(v) \gets \Var{dist}(u) + 1$ \Comment{relax $\arc{u}{v}$}\\
+\Indent\Indent\Indent $\Var{pred}(v) \gets u$\\
+\Indent\Indent\Indent \Proc{Push}$(v)$
+\end{pseudocode}
+
+Breadth-first search is somewhat easier to analyze if we break its execution into \textit{phases}, by introducing an imaginary \textit{token}.
+Before we \Proc{Pull} any vertices, we \Proc{Push} the token into the queue.
+The current phase ends when we \Proc{Pull} the token out of the queue; we begin the next phase when we \Proc{Push} the token into the queue again.
+Thus, the first phase consists entirely of scanning the source vertex $s$.
+The algorithm ends when the queue contains \textit{only} the token.
+The modified algorithm is shown in \figref{fig:8.5}, and \figref{fig:8.6} shows an example of this algorithm in action.
+Let me emphasize that these modifications are merely a convenience for analysis; with or without the token, the algorithm \Proc{Pushes} and \Proc{Pulls} vertices in the same order, scans edges in the same order, and outputs exactly the same distances and predecessors.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{BFSWithToken}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+\Proc{Push}$(s)$\\
+{\color{JEred}\bfseries\Proc{Push}$(\maltese)$} \Comment{start the first phase}\\
+while the queue contains at least one vertex\\
+\Indent $u \gets \Proc{Pull}(\,)$\\
+\Indent {\color{JEred}\bfseries if $\symbfit{u} = \maltese$}\\
+\Indent\Indent {\color{JEred}\bfseries\Proc{Push}$(\maltese)$} \Comment{start the next phase}\\
+\Indent {\color{JEred}\bfseries else}\\
+\Indent\Indent for all edges $\arc{u}{v}$\\
+\Indent\Indent\Indent if $\Var{dist}(v) > \Var{dist}(u) + 1$ \Comment{if $\arc{u}{v}$ is tense}\\
+\Indent\Indent\Indent\Indent $\Var{dist}(v) \gets \Var{dist}(u) + 1$ \Comment{relax $\arc{u}{v}$}\\
+\Indent\Indent\Indent\Indent $\Var{pred}(v) \gets u$\\
+\Indent\Indent\Indent\Indent \Proc{Push}$(v)$
+\end{pseudocode}
+\caption{Breadth-first search with an end-of-phase token ($\maltese$); bold red lines are only for analysis.}
+\label{fig:8.5}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p298-Im129}
+\caption{A complete run of breadth-first search in a directed graph. Vertices are pulled from the queue in the order $s\ \maltese\ b\ d\ \maltese\ c\ a\ g\ \maltese\ f\ e\ \maltese\ h\ \maltese\maltese$, where $\maltese$ is the end-of-phase token. Bold vertices are in the queue at the end of each phase. Bold edges describe the evolving shortest path tree.}
+\label{fig:8.6}
+\end{figure}
+
+Let me emphasize that in the following lemma, $\Var{dist}(v)$ is just a variable maintained by the algorithm.
+While $\Var{dist}(v)$ \textit{intuitively} represents a tentative shortest-path distance, we cannot assume (yet) that $\Var{dist}(v)$ is ever actually equal to the true shortest-path distance from $s$ to $v$.
+Don’t worry; we’ll get there.
+
+\textbf{Lemma 8.1.} \textsl{For every integer $i \ge 0$ and every vertex $v$, at the end of the $i$th phase, either $\Var{dist}(v) = \infty$ or $\Var{dist}(v) \le i$, and $v$ is in the queue if and only if $\Var{dist}(v) = i$.}
+
+\textbf{Proof:} The proof proceeds by induction on $i$.
+The base case $i = 0$ is straightforward: At the start of the first phase (“at the end of the zeroth phase”), the queue contains only the start vertex $s$ and the token $\maltese$, and \Proc{InitSSSP} just set $\Var{dist}(s) \gets 0$ and $\Var{dist}(v) \gets \infty$ for all $v \neq s$.
+
+So fix an integer $i > 0$.
+The inductive hypothesis implies that at the \textit{start} of the $i$th phase, the queue contains every vertex $u$ with $\Var{dist}(u) = i - 1$, followed by the token $\maltese$.
+In other words, the queue looks like this:
+\[
+\mbox{\rule[.5ex]{.7em}{1.2pt}\kern-.5pt\raisebox{.5ex}{\rotatebox[origin=r]{-40}{\rule{.38em}{1.2pt}}}\kern-.38em\raisebox{.5ex}{\rotatebox[origin=r]{40}{\rule{.38em}{1.2pt}}}}
+\;\begin{array}{ccccc}\hline \maltese & i-1 & i-1 & \cdots & i-1\\\hline\end{array}\;
+\mbox{\rule[.5ex]{.7em}{1.2pt}\kern-.5pt\raisebox{.5ex}{\rotatebox[origin=r]{-40}{\rule{.38em}{1.2pt}}}\kern-.38em\raisebox{.5ex}{\rotatebox[origin=r]{40}{\rule{.38em}{1.2pt}}}}
+\]
+Thus, before we \Proc{Pull} the token $\maltese$ from the queue, ending the $i$th phase, we \Proc{Pull} \textit{every} vertex $u$ with $\Var{dist}(u) = i - 1$.
+
+For each such vertex $u$, we consider every outgoing edge $\arc{u}{v}$.
+If $\arc{u}{v}$ is tense, we set $\Var{dist}(v) \gets \Var{dist}(u) + 1$, so that $\Var{dist}(v) = i$, and then immediately \Proc{Push} $v$ into the queue.
+These are the only assignments to distance labels during the $i$th phase.
+Thus, by induction, during the entire $i$th phase, the queue contains some vertices with distance label $i - 1$, followed by the token, followed by some vertices with distance label $i$:
+\[
+\mbox{\rule[.5ex]{.7em}{1.2pt}\kern-.5pt\raisebox{.5ex}{\rotatebox[origin=r]{-40}{\rule{.38em}{1.2pt}}}\kern-.38em\raisebox{.5ex}{\rotatebox[origin=r]{40}{\rule{.38em}{1.2pt}}}}
+\;\begin{array}{ccccccc}\hline i & \cdots & i & \maltese & i-1 & \cdots & i-1\\\hline\end{array}\;
+\mbox{\rule[.5ex]{.7em}{1.2pt}\kern-.5pt\raisebox{.5ex}{\rotatebox[origin=r]{-40}{\rule{.38em}{1.2pt}}}\kern-.38em\raisebox{.5ex}{\rotatebox[origin=r]{40}{\rule{.38em}{1.2pt}}}}
+\]
+In particular, just before the $i$th phase ends, the queue contains the token, followed by some vertices with distance label $i$.
+\[
+\mbox{\rule[.5ex]{.7em}{1.2pt}\kern-.5pt\raisebox{.5ex}{\rotatebox[origin=r]{-40}{\rule{.38em}{1.2pt}}}\kern-.38em\raisebox{.5ex}{\rotatebox[origin=r]{40}{\rule{.38em}{1.2pt}}}}
+\;\begin{array}{ccccc}\hline i & i & \cdots & i & \maltese\\\hline\end{array}\;
+\mbox{\rule[.5ex]{.7em}{1.2pt}\kern-.5pt\raisebox{.5ex}{\rotatebox[origin=r]{-40}{\rule{.38em}{1.2pt}}}\kern-.38em\raisebox{.5ex}{\rotatebox[origin=r]{40}{\rule{.38em}{1.2pt}}}}
+\]
+Moreover, vertex $v$ appears in this final queue if and only if $\Var{dist}(v)$ was changed during the $i$th phase.
+Thus, at the end of the $i$th phase, the queue contains \textit{every} vertex $v$ with $\Var{dist}(v) = i$.\hfill$\mdlgwhtsquare$
+
+Lemma 8.1 implies that the main body of \Proc{BFS} assigns distance labels in non-decreasing order; on the other hand, the distance label $\Var{dist}(v)$ of each vertex $v$ never increases.
+It follows that for each vertex $v$, the line “$\Var{dist}(v) \gets \Var{dist}(u) + 1$” is executed \textit{at most once}, during phase $\Var{dist}(v)$.
+Similarly:
+\begin{itemize}
+\item Each predecessor pointer $\Var{pred}(v)$ is changed at most once, during phase $\Var{dist}(v)$.
+\item Each vertex $v$ is \Proc{Push}ed into the queue at most once, during phase $\Var{dist}(v)$.
+\item Each vertex $u$ is \Proc{Pull}ed from the queue at most once, during phase $\Var{dist}(u)+1$.
+\item For each edge $\arc{u}{v}$, the comparison “is $\Var{dist}(v) > \Var{dist}(u) + 1$” is performed at most once, during phase $\Var{dist}(u) + 1$.
+\end{itemize}
+Altogether, these observations imply that breadth-first search runs in \textbf{\textit{$\symbfit{O(V + E)}$ time}}.
+Intuitively, we can think of the vertices in the queue as a “wavefront” expanding monotonically outward from the source vertex $s$, passing over each vertex and edge of the graph at most once.
+This expanding wavefront analogy was already proposed by Chin Yang Lee in 1961, inspired by visualizations produced by his implementation of Moore’s Algorithm A.
+
+These observations also imply that we can replace the condition “if $\Var{dist}(v) > \Var{dist}(u) + 1$” by the (arguably) simpler test “if $\Var{dist}(v) = \infty$”.
+Then distances play the same role as the marks maintained by other graph-traversal algorithms, which ensure that each vertex is visited only once.
+Specifically, a vertex is “marked” if and only if its distance label is finite.
+
+But we still need to prove that the final distance labels are correct!
+
+\textbf{Theorem 8.2.} \textsl{When \Proc{BFS} ends, $\Var{dist}(v)$ is the length of the shortest path in $G$ from $s$ to $v$, for every vertex $v$.}
+
+\textbf{Proof:} Fix an arbitrary vertex $v$, and consider an arbitrary path $\arc{v_0}{v_1}\arc{}{\cdots}\arc{}{v_\ell}$ in $G$, where $v_0 = s$ and $v_\ell = v$.
+I claim that $\Var{dist}(v_j) \le j$ for each index $j$; in particular $\Var{dist}(v) \le \ell$.
+We can prove this claim by induction on $j$ as follows.
+\begin{itemize}
+\item Trivially $\Var{dist}(v_0) = \Var{dist}(s) = 0$.
+\item For any index $j > 0$, the induction hypothesis implies $\Var{dist}(v_{j-1}) \le j - 1$.
+Immediately after we \Proc{Pull} vertex $v_{j-1}$ from the queue, either $\Var{dist}(v_j) \le \Var{dist}(v_{j-1}) + 1$ already, or we set $\Var{dist}(v_j) \gets \Var{dist}(v_{j-1}) + 1$.
+In either case, we have $\Var{dist}(v_j) \le \Var{dist}(v_{j-1}) + 1 \le j$.
+\end{itemize}
+We just proved that $\Var{dist}(v)$ is at most the length of an \textit{arbitrary} path from $s$ to $v$; it follows that $\Var{dist}(v)$ is at most the length of the \textit{shortest} path from $s$ to‘$v$.
+
+A similar induction proof implies that $\Var{dist}(v)$ is the length of the predecessor path $\arc{s}{\cdots}\arc{}{\Var{pred}(\Var{pred}(v))}\arc{}{\Var{pred}(v)}\arc{}{v}$, so this must be the shortest path.\hfill$\mdlgwhtsquare$
+
+\section{Directed Acyclic Graphs: Depth-First Search}
+\label{sec:8.5}
+
+Shortest paths are also easy to compute in directed acyclic graphs, even when the edges are weighted, and in particular, even when some edges have negative weight.
+(We don’t have to worry about negative cycles, because by definition, dags don’t have \textit{any} cycles!)
+Indeed, this is a completely standard dynamic programming algorithm.
+
+Let $G$ be a directed graph with weighted edges, and let $s$ be the fixed start vertex.
+For any vertex $v$, let $\Var{dist}(v)$ denote the length of the shortest path in $G$ from $s$ to $v$.
+This function satisfies the following simple recurrence:
+\[
+\Var{dist}(v) = \begin{cases}
+0 & \text{if } v = s\\
+\displaystyle\min_{\arc{u}{v}} \bigl(\Var{dist}(u) + w(\arc{u}{v})\bigr) & \text{otherwise}
+\end{cases}
+\]
+In fact, this identity holds for \textit{all} directed graphs, but it is only a \textit{recurrence} for directed acyclic graphs.
+If the input graph $G$ contained a cycle, a recursive evaluation of this function would fall into an infinite loop; however, because $G$ is a dag, each recursive call visits an earlier vertex in topological order.
+
+The dependency graph for this recurrence is the reversal of the input graph $G$: subproblem $\Var{dist}(v)$ depends on $\Var{dist}(u)$ if and only if $\arc{u}{v}$ is an edge in $G$.
+Thus, we compute the distance of every in \textbf{\textit{$\symbfit{O(V + E)}$ time}} by performing a depth-first search in the reversal of $G$ and considering vertices in postorder.
+Equivalently, we can consider the vertices in the original graph $G$ in topological order, as shown in \figref{fig:8.7}.
+
+The resulting dynamic-programming algorithm is another example of Ford’s generic relaxation algorithm!
+To make this connection clearer, we can move the initialization $\Var{dist}(v)$ outside the main loop and add computation of predecessor pointers, as shown in \figref{fig:8.8}.
+\figref{fig:8.9} shows this algorithm in action.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{DagSSSP}$(s)$:}\\
+for all vertices $v$ in topological order\\
+\Indent if $v = s$\\
+\Indent\Indent $\Var{dist}(v) \gets 0$\\
+\Indent else\\
+\Indent\Indent $\Var{dist}(v) \gets \infty$\\
+\Indent\Indent for all edges $\arc{u}{v}$\\
+\Indent\Indent\Indent if $\Var{dist}(v) > \Var{dist}(u) + w(\arc{u}{v})$ \Comment{if $\arc{u}{v}$ is tense}\\
+\Indent\Indent\Indent\Indent $\Var{dist}(v) \gets \Var{dist}(u) + w(\arc{u}{v})$ \Comment{relax $\arc{u}{v}$}
+\end{pseudocode}
+\caption{Computing shortest paths in a dag using dynamic programming}
+\label{fig:8.7}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{DagSSSP}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+for all vertices $v$ in topological order\\
+\Indent for all edges $\arc{u}{v}$\\
+\Indent\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent\Indent \Proc{Relax}$(\arc{u}{v})$
+\end{pseudocode}
+\caption{Computing shortest paths in a dag using Ford’s algorithm. (These are the same algorithm.)}
+\label{fig:8.8}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p301-Im130}
+\caption{Computing shortest paths in a dag, by relaxing \textbf{incoming} edges in topological order. In each iteration, bold edges indicate predecessors, and the bold vertex is about to be scanned. Compare with \figref{fig:8.10}.}
+\label{fig:8.9}
+\end{figure}
+
+\Proc{DagSSSP} differs from breadth-first search and other instances of Ford’s relaxation strategy in one minor respect.
+Whenever these other shortest-path algorithms consider a vertex, they attempt to relax each of its \textit{outgoing} edges, intuitively \textit{pushing} the wavefront forward from the source; whereas, \Proc{DagSSSP} attempts to relax each of the \textit{incoming} edges of each vertex, intuitively \textit{pulling} the wavefront forward.
+
+However, if we modify \Proc{DagSSSP} to relax outgoing edges instead of incoming edges, we obtain another algorithm that computes shortest paths in dags in \textbf{\textit{$\symbfit{O(V + E)}$ time}} and that more closely resembles our other shortest-path algorithms.
+
+\begin{pseudocode}
+\Header{\Proc{PushDagSSSP}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+for all vertices {\color{JEred}$\symbfit{u}$} in topological order\\
+\Indent for all {\color{JEred}\bfseries outgoing} edges $\arc{u}{v}$\\
+\Indent\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent\Indent \Proc{Relax}$(\arc{u}{v})$
+\end{pseudocode}
+
+\figref{fig:8.10} shows an execution of this modified algorithm on the same graph as \figref{fig:8.9}.
+The correctness of \Proc{PushDagSSSP} follows immediately from the correctness of Ford’s general relaxation strategy, but it’s not hard to prove correctness directly, by induction over the vertices in topological order.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p303-Im131}
+\caption{Computing shortest paths in a dag, by relaxing \textbf{outgoing} edges in topological order. In each iteration, bold edges indicate predecessors, and the bold vertex is about to be scanned. Compare with \figref{fig:8.9}.}
+\label{fig:8.10}
+\end{figure}
+
+\section{Best-First: Dijkstra’s Algorithm}
+\label{sec:8.6}
+
+If we replace the FIFO queue in breadth-first search with a priority queue, where the key of a vertex $v$ is its tentative distance $\Var{dist}(v)$, we obtain an algorithm first “published” in 1957 by a team of researchers at the Case Institute of Technology led by Michael Leyzorek, in an annual project report for the Combat Development Department of the US Army Electronic Proving Ground.
+The same algorithm was independently discovered by Edsger Dijkstra in 1956 (but not published until 1959), again by George Minty some time before 1960, and again by Peter Whiting and John Hillier in 1960.
+A nearly identical algorithm was also described by George Dantzig in 1958.
+Although several early sources called it “Minty’s algorithm”, this approach is now universally known as “Dijkstra’s algorithm”, in full accordance with Stigler’s Law.\footnote{I will follow this common convention, despite the historical inaccuracy, partly because I don’t think anybody wants to read about the “Leyzorek-Gray-Johnson-Ladew-Meaker-Petry-Seitz-Dantzig-Dijkstra-Minty-Whiting-Hillier algorithm”, and partly because papers that aren’t \textit{actually published} don’t count.}
+Pseudocode for this algorithm is shown in \figref{fig:8.11}.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{Dijkstra}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+\Proc{Insert}$(s, 0)$\\
+while the priority queue is not empty\\
+\Indent $u \gets \Proc{ExtractMin}(\,)$\\
+\Indent for all edges $\arc{u}{v}$\\
+\Indent\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent\Indent \Proc{Relax}$(\arc{u}{v})$\\
+\Indent\Indent\Indent if $v$ is in the priority queue\\
+\Indent\Indent\Indent\Indent \Proc{DecreaseKey}$(v, \Var{dist}(v))$\\
+\Indent\Indent\Indent else\\
+\Indent\Indent\Indent\Indent \Proc{Insert}$(v, \Var{dist}(v))$
+\end{pseudocode}
+\caption{Dijkstra’s algorithm.}
+\label{fig:8.11}
+\end{figure}
+
+An easy induction proof implies that, at all times during the execution of this algorithm, an edge $\arc{u}{v}$ is tense if and only if vertex $u$ is either in the priority queue or is the vertex most recently \Proc{Extract}ed from the priority queue.
+Thus, Dijkstra’s algorithm is an instance of Ford’s general strategy, which implies that it correctly computes shortest paths, provided there are no negative cycles in $G$.
+
+\subsection{No Negative Edges}
+
+Dijkstra’s algorithm is particularly well-behaved when the input graph has no negative-weight edges.
+In this setting, the algorithm intuitively expands a wavefront outward from the source vertex $s$, passing over vertices in increasing order of their distance from $s$, similarly to breadth-first search.
+\figref{fig:8.12} shows the algorithm in action.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p304-Im132}
+\caption{The first four iterations of Dijkstra’s algorithm on a graph with no negative edges. In each iteration, bold edges indicate predecessors; shaded vertices are in the priority queue; and the bold vertex is about to be scanned. The remaining iterations do not change the distances or the shortest-path tree.}
+\label{fig:8.12}
+\end{figure}
+
+We can derive a self-contained proof of correctness for Dijkstra’s algorithm in this setting by formalizing this wavefront intuition.
+For each integer $i$, let $u_i$ denote the vertex returned by the $i$th call to \Proc{ExtractMin}, and let $d_i$ be the value of $\Var{dist}(u_i)$ just after this \Proc{Extraction}.
+In particular, we have $u_1 = s$ and $d_1 = 0$.
+We cannot assume at this point that the vertices $u_i$ are distinct; in principle, the same vertex might be \Proc{Extract}ed more than once.
+
+\textbf{Lemma 8.3.} \textsl{If $G$ has no negative-weight edges, then for all $i < j$, we have $d_i \le d_j$.}
+
+\textbf{Proof:} Assume $G$ has no negative weight edges.
+Fix an arbitrary index $i$; to prove the lemma, it suffices to prove that $d_{i+1} \ge d_i$.
+There are two cases to consider.
+\begin{itemize}
+\item If $G$ contains the edge $\arc{u_i}{u_{i+1}}$, and this edge is relaxed during the $i$th iteration of the main loop, then at the end of the $i$th iteration, we have $\Var{dist}(u_{i+1}) = \Var{dist}(u_i) + w(\arc{u_i}{u_{i+1}}) \ge \Var{dist}(u_i)$, because all edge weights are non-negative.
+\item Otherwise, at the start of the $i$th iteration, $u_{i+1}$ must already be in the priority queue, and it must have priority $\Var{dist}(u_{i+1}) \ge \Var{dist}(u_i)$, because $u_i$ is the vertex returned by \Proc{ExtractMin}.
+Moreover, $\Var{dist}(u_{i+1})$ does not change during the $i$th iteration.
+\end{itemize}
+In both cases, we conclude that $d_{i+1} \ge d_i$.
+The lemma now follows immediately by induction on $i$.\hfill$\mdlgwhtsquare$
+
+\textbf{Lemma 8.4.} \textsl{If $G$ has no negative-weight edges, each vertex of $G$ is \Proc{Extract}ed from the priority queue at most once.}
+
+\textbf{Proof:} Suppose $v$ is \Proc{Extract}ed more than once.
+Specifically, suppose $v$ is \Proc{Extract}ed in the $i$th iteration of the main loop, re\Proc{Insert}ed during the $j$th iteration, and re\Proc{Extract}ed during the $k$th iteration, for some indices $i < j < k$.
+Then in the notation of the previous proof, we have $v = u_i = u_k$.
+
+The distance label $\Var{dist}(v)$ never increases.
+Moreover, $\Var{dist}(v)$ strictly decreases during the $j$th iteration, just before $v$ is re\Proc{Insert}ed.
+It follows that $d_i > d_k$.
+Therefore, by the previous lemma, $G$ has at least one negative-weight edge.\hfill$\mdlgwhtsquare$
+
+Lemma 8.4 immediately implies that each vertex is scanned at most once, and thus that each edge is relaxed at most once.
+However, unlike in breadth-first search, each distance label $\Var{dist}(v)$ can change multiple times.
+The first time $\Var{dist}(v)$ changes from $\infty$, we \Proc{Insert} $v$ into the priority queue; after that, each change to $\Var{dist}(v)$ is followed by a call to \Proc{DecreaseKey}.
+After $v$ is \Proc{Extract}ed from the priority queue, its distance label never changes.
+
+The rest of the correctness proof is almost identical to breadth-first search.
+
+\textbf{Theorem 8.5.} \textsl{If $G$ has no negative-weight edges, then when \Proc{Dijkstra} ends, $\Var{dist}(v)$ is the length of the shortest path in $G$ from $s$ to $v$, for every vertex $v$.}
+
+\textbf{Proof:} Fix an arbitrary vertex $v$, and consider an arbitrary path $\arc{v_0}{v_1}\arc{}{\cdots}\arc{}{v_\ell}$ in $G$, where $v_0 = s$ and $v_\ell = v$.
+For any index $j$, let $L_j$ denote the length of the subpath $\arc{v_0}{v_1}\arc{}{\cdots}\arc{}{v_j}$.
+We prove by induction that $\Var{dist}(v_j) \le L_j$ for all $j$.
+\begin{itemize}
+\item Trivially $\Var{dist}(v_0) = \Var{dist}(s) = 0 = L_0$.
+\item For any index $j > 0$, the induction hypothesis implies $\Var{dist}(v_{j-1}) \le L_{j-1}$.
+Immediately after we \Proc{Pull} vertex $v_{j-1}$ from the queue, either $\Var{dist}(v_i) \le \Var{dist}(v_{j-1}) + w(\arc{v_{j-1}}{v_j})$ already, or we set $\Var{dist}(v_i) \gets \Var{dist}(v_{j-1}) + w(\arc{v_{j-1}}{v_j})$.
+In either case, we have
+\[
+\Var{dist}(v_j) \;\le\; \Var{dist}(v_{j-1}) + w(\arc{v_{j-1}}{v_j}) \;\le\; L_{j-1} + w(\arc{v_{j-1}}{v_j}) \;=\; L_j.
+\]
+\end{itemize}
+We just proved that $\Var{dist}(v)$ is at most the length of \textit{every} path from $s$ to $v$; it follows that $\Var{dist}(v)$ is at most the length of the \textit{shortest} path from $s$ to $v$.
+
+On the other hand, a similar induction proof implies that $\Var{dist}(v)$ is the length of the predecessor path $\arc{s}{\cdots}\arc{}{\Var{pred}(\Var{pred}(v))}\arc{}{\Var{pred}(v)}\arc{}{v}$.\hfill$\mdlgwhtsquare$
+
+It remains only to bound the algorithm’s running time.
+Altogether \Proc{Dijkstra} performs at most $E$ \Proc{DecreaseKey} operations, and at most $V$ \Proc{Insert} and \Proc{ExtractMin} operations.
+Thus, if we implement the underlying priority queue using a standard binary heap, which supports each operation in $O(\log V)$ time, \Proc{Dijkstra} runs in \textbf{\textit{$\symbfit{O(E \log V)}$ time}}.\footnote{Shortest-path papers from the 1950s never mentioned priority queues. Dijkstra proposed a brute-force scan of all vertices on the wavefront at every iteration; his original algorithm runs in \textbf{\textit{$\symbfit{O(V^2)}$ time}}, which is actually faster than the binary-heap implementation when $E = \Omega(V^2)$! Minty proposed a brute-force scan of all \textit{edges} $\arc{u}{v}$ such that $\Var{dist}(u)$ is finite but $\Var{dist}(v)$ is not; thus, his original algorithm runs in $O(VE)$ time. The use of a priority queue, implemented as a binary heap, to obtain near-linear running time was proposed by Donald Johnson in 1977. The running time can be improved to $\symbfit{O(E + V \log V)}$ using a more complex priority queue data structure called a \textit{Fibonacci heaps}. There are even faster algorithms, using even more sophisticated priority queues, for the special case of integer edge weights.}
+
+If we know in advance that our input graphs will \textit{never} have negative edges, we can simplify Dijkstra’s algorithm slightly, by \Proc{Insert}ing every vertex into the priority queue in the initialization phase, and then only calling \Proc{DecreaseKey} in the main loop, as shown in \figref{fig:8.13}.
+This is the version of Dijkstra’s algorithm presented by most algorithms textbooks, Wikipedia, and even Dijkstra’s original paper; it’s also the version of Dijkstra’s algorithm that I described as “best-first search” in \chapref{ch:5}.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{NonnegativeDijkstra}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+{\color{JEred}\bfseries for all vertices $\symbfit{v}$}\\
+\Indent {\color{JEred}\bfseries\Proc{Insert}$(\symbfit{v}, \Var{dist}(\symbfit{v}))$}\\
+while the priority queue is not empty\\
+\Indent $u \gets \Proc{ExtractMin}(\,)$\\
+\Indent for all edges $\arc{u}{v}$\\
+\Indent\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent\Indent \Proc{Relax}$(\arc{u}{v})$\\
+\Indent\Indent\Indent {\color{JEred}\bfseries\Proc{DecreaseKey}$(\symbfit{v}, \Var{dist}(\symbfit{v}))$}
+\end{pseudocode}
+\caption{Dijkstra’s algorithm very slightly simplified for graphs without negative edges. Differences from {\rmfamily\Proc{Dijkstra}} are bold red.}
+\label{fig:8.13}
+\end{figure}
+
+\subsection{\difficulty{H}Negative Edges}
+
+However, \Proc{NonnegativeDijkstra} does \textit{not} correctly compute shortest paths in graphs with negative edges.
+Moreover, even when all edge weights are positive, \Proc{NonnegativeDijkstra} is no faster than \Proc{Dijkstra} (either in theory or in practice).
+For both of these reasons, I think \Proc{Dijkstra} is more deserving of the name “Dijkstra’s algorithm” than \Proc{NonnegativeDijkstra}.
+Even Edsger Dijkstra would have agreed that a correct algorithm that is sometimes (and in practice, rarely) slow is better than a fast algorithm that doesn’t always work!
+
+Unfortunately, when the input graph has negative edges, the familiar “expanding wavefront” intuition is no longer accurate.
+The same vertex can be \Proc{Extract}ed multiple times; the same edge can be relaxed multiple times; and distances might not be discovered in increasing order.
+\figref{fig:8.15} shows an example execution where the top left vertex is \Proc{Extracted} six times, and the top three edges are each relaxed twice.
+
+For graphs without negative cycles, but no other restrictions on edge weights, the worst-case running time of \Proc{Dijkstra} is actually exponential.
+\figref{fig:8.14} shows particularly simple family of graphs (due to Douglas Shier and Christoph Witzgall) that forces \Proc{Dijkstra} to perform $\Theta(2^{V/2})$ relaxations.\footnote{Amusingly, Shier and Witzgall’s example is a dag with only $O(V)$ edges, which implies that shortest paths can be computed in only $O(V)$ time, even if we \textit{didn’t} already notice that the zig-zag path along the top \textit{is} the shortest path tree.}
+A more complex family of graphs (which I’ll leave as an exercise) forces $\Theta(2^V)$ relaxations, which is the worst possible.
+\textit{In practice}, however, Dijkstra’s algorithm is usually fast even for graphs with negative edges.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p307-Im133}
+\caption{A directed graph with negative edges that forces \Proc{Dijkstra} to run in exponential time.}
+\label{fig:8.14}
+\end{figure}
+
+\begin{figure}[htp]
+\centering
+\includegraphics{p308-Im134}
+\caption{A complete run of Dijkstra’s algorithm on a graph with negative edges. At each iteration, bold edges indicate predecessors; shaded vertices are in the priority queue; and the bold vertex is the next to be scanned. Compare with \figref{fig:8.17}.}
+\label{fig:8.15}
+\end{figure}
+
+\section{Relax ALL the Edges: Bellman-Ford}
+\label{sec:8.7}
+
+The simplest implementation of Ford’s generic shortest-path algorithm was first sketched by Alfonso Shimbel in 1954, described in more detail by Edward Moore in 1957, and independently rediscovered by Max Woodbury and George Dantzig in 1957, by Richard Bellman in 1958, and by George Minty in 1958.
+(Neither Woodbury and Dantzig nor Minty published their algorithms.)
+In full compliance with Stigler’s Law, the algorithm is almost universally known as \textbf{\textit{Bellman-Ford}},\footnote{I will follow this common convention, despite the historical inaccuracy, partly because I don’t think anyone really wants read about the “Shimbel\,/\,Moore\,/\,Woodbury-Dantzig\,/\,Bellman-Ford\,/\,Kalaba\,/\,Minty algorithm”, and partly because I’m tired of people looking at me funny when I talk about “Shimbel’s algorithm”.} because Bellman explicitly used Ford’s 1956 formulation of relaxing edges, although some authors refer to “Bellman-Kalaba”\footnote{This name is most likely a reference to Richard Bellman and Robert Kalaba’s 1965 monograph on dynamic programming and control theory, which describes Bellman’s algorithm. Bellman and Kalaba also published an extension of Bellman’s algorithm in 1960 that computes $k$th shortest paths, for any constant $k$.} and a few early sources refer to “Bellman-Shimbel”.
+
+The Shimbel\,/\,Moore\,/\,Woodbury-Dantzig\,/\,Bellman-Ford\,/\,Kalaba\,/\,Minty\,/\,Brosh\footnote{Go read everything in \href{http://hyperboleandahalf.blogspot.com/}{\textit{Hyperbole and a Half}} again. And then adopt another cat, so you can buy it another copy of the book.} algorithm can be summarized in one line:
+\begin{problembox}
+\Proc{Bellman-Ford}: Relax \textbf{\textit{ALL}} the tense edges, then recurse.
+\end{problembox}
+
+\begin{pseudocode}
+\Header{\Proc{BellmanFord}$(s)$}\\
+\Proc{InitSSSP}$(s)$\\
+while there is at least one tense edge\\
+\Indent for every edge $\arc{u}{v}$\\
+\Indent\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent\Indent \Proc{Relax}$(\arc{u}{v})$
+\end{pseudocode}
+
+The following lemma is the key to proving both correctness and efficiency of Bellman-Ford.
+For every vertex $v$ and non-negative integer $i$, let \textbf{\textit{$\Var{dist}_{\le \symbfit{i}}(\symbfit{v})$}} denote the length of the shortest \textit{walk} in $G$ from $s$ to $v$ consisting of \textit{at most} $i$ edges.
+In particular, $\Var{dist}_{\le 0}(s) = 0$ and $\Var{dist}_{\le 0}(v) = \infty$ for all $v \neq s$.
+
+\textbf{Lemma 8.6.} \textsl{For every vertex $v$ and non-negative integer $i$, after $i$ iterations of the main loop of \Proc{BellmanFord}, we have $\Var{dist}(v) \le \Var{dist}_{\le i}(v)$.}
+
+\textbf{Proof:} The proof proceeds by induction on $i$.
+The base case $i = 0$ is trivial, so assume $i > 0$.
+Fix a vertex $v$, and let $W$ be the shortest walk from $s$ to $v$ consisting of at most $i$ edges (breaking ties arbitrarily).
+By definition, $W$ has length $\Var{dist}_{\le i}(v)$.
+There are two cases to consider.
+\begin{itemize}
+\item Suppose $W$ has no edges.
+Then $W$ must be the trivial walk from $s$ to $s$, so $v = s$ and $\Var{dist}_{\le i}(s) = 0$.
+We set $\Var{dist}(s) \gets 0$ in \Proc{InitSSSP}, and $\Var{dist}(s)$ can never increase, so we always have $\Var{dist}(s) \le 0$.
+\item Otherwise, let $\arc{u}{v}$ be the last edge of $W$.
+The induction hypothesis implies that after $i - 1$ iterations, $\Var{dist}(u) \le \Var{dist}_{\le i-1}(u)$.
+During the $i$th iteration of the outer loop, when we consider the edge $\arc{u}{v}$ in the inner loop, either $\Var{dist}(v) < \Var{dist}(u) + w(\arc{u}{v})$ already, or we set $\Var{dist}(v) \gets \Var{dist}(u) + w(\arc{u}{v})$.
+In both cases, we have $\Var{dist}(v) \le \Var{dist}_{\le i-1}(u) + w(\arc{u}{v}) = \Var{dist}_{\le i}(v)$.
+As usual, $\Var{dist}(v)$ cannot increase (although $\Var{dist}(v)$ might decrease further before the $i$th iteration of the outer loop ends).
+\end{itemize}
+In both cases, we conclude that $\Var{dist}(v) \le \Var{dist}_{\le i}(v)$ at the end of the $i$th iteration.\hfill$\mdlgwhtsquare$
+
+If the input graph has no negative cycles, the shortest walk from $s$ to any other vertex is a simple path with at most $V - 1$ edges; it follows that \Proc{Bellman-Ford} halts with the correct shortest-path distances after at most $V - 1$ iterations.
+Said differently, if any edge is still tense after $V - 1$ iterations, then the input graph must contain a negative cycle!
+Thus, we can rewrite the algorithm more concretely as follows:
+
+\begin{pseudocode}
+\Header{\Proc{BellmanFord}$(s)$}\\
+\Proc{InitSSSP}$(s)$\\
+repeat $V - 1$ times\\
+\Indent for every edge $\arc{u}{v}$\\
+\Indent\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent\Indent \Proc{Relax}$(\arc{u}{v})$\\
+for every edge $\arc{u}{v}$\\
+\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent return “Negative cycle!”
+\end{pseudocode}
+
+Each iteration of the inner loop trivially requires $O(E)$ time, so the overall algorithm runs in \textbf{\textit{$\symbfit{O(VE)}$ time}}.
+Thus, Bellman-Ford is \textit{always} efficient, even if the graph has negative edges, and in fact even if the graph has negative \textit{cycles}.
+
+If all edge weights are non-negative, however, Dijkstra’s algorithm is faster, at least in the worst case.
+(In practice, Dijkstra’s algorithm is often faster than Bellman-Ford even for graphs with negative edges.)
+
+\subsection{Moore’s Improvement}
+
+Neither Moore nor Bellman described the Bellman-Ford algorithm in the form I’ve presented here.
+Moore presented his version of the algorithm ("Algorithm D") in the same paper that proposed breadth-first search ("Algorithm A") for unweighted graphs; indeed, the two algorithms are nearly identical.
+Although Moore’s algorithm has the same $O(VE)$ worst-case running time as \Proc{BellmanFord}, it is often significantly faster in practice, intuitively because it avoids checking edges that are “obviously” not tense.
+
+Moore derived his weighted shortest-path algorithm by making two modifications to breadth-first search.
+First, replace each “$+1$” with “$+w(\arc{u}{v})$" in the innermost loop, to take the edge weights into account.
+Second, check whether a vertex is already in the FIFO queue before \Proc{Insert}ing it, so that the queue always contains at most one copy of each vertex.\footnote{Moore’s algorithm is still \textit{correct} without this check, but the $O(VE)$ time bound is not.}
+
+Following our earlier analysis of breadth-first search, I’ll introduce a “token” $\maltese$ to break the execution of the algorithm into phases.
+Just like breadth-first search, each phase begins when the token is \Proc{Push}ed into the queue, and ends when the token is \Proc{Pull}ed out of the queue again.
+Just like \Proc{BFS}, the algorithm ends when the queue contains \textit{only} the token.
+The resulting algorithm is shown in \figref{fig:8.16}.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{Moore}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+\Proc{Push}$(s)$\\
+{\color{JEred}\bfseries\Proc{Push}$(\maltese)$} \Comment{start the first phase}\\
+while the queue contains at least one vertex\\
+\Indent $u \gets \Proc{Pull}(\,)$\\
+\Indent {\color{JEred}\bfseries if $\symbfit{u} = \maltese$}\\
+\Indent\Indent {\color{JEred}\bfseries\Proc{Push}$(\maltese)$} \Comment{start the next phase}\\
+\Indent {\color{JEred}\bfseries else}\\
+\Indent\Indent for all edges $\arc{u}{v}$\\
+\Indent\Indent\Indent if $\arc{u}{v}$ is tense\\
+\Indent\Indent\Indent\Indent \Proc{Relax}$(\arc{u}{v})$\\
+\Indent\Indent\Indent\Indent if $v$ is not already in the queue\\
+\Indent\Indent\Indent\Indent\Indent \Proc{Push}$(v)$
+\end{pseudocode}
+\caption{Moore’s shortest-path algorithm. Bold red lines involving the token $\maltese$ are only for analysis.}
+\label{fig:8.16}
+\end{figure}
+
+Because the queue contains at most one copy of each vertex at any time, each vertex is \Proc{Pull}ed from the queue at most once in each phase, and therefore each edge $\arc{u}{v}$ is checked for tenseness at most once in each phase.
+Moreover, every edge that is tense when a phase begins is relaxed during that phase.
+(Some edges that become tense during the phase might also be relaxed during that phase, and some relaxed edges might become tense again in the same phase.)
+Thus, \Proc{Moore} can be viewed as a refinement of \Proc{BellmanFord} that uses a queue to maintain tense edges, rather than testing every edge by brute force.
+In particular, a similar inductive proof establishes the following analogue of Lemma 8.6:
+
+\textbf{Lemma 8.7.} \textsl{For every vertex $v$ and non-negative integer $i$, after $i$ phases of \Proc{Moore}, we have $\Var{dist}(v) \le \Var{dist}_{\le i}(v)$.}
+
+Thus, if the input graph has no negative cycles, \Proc{Moore} halts after at most $V - 1$ phases.
+In each phase, we scan each vertex at most once, so we relax each edge at most once, so the worst-case running time of a single phase is $O(E)$.
+Thus, the overall running time of \Proc{Moore} is $\symbfit{O(VE)}$.
+In practice, however, \Proc{Moore} often computes shortest paths considerably faster than \Proc{BellmanFord}, because it only scans an edge $\arc{u}{v}$ if $\Var{dist}(u)$ was changed in the previous phase.
+
+If the input graph contains a negative cycle, \Proc{Moore} never halts.
+Fortunately, like \Proc{BellmanFord}, it is easy to modify Moore’s algorithm to report negative cycles if they exist.
+Perhaps the easiest modification is to \textit{actually} maintain a token, and count the number of times the token is \Proc{Pull}ed from the queue.
+Then the input graph contains a negative cycle if and only if the queue is non-empty immediately after the token is \Proc{Pull}ed for the $(V - 1)$th time.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p312-Im135}
+\caption{A complete run of Moore’s algorithm on a directed graph with negative edges. Nodes are pulled from the queue in the order $s\ \maltese\ a\ b\ c\ \maltese\ d\ f\ \maltese\ d\ e\ \maltese\ d\ \maltese\maltese$, where $\maltese$ is the end-of-phase token. At the start of each phase, bold edges indicate predecessors, and shaded vertices are in the vertex queue. Compare with Figures \ref{fig:8.6} and \ref{fig:8.15}.}
+\label{fig:8.17}
+\end{figure}
+
+\subsection{Dynamic Programming Formulation}
+
+Like almost everything else with his name on it, Richard Bellman derived the “Bellman-Ford” shortest-path algorithm via dynamic programming.
+As usual, we need to start with a recursive definition of shortest path distances.
+It’s tempting to use the same identity that we exploited for directed acyclic graphs:
+\[
+\Var{dist}(v) = \begin{cases}
+0 & \text{if } v = s\\
+\displaystyle\min_{\arc{u}{v}} \bigl(\Var{dist}(u) + w(\arc{u}{v})\bigr) & \text{otherwise}
+\end{cases}
+\]
+\textbf{Unfortunately, if the input graph is not a dag, this recurrence doesn’t work!}
+Suppose the input graph contains the directed cycle $\arc{u}{v}\arc{}{w}\arc{}{u}$.
+To compute $\Var{dist}(w)$ we first need $\Var{dist}(v)$, and to compute $\Var{dist}(v)$ we first need $\Var{dist}(u)$, but to compute $\Var{dist}(u)$ we first need $\Var{dist}(w)$.
+If the input graph has any directed cycles, we get stuck in an infinite loop!
+
+To support a proper recurrence, we need to add an additional structural parameter to the distance function, which decreases monotonically at each recursive call, defined so that the function is trivial to evaluate when the parameter reaches $0$.
+Bellman chose \textbf{\textit{the maximum number of edges}} as this additional parameter.\footnote{As we’ll see in the next chapter, this is not the only reasonable choice.}
+
+As in our earlier analysis, let $\Var{dist}_{\le i}(v)$ denote the length of the shortest walk from $s$ to $v$ consisting of at most $i$ edges.
+Bellman observed that this function obeys the following \settowidth{\dimen0}{Bellman’s equation}\rlap{Bellman’s equation}\rule[0.45ex]{\dimen0}{0.4pt} recurrence:
+\[
+\Var{dist}_{\le i}(v) = \begin{cases}
+0 & \text{if } i = 0 \text{ and } v = s\\
+\infty & \text{if } i = 0 \text{ and } v \neq s\\
+\min\left\{\begin{array}{c} \Var{dist}_{\le i-1}(v)\\ \displaystyle\min_{\arc{u}{v}} \bigl(\Var{dist}_{\le i-1}(u) + w(\arc{u}{v})\bigr) \end{array}\right\} & \text{otherwise}
+\end{cases}
+\]
+Let’s assume that the graph has no negative cycles, so our goal is to compute $\Var{dist}_{\le V-1}(v)$ for every vertex $v$.
+Here is a straightforward dynamic-programming evaluation of this recurrence, where $\Var{dist}[i, v]$ stores the value of $\Var{dist}_{\le i}(v)$.
+Correctness of the final shortest-path distances follows from the correctness of the recurrence, and the $O(VE)$ running time is obvious.
+This is essentially how Bellman presented his shortest-path algorithm.
+
+\begin{pseudocode}
+\Header{\Proc{BellmanFordDP}$(s)$}\\
+$\Var{dist}[0, s] \gets 0$\\
+for every vertex $v \neq s$\\
+\Indent $\Var{dist}[0, v] \gets \infty$\\
+for $i \gets 1$ to $V - 1$\\
+\Indent for every vertex $v$\\
+\Indent\Indent $\Var{dist}[i, v] \gets \Var{dist}[i - 1, v]$\\
+\Indent\Indent for every edge $\arc{u}{v}$\\
+\Indent\Indent\Indent if $\Var{dist}[i, v] > \Var{dist}[i - 1, u] + w(\arc{u}{v})$\\
+\Indent\Indent\Indent\Indent $\Var{dist}[i, v] \gets \Var{dist}[i - 1, u] + w(\arc{u}{v})$
+\end{pseudocode}
+
+We can transform this dynamic programming algorithm into our original formulation of \Proc{BellmanFord} through a short series of minor optimizations.
+First, each iteration of the outermost loop considers each edge $\arc{u}{v}$ exactly once, but the order in which we consider those edges doesn’t actually matter.
+Thus, we can safely remove one level of indentation from the last three lines!
+The modified algorithm may consider edges in a different \textit{order}, but it still correctly computes $\Var{dist}_{\le i}(v)$ for all $i$ and $v$.
+
+\begin{pseudocode}
+\Header{\Proc{BellmanFordDP2}$(s)$}\\
+$\Var{dist}[0, s] \gets 0$\\
+for every vertex $v \neq s$\\
+\Indent $\Var{dist}[0, v] \gets \infty$\\
+for $i \gets 1$ to $V - 1$\\
+\Indent for every vertex $v$\\
+\Indent\Indent $\Var{dist}[i, v] \gets \Var{dist}[i - 1, v]$\\
+\Indent {\color{JEred}\bfseries for every edge $\symbfit{\arc{u}{v}}$}\\
+\Indent\Indent {\color{JEred}\bfseries if $\Var{dist}[\symbfit{i}, \symbfit{v}] > \Var{dist}[\symbfit{i} - \symbf{1}, \symbfit{u}] + \symbfit{w}(\symbfit{\arc{u}{v}})$}\\
+\Indent\Indent\Indent {\color{JEred}\bfseries $\Var{dist}[\symbfit{i}, \symbfit{v}] \gets \Var{dist}[\symbfit{i} - \symbf{1}, \symbfit{u}] + \symbfit{w}(\symbfit{\arc{u}{v}})$}
+\end{pseudocode}
+
+Next we change the indices in the last two lines from $i - 1$ to $i$.
+This change may cause the distances $\Var{dist}[i, v]$ to approach the true shortest-path distances more quickly than before, but the algorithm correctly computes the true shortest path distances.
+Instead of $\Var{dist}[i, v] = \Var{dist}_{\le i}(v)$, we now have $\Var{dist}[i, v] \le \Var{dist}_{\le i}(v)$ for all $i$ and $v$, mirroring Lemmas 8.6 and 8.7.
+
+\begin{pseudocode}
+\Header{\Proc{BellmanFordDP3}$(s)$}\\
+$\Var{dist}[0, s] \gets 0$\\
+for every vertex $v \neq s$\\
+\Indent $\Var{dist}[0, v] \gets \infty$\\
+for $i \gets 1$ to $V - 1$\\
+\Indent for every vertex $v$\\
+\Indent\Indent $\Var{dist}[i, v] \gets \Var{dist}[i - 1, v]$\\
+\Indent for every edge $\arc{u}{v}$\\
+\Indent\Indent if $\Var{dist}[i, v] > \Var{dist}[{\color{JEred}\symbfit{i}}, u] + w(\arc{u}{v})$ \Comment{not $i - 1$!}\\
+\Indent\Indent\Indent $\Var{dist}[i, v] \gets \Var{dist}[{\color{JEred}\symbfit{i}}, u] + w(\arc{u}{v})$ \Comment{not $i - 1$!}
+\end{pseudocode}
+
+But this algorithm is a little silly.
+In the $i$th iteration of the outermost loop, we first copy the $(i - 1)$th row of the array $\Var{dist}[\cdot, \cdot]$ to the $i$th row, and then modify the elements of the $i$th row.
+So we really don’t need a two-dimensional array at all; the iteration index $i$ is completely redundant!
+In our final modification, we maintain only a one-dimensional array of tentative distances.
+
+\begin{pseudocode}
+\Header{\Proc{BellmanFordFinal}$(s)$}\\
+$\Var{dist}{\color{JEred}[\symbfit{s}]} \gets 0$\\
+for every vertex $v \neq s$\\
+\Indent $\Var{dist}{\color{JEred}[\symbfit{v}]} \gets \infty$\\
+for $i \gets 1$ to $V - 1$\\
+\Indent for every edge $\arc{u}{v}$\\
+\Indent\Indent if $\Var{dist}{\color{JEred}[\symbfit{v}]} > \Var{dist}{\color{JEred}[\symbfit{u}]} + w(\arc{u}{v})$\\
+\Indent\Indent\Indent $\Var{dist}{\color{JEred}[\symbfit{v}]} \gets \Var{dist}{\color{JEred}[\symbfit{u}]} + w(\arc{u}{v})$
+\end{pseudocode}
+
+This final dynamic programming algorithm is almost identical to our original formulation of \Proc{BellmanFord}!
+The first three lines initialize the shortest path distances, and the last two lines relax the edge $\arc{u}{v}$ if that edge is tense.
+\Proc{BellmanFordFinal} is missing only two features of our earlier formulation: It does not maintain predecessor pointers or detect negative cycles.
+Fortunately, adding those features is straightforward.
+
+\begin{exercises}
+\setcounter{enumi}{-1}
+\item Let $G$ be a directed graph with arbitrary edge weights (which may be positive, negative, or zero), possibly with negative cycles, and let $s$ be an arbitrary vertex of $G$.
+\begin{enumerate}
+\item Suppose every vertex $v$ stores a number $\Var{dist}(v)$ (but no predecessor pointers).
+Describe and analyze an algorithm to determine whether $\Var{dist}(v)$ is the shortest-path distance from $s$ to $v$, for every vertex $v$.
+\item Suppose instead that every vertex $v \neq s$ stores a pointer $\Var{pred}(v)$ to another vertex in $G$ (but no distances).
+Describe and analyze an algorithm to determine whether these predecessor pointers define a single-source shortest path tree rooted at $s$.
+\end{enumerate}
+
+\item A \textit{looped tree} is a weighted, directed graph built from a binary tree by adding an edge from every leaf back to the root.
+Every edge has non-negative weight.
+\begin{center}
+\includegraphics{p315-Im136}
+
+{\sffamily\footnotesize A looped tree.}
+\end{center}
+\begin{enumerate}
+\item How much time would Dijkstra’s algorithm require to compute the shortest path between two vertices $u$ and $v$ in a looped tree with $n$ nodes?
+\item Describe and analyze a faster algorithm.
+\end{enumerate}
+
+\item Suppose we are given a directed graph $G$ with weighted edges and two vertices $s$ and $t$.
+\begin{enumerate}
+\item Describe and analyze an algorithm to find the shortest path from $s$ to $t$ when exactly one edge in $G$ has negative weight.
+\Hint{Modify Dijkstra’s algorithm. Or don’t.}
+\item Describe and analyze an algorithm to find the shortest path from $s$ to $t$ when exactly $k$ edges in $G$ have negative weight.
+How does the running time of your algorithm depend on $k$?
+\end{enumerate}
+
+\item Suppose we are given an undirected graph $G$ in which every \textit{vertex} has a positive weight.
+\begin{enumerate}
+\item Describe and analyze an algorithm to find a \textit{spanning tree} of $G$ with minimum total weight.
+(The total weight of a spanning tree is the sum of the weights of its vertices.)
+\item Describe and analyze an algorithm to find a \textit{path} in $G$ from one given vertex $s$ to another given vertex $t$ with minimum total weight.
+(The total weight of a path is the sum of the weights of its vertices.)
+\end{enumerate}
+\Hint{One of these problems is trivial.}
+
+\item For any edge $e$ in any graph $G$, let $G \setminus e$ denote the graph obtained by deleting $e$ from $G$.
+Suppose we are given a graph $G$ and two vertices $s$ and $t$.
+The \textit{replacement paths} problem asks us to compute the shortest-path distance from $s$ to $t$ in $G \setminus e$, for \textit{every} edge $e$ of $G$.
+The output is an array of $E$ distances, one for each edge of $G$.
+\begin{enumerate}
+\item Suppose $G$ is a \textit{directed} graph, and the shortest path from vertex $s$ to vertex $t$ passes through \textit{every} vertex of $G$.
+Describe an algorithm to solve this special case of the replacement paths problem in $O(E \log V)$ time.
+\item \difficulty{h} Describe an algorithm to solve the replacement paths problem for arbitrary \textit{undirected} graphs in $O(E \log V)$ time.
+\end{enumerate}
+In both subproblems, you may assume that all edge weights are non-negative.
+\Hint{If we delete an edge of the original shortest path, how do the old and new shortest paths overlap?}
+
+\item Let $G = (V, E)$ be a connected directed graph with non-negative edge weights, let $s$ and $t$ be vertices of $G$, and let $H$ be a subgraph of $G$ obtained by deleting some edges.
+Suppose we want to reinsert exactly one edge from $G$ back into $H$, so that the shortest path from $s$ to $t$ in the resulting graph is as short as possible.
+Describe and analyze an algorithm that chooses the best edge to reinsert, in $O(E \log V)$ time.
+
+\item
+\begin{enumerate}
+\item Describe and analyze a modification of Bellman-Ford that actually returns a negative cycle if any such cycle is reachable from $s$, or a shortest-path tree if there is no such cycle.
+The modified algorithm should still run in $O(VE)$ time.
+\item Describe and analyze a modification of Bellman-Ford that computes the correct shortest path distances from $s$ to every other vertex of the input graph, even if the graph contains negative cycles.
+Specifically, if any walk from $s$ to $v$ contains a negative cycle, your algorithm should end with $\Var{dist}(v) = -\infty$; otherwise, $\Var{dist}(v)$ should contain the length of the shortest path from $s$ to $v$.
+The modified algorithm should still run in $O(VE)$ time.
+\item \difficulty{h} Repeat parts (a) and (b), but for Ford’s generic relaxation algorithm.
+You may assume that the unmodified algorithm halts in $O(2^V)$ steps if there is no negative cycle; your modified algorithms should also run in $O(2^V)$ time.
+\end{enumerate}
+
+\item Consider the following even looser variant of Ford’s generic relaxation algorithm:
+\begin{pseudocode}
+\Header{\Proc{FellmanBored}$(s)$:}\\
+\Proc{InitSSSP}$(s)$\\
+for $i \gets 1$ to whatever, man, I don’t care\\
+\Indent $e_i \gets$ any edge in $G$\\
+\Indent if $e_i$ is tense\\
+\Indent\Indent \Proc{Relax}$(e_i)$
+\end{pseudocode}
+Prove that if \Proc{FellmanBored} examines the edges of any walk $W$ starting from $s$, in order along $W$, then the last distance label in $W$ is at most the length of $W$.
+More formally: If the edges of any walk $\arc{v_0}{v_1}\arc{}{\cdots}\arc{}{v_\ell}$, where $v_0 = s$, define a \textit{subsequence} $e_1, e_2, e_3, \dots$ of the edges examined by \Proc{FellmanBored}, then we have $\Var{dist}(v_\ell) \le \sum_{i=1}^{\ell} w(\arc{v_{i-1}}{v_i})$.
+\Hint{This property is almost easier to prove than it is to state correctly.}
+
+\item This problem considers several ways to detect negative cycles using Ford’s generic relaxation algorithm.
+\begin{enumerate}
+\item Prove that if $\Var{pred}(s)$ ever changes after InitSSSP, then the input graph contains a negative cycle through $s$.
+\item Show that $\Var{pred}(s)$ might never change after InitSSSP, even when the input graph contains a negative cycle through $s$.
+\item Let $P$ denote the current graph of predecessor edges $\arc{\Var{pred}(v)}{v}$, and let $X$ denote the set of all currently \textit{ten}se edges; both of these sets evolve as the algorithm executes.
+Prove that the input graph has no negative cycles if and only if $P \cup X$ is always a dag.
+\item Let $R$ denote the set of all edges that have been relaxed so far; this set grows as the algorithm executes.
+Prove that the input graph has no negative cycles if and only if $R$ is always a dag.
+\end{enumerate}
+
+\item \difficulty{h} Prove that Dijkstra’s algorithm performs $\Omega(2^V)$ relaxations in the worst case when edges are allowed to have negative weight, even if the underlying graph is acyclic.
+Specifically, for every positive integer $n$, construct a $n$-vertex dag $G_n$ with weighted edges, such that Dijkstra’s algorithm calls \Proc{Relax} $\Omega(2^n)$ times when $G_n$ is the input graph.
+\Hint{Binary counter.}
+
+\item \difficulty{h} Prove that Ford’s generic relaxation algorithm (and therefore Dijkstra’s algorithm) halts after at most $O(2^V)$ relaxations, unless the input graph contains a negative cycle.
+\Hint{See Problem 8(d).}
+
+\item Suppose you are given a directed graph $G$ in which \textbf{\textit{every edge has negative weight}}, and a source vertex $s$.
+Describe and analyze an efficient algorithm that computes the shortest-path distances from $s$ to every other vertex in $G$.
+Specifically, for every vertex $t$:
+\begin{itemize}
+\item If $t$ is not reachable from $s$, your algorithm should report $\Var{dist}(t) = \infty$.
+\item If $G$ has a cycle that is reachable from $s$, and $t$ is reachable from that cycle, then the shortest-path distance from $s$ to $t$ is not well-defined, because there are paths (formally, walks) from $s$ to $t$ of arbitrarily large negative length.
+In this case, your algorithm should report $\Var{dist}(t) = -\infty$.
+\item If neither of the two previous conditions applies, your algorithm should report the correct shortest-path distance from $s$ to $t$.
+\end{itemize}
+
+\item Although we typically speak of “the” shortest path between two nodes, single graph could contain several minimum-length paths with the same endpoints.
+Even for weighted graphs, it is often desirable to choose a minimum-weight path with the fewest edges; call this a \textbf{\textit{best path}} from $s$ to $t$.
+Suppose we are given a directed graph $G$ with positive edge weights and a source vertex $s$ in $G$.
+Describe and analyze an algorithm to compute \textit{best} paths in $G$ from $s$ to every other vertex.
+\begin{figure}[ht]
+\centering
+\includegraphics{p318-Im137}
+\caption{Four (of many) equal-length shortest paths. The first path is the “best” shortest path.}
+\label{fig:8.18}
+\end{figure}
+
+\item Describe and analyze an algorithm to determine the \textit{number} of shortest paths from a source vertex $s$ to a target vertex $t$ in an arbitrary directed graph $G$ with weighted edges.
+You may assume that all edge weights are positive and that all necessary arithmetic operations can be performed in $O(1)$ time.
+\Hint{Compute shortest path distances from $s$ to every other vertex.
+Throw away all edges that cannot be part of a shortest path from $s$ to another vertex.
+What’s left?}
+
+\item You just discovered your best friend from elementary school on Twitbook.
+You both want to meet as soon as possible, but you live in two different cites that are far apart.
+To minimize travel time, you agree to meet at an intermediate city, and then you simultaneously hop in your cars and start driving toward each other.
+But where \textit{exactly} should you meet?
+
+You are given a weighted graph $G = (V, E)$, where the vertices $V$ represent cities and the edges $E$ represent roads that directly connect cities.
+Each edge $e$ has a weight $w(e)$ equal to the time required to travel between the two cities.
+You are also given a vertex $p$, representing your starting location, and a vertex $q$, representing your friend’s starting location.
+
+Describe and analyze an algorithm to find the target vertex $t$ that allows you and your friend to meet as quickly as possible.
+
+\item You are hired as a cyclist for the Giggle Highway View project, which will provide street-level images along the entire US national highway system.
+As a pilot project, you are asked to ride the Giggle Highway-View Fixed-Gear Carbon-Fiber Bicycle from “the Giggleplex” in Portland, Oregon to “Gigglesburg” in Williamsburg, Brooklyn, New York.
+
+You are a hopeless caffeine addict, but like most Giggle employees you are also a coffee snob; you only drink independently roasted, hand-pulled, direct-trade, organic, shade-grown, single-origin espresso, unadulterated by milk or sugar, thank you \textit{very} much.
+After each espresso shot, you can bike up to $L$ miles before suffering a caffeine-withdrawal migraine.
+
+Giggle helpfully provides you with a map of the United States, in the form of an undirected graph $G$, whose vertices represent coffee shops that sell independently roasted hand-pulled direct-trade organic shade-grown single-origin espresso, and whose edges represent highway connections between them.
+Each edge $e$ is labeled with the length $\ell(e)$ of the corresponding stretch of highway.
+Naturally, there are acceptable espresso stands at both Giggle offices, represented by two specific vertices $s$ and $t$ in the graph $G$.
+\begin{enumerate}
+\item Describe and analyze an algorithm to determine whether it is possible to bike from the Giggleplex to Gigglesburg without suffering a caffeine-withdrawal migraine.
+\item You discover that by wearing a more expensive fedora, you can increase the distance $L$ that you can bike between espresso shots.
+Describe and analyze and algorithm to find the minimum value of $L$ that allows you to bike from the Giggleplex to Gigglesburg without suffering a caffeine-withdrawal migraine.
+\item When you report to your supervisor (whom Giggle recently hired away from their competitor Ünter) that the ride is impossible, she demands to look at your map.
+“Oh, I see the problem; there are no \textit{Starbucks} on this map!” As you look on in horror, she hands you an updated graph $G'$ that includes a vertex for every Starbucks location in the United States, helpfully marked in Starbucks Green (Pantone\textsuperscript{®} 3425 C).
+
+Describe and analyze an algorithm to find the minimum number of Starbucks locations you must visit to bike from the Giggleplex to Gigglesburg without suffering a caffeine-withdrawal migraine.
+More formally, your algorithm should find the minimum number of green vertices on any path in $G'$ from $s$ to $t$ that uses only edges of length at most $L$.
+\end{enumerate}
+
+\item Suppose you are given a directed graph $G = (V, E)$ with non-negatively weighted edges and two vertices $s$ and $t$.
+Describe and analyze an algorithm to find the shortest walk in $G$ from $s$ to $t$ (possibly repeating vertices and/or edges) whose number of edges is divisible by $3$.
+
+For example, given the graph shown below, with the indicated vertices $s$ and $t$, and with all edges having weight $1$, your algorithm should return $6$, which is the length of the walk $\arc{s}{\arc{w}{\arc{y}{\arc{x}{\arc{s}{\arc{w}{t}}}}}}$ has length 6.
+\begin{center}
+\includegraphics{p320-Im89}
+\end{center}
+
+\item Suppose you are given a directed graph $G$ with non-negatively weighted edges, where some edges are red and the remaining edges are blue.
+Describe an algorithm to find the shortest walk in $G$ from one vertex $s$ to another vertex $t$ in which no three consecutive edges have the same color.
+That is, if the walk contains two red edges in a row, the next edge must be blue, and if the walk contains two blue edges in a row, the next edge must be red.
+
+For example, given the following graph as input, where every red edge has weight $1$ and every blue edge has weight $2$, your algorithm should return the integer $9$, because the shortest legal walk from $s$ to $t$ is $s\mathord{\color{JEred}\rightarrow}a\mathord{\color{JEred}\rightarrow}b\mathord{\color{JEcyan}\Rightarrow}d\mathord{\color{JEred}\rightarrow}c\mathord{\color{JEcyan}\Rightarrow}a\mathord{\color{JEred}\rightarrow}b\mathord{\color{JEred}\rightarrow}c$.
+\begin{center}
+\includegraphics{p320-Im90}
+\end{center}
+
+\item Consider a directed graph $G$, where each edge has a non-negative weight, and each edge is colored either red, white, or blue.
+A walk in $G$ is called a \textit{French flag walk} if its sequence of edge colors is red, white, blue, red, white, blue, and so on.
+More formally, a walk $\arc{v_0}{v_1}\arc{}{\cdots}\arc{}{v_k}$ is a French flag walk if, for every integer $i$, the edge $\arc{v_i}{v_{i+1}}$ is red if $i \bmod 3 = 0$, white if $i \bmod 3 = 1$, and blue if $i \bmod 3 = 2$.
+
+Describe an algorithm to find the \textit{shortest} French flag walks from one starting vertex $s$ to every other vertex in $G$.
+
+\item There are $n$ galaxies connected by $m$ intergalactic teleport-ways.
+Each teleport-way joins two galaxies and can be traversed in both directions.
+Also, each teleport-way $e$ has an associated cost of $c(e)$ dollars, where $c(e)$ is a positive integer.
+A teleport-way can be used multiple times, but the toll must be paid every time it is used.
+
+Judy wants to travel from galaxy $s$ to galaxy $t$ as cheaply as possible.
+However, she wants the total cost to be a multiple of five dollars, because carrying small change is not pleasant either.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute the minimum total cost of traveling from galaxy $s$ to galaxy $t$, subject to the restriction that the total cost is a multiple of five dollars.
+\item Solve part (a), but now assume that Judy has a coupon that allows her to use exactly one teleport-way for free.
+\end{enumerate}
+
+\item After moving to a new city, you decide to choose a walking route from your home to your new office.
+To get a good daily workout, your route must consist of an uphill path (for exercise) followed by a downhill path (to cool down), or just an uphill path, or just a downhill path.
+(You’ll walk the same path home, so you’ll get exercise one way or the other.) But you also want the \textit{shortest} path that satisfies these conditions, so that you actually get to work on time.
+
+Your input consists of an undirected graph $G$, whose vertices represent intersections and whose edges represent road segments, along with a start vertex $s$ and a target vertex $t$.
+Every vertex $v$ has an associated value $h(v)$, which is the height of that intersection above sea level, and each edge $uv$ has an associated value $\ell(uv)$, which is the length of that road segment.
+\begin{enumerate}
+\item Describe and analyze an algorithm to find the shortest uphill–downhill walk from $s$ to $t$.
+Assume all vertex heights are distinct.
+\item Now suppose we allow some or all vertex heights to be equal.
+Describe and analyze an algorithm to find the shortest “uphill then downhill” walk from $s$ to $t$; you may use flat edges in both the “uphill” and “downhill” portions of your walk.
+\item Finally, suppose you discover that there is no path from $s$ to $t$ with the structure you want.
+Describe an algorithm to find a path from $s$ to $t$ that alternates between “uphill” and “downhill” subpaths as few times as possible, and has minimum length among all such paths.
+\end{enumerate}
+
+\item After graduating from Sham-Poobanana University you accept a job with Aerophobes-\reflectbox{R}-Us, the leading traveling agency for people who hate to fly.
+Your job is to build a system to help customers plan airplane trips from one city to another.
+All of your customers are afraid of flying (and by extension, airports), so any trip you plan needs to be as short as possible.
+You know all the departure and arrival times of all the flights on the planet.
+
+Suppose one of your customers wants to fly from city $X$ to city $Y$.
+Describe an algorithm to find a sequence of flights that minimizes the \textit{total time in transit}—the length of time from the initial departure to the final arrival, including time at intermediate airports waiting for connecting flights.
+
+\item In Exercise 20 from Chapter 5, you designed an algorithm to decide whether a given \textit{acute-angle maze} is solvable.
+In this problem, you will design algorithms to find the \textit{shortest} walk through a given acute-angle maze, for two different definitions of "length”.
+\begin{center}
+\begin{minipage}{0.86\linewidth}
+{\sffamily\fontsize{9}{11}\selectfont Complete each angle maze below by tracing a path from start to finish that has only acute angles.}
+\par\medskip
+\centering
+\includegraphics{p322-Im92}\hfil\includegraphics{p322-Im93}
+\end{minipage}
+\end{center}
+
+Your input is a connected undirected graph $G$ whose vertices are points in the plane and whose edges are line segments.
+Edges do not intersect, except at their endpoints.
+For example, a drawing of the letter \texttt{X} would have five vertices and four edges; the first maze above has 14 vertices and 21 edges.
+You are also given two vertices \textsf{Start} and \textsf{Finish}.
+
+A walk from \textsf{Start} to \textsf{Finish} in $G$ is \textit{valid} if it contains only acute angles, or more formally, for any two consecutive edges $\arc{u}{v}\arc{}{w}$, either $\angle uvw = \pi$ or $0 < \angle uvw < \pi/2$.
+Assume you can determine in $O(1)$ time whether the angle between two given segments is straight, obtuse, right, or acute.
+\begin{enumerate}
+\item Describe an algorithm to compute a valid walk from \textsf{Start} to \textsf{Finish} that traverses as few segments as possible.
+(If your walk traverses the same segment twice, count it twice.)
+\item Describe an algorithm to compute a valid walk from \textsf{Start} to \textsf{Finish} that makes as few turns as possible.
+\Hint{This is \textbf{not} the same as part (a).}
+\item Describe an algorithm to compute a valid walk from \textsf{Start} to \textsf{Finish} whose total Euclidean length is as small as possible.
+(Assume you can also compute the length of any segment in $O(1)$ time.)
+\end{enumerate}
+
+\item After a grueling midterm at the See-Bull Center for Fake News Detection, you decide to take the bus home.
+Since you planned ahead, you have a schedule that lists the times and locations of every stop of every bus in Sham-Poobanana.
+Unfortunately, no single bus visits both the See-Bull Center and your home; you must change buses at least once.
+There are exactly $b$ different buses.
+Each bus starts at 12:00:01am, makes exactly $n$ stops, and finally stops running at 11:59:59pm.
+Buses always run exactly on schedule, and you have an accurate watch.
+Finally, you are far too tired to walk between bus stops.
+\begin{enumerate}
+\item Describe and analyze an algorithm to determine the sequence of bus rides that gets you home as early as possible.
+Your goal is to minimize your \textit{arrival time}, not the time you spend traveling.
+\item Oh, no!
+The midterm was held on Halloween, and the streets are infested with zombies!
+The Sham-Poobanana Mass Transit District doesn’t have the funding to add additional buses or install zombie-proof bus stops, especially for only one night a year.
+Describe and analyze an algorithm to determine a sequence of bus rides that minimizes \textit{the total time you spend waiting at bus stops}; you don’t care how late you get home or how much time you spend on buses.
+(Assume you can wait inside the See-Bull Center until your first bus is just about to leave.)
+\end{enumerate}
+
+\item The first morning after returning from a glorious spring break, Alice wakes to discover that her car won’t start, so she has to get to her classes at Sham-Poobanana University by public transit.
+She has a complete transit schedule for Poobanana County.
+The bus routes are represented in the schedule by a directed graph $G$, whose vertices represent bus stops and whose edges represent bus routes between those stops.
+For each edge $\arc{u}{v}$, the schedule records three positive real numbers:
+\begin{itemize}
+\item $\ell(\arc{u}{v})$ is the length of the bus ride from stop $u$ to stop $v$ (in minutes)
+\item $f(\arc{u}{v})$ is the first time (in minutes past 12am) that a bus leaves stop $u$ for stop $v$.
+\item $\Delta(\arc{u}{v})$ is the time between successive departures from stop $u$ to stop $v$ (in minutes).
+\end{itemize}
+Thus, the first bus for this route leaves $u$ at time $f(\arc{u}{v})$ and arrives at $v$ at time $f(\arc{u}{v}) + \ell(\arc{u}{v})$, the second bus leaves $u$ at time $f(\arc{u}{v}) + \Delta(\arc{u}{v})$ and arrives at $v$ at time $f(\arc{u}{v}) + \Delta(\arc{u}{v}) + \ell(\arc{u}{v})$, the third bus leaves $u$ at time $f(\arc{u}{v}) + 2 \cdot \Delta(\arc{u}{v})$ and arrives at $v$ at time $f(\arc{u}{v}) + 2 \cdot \Delta(\arc{u}{v}) + \ell(\arc{u}{v})$, and so on.
+
+Alice wants to leaves from stop $s$ (her home) at a certain time and arrive at stop $t$ (The See-Bull Center) as quickly as possible.
+If Alice arrives at a stop on one bus at the exact time that another bus is scheduled to leave, she can catch the second bus.
+Because she’s a student at SPU, Alice can ride the bus for free, so she doesn’t care how many times she has to change buses.
+
+Describe and analyze an algorithm to find the earliest time Alice can reach her destination.
+Your input consists of the directed graph $G = (V, E)$, the vertices $s$ and $t$, the values $\ell(e), f(e), \Delta(e)$ for each edge $e \in E$, and Alice’s starting time (in minutes past 12am).
+\Hint{In this rare instance, it may be easier to modify the algorithm, instead of modifying the input graph.}
+
+\item Mulder and Scully have computed, for every road in the United States, the exact probability that someone driving on that road \textit{won’t} be abducted by aliens.
+Agent Mulder needs to drive from Langley, Virginia to Area 51, Nevada.
+What route should he take so that he has the least chance of being abducted?
+
+More formally, you are given a directed graph $G = (V, E)$, where every edge $e$ has an independent safety probability $p(e)$.
+The \textit{safety} of a path is the product of the safety probabilities of its edges.
+Design and analyze an algorithm to determine the safest path from a given start vertex $s$ to a given target vertex $t$.
+You may assume that all necessary arithmetic operations can be performed in $O(1)$ time.
+\begin{center}
+\includegraphics{p324-Im138}
+\end{center}
+
+For example, with the probabilities shown above, if Mulder tries to drive directly from Langley to Area 51, he has a $50\%$ chance of getting there without being abducted.
+If he stops in Memphis, he has a $0.7 \times 0.9 = 63\%$ chance of arriving safely.
+If he stops first in Memphis and then in Las Vegas, he has a $1 - 0.7 \times 0.1 \times 0.5 = 96.5\%$ chance of being abducted!
+(That’s how they got Elvis, you know.)
+
+\item \difficulty{c} On an overnight camping trip in Sunnydale National Park, you are woken from a restless sleep by a scream.
+As you crawl out of your tent to investigate, a terrified park ranger runs out of the woods, covered in blood and clutching a crumpled piece of paper to his chest.
+As he reaches your tent, he gasps, “Get out. . . while. . . you. . . ”, thrusts the paper into your hands, and falls to the ground.
+Checking his pulse, you discover that the ranger is stone dead.
+You look down at the paper and recognize a map of the park, drawn as an undirected graph, where vertices represent landmarks in the park, and edges represent trails between those landmarks.
+(Trails start and end at landmarks and do not cross.) You recognize one of the vertices as your current location; several vertices on the boundary of the map are labeled EXIT.
+On closer examination, you notice that someone (perhaps the poor dead park ranger) has written a real number between 0 and 1 next to each vertex and each edge.
+A scrawled note on the back of the map indicates that a number next to an edge is the probability of encountering a vampire along the corresponding trail, and a number next to a vertex is the probability of encountering a vampire at the corresponding landmark.
+(Vampires can’t stand each other’s company, so you’ll never see more than one vampire on the same trail or at the same landmark.) The note warns you that stepping off the marked trails will result in a slow and painful death.
+You glance down at the corpse at your feet.
+Yes, his death certainly looked painful.
+Wait, was that a twitch?
+Are his teeth getting longer?
+After driving a tent stake through the undead ranger’s heart, you wisely decide to \textit{immediately} leave the park as fast as possible.
+Describe and analyze an efficient algorithm to find a path from your current location to an arbitrary EXIT node, such that the total \textit{expected} \textit{number} of vampires encountered along the path is as small as possible.
+Be sure to account for \textit{both} the vertex probabilities \textit{and} the edge probabilities.
+\Hint{Even without the vertex probabilities, this is not the same as the previous problem!}
+
+\end{exercises}
+
+
