@@ -1,0 +1,1496 @@
+% Reconstructed from upstream/Algorithms-JeffE.pdf, PDF pages 397-446 (printed 379-428).
+\epigraph{[I]n his short and broken treatise he provides an eternal example---not of laws, or even of method, for there is no method except to be very intelligent, but of intelligence itself swiftly operating the analysis of sensation to the point of principle and definition.}{T. S. Eliot on Aristotle, “The Perfect Critic”, \textit{The Sacred Wood} (1921)}
+
+\epigraph{The nice thing about standards is that you have so many to choose from; furthermore, if you do not like any of them, you can just wait for next year’s model.}{Andrew S. Tannenbaum, \textit{Computer Networks} (1981)}
+
+\epigraph{It is a rare mind indeed that can render the hitherto non-existent blindingly obvious. The cry “I could have thought of that” is a very popular and misleading one, for the fact is that they didn’t, and a very significant and revealing fact it is too.}{Dirk Gently to Richard McDuff\\in Douglas Adams’ \textit{Dirk Gently’s Holistic Detective Agency} (1987)}
+
+\epigraph{If a problem has no solution, it may not be a problem, but a fact --- not to be solved, but to be coped with over time.}{Shimon Peres, as quoted by David Rumsfeld, \textit{Rumsfeld’s Rules} (2001)}
+
+\chapter{NP-Hardness}
+\label{ch:12}
+
+\section{A Game You Can't Win}
+\label{sec:12.1}
+
+Imagine that a salesman in a red suit, who looks suspiciously like Tom Waits, presents you with a black steel box with $n$ binary switches on the front and a light bulb on top.
+The salesman tells you that the state of the light bulb is controlled by a complex \textit{boolean circuit}---a collection of \Const{And}, \Const{Or}, and \Const{Not} gates connected by wires, with one input wire for each switch and a single output wire for the bulb.
+He then asks you a simple question: Is it possible to set the switches so that the light bulb turns on?
+% "one million" is struck out in the original.
+If you can answer this question correctly, he will give you one million one hundred billion dollars; if you answer incorrectly, or if you die without answering, he will take your soul.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p397-Im173}
+\caption{An \Const{And} gate, an \Const{Or} gate, and a \Const{Not} gate.}
+\label{fig:12.1}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p398-Im174}
+\caption{A boolean circuit. Inputs enter from the left, and the output leaves to the right.}
+\label{fig:12.2}
+\end{figure}
+
+As far as you can tell, the Adversary hasn’t connected the switches to the light bulb at all, so no matter how you set the switches, the light bulb will stay off.
+If you declare that it \textit{is} possible to turn on the light, the Adversary will open the box and reveal that there is no circuit at all.
+But if you declare that it is \textit{not} possible to turn on the light, before testing all $2^n$ settings, the Adversary will magically create a circuit inside the box that turns on the light \textit{if and only if} the switches are in one of the settings you haven’t tested, and then flip the switches to that setting, turning on the light.
+(You can’t detect the Adversary’s cheating, because you can’t see inside the box until the end.)
+The only way to \textit{provably} answer the Adversary’s question correctly is to try all $2^n$ possible settings.
+You quickly realize that this will take \textit{far} longer than you expect to live, so you gracefully decline the Adversary’s offer.
+
+The Adversary smiles and says, in a growl like Heath Ledger’s Joker after smoking a carton of Marlboros, “Ah, yes, of course, you have no reason to trust me.
+But perhaps I can set your mind at ease.”
+He hands you a large roll of parchment---which you hope was made from \textit{sheep} skin---with a circuit diagram drawn (or perhaps tattooed) on it.
+“Here are the complete plans for the circuit inside the box.
+Feel free to poke around inside the box to make sure the plans are correct.
+Or build your own circuit from these plans.
+Or write a computer program to simulate the circuit.
+Whatever you like.
+If you discover that the plans don’t match the actual circuit in the box, you win the hundred billion bucks.”
+A few spot checks convince you that the plans have no obvious flaws; subtle cheating appears to be impossible.
+
+But you should still decline the Adversary’s “generous” offer.
+The problem that the Adversary is posing is called \textbf{\textit{circuit satisfiability}} or \textbf{\textit{\Proc{CircuitSat}}}: Given a boolean circuit, is there a set of inputs that makes the circuit output \Const{True}, or conversely, whether the circuit \textit{always} outputs \Const{False}.
+For any \textit{particular} input setting, we can calculate the output of the circuit in polynomial (actually, \textit{linear}) time using depth-first-search.
+But nobody knows how to solve \Proc{CircuitSat} faster than trying all $2^n$ possible inputs to the circuit by brute force, which requires exponential time.
+Admittedly, nobody has actually formally \textit{proved} that we can’t beat brute force---maybe, just \textit{maybe}, there’s a clever algorithm that just hasn’t been discovered yet---but nobody has actually formally proved that anti-gravity unicorns don’t exist, either.
+For all practical purposes, it’s safe to assume that there is no fast algorithm for \Proc{CircuitSat}.
+
+You tell the salesman no.
+He smiles and says, “You’re smarter than you look, kid,” and then flies away on his anti-gravity unicorn.
+
+\section{P versus NP}
+\label{sec:12.2}
+
+A minimal requirement for an algorithm to be considered “efficient” is that its running time is bounded by a polynomial function of the input size: $O(n^c)$ for some constant $c$, where $n$ is the size of the input.\footnote{This notion of efficiency was independently formalized by Alan Cobham in 1965, Jack Edmonds in 1965, and Michael Rabin in 1966, although similar notions were considered more than a decade earlier by Kurt Gödel, John Nash, and John von Neumann.}
+Researchers recognized early on that not all problems can be solved this quickly, but had a hard time figuring out exactly which ones could and which ones couldn’t.
+There are several so-called \textbf{\textit{NP-hard}} problems, which most people believe \textit{cannot} be solved in polynomial time, even though nobody can prove a super-polynomial lower bound.
+
+A \textit{decision problem} is a problem whose output is a single boolean value: \Const{Yes} or \Const{No}.
+Let me define three classes of decision problems:
+\begin{itemize}
+\item \textbf{\textit{P}} is the set of decision problems that can be solved in polynomial time.
+Intuitively, P is the set of problems that can be solved quickly.
+\item \textbf{\textit{NP}} is the set of decision problems with the following property: If the answer is \Const{Yes}, then there is a \textit{proof} of this fact that can be checked in polynomial time.
+Intuitively, NP is the set of decision problems where we can verify a \Const{Yes} answer quickly if we have the solution in front of us.
+\item \textbf{\textit{co-NP}} is essentially the opposite of NP.
+If the answer to a problem in co-NP is \Const{No}, then there is a proof of this fact that can be checked in polynomial time.
+\end{itemize}
+For example, the circuit satisfiability problem is in NP.
+If a given boolean circuit is satisfiable, then any set of $m$ input values that produces \Const{True} output is a proof that the circuit is satisfiable; we can check the proof by evaluating the circuit in polynomial time.
+It is widely believed that circuit satisfiability is \textit{not} in P or in co-NP, but nobody actually knows.
+
+Every decision problem in P is also in NP.
+If a problem is in P, we can verify \Const{Yes} answers in polynomial time recomputing the answer from scratch!
+Similarly, every problem in P is also in co-NP.
+
+Perhaps the single most important unanswered question in theoretical computer science---if not all of computer science---if not all of \textbf{\textit{science}}---is whether the complexity classes P and NP are actually different.
+Intuitively, it seems obvious to most people that P${}\neq{}$NP; the homeworks and exams in your algorithms and data structures classes have (I hope) convinced you that problems can be incredibly hard to solve, even when the solutions are simple in retrospect.
+It’s completely obvious; \textit{of course} solving problems from scratch is harder than verifying that a given solution is correct.
+We can reasonably accept---and most algorithm designers \textit{do} accept---the statement “P${}\neq{}$NP” as a law of nature, similar to other laws of nature like Maxwell’s equations, general relativity, and the sun rising tomorrow morning that are strongly supported by evidence, but have no mathematical proof.
+
+But if we’re being mathematically rigorous, we have to admit that nobody knows how to \textit{prove} that that P${}\neq{}$NP.
+In fact, there has been little or no real progress toward a proof for decades.\footnote{Perhaps the most significant progress has taken the form of \textit{barrier} results, which imply that entire avenues of attack are doomed to fail. In a very real sense, not only do we have no idea how to prove P${}\neq{}$NP, but we can actually \textit{prove} that we have no idea how to prove P${}\neq{}$NP!}
+The Clay Mathematics Institute lists P-versus-NP as the first of its seven Millennium Prize Problems, offering a \$1,000,000 reward for its solution.
+And yes, in fact, several people \textit{have} lost their souls, or at least their sanity, attempting to solve this problem.
+
+A more subtle but still open question is whether the complexity classes NP and co-NP are different.
+Even if we can verify every \Const{Yes} answer quickly, there’s no reason to believe we can also verify \Const{No} answers quickly.
+For example, as far as we know, there is no short proof that a boolean circuit is \textit{not} satisfiable.
+It is generally believed that NP${}\neq{}$co-NP, but again, nobody knows how to prove it.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p400-Im175}
+\caption{What we \textit{think} the world looks like.}
+\label{fig:12.3}
+\end{figure}
+
+\section{NP-hard, NP-easy, and NP-complete}
+\label{sec:12.3}
+
+A problem $\Pi$ is \textbf{\textit{NP-hard}} if a polynomial-time algorithm for $\Pi$ would imply a polynomial-time algorithm for \textit{every problem in NP}.
+In other words:
+\begin{problembox}
+\textbf{$\symbf{\Pi}$ is NP-hard} $\iff$ \textbf{If $\symbf{\Pi}$ can be solved in polynomial time, then P=NP}
+\end{problembox}
+Intuitively, if we could solve one particular NP-hard problem quickly, then we could quickly solve \textit{any} problem whose solution is easy to understand, using the solution to that one special problem as a subroutine.
+NP-hard problems are at least as hard as every problem in NP.
+
+Finally, a problem is \textbf{\textit{NP-complete}} if it is both NP-hard and an element of NP (or “NP-easy”).
+Informally, NP-complete problems are the hardest problems in NP.
+A polynomial-time algorithm for even one NP-complete problem would immediately imply a polynomial-time algorithm for \textit{every} NP-complete problem.
+Literally \textit{thousands} of problems have been shown to be NP-complete, so a polynomial-time algorithm for one (and therefore all) of them seems incredibly unlikely.
+
+Calling a problem NP-hard is like saying “If I own a dog, then it can speak fluent English.”
+You probably don’t know whether or not I own a dog, but I bet you’re pretty sure that I don’t own a \textit{talking} dog.
+Nobody has a mathematical \textit{proof} that dogs can’t speak English---the fact that no one has ever heard a dog speak English is \textit{evidence}, as are the hundreds of examinations of dogs that lacked the proper mouth shape and brainpower, but mere evidence is not a mathematical \textit{proof}.
+Nevertheless, no sane person would believe me if I said I owned a dog that spoke fluent English.\footnote{\dots\ The department chair shakes his head sadly and says, “Oh, come on, that just sounds like barking. Let \textit{me} ask a question. Who was the greatest complexity theorist of all time?” The dog cocks his head, pauses for a few seconds, and then says “Karp!” After the chair chases them out of his office, the dog turns to its owner and says, “Maybe I should have said Impagliazzo?”}
+So the statement “If I own a dog, then it can speak fluent English” has a natural corollary: No one in their right mind should believe that I own a dog!
+Similarly, if a problem is NP-hard, no one in their right mind should believe it can be solved in polynomial time.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p401-Im176}
+\caption{More of what we \textit{think} the world looks like.}
+\label{fig:12.4}
+\end{figure}
+
+It is not immediately obvious that \textit{any} problems are NP-hard.
+The following remarkable theorem was first published by Stephen Cook in 1971 and independently by Leonid Levin in 1973.\footnote{Levin first reported his results at seminars in Moscow in 1971, while still a PhD student. News of Cook’s result did not reach the Soviet Union until at least 1973, after Levin’s announcement of his results had been published; in accordance with Stigler’s Law, this result is often called “Cook’s Theorem”. Levin was denied his PhD at Moscow University for political reasons; he emigrated to the US in 1978 and earned a PhD at MIT a year later. Cook was denied tenure by the Berkeley mathematics department in 1970, just one year before publishing his seminal paper; he (but not Levin) later won the Turing award for his proof.}
+
+\medskip\noindent
+\textbf{The Cook-Levin Theorem.} \textit{Circuit satisfiability is NP-hard.}
+\medskip
+
+I won’t even sketch a proof here, because I’ve been (deliberately) vague about the definitions.\footnote{Interested readers find a proof in my lecture notes on nondeterministic Turing machines at http://algorithms.wtf, or in Boaz Barak’s excellent \textit{Introduction to Theoretical Computer Science}.}
+
+\section{\difficulty{H}Formal Definitions (\textit{HC SVNT DRACONES})}
+\label{sec:12.4}
+
+Formally, the complexity classes P, NP, and co-NP are defined in terms of \textit{languages} and \textit{Turing machines}.
+A language is a set of strings over some finite alphabet $\Sigma$; without loss of generality, we can assume that $\Sigma = \{\mbox{\Str{0}}, \mbox{\Str{1}}\}$.
+A Turing machine is a very restrictive type of computer---crudely, a finite-state machine with an unbounded memory tape---whose precise definition is surprisingly unimportant.
+P is the set of languages that can be decided in \textbf{\textit{P}}olynomial time by a deterministic single-tape Turing machine.
+Similarly, NP is the set of all languages that can be decided in polynomial time by a nondeterministic Turing machine; NP is an abbreviation for \textbf{\textit{N}}ondeterministic \textbf{\textit{P}}olynomial-time.
+
+The requirement of polynomial time is sufficiently crude that we do not have to specify the precise form of Turing machine (number of tapes, number of heads, number of tracks, size of the tape alphabet, and so on).
+In fact, any algorithm that runs on a random-access machine\footnote{Random-access machines are a model of computation that more faithfully models physical computers. A standard random-access machine has unbounded random-access memory, modeled as an unbounded array $M[0\,..\,\infty]$ where each address $M[i]$ holds a single $w$-bit integer, for some fixed integer $w$, and can read to or write from any memory addresses in constant time. RAM algorithms are formally written in assembly-like language, using instructions like {\ttfamily\bfseries ADD} $\symbfit{i, j, k}$ (meaning “$M[i] \gets M[j] + M[k]$”), {\ttfamily\bfseries INDIR} $\symbfit{i, j}$ (meaning “$M[i] \gets M[M[j]]$”), and {\ttfamily\bfseries IF0GOTO} $\symbfit{i, \ell}$ (meaning “if $M[i] = 0$, go to line $\ell$”), but the precise instruction set is surprisingly irrelevant. By definition, each instruction executes in unit time. In practice, RAM algorithms can be faithfully described using higher-level pseudocode, as long as we’re careful about arithmetic precision.} in $T(n)$ time can be simulated by a single-tape, single-track, single-head Turing machine that runs in $O(T(n)^4)$ time.
+This simulation result allows us to argue formally about computational complexity in terms of standard high-level programming constructs like arrays and loops and recursion, instead of describing everything directly in terms of Turing machines.
+
+Formally, a problem $\Pi$ is NP-hard if and only if, for every language $\Pi' \in{}$NP, there is a polynomial-time \textbf{\textit{Turing reduction}} from $\Pi'$ to $\Pi$.
+A Turing reduction means a reduction that can be executed on a Turing machine; that is, a Turing machine $M$ that can solve $\Pi'$ using another Turing machine $M'$ for $\Pi$ as a black-box subroutine.
+Turing reductions are also called \textit{oracle reductions}; polynomial-time Turing reductions are also called \textit{Cook reductions}.
+
+Researchers in complexity theory prefer to define NP-hardness in terms of polynomial-time \textbf{\textit{many-one reductions}}, which are also called \textit{Karp reductions}.
+A \textit{many-one} reduction from one language $L' \subseteq \Sigma^*$ to another language $L \subseteq \Sigma^*$ is a function $f : \Sigma^* \to \Sigma^*$ such that $x \in L'$ if and only if $f(x) \in L$.
+Then we can define a \textit{language} $L$ to be NP-hard if and only if, for any language $L' \in{}$NP, there is a many-one reduction from $L'$ to $L$ that can be computed in polynomial time.
+
+Every Karp reduction “is” a Cook reduction, but not vice versa.
+Specifically, any Karp reduction from one decision problem $\Pi$ to another decision $\Pi'$ is equivalent to transforming the input to $\Pi$ into the input for $\Pi'$, invoking an oracle (that is, a subroutine) for $\Pi'$, and then returning the answer verbatim.
+However, as far as we know, not every Cook reduction can be simulated by a Karp reduction.
+
+Complexity theorists prefer Karp reductions primarily because NP is closed under Karp reductions, but is \textit{not} closed under Cook reductions (unless NP=co-NP, which is considered unlikely).
+There are natural problems that are (1) NP-hard with respect to Cook reductions, but (2) NP-hard with respect to Karp reductions only if P=NP.
+One trivial example of such a problem is \Proc{UnSat}: Given a boolean formula, is it \textit{always false}?
+On the other hand, many-one reductions apply \textit{only} to decision problems (or more formally, to languages); formally, no optimization or construction problem is Karp-NP-hard.
+
+To make things even more confusing, both Cook and Karp originally defined NP-hardness in terms of \textbf{\textit{logarithmic-space}} reductions.
+Every logarithmic-space reduction is a polynomial-time reduction, but (as far as we know) not vice versa.
+It is an open question whether relaxing the set of allowed (Cook or Karp) reductions from logarithmic-space to polynomial-time changes the set of NP-hard problems.
+
+Fortunately, none of these subtleties rear their ugly heads in practice---in particular, every reduction described in this chapter can be formalized as a logarithmic-space many-one reduction---so you can wake up now.
+
+\section{Reductions and \Proc{Sat}}
+\label{sec:12.5}
+
+To prove that any problem other than circuit satisfiability is NP-hard, we use a \textit{reduction argument}.
+Reducing problem A to another problem B means describing an algorithm to solve problem A under the assumption that an algorithm for problem B already exists.
+You’ve already been doing reduction for years, even before starting this book, only you probably called them something else, like subroutines or utility functions or modular programming or using a calculator.
+To prove something is NP-hard, we describe a similar transformation between problems, but not in the direction that most people expect.
+
+You should tattoo the following rule of onto the back of your hand, right next to your mom’s birthday and the \textit{actual} rules of Monopoly.\footnote{If a player lands on an available property and declines (or is unable) to buy it, that property is immediately auctioned off to the highest bidder; the player who originally declined the property may bid, and bids may be arbitrarily higher or lower than the list price. Players in Jail can still buy and sell property, buy and sell houses and hotels, and collect rent. The game has 32 houses and 12 hotels; once they’re gone, they’re gone. In particular, if all houses are already on the board, you cannot downgrade a hotel to four houses; you must raze all the hotels in the group to the ground. Players can sell or exchange \textit{undeveloped} properties with each other, but cannot sell property back to the bank; on the other hand, players can sell buildings to the bank (at half price), but cannot sell or exchange buildings with each other. All penalties are paid directly to the bank. A player landing on Free Parking does not win anything. A player landing on Go gets exactly \$200, no more. Railroads are not magic transporters. Finally, Jeff \textit{always} gets the boot. No, not the T-Rex or the penguin---the \textit{boot}, dammit.}
+\begin{problembox}
+\centering
+\textbf{To prove that problem $\symbfit{A}$ is NP-hard, reduce a known NP-hard problem to $\symbfit{A}$.}
+\end{problembox}
+In other words, to prove that your problem is hard, you need to describe an efficient algorithm to solve a \textit{different} problem, which you already know is hard, using an hypothetical efficient algorithm for \textit{your} problem as a black-box subroutine.
+The essential logic is a proof by contradiction.
+The reduction implies that if your problem were easy, then the other problem would be easy, which it ain’t.
+Equivalently, since you know the other problem is hard, the reduction implies that your problem must also be hard; your hypothetical efficient algorithm does not actually exist.
+
+As a canonical example, consider the \textit{formula satisfiability} problem, usually just called \textbf{\textit{\Proc{Sat}}}.
+The input to \Proc{Sat} is a boolean \textit{formula} like
+\[
+(a \vee b \vee c \vee \bar{d}) \Leftrightarrow ((b \wedge \bar{c}) \vee \overline{(\bar{a} \Rightarrow d)} \vee (c \neq a \wedge b)),
+\]
+and the question is whether it is possible to assign boolean values to the variables $a, b, c, \dots$ so that the entire formula evaluates to \Const{True}.
+
+To prove that \Proc{Sat} is NP-hard, we need to give a reduction from a known NP-hard problem.
+The only problem we know is NP-hard so far is \Proc{CircuitSat}, so let’s start there.
+
+Let $K$ be an arbitrary boolean circuit.
+We can transform (or more accurately, \textit{transcribe}) $K$ into a boolean formula $\Phi$ as follows.
+First, label each interior wire by a new variable $y_j$, and label the output wire with a new variable $z$.
+The formula $\Phi$ consists of a list of equations, one for each gate, separated by \Const{And}s, followed by a final ${}\wedge z$.
+\figref{fig:12.5} shows the resulting transcription for our example circuit.
+
+Now we claim that the original circuit $K$ is satisfiable \textbf{\textit{if and only if}} the resulting formula $\Phi$ is satisfiable.
+Like every other “if and only if” statement, we prove this claim in two steps:
+\begin{itemize}
+\item[$\Rightarrow$] Given a set of inputs that satisfy the circuit $K$, we can derive a satisfying assignment for the formula $\Phi$ by computing the output of every gate in $K$.
+\item[$\Leftarrow$] Given a satisfying assignment for the formula $\Phi$, we can obtain a satisfying input the circuit by simply ignoring the internal wire variables $y_i$ and the output variable $z$.
+\end{itemize}
+The entire transformation from circuit to formula can be carried out in linear time.
+Moreover, the size of the resulting formula is at most a constant factor larger than any reasonable representation of the circuit.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p405-Im177}
+\begin{small}
+\[
+\begin{array}{l}
+(y_1 = x_1 \wedge x_4) \wedge (y_2 = \overline{x_4}) \wedge (y_3 = x_3 \wedge y_2) \wedge (y_4 = y_1 \vee x_2) \wedge{}\\
+\qquad\qquad (y_5 = \overline{x_2}) \wedge (y_6 = \overline{x_5}) \wedge (y_7 = y_3 \vee y_5) \wedge (z = y_4 \wedge y_7 \wedge y_6) \wedge z
+\end{array}
+\]
+\end{small}
+\caption{Transcribing a boolean circuit as a boolean formula.}
+\label{fig:12.5}
+\end{figure}
+
+Now suppose, for the sake of argument, there is an algorithm that can determine in polynomial time whether a given boolean formula is satisfiable.
+Then given any boolean circuit $K$, we can decide whether $K$ is satisfiable by first transforming $K$ into a boolean formula $\Phi$ as described above, and then asking our magical mystery \Proc{Sat} algorithm whether $\Phi$ is satisfiable, as suggested by the following cartoon.
+Each box represents an algorithm.
+The red box on the left is the transformation subroutine.
+The box on the right is the hypothetical magic \Proc{Sat} algorithm.
+It \textit{must} be magic, because it has a \textit{rainbow} on it.\footnote{Kay Erickson, personal communication, 2011. For those of you reading black-and-white printed copies: Yes, that round thing is a rainbow.}
+\begin{center}
+\includegraphics{p405-Im178}
+\end{center}
+If you prefer magic pseudocode to magic boxes:
+
+\begin{pseudocode}
+\Header{\Proc{CircuitSat}$(K)$:}\\
+transcribe $K$ into a boolean formula $\Phi$\\
+return \Proc{Sat}$(\Phi)$ \Comment{${\scriptstyle\star\star}\star\star${\bfseries {\color{orange}M}{\color{olive}A}{\color{green}G}{\color{cyan}I}{\color{blue}C}}$\star\star{\scriptstyle\star\star}$}
+\end{pseudocode}
+Transcribing $K$ into $\Phi$ requires only polynomial time (in fact, only \textit{linear} time, but whatever), so the entire \Proc{CircuitSat} algorithm also runs in polynomial time.
+\[
+T_{\Proc{CircuitSat}}(n) \le O(n) + T_{\Proc{Sat}}(O(n))
+\]
+We conclude that any polynomial-time algorithm for \Proc{Sat} would give us a polynomial-time algorithm for \Proc{CircuitSat}, which in turn would imply P=NP.
+So \Proc{Sat} is NP-hard!
+
+\section{3\Proc{Sat} (from \Proc{CircuitSat})}
+\label{sec:12.6}
+
+A special case of \Proc{Sat} that is particularly useful in proving NP-hardness results is called \textbf{\textit{3CNF-\Proc{Sat}}} or more often simply \textbf{\textit{3\Proc{Sat}}}.
+
+A boolean formula is in \textit{conjunctive normal form} (CNF) if it is a conjunction (\Const{and}) of several \textit{clauses}, each of which is the disjunction (\Const{or}) of several \textit{literals}, each of which is either a variable or its negation.
+For example:
+\[
+\overbrace{(a \vee b \vee c \vee d)}^{\text{clause}} \wedge (b \vee \bar{c} \vee \bar{d}) \wedge (\bar{a} \vee c \vee d) \wedge (a \vee \bar{b})
+\]
+A \textit{3CNF} formula is a CNF formula with exactly three literals per clause; the previous example is not a 3CNF formula, since its first clause has four literals and its last clause has only two.
+3\Proc{Sat} is the restriction of \Proc{Sat} to 3CNF formulas: Given a 3CNF formula, is there an assignment to the variables that makes the formula evaluate to \Const{True}?
+
+We could prove that 3\Proc{Sat} is NP-hard by a reduction from the more general \Proc{Sat} problem, but it’s actually easier to start over from scratch, by reducing directly from \Proc{CircuitSat}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p406-Im179}
+\caption{A polynomial-time reduction from \Proc{CircuitSat} to 3\Proc{Sat}.}
+\label{fig:12.6}
+\end{figure}
+
+Given an arbitrary boolean circuit $K$, we transform $K$ into an equivalent 3CNF formula in several stages.
+Except for the very last stage, this reduction was actually described by Grigorii Tseitin in 1966, five years before Cook and Levin reported their proofs of the Cook-Levin Theorem.
+(In the same 1966 paper, Tseitin described the problem we now call CNF-\Proc{Sat}, possibly for the first time.)
+As we describe each stage, we will also prove that stage is correct.
+\begin{itemize}
+\item \textit{Make sure every \Const{and} and \Const{or} gate in $K$ has exactly two inputs.}
+If any gate has $k > 2$ inputs, replace it with a binary tree of $k-1$ binary gates.
+Call the resulting circuit $K'$.
+The circuits $K$ and $K'$ are logically equivalent circuits, so every satisfying input for $K$ is a satisfying input for $K'$ and vice versa.
+\item \textit{Transcribe $K'$ into a boolean formula $\Phi_1$ with one clause per gate,} exactly as in our previous reduction to \Proc{Sat}.
+We already proved that every satisfying input for $K'$ can be transformed into a satisfying assignment for $\Phi_1$ and vice versa.
+\item \textit{Replace each clause in $\Phi_1$ with a CNF formula.}
+There are only three types of clauses in $\Phi_1$, one for each type of gate in $K'$:
+\[
+\begin{array}{r@{\quad}c@{\quad}l}
+a = b \wedge c & \longmapsto & (a \vee \bar{b} \vee \bar{c}) \wedge (\bar{a} \vee b) \wedge (\bar{a} \vee c)\\
+a = b \vee c & \longmapsto & (\bar{a} \vee b \vee c) \wedge (a \vee \bar{b}) \wedge (a \vee \bar{c})\\
+a = \bar{b} & \longmapsto & (a \vee b) \wedge (\bar{a} \vee \bar{b})
+\end{array}
+\]
+Call the resulting CNF formula $\Phi_2$.
+Because $\Phi_1$ and $\Phi_2$ are logically equivalent formulas, every satisfying assignment for $\Phi_1$ is also a satisfying assignment for $\Phi_2$, and vice versa.
+\item \textit{Replace each clause in $\Phi_2$ with a 3CNF formula.}
+Every clause in $\Phi_2$ has \textit{at most} three literals, but we need clauses with \textit{exactly} three literals.
+To obtain a 3CNF formula, we expand each two-literal clause in $\Phi_2$ into two three-literal clauses by introducing one new variable, and we expand the final one-literal clause in $\Phi_2$ into four three-literal clauses by introducing two new variables.
+\[
+\begin{array}{r@{}l}
+a \vee b & {}\longmapsto (a \vee b \vee x) \wedge (a \vee b \vee \bar{x})\\
+z & {}\longmapsto (z \vee x \vee y) \wedge (z \vee \bar{x} \vee y) \wedge (z \vee x \vee \bar{y}) \wedge (z \vee \bar{x} \vee \bar{y})
+\end{array}
+\]
+Call the resulting 3CNF formula $\Phi_3$.
+Every satisfying assignment for $\Phi_2$ can be transformed into a satisfying assignment for $\Phi_3$ by assigning \textit{arbitrary} values to the new variables ($x$ and $y$).
+Conversely, every satisfying assignment for $\Phi_3$ can be transformed into a satisfying assignment for $\Phi_2$ by ignoring the new variables.
+\end{itemize}
+For example, our example circuit is transformed into the following 3CNF formula; compare with \figref{fig:12.5}.
+\begin{small}
+\[
+\begin{array}{c}
+(y_1 \vee \overline{x_1} \vee \overline{x_4}) \wedge (\overline{y_1} \vee x_1 \vee z_1) \wedge (\overline{y_1} \vee x_1 \vee \overline{z_1}) \wedge (\overline{y_1} \vee x_4 \vee z_2) \wedge (\overline{y_1} \vee x_4 \vee \overline{z_2})\\
+\wedge (y_2 \vee x_4 \vee z_3) \wedge (y_2 \vee x_4 \vee \overline{z_3}) \wedge (\overline{y_2} \vee \overline{x_4} \vee z_4) \wedge (\overline{y_2} \vee \overline{x_4} \vee \overline{z_4})\\
+\wedge (y_3 \vee \overline{x_3} \vee \overline{y_2}) \wedge (\overline{y_3} \vee x_3 \vee z_5) \wedge (\overline{y_3} \vee x_3 \vee \overline{z_5}) \wedge (\overline{y_3} \vee y_2 \vee z_6) \wedge (\overline{y_3} \vee y_2 \vee \overline{z_6})\\
+\wedge (\overline{y_4} \vee y_1 \vee x_2) \wedge (y_4 \vee \overline{x_2} \vee z_7) \wedge (y_4 \vee \overline{x_2} \vee \overline{z_7}) \wedge (y_4 \vee \overline{y_1} \vee z_8) \wedge (y_4 \vee \overline{y_1} \vee \overline{z_8})\\
+\wedge (y_5 \vee x_2 \vee z_9) \wedge (y_5 \vee x_2 \vee \overline{z_9}) \wedge (\overline{y_5} \vee \overline{x_2} \vee z_{10}) \wedge (\overline{y_5} \vee \overline{x_2} \vee \overline{z_{10}})\\
+\wedge (y_6 \vee x_5 \vee z_{11}) \wedge (y_6 \vee x_5 \vee \overline{z_{11}}) \wedge (\overline{y_6} \vee \overline{x_5} \vee z_{12}) \wedge (\overline{y_6} \vee \overline{x_5} \vee \overline{z_{12}})\\
+\wedge (\overline{y_7} \vee y_3 \vee y_5) \wedge (y_7 \vee \overline{y_3} \vee z_{13}) \wedge (y_7 \vee \overline{y_3} \vee \overline{z_{13}}) \wedge (y_7 \vee \overline{y_5} \vee z_{14}) \wedge (y_7 \vee \overline{y_5} \vee \overline{z_{14}})\\
+\wedge (y_8 \vee \overline{y_4} \vee \overline{y_7}) \wedge (\overline{y_8} \vee y_4 \vee z_{15}) \wedge (\overline{y_8} \vee y_4 \vee \overline{z_{15}}) \wedge (\overline{y_8} \vee y_7 \vee z_{16}) \wedge (\overline{y_8} \vee y_7 \vee \overline{z_{16}})\\
+\wedge (y_9 \vee \overline{y_8} \vee \overline{y_6}) \wedge (\overline{y_9} \vee y_8 \vee z_{17}) \wedge (\overline{y_9} \vee y_6 \vee z_{18}) \wedge (\overline{y_9} \vee y_6 \vee \overline{z_{18}}) \wedge (\overline{y_9} \vee y_8 \vee \overline{z_{17}})\\
+\wedge (y_9 \vee z_{19} \vee z_{20}) \wedge (y_9 \vee \overline{z_{19}} \vee z_{20}) \wedge (y_9 \vee z_{19} \vee \overline{z_{20}}) \wedge (y_9 \vee \overline{z_{19}} \vee \overline{z_{20}})
+\end{array}
+\]
+\end{small}
+Yikes!
+At first glance, this formula might look a \textit{lot} more complicated than the original circuit, but in fact, it’s only larger by a constant factor.
+Specifically, the simplified circuit $K'$ has at most twice as many wires as the original circuit $K$, each binary gate in $K'$ is transformed into at most five clauses in $\Phi_3$.
+Even if the formula size were a large \textit{polynomial} function (like $n^{374}$) of the circuit size, we would still have a valid reduction.
+
+Our reduction transforms an arbitrary boolean circuit $K$ into a 3CNF formula $\Phi_3$ in polynomial time (in fact, in linear time).
+Moreover, any satisfying input for the input circuit $K$ can be transformed into a satisfying assignment for $\Phi_3$, and any satisfying assignment for $\Phi_3$ can be transformed into a satisfying input for $K$.
+In other words, $K$ is satisfiable if and only if $\Phi_3$ is satisfiable.
+Thus, if 3\Proc{Sat} can be solved in polynomial time, then \Proc{CircuitSat} can be solved in polynomial time, which implies that P${}={}$NP.
+We conclude that 3\Proc{Sat} is NP-hard.
+
+\section{Maximum Independent Set (from 3\Proc{Sat})}
+\label{sec:12.7}
+
+For the next few problems we consider, the input is a simple, unweighted, undirected graph, and the problem asks for the size of the largest or smallest subgraph satisfying some structural property.
+
+Let $G$ be an arbitrary graph.
+An \textbf{\textit{independent set}} in $G$ is a subset of the vertices of $G$ with no edges between them.
+The \textit{maximum independent set} problem, which I’ll abbreviate \textbf{\textit{\Proc{MaxIndSet}}}, asks for the size of the largest independent set in a given graph.
+I will prove that \Proc{MaxIndSet} is NP-hard using a reduction from 3\Proc{Sat}, as suggested by \figref{fig:12.7}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p409-Im180}
+\caption{A polynomial-time reduction from 3\Proc{Sat} to \Proc{MaxIndSet}.}
+\label{fig:12.7}
+\end{figure}
+
+Given an arbitrary 3CNF formula $\Phi$, we construct a graph $G$ as follows.
+Let $k$ denote the number of clauses in $\Phi$.
+The graph $G$ contains exactly $3k$ vertices, one for each literal in $\Phi$.
+Two vertices in $G$ are connected by an edge if and only if either (1) they correspond to literals in the same clause, or (2) they correspond to a variable and its inverse.
+For example, the formula $(a \vee b \vee c) \wedge (b \vee \bar{c} \vee \bar{d}) \wedge (\bar{a} \vee c \vee d) \wedge (a \vee \bar{b} \vee \bar{d})$ is transformed into the graph shown in \figref{fig:12.8}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p409-Im181}
+\begin{small}
+\[
+(a \vee b \vee c) \wedge (b \vee \bar{c} \vee \bar{d}) \wedge (\bar{a} \vee c \vee d) \wedge (a \vee \bar{b} \vee \bar{d})
+\]
+\end{small}
+\caption{A graph derived from the satisfiable 3CNF formula with 4 clauses, and an independent set of size 4.}
+\label{fig:12.8}
+\end{figure}
+
+Each independent set in $G$ contains at most one vertex from each clause triangle, because any two vertices in each triangle are connected.
+Thus, the largest independent set in $G$ has size \textit{at most} $k$.
+I claim that $G$ contains an independent set of size \textit{exactly} $k$ if and only if the original formula $\Phi$ is satisfiable.
+As usual for “if and only if” statements, the proof consists of two parts.
+\begin{itemize}
+\item[$\Rightarrow$] Suppose $\Phi$ is satisfiable.
+Fix an arbitrary satisfying assignment.
+By definition, each clause in $\Phi$ contains at least one \Const{True} literal.
+Thus, we can choose a subset $S$ of $k$ vertices in $G$ that contains exactly one vertex per clause triangle, such that the corresponding $k$ literals are all \Const{True}.
+Because each triangle contains at most one vertex in $S$, no two vertices in $S$ are connected by a triangle edge.
+Because every literal corresponding to a vertex in $S$ is \Const{True}, no two vertices in $S$ are connected by a negation edge.
+We conclude that $S$ is an independent set of size $k$ in $G$.
+\item[$\Leftarrow$] On the other hand, suppose $G$ contains an independent set $S$ of size $k$.
+Each vertex in $S$ must lie in a different clause triangle.
+Suppose we assign the value \Const{True} to each literal in $S$; because contradictory literals are connected by edges, this assignment is consistent.
+There may be variables $x$ such that neither $x$ nor $\bar{x}$ corresponds to a vertex in $S$; we can set these variables to any value we like.
+Because $S$ contains one vertex in each clause triangle, each clause in $\Phi$ contains (at least) one \Const{True} literal.
+We conclude that $\Phi$ is satisfiable.
+\end{itemize}
+Transforming the 3CNF formula $\Phi$ into the graph $G$ takes polynomial time, even if we do everything by brute force.
+Thus, if we could solve \Proc{MaxIndSet} in polynomial time, then we could also solve 3\Proc{Sat} in polynomial time, by transforming the input formula $\Phi$ into a graph $G$ and comparing the size of the largest independent set in $G$ with the number of clauses in $\Phi$.
+But that would imply P=NP, which is ridiculous!
+We conclude that \Proc{MaxIndSet} is NP-hard.
+
+\section{The General Pattern}
+\label{sec:12.8}
+
+All NP-hardness proofs---and more generally, all polynomial-time reductions---follow the same general outline.
+To reduce problem $X$ to problem $Y$ in polynomial time, we need to do three things:
+\begin{enumerate}
+\item Describe a polynomial-time algorithm to transform an \textbf{\textit{arbitrary}} instance of $x$ of $X$ into a \textit{special} instance $y$ of $Y$.
+\item Prove that if $x$ is a “good” instance of $X$, then $y$ is a “good” instance of $Y$.
+\item Prove that if $y$ is a “good” instance of $Y$, then $x$ is a “good” instance of $X$.
+(This is usually the part that causes the most trouble.)
+\end{enumerate}
+Of course, \textit{developing} a correct reduction doesn’t mean handling these three tasks one at a time.
+\textit{First} writing down an algorithm that \textit{seems} to work and \textit{then} trying prove that it \textit{actually} works is rarely successful, especially in time-limited settings like exams.
+We \textit{must} develop the algorithm, the “if” proof, and the “only if” proof simultaneously.
+
+To quote the late great Ricky Jay:\footnote{from his 1996 off-Broadway show \textit{Ricky Jay and his 52 Assistants}} This is an \textit{acquired} skill.
+
+One point that confuses many students is that the reduction algorithm only “works one way”---from $X$ to $Y$---but the correctness proof needs to “work both ways”.
+But the correctness proofs are not actually symmetric.
+The “if” proof needs to handle \textit{arbitrary} instances of $X$, but the “only if” only needs to handle the \textit{special} instances of $Y$ produced by the reduction algorithm.
+Exploiting this asymmetry is the key to successfully designing correct reductions.
+
+I find it useful to think in terms of transforming \textit{certificates}---proofs that a given instance is “good”---along with the instances themselves.
+For example, a certificate for \Proc{CircuitSat} is a set of inputs that turns on the light bulb; a certificate for \Proc{Sat} or 3\Proc{Sat} is a satisfying assignment; a certificate for \Proc{MaxIndSet} is a large independent set.
+To reduce $X$ to $Y$, we actually need to design \textit{three} algorithms, one for each of the following tasks:
+\begin{itemize}
+\item Transform an arbitrary instance $x$ of $X$ into a special instance $y$ of $Y$ in polynomial time.
+\item Transform an arbitrary certificate for $x$ into a certificate for $y$, and
+\item Transform an arbitrary certificate for $y$ into a certificate for $x$.
+\end{itemize}
+The second and third tasks refer to the input and output of the first algorithm.
+The \textit{certificate} transformation needs to be reversible, not the \textit{instance} transformation.
+We never have to transform instances of $Y$, and we don’t need to think about \textit{arbitrary} instances of $Y$ at all.
+Only the first algorithm needs to run in polynomial time (although in practice, the second and third algorithms are almost always simpler than the first).
+
+For example, our reduction from \Proc{CircuitSat} to 3\Proc{Sat} consists of three algorithms:
+\begin{itemize}
+\item The first transforms an \textit{arbitrary} boolean circuit $K$ into a special 3CNF boolean formula $\Phi_3$, in polynomial time.
+(Encode each wire as a variable and each gate as a sub-formula, and then expand each sub-formula into 3CNF.)
+\item The second transforms an \textit{arbitrary} satisfying input for $K$ into a satisfying assignment for $\Phi_3$.
+(Trace the input through the circuit, transfer values from each wire to the corresponding variable, and give any additional variables arbitrary values.)
+\item The third transforms an \textit{arbitrary} satisfying assignment for $\Phi_3$ into a satisfying input for $K$.
+(Transfer values from each wire variable in $\Phi_3$ to the corresponding wire in $K$.)
+\end{itemize}
+The reduction works because the first algorithm \textit{encodes} any boolean circuit $K$ into a highly structured 3CNF formula $\Phi_3$.
+The specific structure of $\Phi_3$ restricts \textit{how} it can be satisfied; every satisfying assignment for $\Phi_3$ must “come from” some satisfying input for $K$.
+We don’t have to think about arbitrary 3CNF formulas at all.
+
+Similarly, our reduction from 3\Proc{Sat} to \Proc{MaxIndSet} consists of three algorithms:
+\begin{itemize}
+\item The first transforms an \textit{arbitrary} 3CNF formula $\Phi$ into a special graph $G$ and a specific integer $k$, in polynomial time.
+\item The second transforms an \textit{arbitrary} satisfying assignment for $\Phi$ into an independent set in $G$ of size $k$.
+\item The third transforms an \textit{arbitrary} independent set in $G$ of size $k$ into a satisfying assignment for $\Phi$.
+\end{itemize}
+Again, our first transformation \textit{encodes} the input formula $\Phi$ into a highly structured graph $G$ and a specific integer $k$.
+The structure of $G$ ensures that every independent set of size $k$ “comes from” a satisfying assignment for $\Phi$.
+We don’t consider arbitrary graphs or arbitrary independent set sizes at all.
+
+\section{Clique and Vertex Cover (from Independent Set)}
+\label{sec:12.9}
+
+A \textbf{\textit{clique}} is another name for a complete graph, that is, a graph where every pair of vertices is connected by an edge.
+The \Proc{MaxClique} problem asks for the number of nodes in its largest complete subgraph in a given graph.
+A \textbf{\textit{vertex cover}} of a graph is a set of vertices that touches every edge in the graph.
+The \Proc{MinVertexCover} problem asks for the size of the smallest vertex cover in a given graph.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p412-Im182}
+\caption{A graph whose largest independent set, largest clique, and smallest vertex cover all have size 4.}
+\label{fig:12.9}
+\end{figure}
+
+We can prove that \Proc{MaxClique} is NP-hard using the following easy reduction from \Proc{MaxIndSet}.
+Any graph $G$ has an \textit{edge-complement} $\overline{G}$ with the same vertices, but with exactly the opposite set of edges---$uv$ is an edge in $\overline{G}$ if and only if $uv$ is \textit{not} an edge in $G$.
+A set of vertices is independent in $G$ if and only if the same vertices define a clique in $\overline{G}$.
+Thus, the largest independent in $G$ has the same vertices (and thus the same size) as the largest clique in the complement of $G$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p412-Im183}
+\caption{An easy reduction from \Proc{MaxIndSet} to \Proc{MaxClique}.}
+\label{fig:12.10}
+\end{figure}
+
+The proof that \Proc{MinVertexCover} is NP-hard is even simpler, because it relies on the following easy observation: $I$ is an independent set in a graph $G = (V, E)$ if and only if its complement $V \setminus I$ is a vertex cover of the same graph $G$.
+Thus, the \textit{largest} independent set in any graph is the complement of the \textit{smallest} vertex cover of the same graph!
+Thus, if the smallest vertex cover in an $n$-vertex graph has size $k$, then the largest independent set has size $n-k$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p413-Im184}
+\caption{An even easier reductions from \Proc{MaxIndSet} to \Proc{MinVertexCover}.}
+\label{fig:12.11}
+\end{figure}
+
+\section{Graph Coloring (from 3\Proc{Sat})}
+\label{sec:12.10}
+
+A \textbf{\textit{proper $\symbfit{k}$-coloring}} of a graph $G = (V, E)$ is a function $C\colon V \to \{1, 2, \dots, k\}$ that assigns one of $k$ “colors” to each vertex, so that every edge has two different colors at its endpoints.
+(The “colors” are really arbitrary labels, which for simplicity we represent by small positive integers, rather than electromagnetic frequencies, CMYK vectors, or Pantone numbers, for example.)
+The graph coloring problem asks for the smallest possible number of colors in a legal coloring of a given graph.
+
+To prove that graph coloring is NP-hard, it suffices to consider the decision problem \textbf{\textit{3\Proc{Color}}}: Given a graph, does it have a proper $3$-coloring?
+We prove 3\Proc{Color} is NP-hard using a reduction from 3\Proc{Sat}.
+(Why 3\Proc{Sat}?
+Because it has a 3 in it.
+You probably think I’m joking, but I’m not.)
+Given a 3CNF formula $\Phi$, we construct a graph $G$ that is 3-colorable if and only if $\Phi$ is satisfiable, as suggested by the usual diagram.
+\begin{center}
+\includegraphics{p413-Im185}
+\end{center}
+
+We describe the reduction using a standard strategy of decomposing the output graph $G$ into \textbf{\textit{gadgets}}, subgraphs that enforce various semantics of the input formula $\Phi$ in the language of graph coloring.
+Decomposing reductions into separate gadgets is not only helpful for understanding existing reductions and proving them correct, but for designing new NP-hardness reductions.\footnote{Our reduction from \Proc{CircuitSat} to \Proc{Sat} encoding each gate in the input circuit as a clause in the output formula; these clauses are “gate gadgets”. Similarly, our reduction from 3\Proc{Sat} to \Proc{MaxIndSet} used two type of gadgets: “clause gadgets” (triangles) and “variable gadgets” (edges between contradicting literals).}
+Our formula-to-graph reduction uses three types of gadgets:
+\begin{itemize}
+\item There is a single \textit{truth gadget}: a triangle with three vertices $T$, $F$, and $X$, which intuitively stand for \Const{True}, \Const{False}, and \Const{Other}.
+Since these vertices are all connected, they must have different colors in any $3$-coloring.
+For the sake of convenience, we will \textit{name} those colors \Const{True}, \Const{False}, and \Const{Other}.
+Thus, when we say that a node is colored \Const{True}, we mean that it has the same color as vertex $T$.
+\item For each variable $a$, the graph contains a \textit{variable gadget}, which is a triangle joining two new nodes labeled $a$ and $\overline{a}$ to node $X$ in the truth gadget.
+Node $a$ must be colored either \Const{True} or \Const{False}, and therefore node $\overline{a}$ must be colored either \Const{False} or \Const{True}, respectively.
+\begin{figure}[ht]
+\centering
+\includegraphics{p414-Im186}\hspace{3em}%
+\includegraphics{p414-Im187}
+\caption{The truth gadget and a variable gadget for $a$.}
+\label{fig:12.12}
+\end{figure}
+\item Finally, for each clause in $\Phi$, the graph contains a \textit{clause gadget}.
+Each clause gadget joins three literal nodes (from the corresponding variable gadgets) to node $T$ (from the truth gadget) using five new unlabeled nodes and ten edges, as shown below.
+\begin{figure}[ht]
+\centering
+\includegraphics{p414-Im188}
+\caption{A clause gadget for $(a \vee b \vee \bar{c})$.}
+\label{fig:12.13}
+\end{figure}
+
+In effect, each triangle in the clause gadget behaves like a “majority gate”.
+In any valid 3-coloring, if the two vertices to the left of the triangle have the same color, the rightmost vertex of the triangle must have the same color; on the other hand, if the two left vertices have different colors, the color of the right vertex can be chosen arbitrarily.
+See \figref{fig:12.14}.
+
+It follows that there is no valid 3-coloring of a clause gadget where all three literal nodes are colored \Const{False}.
+On the other hand, any coloring of the literal nodes with more than one color can be extended to a valid 3-coloring of the clause gadget.
+The variable gadgets force each literal node to be colored either \Const{True} or \Const{False}; thus, in any valid 3-coloring of the clause gadget, at least one literal node is colored \Const{True}.
+\end{itemize}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p415-Im189}
+\caption{All valid 3-colorings of a “half-gadget”, up to permutations of the colors}
+\label{fig:12.14}
+\end{figure}
+
+The final graph $G$ contains exactly \textit{one} node $T$, exactly \textit{one} node $F$, and exactly \textit{two} nodes $a$ and $\bar{a}$ for each variable.
+For example, \figref{fig:12.15} shows the graph that results from the same 3CNF formula $(a \vee b \vee c) \wedge (b \vee \bar{c} \vee \bar{d}) \wedge (\bar{a} \vee c \vee d) \wedge (a \vee \bar{b} \vee \bar{d})$ that we previously used to illustrate the \Proc{MaxIndSet} reduction in \figref{fig:12.8}.
+The 3-coloring is one of several that correspond to the satisfying assignment $a = c = \Const{True}$, $b = d = \Const{False}$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p415-Im190}
+\begin{small}
+\[
+(a \vee b \vee c) \wedge (b \vee \bar{c} \vee \bar{d}) \wedge (\bar{a} \vee c \vee d) \wedge (a \vee \bar{b} \vee \bar{d})
+\]
+\end{small}
+\caption{The 3-colorable graph derived from a satisfiable 3CNF formula.}
+\label{fig:12.15}
+\end{figure}
+
+We’ve already done most of the work for a proof of correctness.
+If the formula is satisfiable, then we can color the literal nodes according to any satisfying assignment, and then (because each clause is satisfied) extend the coloring across every clause gadget.
+On the other hand, if the graph is 3-colorable, then we can extract a satisfying assignment from any 3-coloring---at least one of the three literal nodes in every clause gadget is colored \Const{True}.
+
+Because 3\Proc{Color} is a special case of the more general graph coloring problem---What is the minimum number of colors?---the more general optimization problem is also NP-hard.
+
+\section{Hamiltonian Cycle}
+\label{sec:12.11}
+
+A \textbf{\textit{Hamiltonian cycle}} in a graph is a cycle that visits every vertex exactly once.
+(This is very different from an \textit{Euler circuit}, which is a closed \textit{walk} that traverses every \textit{edge} exactly once; Euler circuits are easy to find and construct in linear time using depth-first search.)
+Here we consider two different proofs that the Hamiltonian cycle problem in \textit{directed} graphs is NP-hard.
+
+\subsection{From Vertex Cover}
+
+Our first NP-hardness proof reduces from the decision version of the vertex cover problem.
+Given an \textit{undirected} graph $G$ and an integer $k$, we construct a \textit{directed} graph $H$, such that $H$ has a Hamiltonian cycle if and only if $G$ has a vertex cover of size $k$.
+As in our previous reductions, the output graph $H$ is composed of several gadgets, each corresponding to certain features of the inputs $G$ and $k$.
+\begin{center}
+\includegraphics{p416-Im191}
+\end{center}
+\begin{itemize}
+\item For each undirected edge $uv$ in $G$, the directed graph $H$ contains an \textit{edge gadget} consisting of four vertices $(u, v, \textup{in})$, $(u, v, \textup{out})$, $(v, u, \textup{in})$, $(v, u, \textup{out})$ and six directed edges
+\[
+\begin{array}{c@{\qquad}c@{\qquad}c}
+\arc{(u, v, \textup{in})}{(u, v, \textup{out})} & \arc{(u, v, \textup{in})}{(v, u, \textup{in})} & \arc{(v, u, \textup{in})}{(u, v, \textup{in})}\\
+\arc{(v, u, \textup{in})}{(v, u, \textup{out})} & \arc{(u, v, \textup{out})}{(v, u, \textup{out})} & \arc{(v, u, \textup{out})}{(u, v, \textup{out})}
+\end{array}
+\]
+as shown in \figref{fig:12.16}.
+Each “in” vertex has an additional incoming edge, and each “out” vertex has an additional outgoing edge.
+Any Hamiltonian cycle in $H$ must pass through an edge gadget in one of three ways---either straight through on both sides, or with a detour from one side to the other and back.
+Eventually, these options will correspond to both $u$ and $v$, only $u$, or only $v$ belonging to some vertex cover.
+\item For each vertex $u$ in $G$, all the edge gadgets for incident edges $uv$ are connected in $H$ into a single directed path, which we call a \textit{vertex chain}.
+Specifically, suppose vertex $u$ has $d$ neighbors $v_1, v_2, \dots, v_d$.
+Then $H$ has $d-1$ additional edges $\arc{(u, v_i, \textup{out})}{(u, v_{i+1}, \textup{in})}$ for each $i$ from $1$ to $d-1$.
+\begin{figure}[ht]
+\centering
+\includegraphics{p417-Im192}\hspace{2.5em}%
+\includegraphics{p417-Im193}
+\caption{An edge gadget and its only possible intersections with a Hamiltonian cycle.}
+\label{fig:12.16}
+\end{figure}
+\item Finally, $H$ also contains $k$ \textit{cover vertices} $x_1, x_2, \dots, x_k$.
+Each cover vertex has a directed edge to the first vertex in each vertex chain, and a directed edge from the last vertex in each vertex chain.
+\end{itemize}
+\figref{fig:12.17} shows a complete example of our transformation; each double-arrowed blue segment represents a pair of directed edges.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p417-Im194}
+\caption{Example of our reduction from \Proc{VertexCover} to \Proc{DirectedHamCycle}.}
+\label{fig:12.17}
+\end{figure}
+
+As usual, we prove our reduction is correct in two stages.
+\begin{itemize}
+\item[$\Rightarrow$] First, suppose $C = \{u_1, u_2, \dots, u_k\}$ is a vertex cover of $G$ of size $k$.
+We can construct a Hamiltonian cycle in $H$ that “encodes” $C$ as follows.
+For each index $i$ from $1$ to $k$, we traverse a path from cover vertex $x_i$, through the vertex chain for $u_i$, to cover vertex $x_{i+1}$ (or cover vertex $x_1$ if $i = k$).
+As we traverse the chain for each vertex $u_i$, we determine how to proceed from each node $(u_i, v, \textup{in})$ as follows:
+\begin{itemize}[label=\textbf{--}]
+\item If $v \in C$, follow the edge $\arc{(u_i, v, \textup{in})}{(u_i, v, \textup{out})}$.
+\item If $v \notin C$, detour through $\arc{(u_i, v, \textup{in})}{\arc{(v, u_i, \textup{in})}{\arc{(v, u_i, \textup{out})}{(u_i, v, \textup{out})}}}$.
+\end{itemize}
+Thus, for each edge $uv$ of $G$, the Hamiltonian cycle visits $(u, v, \textup{in})$ and $(u, v, \textup{out})$ as part of $u$’s vertex chain if $u \in C$ and as part of $v$’s vertex chain otherwise.
+See \figref{fig:12.18}.
+\begin{figure}[ht]
+\centering
+\includegraphics{p418-Im195}
+\caption{Every vertex cover of size $k$ in $G$ corresponds to a Hamiltonian cycle in $H$ and vice versa.}
+\label{fig:12.18}
+\end{figure}
+\item[$\Leftarrow$] On the other hand, suppose $H$ contains a Hamiltonian cycle $C$.
+This cycle must contain an edge from each cover vertex to the start of some vertex chain.
+Our case analysis of edge gadgets inductively implies that after $C$ enters the vertex chain for some vertex $u$, it must traverse the entire vertex chain.
+Specifically, at each vertex $(u, v, \textup{in})$, the cycle must contain either the single edge $\arc{(u, v, \textup{in})}{(u, v, \textup{out})}$ or the detour path $\arc{(u, v, \textup{in})}{\arc{(v, u, \textup{in})}{\arc{(v, u, \textup{out})}{(u, v, \textup{out})}}}$, followed by an edge to the next edge gadget in $u$’s vertex chain, or to a cover vertex if this is the last edge gadget in $u$’s vertex chain.
+In particular, if $C$ contains the detour edge $\arc{(u, v, \textup{in})}{(v, u, \textup{in})}$, it cannot contain edges between any cover vertex and $v$’s vertex chain.
+It follows that $C$ traverses exactly $k$ vertex chains.
+Moreover, these vertex chains describe a vertex cover of the original graph $G$, because $C$ visits the vertex $(u, v, \textup{in})$ for every edge $uv$ in $G$.
+\end{itemize}
+We conclude that $G$ has a vertex cover of size $k$ if and only if $H$ contains a Hamiltonian cycle.
+The transformation from $G$ to $H$ takes at most $O(V^2)$ time; it follows that the directed Hamiltonian cycle problem is NP-hard.
+
+\subsection{From 3\Proc{Sat}}
+
+We can also prove that the directed Hamiltonian cycle problem is NP-hard by reducing directly from 3\Proc{Sat}.
+Given an arbitrary 3CNF formula $\Phi$ with $n$ variables $x_1, x_2, \dots, x_n$ and $k$ clauses $c_1, c_2, \dots, c_k$, we construct a directed graph $H$ that contains a Hamiltonian cycle if and only if $\Phi$ is satisfiable, as follows.
+
+For each variable $x_i$, we construct a \textit{variable gadget}, which consists of a doubly-linked list of $2k$ vertices $(i, 0), (i, 1), \dots, (i, 2k)$, connected by edges $\arc{(i, j-1)}{(i, j)}$ and $\arc{(i, j)}{(i, j-1)}$ for each index $j$.
+We connect the first and last nodes in each adjacent pair of variable gadgets by adding edges
+\[
+\arc{(i, 0)}{(i+1, 0)} \quad \arc{(i, 2k)}{(i+1, 0)} \quad \arc{(i, 0)}{(i+1, 2k)} \quad \arc{(i, 2k)}{(i+1, 2k)}
+\]
+for each index $i$; we also connect the endpoints of the first and last variable gadgets with the edges
+\[
+\arc{(n, 0)}{(1, 0)} \qquad \arc{(n, 2k)}{(1, 0)} \qquad \arc{(n, 0)}{(1, 2k)} \qquad \arc{(n, 2k)}{(1, 2k)}.
+\]
+The resulting graph $G$ has exactly $2^n$ Hamiltonian cycles, one for each assignment of boolean values to the $n$ variables of $\Phi$.
+Specifically, for each $i$, we traverse the $i$th variable gadget from left to right if $x_i = \Const{True}$ and right to left if $x_i = \Const{False}$.
+See \figref{fig:12.19}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p419-Im196}
+\caption{Left: Variable gadgets and connectors in $G$, for any formula with 4 variables and 4 clauses. Right: The Hamiltonian cycle in $G$ corresponding to the assignment $a = b = d = \Const{True}$ and $c = \Const{False}$}
+\label{fig:12.19}
+\end{figure}
+
+Now we extend $G$ to a larger graph $H$ by adding a \textit{clause vertex} $[j]$ for each clause $c_j$, connected to the variable gadgets by six edges, as shown in \figref{fig:12.20}.
+For each positive literal $x_i$ in $c_j$, we add the edges $\arc{(i, 2j-1)}{\arc{[j]}{(i, 2j)}}$, and for each negative literal $\bar{x}_i$ in $c_j$, we add the edges $\arc{(i, 2j)}{\arc{[j]}{(i, 2j-1)}}$.
+The connections to the clause vertices guarantee that a Hamiltonian cycle in $G$ can be extended to a Hamiltonian cycle in $H$ if and only if the corresponding variable assignment satisfies $\Phi$.
+Exhaustive case analysis now implies that $H$ has a Hamiltonian cycle if and only if $\Phi$ is satisfiable.
+
+Transforming the formula $\Phi$ into the graph $H$ takes $O(kn)$ time, which is at most quadratic in the total length of the formula; we conclude that the directed Hamiltonian cycle problem is NP-hard.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p420-Im197}
+\caption{Left: Clause gadgets for the formula $(a \vee b \vee c) \wedge (b \vee \bar{c} \vee \bar{d}) \wedge (\bar{a} \vee c \vee d) \wedge (a \vee \bar{b} \vee \bar{d})$. Right: A hamiltonian cycle in $H$ corresponding to the satisfying assignment $a = b = d = \Const{True}$ and $c = \Const{False}$.}
+\label{fig:12.20}
+\end{figure}
+
+\subsection{Variants and Extensions}
+
+Trivial modifications of the previous reductions imply that the Hamiltonian \textit{path} problem in directed graphs is also NP-hard.
+A Hamiltonian path in a graph $G$ is of course a simple path that visits every vertex of $G$ exactly once.
+In fact, there are simple polynomial-time reductions from the Hamiltonian cycle problem to the Hamiltonian path problem and vice versa.
+I’ll leave the details of these reductions as exercises.
+
+Both of the previous reductions deal with directed graphs, but the corresponding question in undirected graph is also NP-hard.
+In fact, there is a relatively simple reduction from the directed Hamiltonian cycle/path problem to the undirected Hamiltonian cycle/path problem; again, I’ll leave the details of this reduction as an exercise.
+
+Finally, the infamous \textit{traveling salesman problem} asks to find the shortest Hamiltonian cycle (or path) in a graph with weighted edges.
+Since finding the shortest cycle/path is obviously harder than determining if a cycle/path exists at all---Consider a graph where every edge has weight $1$!---\Proc{TravelingSalesman} is also NP-hard.
+
+\section{Subset Sum (from Vertex Cover)}
+\label{sec:12.12}
+
+The next problem that we prove NP-hard is the \Proc{SubsetSum} problem considered in \chapref{ch:2}: Given a set $X$ of positive integers and an integer $T$, determine whether $X$ has a subset whose elements sum to $T$.
+
+We once again reduce from \Proc{VertexCover}.
+Given a graph $G$ and an integer $k$, we need to compute a set $X$ of positive integers and an integer $T$, such that $X$ has a subset that sums to $T$ if and only if $G$ has an vertex cover of size $k$.
+Our transformation uses only two types of “gadgets”, which are \textit{integers} representing the vertices and edges in $G$.
+
+Number the \textit{edges} of $G$ arbitrarily from $0$ to $E-1$.
+Our set $X$ contains the integer $b_i := 4^i$ for each edge $i$, and the integer
+\[
+a_v := 4^E + \sum_{i \in \Delta(v)} 4^i
+\]
+for each vertex $v$, where $\Delta(v)$ is the set of edges that have $v$ has an endpoint.
+Alternately, we can think of each integer in $X$ as an $(E+1)$-digit number written in base 4.
+The $E$th digit is $1$ if the integer represents a vertex, and $0$ otherwise; and for each $i < E$, the $i$th digit is $1$ if the integer represents edge $i$ or one of its endpoints, and $0$ otherwise.
+Finally, we set the target sum
+\[
+T := k \cdot 4^E + \sum_{i=0}^{E-1} 2 \cdot 4^i.
+\]
+Now let’s prove that the reduction is correct.
+\begin{itemize}
+\item[$\Rightarrow$] First, suppose $G$ has a vertex cover $C$ of size $k$.
+Consider the subset
+\[
+X' := \{a_v \mid v \in C\} \cup \{b_i \mid \text{edge } i \text{ has exactly one endpoint in } C\}
+\]
+The sum of the elements of $X'$, written in base 4, has most significant digit $k$ and all other digits equal to $2$.
+Thus, the elements of $X'$ sum to exactly $T$.
+\item[$\Leftarrow$] On the other hand, suppose there is a subset $X' \subseteq X$ that sums to $T$.
+Specifically, we must have
+\[
+\sum_{v \in V'} a_v + \sum_{i \in E'} b_i = t
+\]
+for some subsets $V' \subseteq V$ and $E' \subseteq E$.
+Again, if we sum these base-4 numbers, there are no carries in the first $E$ digits, because for each $i$ there are only three numbers in $X$ whose $i$th digit is $1$.
+Each edge number $b_i$ contributes only one $1$ to the $i$th digit of the sum, but the $i$th digit of $t$ is $2$.
+Thus, for each edge in $G$, at least one of its endpoints must be in $V'$.
+In other words, $V'$ is a vertex cover.
+On the other hand, only vertex numbers are larger than $4^E$, and $\lfloor T/4^E \rfloor = k$, so $V'$ has at most $k$ elements.
+(In fact, it’s not hard to see that $V'$ has \textit{exactly} $k$ elements.)
+\end{itemize}
+For example, given the four-vertex graph $G = (V, E)$ where $V = \{u, v, w, x\}$ and $E = \{uv, uw, vw, vx, wx\}$, our set $X$ might contain the following base-4 integers:
+\[
+\begin{array}{r@{{}:={}}l@{{}={}}r@{\qquad\qquad}r@{{}:={}}l@{{}={}}r}
+a_u & 111000_4 & 1344 & b_{uv} & 010000_4 & 256\\
+a_v & 110110_4 & 1300 & b_{uw} & 001000_4 & 64\\
+a_w & 101101_4 & 1105 & b_{vw} & 000100_4 & 16\\
+a_x & 100011_4 & 1029 & b_{vx} & 000010_4 & 4\\
+\multicolumn{3}{l@{\qquad\qquad}}{} & b_{wx} & 000001_4 & 1
+\end{array}
+\]
+If we are looking for a vertex cover of size $k = 2$, our target sum would be $T := 222222_4 = 2730$.
+Indeed, the vertex cover $\{v, w\}$ corresponds to the subset $\{a_v, a_w, b_{uv}, b_{uw}, b_{vx}, b_{wx}\}$, whose sum is $1300+1105+256+64+4+1 = 2730$.
+
+The reduction can clearly be performed in polynomial time.
+We’ve already proved that \Proc{VertexCover} is NP-hard, so it follows that \Proc{SubsetSum} is NP-hard.
+
+\subsection{Caveat Reductor!}
+
+One subtle point must be emphasized here.
+$3$00-something pages ago, back in \chapref{ch:3}, we developed a dynamic programming algorithm to solve \Proc{SubsetSum} in $O(nT)$ time.
+Isn’t this a polynomial-time algorithm?
+Didn’t we just prove that P=NP?
+Hey, where’s my million dollars?!
+
+Alas, life is not so simple.
+True, the running time is a polynomial function of the variables $n$ and $T$, but to qualify as a true polynomial-time algorithm, the running time must be a polynomial function of the \textit{input size}---the number of \textit{bits} required to represent the input.
+The \textit{values} of the elements of $X$ and the target sum $T$ could be exponentially larger than the number of input bits.
+Indeed, the reduction we just described produces a value of $T$ that is exponentially larger than the size of our original input graph, which forces our dynamic programming algorithm to run in exponential time.
+
+Algorithms like this are said to run in \textbf{\textit{pseudo-polynomial time}}, and any NP-hard problem with such an algorithm is called \textbf{\textit{weakly NP-hard}}.
+Equivalently, a weakly NP-hard problem is a problem that can be solved in polynomial time when all input numbers are represented in \textit{unary} (as a sum of $1$s), but becomes NP-hard when all input numbers are represented in \textit{binary}.
+If a problem is NP-hard even when all the input numbers are represented in unary, we say that the problem is \textbf{\textit{strongly NP-hard}}.
+A good example of a \textit{strongly} NP-hard problem is \Proc{TravelingSalesman}, which remains NP-hard even if the input graph is complete and all edge weights are equal to $1$ or $2$.
+
+\section{Other Useful NP-hard Problems}
+\label{sec:12.13}
+
+Literally thousands of problems have been proved to be NP-hard.
+Here I will list a few NP-hard problems that are useful in deriving reductions.\footnote{As someday it may happen a reduction must be found, I’ve got a little list. I’ve got a little list. Of some Herculean problems we can use to lower bound. Fast solutions don’t exist. Our proofs they can assist.}
+I won’t describe the NP-hardness proofs for these problems in detail, but you can find most of them in Garey and Johnson’s classic \textit{Scary Black Book of NP-Completeness}.\footnote{Michael Garey and David Johnson. \textit{Computers and Intractability: A Guide to the Theory of NP-Completeness}. W. H. Freeman and Co., 1979. And yes, it really is black.}
+All of the problems I’ve discussed so far, and most of the problems in the following list, were first proved NP-hard in a single landmark 1972 paper by Richard Karp.\footnote{Later performed off-Broadway as \textit{Richard Karp and his 21 Assistants}, for which Karp won a well-deserved Tony Turing award.}
+\begin{itemize}
+\item \textbf{\Proc{PlanarCircuitSat}:} Given a boolean circuit that can be embedded in the plane so that no two wires cross, is there an input that makes the circuit output \Const{True}?
+This problem can be proved NP-hard by reduction from the general circuit satisfiability problem, by replacing each crossing with a small assemblage of gates.
+\item \textbf{\Proc{1-in-3Sat}:} Given a 3CNF formula, is there an assignment of values to the variables so that each clause contains \textit{exactly} one \Const{True} literal?
+This problem can be proved NP-hard by reduction from the usual 3\Proc{Sat}.
+\item \textbf{\Proc{NotAllEqual3Sat}:} Given a 3CNF formula, is there an assignment of values to the variables so that every clause contains at least one \Const{True} literal \textit{and} at least one \Const{False} literal?
+This problem can be proved NP-hard by reduction from the usual 3\Proc{Sat}.
+\item \textbf{\Proc{Planar3Sat}:} Given a 3CNF boolean formula, consider a bipartite graph whose vertices are the clauses and variables, where an edge indicates that a variable (or its negation) appears in a clause.
+If this graph is planar, the 3CNF formula is also called planar.
+The \Proc{Planar3Sat} problem asks, given a planar 3CNF formula, whether it has a satisfying assignment.
+This problem can be proved NP-hard by reduction from \Proc{PlanarCircuitSat}.\footnote{Surprisingly, \Proc{PlanarNotAllEqual3Sat} is solvable in polynomial time!}
+\item \textbf{\Proc{Exact3DimensionalMatching}} or \textbf{\Proc{X3M}:} Given a set $S$ and a collection of three-element subsets of $S$, called \textit{triples}, is there a sub-collection of disjoint triples that exactly cover $S$?
+This problem can be proved NP-hard by a reduction from 3\Proc{Sat}, because it has a 3 in it.
+\item \textbf{\Proc{Partition}:} Given a set $S$ of $n$ integers, are there subsets $A$ and $B$ such that $A \cup B = S$, $A \cap B = \emptyset$, and
+\[
+\sum_{a \in A} a = \sum_{b \in B} b?
+\]
+This problem can be proved NP-hard by a simple reduction from \Proc{SubsetSum}.
+Like \Proc{SubsetSum}, the \Proc{Partition} problem is only weakly NP-hard.
+\item \textbf{\Proc{3Partition}:} Given a set $S$ of $3n$ integers, can it be partitioned into $n$ disjoint three-element subsets, such that every subset has exactly the same sum?
+Despite the similar names, this problem is \textit{very} different from \Proc{Partition}; sorry, I didn’t make up the names.
+This problem can be proved NP-hard by reduction from \Proc{X3M}, because it has a 3 in it.
+Unlike \Proc{Partition}, the \Proc{3Partition} problem is \textit{strongly} NP-hard; it remains NP-hard even if every input number is at most $n^3$.
+\item \textbf{\Proc{SetCover}:} Given a collection of sets \textbf{S}${} = \{S_1, S_2, \dots, S_m\}$, find the smallest sub-collection of $S_i$’s that contains all the elements of $\bigcup_i S_i$.
+This problem is a generalization of both \Proc{VertexCover} and \Proc{X3M}.
+\item \textbf{\Proc{HittingSet}:} Given a collection of sets \textbf{S}${} = \{S_1, S_2, \dots, S_m\}$, find the minimum number of elements of $\bigcup_i S_i$ that hit every set in \textbf{S}.
+This problem is also a generalization of \Proc{VertexCover}.
+\item \textbf{\Proc{LongestPath}:} Given a non-negatively weighted graph $G$ (either directed or undirected) and two vertices $u$ and $v$, what is the longest simple path from $u$ to $v$ in the graph?
+A path is \textit{simple} if it visits each vertex at most once.
+This problem is a generalization of the corresponding Hamiltonian path problem.
+Of course, the corresponding \textit{shortest} path problem can be solved in polynomial time.
+\item \textbf{\Proc{SteinerTree}:} Given a weighted, undirected graph $G$ with some of the vertices marked, what is the minimum-weight subtree of $G$ that contains every marked vertex?
+If \textit{every} vertex is marked, the minimum Steiner tree is the minimum spanning tree; if exactly two vertices are marked, the minimum Steiner tree is the shortest path between them.
+This problem can be proved NP-hard by reduction from \Proc{VertexCover}.
+\item \textbf{\Proc{Max2Sat}:} Given a Boolean formula in conjunctive normal form, with exactly \textit{two} literals per clause, find a variable assignment that maximizes the number of clauses with at least one \Const{True} literal.
+This problem can be proved NP-hard by reduction from 3\Proc{Sat} (yes, even though it doesn’t have a 3 in it).
+The simpler decision problem 2\Proc{Sat}, which asks if there is an assignment that satisfies \textit{every} clause, can actually be solved in polynomial time.
+\item \textbf{\Proc{MaxCut}:} Given an undirected graph $G = (V, E)$, find a subset $S \subset V$ that maximizes the number of edges with exactly one endpoint in $S$.
+Equivalently, find the largest bipartite subgraph of $G$.
+This problem can be proved NP-hard by reduction from \Proc{Max2Sat}.
+\end{itemize}
+In addition to these dry but useful problems, most interesting puzzles and solitaire games have been shown to be NP-hard, or to have NP-hard generalizations.
+(Arguably, if a game or puzzle isn’t at least NP-hard, it isn’t interesting!)
+Here are some examples you may find familiar:
+\begin{itemize}
+\item Minesweeper (from \Proc{CircuitSat})\footnote{Richard Kaye. Minesweeper is NP-complete. \textit{Mathematical Intelligencer} 22(2):9--15, 2000. But see also: Allan Scott, Ulrike Stege, and Iris van Rooij. Minesweeper may not be NP-complete but is hard nonetheless. \textit{Mathematical Intelligencer} 33(4):5--17, 2011.}
+\item Sudoku (utlimately from 3\Proc{Sat})\footnote{Takayuki Yato and Takahiro Seta. Complexity and completeness of finding another solution and its application to puzzles. \textit{IEICE Transactions on Fundamentals of Electronics, Communications and Computer Sciences} E86-A(5):1052--1060, 2003. http://www-imai.is.s.u-tokyo.ac.jp/\textasciitilde yato/data2/MasterThesis.pdf.}
+\item Tetris (from 3\Proc{Partition})\footnote{Ron Breukelaar, Erik D. Demaine, Susan Hohenberger, Hendrik J. Hoogeboom, Walter A. Kosters, and David Liben-Nowell. Tetris is hard, even to approximate. \textit{International Journal of Computational Geometry and Applications} 14:41--68, 2004.}
+\item Klondike, aka “Solitaire” (from 3\Proc{Sat})\footnote{Luc Longpré and Pierre McKenzie. The complexity of Solitaire. \textit{Proceedings of the 32nd International Mathematical Foundations of Computer Science}, 182--193, 2007.}
+\item Pac-Man (from \Proc{HamiltonianCycle})\footnote{Giovanni Viglietta. Gaming is a hard job, but someone has to do it! \textit{Theory of Computing Systems}, 54(4):595--621, 2014. http://giovanniviglietta.com/papers/gaming2.pdf.}
+\item Super Mario Brothers (from 3\Proc{Sat})\footnote{Greg Aloupis, Erik D. Demaine, Alan Guo, and Giovanni Viglietta. Classic Nintendo games Are (computationally) hard. \textit{Theoretical Computer Science} 586:135--160, 2015. http://arxiv.org/abs/1203.1895.}
+\item Candy Crush Saga (from a variant of 3\Proc{Sat})\footnote{Luciano Gualà, Stefano Leucci, Emanuele Natale. Bejeweled, Candy Crush and other match-three games are (NP-)hard. \textit{Proc. 2014 IEEE Conference on Computational Intelligence and Games}, 2014. http://arxiv.org/abs/1403.5830.}
+\item Threes/2048 (from 3\Proc{Sat}, of course)\footnote{Stefan Langerman and Yushi Uno. Threes!, Fives, 1024!, and 2048 are Hard. \textit{Proc. 8th International Conference on Fun with Algorithms}, 2016. https://arxiv.org/abs/1505.04274.}
+\item Trainyard (from \Proc{DominatingSet}; see Exercise 26)\footnote{Matteo Almanza, Stefano Leucci, and Alessandro Panconesi. Trainyard is NP-Hard. \textit{Proc. 8th International Conference on Fun with Algorithms}, 2016. https://arxiv.org/abs/1603.00928.}
+\item Shortest $n \times n \times n$ Rubik’s cube solution (from 3\Proc{Sat} via a special case of \Proc{PlanarUndirectedHamCycle}).\footnote{Erik D. Demaine, Sarah Eisenstat, and Mikhail Rudoy. Solving the Rubik’s Cube optimally is NP-complete. \textit{Proc. 35th Symposium on Theoretical Aspects of Computer Science}, 2018. https://arxiv.org/abs/1706.06708.}
+\item Cookie Clicker (from \Proc{Partition} or 3\Proc{Partition})\footnote{Erik D. Demaine, Hiro Ito, Stefan Langerman, Jayson Lynch, Mikhail Rudoy, and Kai Xiao. Cookie Clicker. Preprint, August 2018. https://arxiv.org/abs/1808.07540.}
+\end{itemize}
+This list is necessarily incomplete, thanks to a limited footnote budget.\footnote{See https://xkcd.com/1208/}
+As of June 2019, nobody has published a proof that a generalization of Ultimate Paperclips, Line Rider, Twister, or Cards Against Humanity is NP-hard, but I’m sure it’s only a matter of time.
+
+\section{Choosing the Right Problem}
+\label{sec:12.14}
+
+One of the most difficult steps in proving that a problem is NP-hard is choosing the best problem to reduce from.
+The Cook-Levin Theorem implies that if there is a reduction from \textit{any} NP-hard problem to problem X, then there is a reduction from \textit{every} NP-complete problem to problem X, but some problems are easier to work with than others.
+There’s no systematic method for choosing the right problem, but here are a few useful rules of thumb.
+\begin{itemize}
+\item If the problem asks how to assign bits to objects, or to choose a subset of objects, or to partition objects into two different subsets, try reducing from some version of \Proc{Sat} or \Proc{Partition}.
+\item If the problem asks how to assign labels to objects from a small fixed set, or to partition objects into a small number of subsets, try reducing from $k$\Proc{Color} or even 3\Proc{Color}.
+\item If the problem asks to arrange a set of objects in a particular order, try reducing from \Proc{DirectedHamCycle} or \Proc{DirectedHamPath} or \Proc{TravelingSalesman}.
+\item If the problem asks to find a \textit{small} subset satisfying some constraints, try reducing from \Proc{MinVertexCover}.
+\item If the problem asks to find a \textit{large} subset satisfying some constraints, try reducing from \Proc{MaxIndSet} or \Proc{MaxClique} or \Proc{Max2Sat}.
+\item If the problem asks to partition objects into a large number of small subsets, try reducing from 3\Proc{Partition}.
+\item If the number $3$ appears naturally in the problem, try 3\Proc{Sat} or 3\Proc{Color} or \Proc{X3M} or 3\Proc{Partition}.
+(No, this is not a joke.)
+\item If all else fails, try 3\Proc{Sat} or even \Proc{CircuitSat}!
+\end{itemize}
+I do not recommend trying to reduce from \Proc{Tetris}, \Proc{SuperMarioBros}, or \Proc{Trainyard}.
+You really want to choose a starting problem that is as simple as possible, while still capturing \textit{some} feature of your problem that makes it difficult to solve.
+
+\section{A Frivolous Real-World Example}
+\label{sec:12.15}
+
+\textbf{\textit{Draughts}} is a family of board games that have been played for thousands of years.
+Most Americans are familiar with the version called \textit{checkers} or \textit{English draughts}, but the most common variant worldwide, known as \textbf{\textit{international draughts}} or \textbf{\textit{Polish draughts}}, originated in the Netherlands in the 16th century.
+For a complete set of rules, the reader should consult Wikipedia; here a few important differences from the Anglo-American game:
+\begin{itemize}
+\item \textbf{Flying kings:} As in checkers, a piece that ends a move in the row closest to the opponent becomes a \textit{king} and gains the ability to move backward.
+Unlike in checkers, however, a king in international draughts can move any distance along a diagonal line in a single turn, as long as the intermediate squares are empty or contain exactly one opposing piece (which is captured).
+\item \textbf{Forced maximum capture:} In each turn, the moving player must capture as many opposing pieces as possible.
+This is distinct from the forced-capture rule in checkers, which requires only that each player must capture if possible, and that a capturing move ends only when the moving piece cannot capture further.
+In other words, checkers requires capturing a \textit{locally maximal} set of opposing pieces on each turn; whereas, international draughts requires a \textit{globally maximum} capture.
+\item \textbf{Capture subtleties:} As in checkers, captured pieces are removed from the board only at the end of the turn.
+Any piece can be captured at most once.
+Thus, when an opposing piece is jumped, that piece remains on the board \textit{but cannot be jumped again} until the end of the turn.
+\end{itemize}
+For example, in the first position shown below, each circle represents a piece, and doubled circles represent kings.
+Black \textit{must} make the first indicated move, capturing five white pieces, because it is not possible to capture more than five pieces, and there is no other move that captures five.
+Black cannot extend his capture further, either northeast or southeast, because the captured White pieces remain on the board until his turn is over.
+Then White \textit{must} make the second indicated move, thereby winning the game.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p427-Im198}
+\caption{Two forced(!) moves in international draughts; doubled circles are kings.}
+\label{fig:12.21}
+\end{figure}
+
+The actual game, which is played on a $10 \times 10$ board with 20 pieces of each color, is computationally trivial; we can precompute the optimal move for both players in every possible board configuration and hard-code the results into a lookup table of constant size.
+Sure, it’s a \textit{big} constant, but it’s still a constant!
+
+But consider the natural generalization of international draughts to an $n \times n$ board.
+In this setting, \textbf{\textit{finding a legal move is actually NP-hard!}}
+The following reduction from the Hamiltonian cycle problem in directed graphs was discovered by Bob Hearn in 2010.\footnote{See Theoretical Computer Science Stack Exchange: http://cstheory.stackexchange.com/a/1999/111.}
+In most two-player games, finding the \textit{best} move is NP-hard (or worse).
+This is the only example I know of a game---and moreover a real game played by millions of people for centuries---where \textit{merely following the rules} is NP-hard!
+
+Given an undirected graph $G$ with $n$ vertices, we construct a board configuration for international draughts, such that White can capture a certain number of black pieces in a single move if and only if $G$ has a Hamiltonian cycle.
+We treat $G$ as a directed graph, with two arcs $\arc{u}{v}$ and $\arc{v}{u}$ in place of each undirected edge $uv$.
+Number the vertices arbitrarily from $1$ to $n$.
+The final draughts configuration has several gadgets:
+\begin{itemize}
+\item The vertices of $G$ are represented by rabbit-shaped \textit{vertex gadgets}, which are evenly spaced along a horizontal line.
+Each arc $\arc{i}{j}$ is represented by a path of two diagonal line segments from the “left ear” of vertex gadget $i$ to the “right ear” of vertex gadget $j$.
+The path for arc $\arc{i}{j}$ is located above the vertex gadgets if $i < j$, and below the vertex gadgets if $i > j$.
+\begin{figure}[ht]
+\centering
+\includegraphics{p428-Im199}
+\caption{A high-level overview of the reduction from Hamiltonian cycle to international draughts.}
+\label{fig:12.22}
+\end{figure}
+\item The bulk of each vertex gadget is a diamond-shaped region called a \textit{vault}.
+The walls of the vault are composed of two solid layers of black pieces, which cannot be captured; these pieces are drawn as gray circles in the figures.
+There are $N$ capturable black pieces inside each vault, for some large integer $N$ to be determined later.
+A white king can enter the vault through the “right ear”, capture every internal piece, and then exit through the “left ear”.
+Both ears are hallways, again with walls two pieces thick, with gaps where the arc paths end to allow the white king to enter and leave.
+The lengths of the “ears” can easily be adjusted to align with the other gadgets.
+\item For each arc $\arc{i}{j}$, we have a \textit{corner gadget}, which allows a white king leaving vertex gadget $i$ to be redirected to vertex gadget $j$.
+\item Finally, wherever two arc paths cross, we have a \textit{crossing gadget}; these gadgets allow the white king to traverse either arc path, but forbid switching from one arc path to the other.
+\end{itemize}
+
+A single white king starts at the bottom corner of one of the vaults.
+In any legal move, this king must alternate between traversing entire arc paths and clearing vaults.
+The king can traverse the various gadgets backward, entering each vault through the exit and vice versa.
+But the reversal of a Hamiltonian cycle in $G$ is another Hamiltonian cycle in $G$, so walking backward is fine.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p429-Im200}
+\caption{Left: A vertex gadget with three entrances and three exits. Right: A white king emptying the vault. Gray circles are black pieces that cannot be captured.}
+\label{fig:12.23}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p429-Im201}\hspace{3em}%
+\includegraphics{p429-Im202}
+\caption{Left: One of two paths through a corner gadget. Right: One of two paths through a crossing gadget.}
+\label{fig:12.24}
+\end{figure}
+
+If there is a Hamiltonian cycle in $G$, the white king can capture at least $nN$ black pieces by visiting each of the other vaults and returning to the starting vault.
+On the other hand, if there is no Hamiltonian cycle in $G$, the white king can capture at most half of the pieces in the starting vault, and thus can capture at most $(n - 1/2)N + O(n^3)$ enemy pieces altogether.
+The $O(n^3)$ term accounts for the corner and crossing gadgets; each edge passes through one corner gadget and at most $n^2/2$ crossing gadgets.
+
+To complete the reduction, we set $N = n^4$.
+Summing up, we obtain an $O(n^5) \times O(n^5)$ board configuration, with $O(n^5)$ black pieces and one white king.
+We can clearly construct this board configuration by brute force in polynomial time.
+\figref{fig:12.25} shows a complete example of the construction.
+
+It is still open whether the following related question is NP-hard: Given an $n \times n$ board configuration for international draughts, can (and therefore \textit{must}) White capture \textit{all} the black pieces (thereby winning the game) in a single turn?
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p430-Im203}
+\caption{The final draughts configuration for the 4-vertex graph in \figref{fig:12.22}. (The green arrows are not actually part of the configuration.)}
+\label{fig:12.25}
+\end{figure}
+
+\section{\difficulty{H}On Beyond Zebra}
+\label{sec:12.16}
+
+P and NP are only the first two steps in an enormous hierarchy of complexity classes.
+To close this chapter (and the book), let me describe a few more classes of interest.
+
+\subsection{Polynomial Space}
+
+\textbf{\textit{PSPACE}} is the set of decision problems that can be solved using polynomial \textit{space}.
+Every problem in NP (and therefore in P) is also in PSPACE.
+It is generally believed that NP${}\neq{}$PSPACE, but nobody can even prove that P${}\neq{}$PSPACE.
+
+A problem $\Pi$ is \textbf{\textit{PSPACE-hard}} if, for any problem $\Pi'$ that can be solved using polynomial \textit{space}, there is a polynomial-\textit{time} many-one reduction from $\Pi'$ to $\Pi$.
+If any PSPACE-hard problem is in NP, then PSPACE=NP; similarly, if any PSPACE-hard problem is in P, then PSPACE=P.
+
+The canonical PSPACE-hard problem is the \textit{quantified boolean formula} problem, or \textbf{\textit{QBF}}: Given a boolean formula $\Phi$ that may include any number of universal or existential quantifiers, but no free variables, is $\Phi$ equivalent to \Const{True}?
+For example, the following expression is a valid input to QBF:
+\[
+\exists a : \forall b : \exists c : (\forall d : a \vee b \vee c \vee \bar{d}) \Leftrightarrow ((b \wedge \bar{c}) \vee (\exists e : \overline{(\bar{a} \Rightarrow e)} \vee (c \neq a \wedge e))).
+\]
+\Proc{Sat} is equivalent to the special case of QBF where the input formula contains only existential quantifiers ($\exists$).
+QBF remains PSPACE-hard even when the input formula must have all its quantifiers at the beginning, the quantifiers strictly alternate between $\exists$ and $\forall$, and the quantified proposition is in conjunctive normal form, with exactly three literals in each clause, for example:
+\[
+\exists a : \forall b : \exists c : \forall d : \bigl((a \vee b \vee c) \wedge (b \vee \bar{c} \vee \bar{d}) \wedge (\bar{a} \vee c \vee d) \wedge (a \vee \bar{b} \vee \bar{d})\bigr)
+\]
+This restricted version of QBF can also be phrased as a two-player strategy question.
+Suppose two players, Alice and Bob, are given a 3CNF predicate with free variables $x_1, x_2, \dots, x_n$.
+The players alternately assign values to the variables in order by index---Alice assigns a value to $x_1$, Bob assigns a value to $x_2$, and so on.
+Alice eventually assigns values to every variable with an odd index, and Bob eventually assigns values to every variable with an even index.
+Alice wants to make the expression \Const{True}, and Bob wants to make it \Const{False}.
+Assuming Alice and Bob play perfectly, who wins this game?
+Not surprisingly, most two-player games\footnote{For a good (but inevitably aging) overview of known results on the computational complexity of games and puzzles, see Erik Demaine and Bob Hearn’s monograph \textit{Games, Puzzles, and Computation} (CRC Press, 2009).} like tic-tac-toe, reversi, checkers, go, chess, and mancala---or more accurately, appropriate generalizations of these constant-size games to arbitrary board sizes---are PSPACE-hard.
+
+Another canonical PSPACE-hard problem is \textit{NFA totality}: Given a nondeterministic finite-state automaton $M$ over some alphabet $\Sigma$, does $M$ accept every string in $\Sigma^*$?
+The closely related problems \textit{NFA equivalence} (Do two given NFAs accept the same language?) and \textit{NFA minimization} (Find the smallest NFA that accepts the same language as a given NFA) are also PSPACE-hard, as are the corresponding questions about regular expressions.
+(The corresponding questions about \textit{deterministic} finite-state automata are actually solvable in polynomial time.)
+
+\subsection{Exponential Time}
+
+The next significantly larger complexity class, \textbf{\textit{EXP}} (also called EXPTIME), is the set of decision problems that can be solved in exponential time, that is, using at most $2^{n^c}$ steps for some constant $c > 0$.
+Every problem in PSPACE (and therefore in NP (and therefore in P)) is also in EXP.
+It is generally believed that PSPACE${}\subsetneq{}$EXP, but nobody can even prove that NP${}\neq{}$EXP.
+A problem $\Pi$ is \textbf{\textit{EXP-hard}} if, for any problem $\Pi'$ that can be solved in \textit{exponential} time, there is a \textit{polynomial}-time many-one reduction from $\Pi'$ to $\Pi$.
+If any EXP-hard problem is in PSPACE, then EXP=PSPACE; similarly, if any EXP-hard problem is in NP, then EXP=NP.
+We \textit{do} know that P${}\neq{}$EXP; in particular, no EXP-hard problem is in P.
+
+Natural generalizations of many interesting 2-player games---like checkers, chess, mancala, and go---are actually EXP-hard.
+The boundary between PSPACE-complete games and EXP-hard games is rather subtle.
+For example, there are three ways to draw in chess (the standard $8 \times 8$ game): stalemate (the player to move is not in check but has no legal moves), repeating the same board position three times, or moving fifty times without capturing or moving a pawn.
+The $n \times n$ generalization of chess is either in PSPACE or EXP-hard depending on how we generalize these rules.
+If we declare a draw after (say) $n^3$ capture-free moves, then every game must end after a polynomial number of moves, so we can simulate all possible games from any given position using only polynomial space.
+On the other hand, if we ignore the capture-free move rule entirely, the resulting game can last an exponential number of moves, so there no obvious way to detect a repeating position using only polynomial space; indeed, this version of $n \times n$ chess is EXP-hard.
+
+\subsection{Excelsior!}
+
+Naturally, even exponential time is not the end of the story.
+\textbf{\textit{NEXP}} is the class of decision problems that can be solve in \textit{nondeterministic} exponential time; equivalently, a decision problem is in NEXP if and only if, for every \Const{Yes} instance, there is a \textit{proof} of this fact that can be checked in exponential time.
+\textbf{\textit{EXPSPACE}} is the set of decision problems that can be solved using exponential \textit{space}.
+Even these larger complexity classes have hard problems; for example, if we add the intersection operator $\cap$ to the syntax of regular expressions, deciding whether two such expressions describe the same language is EXPSPACE-hard.
+Beyond EXPSPACE are complexity classes with \textit{doubly}-exponential resource bounds (EEXP, NEEXP, and EEXPSPACE), then \textit{triply} exponential resource bounds (EEEXP, NEEEXP, and EEEXPSPACE), and so on ad infinitum.
+
+All these complexity classes can be ordered by inclusion:
+\[
+\text{P} \subseteq \text{NP} \subseteq \text{PSPACE} \subseteq \text{EXP} \subseteq \text{NEXP} \subseteq \text{EXPSPACE} \subseteq \text{EEXP} \subseteq \text{NEEXP} \subseteq \cdots
+\]
+Most complexity theorists strongly believe that every inclusion in this sequence is strict; that is, no two of these complexity classes are equal.
+However, the strongest result that has been proved is that every class in this sequence is strictly contained in the class \textit{three} steps later in the sequence.
+For example, we have proofs that P${}\neq{}$EXP and PSPACE${}\neq{}$EXPSPACE, but not whether P${}\neq{}$PSPACE or NP${}\neq{}$EXP.
+
+The limit of this series of increasingly exponential complexity classes is the class \textbf{\textit{ELEMENTARY}} of decision problems that can be solved using time or space bounded by a function the form $2 \uparrow^k n$ for some constant integer $k$, where
+\[
+2 \uparrow^k n := \begin{cases}
+n & \text{if } k = 0,\\
+2^{2\uparrow^{k-1}n} & \text{otherwise.}
+\end{cases}
+\]
+For example, $2 \uparrow^1 n = 2^n$ and $2 \uparrow^2 n = 2^{2^n}$.
+
+It may be tempting to conjecture that \textit{every} natural decidable problem can be solved in elementary time, but in fact this conjecture is incorrect.
+Consider the \textbf{\textit{generalized regular expressions}} defined by recursively combining (possibly empty) strings over some finite alphabet by concatenation ($xy$), union ($x + y$), Kleene closure ($x^*$), and negation $(\overline{x})$.
+For example, the generalized regular expression $\overline{(\mbox{\Str{0}} + \mbox{\Str{1}})^*\mbox{\Str{00}}(\mbox{\Str{0}} + \mbox{\Str{1}})^*}$ represents the set of strings in $\{\mbox{\Str{0}}, \mbox{\Str{1}}\}^*$ that do \textit{not} contain two \Str{0}s in a row.
+It is possible to determine algorithmically whether two generalized regular expressions describe identical languages, by recursively converting each expression into an equivalent NFA, converting each NFA into a DFA, and then minimizing the DFA.
+However, the running time of this algorithm has the non-elementary bound $2 \uparrow^{\Theta(n)} 2$, intuitively because each layer of recursive negation can exponentially increase the number of states.
+In fact, Larry Stockmeyer proved in 1974 that this problem \textit{cannot} be solved in merely elementary time, even if we forbid Kleene closure.
+
+\begin{exercises}
+\item
+\begin{enumerate}
+\item Describe and analyze and algorithm to solve \Proc{Partition} in time $O(nM)$, where $n$ is the size of the input set and $M$ is the sum of the absolute values of its elements.
+\item Why doesn’t this algorithm imply that P=NP?
+\end{enumerate}
+
+\item Consider the following problem, called \Proc{BoxDepth}: Given a set of $n$ axis-aligned rectangles in the plane, how big is the largest subset of these rectangles that contain a common point?
+\begin{enumerate}
+\item Describe a polynomial-time reduction from \Proc{BoxDepth} to \Proc{MaxClique}.
+\item Describe and analyze a polynomial-time algorithm for \Proc{BoxDepth}.
+\Hint{$O(n^3)$ time should be easy, but $O(n \log n)$ time is possible.}
+\item Why don’t these two results imply that P=NP?
+\end{enumerate}
+
+\item A boolean formula is in \textit{disjunctive normal form} (or \textit{DNF}) if it consists of a \textit{disjunction} (\Const{Or}) or several \textit{terms}, each of which is the conjunction (\Const{And}) of one or more literals.
+For example, the formula
+\[
+(\overline{x} \wedge y \wedge \overline{z}) \vee (y \wedge z) \vee (x \wedge \overline{y} \wedge \overline{z})
+\]
+is in disjunctive normal form.
+\Proc{DNF-Sat} asks, given a boolean formula in disjunctive normal form, whether that formula is satisfiable.
+\begin{enumerate}
+\item Describe a polynomial-time algorithm to solve \Proc{DNF-Sat}.
+\item What is the error in the following argument that P=NP?
+\begin{quote}
+\sffamily\small
+Suppose we are given a boolean formula in conjunctive normal form with at most three literals per clause, and we want to know if it is satisfiable.
+We can use the distributive law to construct an equivalent formula in disjunctive normal form.
+For example,
+\[
+(x \vee y \vee \overline{z}) \wedge (\overline{x} \vee \overline{y}) \iff (x \wedge \overline{y}) \vee (y \wedge \overline{x}) \vee (\overline{z} \wedge \overline{x}) \vee (\overline{z} \wedge \overline{y})
+\]
+Now we can use the algorithm from part (a) to determine, in polynomial time, whether the resulting DNF formula is satisfiable.
+We have just solved 3\Proc{Sat} in polynomial time.
+Since 3\Proc{Sat} is NP-hard, we must conclude that P=NP!
+\end{quote}
+\end{enumerate}
+
+\item The problem \Proc{AllOrNothing3Sat} asks, given a 3CNF boolean formula, whether there is an assignment to the variables such that each clause either has three \Const{True} literals or has three \Const{False} literals.
+\begin{enumerate}
+\item Describe a polynomial-time algorithm to solve \Proc{AllOrNothing3Sat}.
+\item But 3\Proc{Sat} is NP-hard!
+Why doesn’t the existence of this algorithm prove that P=NP?
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Suppose you are given a magic black box that can determine \textbf{in polynomial time}, given an arbitrary weighted graph $G$, the length of the shortest Hamiltonian cycle in $G$.
+Describe and analyze a \textbf{polynomial-time} algorithm that computes, given an arbitrary weighted graph $G$, the shortest Hamiltonian cycle in $G$, using this magic black box as a subroutine.
+\item Suppose you are given a magic black box that can determine \textbf{in polynomial time}, given an arbitrary graph $G$, the number of vertices in the largest complete subgraph of $G$.
+Describe and analyze a \textbf{polynomial-time} algorithm that computes, given an arbitrary graph $G$, a complete subgraph of $G$ of maximum size, using this magic black box as a subroutine.
+\item Suppose you are given a magic black box that can determine \textbf{in polynomial time}, given an arbitrary graph $G$, whether $G$ is $3$-colorable.
+Describe and analyze a \textbf{polynomial-time} algorithm that either computes a proper $3$-coloring of a given graph or correctly reports that no such coloring exists, using the magic black box as a subroutine.
+\Hint{The input to the magic black box is a graph. Only a graph. Vertices and edges. Nothing else.}
+\item Suppose you are given a magic black box that can determine \textbf{in polynomial time}, given an arbitrary boolean formula $\Phi$, whether $\Phi$ is satisfiable.
+Describe and analyze a \textbf{polynomial-time} algorithm that either computes a satisfying assignment for a given boolean formula or correctly reports that no such assignment exists, using the magic black box as a subroutine.
+\item Suppose you are given a magic black box that can determine \textbf{in polynomial time}, given an arbitrary set $X$ of positive integers, whether $X$ can be partitioned into two sets $A$ and $B$ such that $\sum A = \sum B$.
+Describe and analyze a \textbf{polynomial-time} algorithm that either computes an equal partition of a given set of positive integers or correctly reports that no such partition exists, using the magic black box as a subroutine.
+\item \difficulty{ch} Suppose you are given a magic black box that can determine \textbf{in polynomial time}, given an arbitrary generalized regular expression $R$ (as defined just before the Exercises), whether $R$ matches any string.
+Describe and analyze a \textbf{polynomial-time} algorithm that either finds a single string that matches a given generalized regular expression or correctly reports that no such string exists, using the magic black box as a subroutine.
+\end{enumerate}
+
+\item \textbf{\textit{There’s something special about the number $\symbfit{3}$.}}
+\begin{enumerate}
+\item Describe and analyze a polynomial-time algorithm for \Proc{2Partition}.
+Given a set $S$ of $2n$ positive integers, your algorithm will determine in polynomial time whether the elements of $S$ can be split into $n$ disjoint pairs whose sums are all equal.
+\item Describe and analyze a polynomial-time algorithm for \Proc{2Color}.
+Given an undirected graph $G$, your algorithm will determine in polynomial time whether $G$ has a proper coloring that uses only two colors.
+\item Describe and analyze a polynomial-time algorithm for \Proc{2Sat}.
+Given a boolean formula $\Phi$ in conjunctive normal form, with exactly \textit{two} literals per clause, your algorithm will determine in polynomial time whether $\Phi$ has a satisfying assignment.
+\Hint{This problem is strongly connected to topics described in an earlier chapter.}
+\end{enumerate}
+
+\item \textbf{\textit{There’s nothing special about the number $\symbfit{3}$.}}
+\begin{enumerate}
+\item The problem \Proc{12Partition} is defined as follows: Given a set $S$ of $12n$ positive integers, determine whether the elements of $S$ can be split into $n$ subsets, each with $12$ elements, whose sums are all equal.
+Prove that \Proc{12Partition} is NP-hard.
+\Hint{Reduce from 3\Proc{Partition}. It may be easier to consider multisets first.}
+\item The problem \Proc{12Color} is defined as follows: Given an undirected graph $G$, determine whether we can color each vertex with one of twelve colors, so that every edge touches two different colors.
+Prove that \Proc{12Color} is NP-hard.
+\Hint{Reduce from 3\Proc{Color}.}
+\item The problem 12SAT is defined as follows: Given a boolean formula $\Phi$ in conjunctive normal form, with exactly twelve literals per clause, determine whether $\Phi$ has a satisfying assignment.
+Prove that \Proc{12Sat} is NP-hard.
+\Hint{Reduce from 3\Proc{Sat}.}
+\end{enumerate}
+
+\item There are two different versions of the Hamiltonian cycle problem, one for directed graphs and one for undirected graphs.
+Earlier in this chapter you can find two proofs that the \textit{directed} Hamiltonian cycle problem is NP-hard.
+\begin{enumerate}
+\item Describe a polynomial-time reduction from the \textit{undirected} Hamiltonian cycle problem to the \textit{directed} Hamiltonian cycle problem.
+Prove your reduction is correct.
+\item Describe a polynomial-time reduction from the \textit{directed} Hamiltonian cycle problem to the \textit{undirected} Hamiltonian cycle problem.
+Prove your reduction is correct.
+\item Which of these two reductions implies that the \textit{undirected} Hamiltonian cycle problem is NP-hard?
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Describe a polynomial-time reduction from \Proc{UndirectedHamiltonianCycle} to \Proc{DirectedHamiltonianCycle}.
+\item Describe a polynomial-time reduction from \Proc{DirectedHamiltonianCycle} to \Proc{UndirectedHamiltonianCycle}.
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Describe a polynomial-time reduction from the \Proc{HamiltonianPath} problem to \Proc{HamiltonianCycle}.
+\item Describe a polynomial-time reduction from the \Proc{HamiltonianCycle} problem to \Proc{HamiltonianPath}.
+\Hint{A polynomial-time reduction can call the black-box subroutine more than once, but it doesn’t have to.}
+\end{enumerate}
+
+\item Consider the following subtle variants of \Proc{CNFSat}.
+For each problem, the input is a boolean formula $\Phi$ in conjunctive normal form, and the goal is to determine whether $\Phi$ has a satisfying assignment.
+\begin{enumerate}
+\item Suppose every clause of $\Phi$ contains \textbf{\textit{at most}} three literals and each variable appears in at most \textbf{\textit{three}} clauses.
+Prove that this variant of \Proc{CNFSat} is NP-hard.
+\item Suppose every clause of $\Phi$ contains \textbf{\textit{exactly}} three literals and each variable appears in at most \textbf{\textit{four}} clauses.
+Prove that this variant of 3\Proc{Sat} is NP-hard.
+\Hint{Solve part (a) first.}
+\item \difficulty{h} Suppose every clause of $\Phi$ can contain \textit{any number of} literals, but each variable appears in at most \textbf{\textit{two}} clauses.
+Describe a polynomial-time algorithm for this variant of \Proc{CNFSat}.
+\item \difficulty{h} Suppose every clause of $\Phi$ contains \textbf{\textit{exactly}} three literals and each variable appears in at most \textbf{\textit{three}} clauses.
+Prove that $\Phi$ must be satisfiable.
+(So this variant of 3\Proc{Sat} is completely trivial!)
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Prove that \Proc{NotAllEqual3Sat} is NP-hard.
+\item Prove that \Proc{1-in-3Sat} is NP-hard.
+\end{enumerate}
+
+\item A boolean formula in \textit{exclusive-or conjunctive normal form} (XCNF) is a conjunction (\Const{And}) of several \textit{clauses}, each of which is the \textit{exclusive}-or of several literals; that is, a clause is true if and only if it contains an odd number of true literals.
+The \Proc{XCNF-Sat} problem asks whether a given XCNF formula is satisfiable.
+Either describe a polynomial-time algorithm for \Proc{XCNF-Sat} or prove that \Proc{XCNF-Sat} is NP-hard.
+\Hint{Do not try to do both.}
+
+\item \difficulty{h} Consider the following variant of 3\Proc{Sat}, called \Proc{Majority3Sat}.
+Just like 3\Proc{Sat}, the input to \Proc{Majority3Sat} is a boolean formula $\Phi$ in conjunctive normal form, with exactly three literals er clause.
+\Proc{Majority3Sat} asks whether there is an assignment to the variables of $\Phi$, such that every clause contains \textit{at least two} \Const{True} literals.
+
+Either describe an algorithm that solves \Proc{Majority3Sat} in polynomial time or prove that \Proc{Majority3Sat} is NP-hard.
+\Hint{Do not try to do both.}
+
+\item \difficulty{sh} For any subset $X \subseteq \{0,1,2,3\}$, consider the following problem, which I’ll call $X$\textbf{\textit{-3\Proc{Sat}}}.
+The input is a boolean formula $\Phi$ in conjunctive normal form, with exactly three literals in each clause.
+The problem is to decide whether there is an assignment to the variables of $\Phi$ such that in each clause of $\Phi$, the number of \Const{True} literals is in the set $X$.
+For example:
+\begin{itemize}
+\item $\{1,2,3\}$-3\Proc{Sat} is the standard 3\Proc{Sat} problem.
+\item $\{0,3\}$-3\Proc{Sat} is the same as \Proc{AllOrNothing3Sat}. (See Exercise 4.)
+\item $\{1,2\}$-3\Proc{Sat} is usually called \Proc{NotAllEqual3Sat}. (See Exercise 12(a).)
+\item $\{1\}$-3\Proc{Sat} is usually called \Proc{1-in-3Sat}. (See Exercise 12(b).)
+\item $\{1,3\}$-3\Proc{Sat} is usually called \Proc{XCNF-3Sat}. (See Exercise 13.)
+\item $\{2,3\}$-3\Proc{Sat} is usually called \Proc{Majority3Sat}. (See Exercise 14.)
+\end{itemize}
+Give a complete list of all subsets $X \subseteq \{0,1,2,3\}$ such that $X$-3\Proc{Sat} is solvable in polynomial time, assuming P${}\neq{}$NP.
+\Hint{Don’t give $16$ different arguments.}
+
+\item Prove that the following problems are NP-hard.
+\begin{enumerate}
+\item Given an undirected graph $G$, does $G$ contain a simple path that visits all but 17 vertices?
+\item Given an undirected graph $G$, does $G$ have a spanning tree in which every node has degree at most 23?
+\item Given an undirected graph $G$, does $G$ have a spanning tree with at most 42 leaves?
+\item Given an undirected graph $G = (V, E)$, what is the size of the largest subset of vertices $S \subseteq V$ such that at most 374 edges in $E$ have both endpoints in $S$?
+\item Given an undirected graph $G = (V, E)$, what is the size of the largest subset of vertices $S \subseteq V$ such that each vertex in $S$ has at most 473 neighbors in $S$?
+\item Given an undirected graph $G$, is it possible to color the vertices of $G$ with three different colors, so that at most 31337 edges have both endpoints the same color?
+\end{enumerate}
+
+\item Prove that the following variants of the minimum spanning tree problem are NP-hard.
+\begin{enumerate}
+\item Given a graph $G$, compute the \textit{maximum-diameter} spanning tree of $G$.
+(The diameter of a tree $T$ is the length of the longest path in $T$.)
+\item Given a graph $G$ with weighted edges, compute the minimum-weight \textit{depth-first} spanning tree of $G$.
+\item Given a graph $G$ with weighted edges and a subset $S$ of vertices of $G$, compute the minimum-weight spanning tree all of whose leaves are in $S$.
+\item Given a graph $G$ with weighted edges and an integer $\ell$, compute the minimum-weight spanning tree with at most $\ell$ leaves.
+\item Given a graph $G$ with weighted edges and an integer $\Delta$, compute the minimum-weight spanning tree where every node has degree at most $\Delta$.
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item Using the gadget in \figref{fig:12.26}(a), prove that deciding whether a given \textit{planar} graph is 3-colorable is NP-hard.
+\Hint{Show that the gadget can be 3-colored, and then replace any crossings in a planar embedding with the gadget appropriately.}
+\item Using part (a) and the gadget in \figref{fig:12.26}(b), prove that deciding whether a planar graph \textit{with maximum degree 4} is 3-colorable is NP-hard.
+\Hint{Replace any vertex with degree greater than 4 with a collection of gadgets connected so that no degree is greater than four.}
+\end{enumerate}
+\begin{figure}[ht]
+\centering
+\begin{minipage}[b]{0.45\linewidth}
+\centering
+\includegraphics{p439-Im204}\\
+{\sffamily\fontsize{7.2}{9}\selectfont (a)}
+\end{minipage}%
+\begin{minipage}[b]{0.45\linewidth}
+\centering
+\includegraphics{p439-Im205}\\
+{\sffamily\fontsize{7.2}{9}\selectfont (b)}
+\end{minipage}
+\caption{(a) Gadget for planar 3-colorability. (b) Gadget for degree-4 planar 3-colorability.}
+\label{fig:12.26}
+\end{figure}
+
+\item Prove that \Proc{PlanarCircuitSat} is NP-hard.
+\Hint{Construct a gadget for crossing wires.}
+
+\item
+\begin{enumerate}
+\item Describe a polynomial-time reduction from 3\Proc{Sat} to 4\Proc{Sat}.
+\item Describe a polynomial-time reduction from 4\Proc{Sat} to 3\Proc{Sat}.
+\end{enumerate}
+\item \difficulty{h} Describe a direct polynomial-time reduction from 4\Proc{Color} to 3\Proc{Color}. (This is a lot harder than the opposite direction.)
+
+\item A \textit{domino} is a $1 \times 2$ rectangle divided into two squares, each of which is labeled with an integer.\footnote{These integers are usually represented by pips, exactly like dice. On a standard domino, the number of pips on each side is between 0 and 6, although one can buy sets with up to 9 or even 12 pips on each side; we will allow arbitrary integer labels. A standard set of dominos contains exactly one domino for each possible unordered pair of labels; we do \textit{not} assume that the inputs to our problems have this property.} In a \textit{legal arrangement} of dominos, the dominos are lined up end-to-end so that the numbers on adjacent ends match.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p439-Im206}
+\caption{A legal arrangement of dominos in which every integer between 0 and 6 appears twice}
+\label{fig:12.27}
+\end{figure}
+
+For each of the following problems, either describe a polynomial-time algorithm or prove that the problem is NP-hard:
+
+\begin{enumerate}
+\item Given an arbitrary bag $D$ of dominos, is there a legal arrangement of \textit{all} the dominos in $D$?
+
+\item Given an arbitrary bag $D$ of dominos, is there a legal arrangement of a dominos from $D$ in which every integer between $1$ and $n$ appears exactly twice?
+
+\item \difficulty{h} Given an arbitrary bag $D$ of dominos, what is the largest number of dominos we can take from $D$ to make a legal arrangement?
+
+\end{enumerate}
+
+\item \textit{Pebbling} is a solitaire game played on an undirected graph $G$, where each vertex has zero or more \textit{pebbles}. A single \textit{pebbling move} consists of removing two pebbles from a vertex $v$ and adding one pebble to an arbitrary neighbor of $v$. (Obviously, the vertex $v$ must have at least two pebbles before the move.) The \Proc{PebbleDestruction} problem asks, given a graph $G = (V, E)$ and a pebble count $p(v)$ for each vertex $v$, whether is there a sequence of pebbling moves that removes all but one pebble. Prove that \Proc{PebbleDestruction} is NP-hard.
+
+\item Recall that a 5-coloring of a graph $G$ is a function that assigns each vertex of $G$ a “color” from the set $\{0,1,2,3,4\}$, such that for any edge $uv$, vertices $u$ and $v$ are assigned different “colors”. A 5-coloring is \textit{careful} if the colors assigned to adjacent vertices are not only distinct, but differ by more than $1 \pmod{5}$. Prove that deciding whether a given graph has a careful $5$-coloring is NP-hard. \Hint{Reduce from the standard 5\Proc{Color} problem.}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p440-Im207}
+\caption{A careful 5-coloring.}
+\label{fig:12.28}
+\end{figure}
+
+\item
+\begin{enumerate}
+\item A subset $S$ of vertices in an undirected graph $G$ is \textit{half-independent} if each vertex in $S$ is adjacent to \textit{at most one} other vertex in $S$. Prove that finding the size of the largest half-independent set of vertices in a given undirected graph is NP-hard.
+
+\item A subset $S$ of vertices in an undirected graph $G$ is \textit{sort-of-independent} if if each vertex in $S$ is adjacent to \textit{at most 374} other vertices in $S$. Prove that finding the size of the largest sort-of-independent set of vertices in a given undirected graph is NP-hard.
+
+\item A subset $S$ of vertices in an undirected graph $G$ is \textit{almost independent} if at most 374 edges in $G$ have both endpoints in $S$. Prove that finding the size of the largest almost-independent set of vertices in a given undirected graph is NP-hard.
+
+\end{enumerate}
+
+\item Let $G = (V, E)$ be a graph. A \textit{dominating set} in $G$ is a subset $S$ of the vertices such that every vertex in $G$ is either in $S$ or adjacent to a vertex in $S$. The \Proc{DominatingSet} problem asks, given a graph $G$ and an integer $k$ as input, whether $G$ contains a dominating set of size $k$. Prove that this problem is NP-hard.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p441-Im208}
+\caption{A dominating set of size $3$ in the Petersen graph.}
+\label{fig:12.29}
+\end{figure}
+
+\item A subset $S$ of vertices in an undirected graph $G$ is \textit{triangle-free} if, for every triple of vertices $u, v, w \in S$, at least one of the three edges $uv, uw, vw$ is \textit{absent} from $G$. Prove that finding the size of the largest triangle-free subset of vertices in a given undirected graph is NP-hard.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p441-Im209}
+\caption{A triangle-free subset of 7 vertices. This is not the largest such subset in this graph.}
+\label{fig:12.30}
+\end{figure}
+
+\item The \Proc{RectangleTiling} problem is defined as follows: Given one large rectangle and several smaller rectangles, determine whether the smaller rectangles can be placed inside the large rectangle with no gaps or overlaps.
+
+\begin{enumerate}
+\item Prove that \Proc{RectangleTiling} is NP-hard.
+
+\item Prove that \Proc{RectangleTiling} is \textit{strongly} NP-hard.
+
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p441-Im210}
+\caption{A positive instance of the \Proc{RectangleTiling} problem.}
+\label{fig:12.31}
+\end{figure}
+
+\item
+\begin{enumerate}
+\item A subset $B$ of vertices in a graph $G$ is a \textbf{\textit{Burr set}} if removing every vertex in $B$ from $G$ leaves a subgraph that does not contain a Hamiltonian path. Prove that finding the smallest Burr set in a given graph is NP-hard.
+
+\item A subset $S$ of vertices in a graph $G$ is a \textbf{\textit{Schuyler}} \textbf{\textit{set}} if removing every vertex in $S$ from $G$ leaves a subgraph that \textit{does} contain a Hamiltonian path. Prove that finding the smallest Schuyler set in a given graph is NP-hard.
+
+\end{enumerate}
+
+\item
+\begin{enumerate}
+\item A \textit{tonian path} in a graph $G$ is a path that goes through at least half of the vertices of $G$. Show that determining whether a graph has a tonian path is NP-hard.
+
+\item A \textit{tonian cycle} in a graph $G$ is a cycle that goes through at least half of the vertices of $G$. Show that determining whether a graph has a tonian cycle is NP-hard. \Hint{Use part (a). Or not.}
+
+\end{enumerate}
+
+\item Let $G$ be an undirected graph with weighted edges. A \textit{heavy Hamiltonian} \textit{cycle} is a cycle $C$ that passes through each vertex of $G$ exactly once, such that the total weight of the edges in $C$ is more than half of the total weight of all edges in $G$. Prove that deciding whether a graph has a heavy Hamiltonian cycle is NP-hard.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p442-Im211}
+\caption{A heavy Hamiltonian cycle. The cycle has total weight 34; the graph has total weight 67.}
+\label{fig:12.32}
+\end{figure}
+
+\item For each of the following problems, either describe a polynomial-time algorithm or prove that the problem is NP-hard.
+
+\begin{enumerate}
+\item A \textit{double-Eulerian tour} in an undirected graph $G$ is a closed walk that traverses every edge in $G$ exactly twice. Given a graph $G$, does $G$ have a double-Eulerian tour?
+
+\item A \textit{double-Hamiltonian tour} in an undirected graph $G$ is a closed walk that visits every vertex in $G$ exactly twice. Given a graph $G$, does $G$ have a double-Hamiltonian tour?
+
+\item A \textit{double-Hamiltonian} \textbf{\textit{circuit}} in an undirected graph $G$ is a closed walk that visits every vertex in $G$ exactly twice \textit{and traverses each edge in} $G$ \textit{at} \textit{most once}. Given a graph $G$, does $G$ have a double-Hamiltonian circuit?
+
+\item A \textit{triple-Eulerian tour} in an undirected graph $G$ is a closed walk that traverses every edge in $G$ exactly three times. Given a graph $G$, does $G$ have a triple-Eulerian tour?
+
+\item A \textit{triple-Hamiltonian tour} in an undirected graph $G$ is a closed walk that visits every vertex in $G$ exactly three times. Given a graph $G$, does $G$ have a triple-Hamiltonian tour?
+
+\end{enumerate}
+
+\item This exercise asks you to prove that a certain reduction from \Proc{VertexCover} to \Proc{SteinerTree} is correct. Suppose we want to find the smallest vertex cover in a given undirected graph $G = (V, E)$. We construct a new graph $H = (V', E')$ as follows:
+\begin{itemize}
+\item $V' = V \cup E \cup \{z\}$
+\item $E' = \{ve \mid v \in V$ is an endpoint of $e \in E\} \cup \{vz \mid v \in V\}$.
+\end{itemize}
+Equivalently, we construct $H$ by subdividing each edge in $G$ with a new vertex, and then connecting all the original vertices of $G$ to a new \textit{apex} vertex $z$.
+
+Prove that $G$ has a vertex cover of size $k$ if and only if there is a subtree of $H$ with $k + |E| + 1$ vertices that contains every vertex in $E \cup \{z\}$.
+
+\item Consider the following solitaire game. The puzzle consists of an $n \times m$ grid of squares, where each square may be empty, occupied by a red stone, or occupied by a blue stone. The goal of the puzzle is to remove some of the given stones so that the remaining stones satisfy two conditions: (1) every row contains at least one stone, and (2) no column contains stones of both colors. For some initial configurations of stones, reaching this goal is impossible.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[b]{0.62\linewidth}
+\centering
+\includegraphics{p443-Im212}\\
+{\sffamily\fontsize{8.1}{10.5}\selectfont A solvable puzzle and one of its many solutions.}
+\end{minipage}%
+\begin{minipage}[b]{0.62\linewidth}
+\centering
+\includegraphics{p443-Im213}\\
+{\sffamily\fontsize{8.1}{10.5}\selectfont An unsolvable puzzle.}
+\end{minipage}
+\end{figure}
+
+Prove that it is NP-hard to determine, given an initial configuration of red and blue stones, whether the puzzle can be solved.
+
+\item Each of the following games involves an $n \times m$ grid of squares, where each square is either empty or occupied by a stone. In a single move, you can remove \textit{all} the stones in an arbitrary column.
+
+\begin{enumerate}
+\item Prove that it is NP-hard to find the \textit{smallest} subset of columns that can be cleared so that \textit{at most} one stone remains in each row of the grid.
+
+\item Prove that it is NP-hard to find the \textit{largest} subset of columns that can be cleared so that \textit{at least} one stone remains in each row of the grid.
+
+\item \difficulty{h} Prove that it is NP-hard to determine whether \textit{any} subset of columns can be cleared so that \textit{exactly} one stone remains in each row of the grid.
+
+\end{enumerate}
+
+\item Jeff tries to make his students happy. At the beginning of class, he passes out a questionnaire that lists a number of possible course policies in areas where he is flexible. Every student is asked to respond to each possible course policy with one of “strongly favor”, “mostly neutral”, or “strongly oppose”. Each student may respond with “strongly favor” or “strongly oppose” to at most five questions. Because Jeff’s students are very understanding, each student is happy if (but only if) he or she prevails in at least one of their strong policy preferences. Either describe a polynomial-time algorithm for setting course policy to maximize the number of happy students, or show that the problem is NP-hard.
+
+\item You’re in charge of choreographing a musical for your local community theater, and it’s time to figure out the final pose of the big show-stopping number at the end. (“Streetcar!”) You’ve decided that each of the $n$ cast members in the show will be positioned in a big line when the song finishes, all with their arms extended and showing off their best spirit fingers.
+
+The director has declared that during the final flourish, each cast member must either point both their arms up or point both their arms down; it’s your job to figure out who points up and who points down. Moreover, the director has also given you a list of arrangements that will upset his delicate artistic temperament. Each forbidden arrangement is a subset of the cast members paired with arm positions; for example: “Marge may not point her arms up while Ned, Apu, and Smithers point their arms down.”
+
+Prove that finding an acceptable arrangement of arm positions is NP-hard.
+
+\item The next time you are at a party, one of the guests will suggest everyone play a round of Three-Way Mumbletypeg, a game of skill and dexterity that requires three teams and a knife. The official Rules of Three-Way Mumbletypeg (fixed during the Holy Roman Three-Way Mumbletypeg Council in 1625) require that (1) each team \textit{must} have at least one person, (2) any two people on the same team \textit{must} know each other, and (3) everyone watching the game \textit{must} be on one of the three teams. Of course, it will be a really \textit{fun} party; nobody will want to leave. There will be several pairs of people at the party who don’t know each other. The host of the party, having heard thrilling tales of your prowess in all things algorithmic, will hand you a list of which pairs of party-goers know each other and ask you to choose the teams, while he sharpens the knife.
+
+Either describe and analyze a polynomial time algorithm to determine whether the party-goers can be split into three legal Three-Way Mumbletypeg teams, or prove that the problem is NP-hard.
+
+\item The party you are attending is going great, but now it’s time to line up for \textit{The Algorithm March (\textit{\CJK{アルゴリズムこうしん}})}! This dance was originally developed by the Japanese comedy duo Itsumo Kokokara (\CJK{いつもここから}) for the children’s television show PythagoraSwitch (\CJK{ピタゴラスイッチ}). The Algorithm March is performed by a line of people; each person in line starts a specific sequence of movements one measure later than the person directly in front of them. Thus, the march is the dance equivalent of a musical round or canon, like “Row Row Row Your Boat” or "Frère Jacques".
+
+Proper etiquette dictates that each marcher must know the person directly in front of them in line, lest a minor mistake lead to horrible embarrassment between strangers. Suppose you are given a complete list of which people at your party know each other. Prove that it is NP-hard to determine the largest number of party-goers that can participate in the Algorithm March. You may assume without loss of generality that there are no ninjas at your party.
+
+\item \difficulty{c} Prove that the following problems about nondeterministic finite-state automata and regular expressions are NP-hard:
+
+\begin{enumerate}
+\item Given an NFA $M$ over the alphabet $\Sigma = \{$\Str{0}$,$ \Str{1}$\}$, is there a string in $\Sigma^*$ that $M$ does \textit{not} accept?
+
+\item Given an \textit{acyclic} NFA $M$ over the alphabet $\Sigma = \{$\Str{0}$,$ \Str{1}$\}$, what is the length of the \textit{shortest} string in $\Sigma^*$ that $M$ does \textit{not} accept?
+
+\item Given a regular expression $R$ over the alphabet $\Sigma = \{$\Str{0}$,$ \Str{1}$\}$, is there a string in $\Sigma^*$ that $R$ does \textit{not} match?
+
+\item Given a \textit{star-free} regular expression $R$ over the alphabet $\Sigma = \{$\Str{0}$,$ \Str{1}$\}$, what is the length of the \textit{shortest} string in $\Sigma^*$ that $R$ does \textit{not} match?
+
+\end{enumerate}
+
+(In fact, problems (a) and (c) are PSPACE-complete; even proving that these problems are in PSPACE is nontrivial.)
+
+\item \difficulty{c}
+\begin{enumerate}
+\item Describe a polynomial-time algorithm for the following problem: Given an NFA $M$ over the alphabet $\Sigma = \{$\Str{0}$,$ \Str{1}$\}$, is there a string in $\Sigma^*$ that $M$ \textit{does} accept?
+
+\item Describe a polynomial-time algorithm for the following problem: Given a regular expression $R$ over the alphabet $\Sigma = \{$\Str{0}$,$ \Str{1}$\}$, is there a string in $\Sigma^*$ that $R$ \textit{does} match?
+
+\item The complement of any regular language is another regular language. So why don’t these two algorithms, together with the NP-hardness results in Problem 40, prove that P=NP?
+
+\end{enumerate}
+
+\item Charon needs to ferry $n$ recently deceased people across the river Acheron into Hades. Certain pairs of these people are sworn enemies, who cannot be together on either side of the river unless Charon is also present. (If two enemies are left alone, one will steal the obol from the other’s mouth, leaving them to wander the banks of the Acheron as a ghost for all eternity. Let’s just say this is a Very Bad Thing.) The ferry can hold at most $k$ passengers at a time, including Charon, and only Charon can pilot the ferry.\footnote{This problem is a generalization of the well-known wolf-goat-and-cabbage puzzle, whose first known appearance is in the remarkable medieval manuscript \textit{Propositiones ad Acuendos Juvenes} [\textit{Problems to Sharpen the Young}].
+\begin{quote}
+XVIII. \textsc{Propositio De Homine et Capra et Lvpo.}
+
+Homo quidam debebat ultra fluuium transferre lupum, capram, et fasciculum cauli. Et non potuit aliam nauem inuenire, nisi quae duos tantum ex ipsis ferre ualebat. Praeceptum itaque ei fuerat, ut omnia haec ultra illaesa omnino transferret. Dicat, qui potest, quomodo eis illaesis transire potuit?
+
+\textbf{Solutio.} Simili namque tenore ducerem prius capram et dimitterem foris lupum et caulum. Tum deinde uenirem, lupumque transferrem: lupoque foris misso capram naui receptam ultra reducerem; capramque foris missam caulum transueherem ultra; atque iterum remigassem, capramque assumptam ultra duxissem. Sicque faciendo facta erit remigatio salubris, absque uoragine lacerationis.
+\end{quote}
+For those few readers whose classical Latin is a little rusty, here is an English translation:
+\begin{quote}
+XVIII. \textsc{The Problem of the Man, the Goat, and the Wolf.}
+
+A man needed to transfer a wolf, a goat, and a bundle of cabbage across a river. However, he found that his boat could only bear the weight of two [objects at a time, including the man]. And he had to get everything across unharmed. Tell me if you can: How they were able to cross unharmed?
+
+\textbf{Solution.} In a similar fashion [as an earlier problem], I would first take the goat across and leave the wolf and cabbage on the opposite bank. Then I would take the wolf across; leaving the wolf on shore, I would retrieve the goat and bring it back again. Then I would leave the goat and take the cabbage across. And then I would row across again and get the goat. In this way the crossing would go well, without any threat of slaughter.
+\end{quote}
+The most likely author of the \textit{Propositiones} is the prolific 8th-century English scholar Alcuin of York. The evidence for Alcuin’s authorship of this treatise is somewhat circumstantial; however, we do know from his correspondence with Charlemagne that he sent the emperor some “simple arithmetical problems for fun”. Most modern scholars believe that even if Alcuin did write the \textit{Propositiones}, he did not invent all of the problems himself, but rather collected them from even earlier sources.
+
+Some things never change.}
+
+Prove that it is NP-hard to decide whether Charon can ferry all $n$ people across the Acheron unharmed (aside from being, you know, dead). The input for Charon’s problem consists of the integers $k$ and $n$ and an $n$-vertex graph $G$ describing the pairs of enemies. The output is either True or False.
+
+Please do not write your solution in classical Latin.
+
+\end{exercises}
+

@@ -1,0 +1,1933 @@
+% Reconstructed from upstream/Algorithms-JeffE.pdf, PDF pages 115-176 (printed 97-158).
+\epigraph{Potes enim videre in hac margine, qualiter hoc operati fuimus, scilicet quod iunximus primum numerum cum secundo, videlicet 1 cum 2; et secundum cum tercio; et tercium cum quarto; et quartum cum quinto, et sic deinceps\dots.\par [You can see in the margin here how we have worked this; clearly, we combined the first number with the second, namely 1 with 2, and the second with the third, and the third with the fourth, and the fourth with the fifth, and so forth\dots.]}{Leonardo Pisano, \textit{Liber Abaci} (1202)}
+
+\epigraph{Those who cannot remember the past are condemned to repeat it.}{Jorge Agustín Nicolás Ruiz de Santayana y Borrás,\\\textit{The Life of Reason, Book I: Introduction and Reason in Common Sense} (1905)}
+
+\epigraph{You know what a learning experience is?\\A learning experience is one of those things that says,\\“You know that thing you just did? Don’t do that.”}{Douglas Adams, \textit{The Salmon of Doubt} (2002)}
+
+\chapter{Dynamic Programming}
+\label{ch:3}
+
+\section{M\=atr\=av\d{r}tta}
+\label{sec:3.1}
+
+One of the earliest examples of recursion arose in India more than 2000 years ago, in the study of poetic meter, or prosody.
+Classical Sanskrit poetry distinguishes between two types of syllables (\textit{ak\d{s}ara}): \textit{light} (\textit{laghu}) and \textit{heavy} (\textit{guru}).
+In one class of meters, variously called \textit{m\=atr\=av\d{r}tta} or \textit{m\=atr\=achandas}, each line of poetry consists of a fixed number of “beats” (\textit{m\=atr\=a}), where each light syllable lasts one beat and each heavy syllable lasts two beats.
+The formal study of \textit{m\=atr\=a-v\d{r}tta} dates back to the \textit{Chanda\d{h}\'s\=astra}, written by the scholar Pi\.{n}gala between 600\textsc{bce} and 200\textsc{bce}.
+Pi\.{n}gala observed that there are exactly five $4$-beat meters: ——, —\,•\,•, •\,—\,•, •\,•\,—, and •\,•\,•\,•.
+(Here each “—” represents a long syllable and each “•” represents a short syllable.)\footnote{In Morse code, a “dah” lasts three times as long as a “dit”, but each “dit” or “dah” is followed by a pause with the same duration as a “dit”. Thus, each “dit-pause” is a \textit{laghu ak\d{s}ara}, each “dah-pause” is a \textit{guru ak\d{s}ara}, and there are exactly five letters (\Str{M}, \Str{D}, \Str{R}, \Str{U}, and \Str{H}) whose codes last four \textit{m\=atr\=a}.}
+
+Although Pi\.{n}gala’s text \textit{hints} at a systematic rule for counting meters with a given number of beats,\footnote{The \textit{Chanda\d{h}\'s\=astra} contains \textit{two} systematic rules for listing all meters with a given number of \textit{syllables}, which correspond roughly to writing numbers in binary from left to right (like Greeks) or from right to left (like Egyptians). The same text includes a recursive algorithm to compute $2^n$ (the number of meters with $n$ syllables) by repeated squaring, and (arguably) a recursive algorithm to compute binomial coefficients (the number of meters with $k$ short syllables and $n$ syllables overall).} it took about a millennium for that rule to be stated explicitly.
+In the 7th century \textsc{ce}, another Indian scholar named Virah\=a\d{n}ka wrote a commentary on Pi\.{n}gala’s work, in which he observed that the number of meters with $n$ beats is the sum of the number of meters with $(n-2)$ beats and the number of meters with $(n-1)$ beats.
+In more modern notation, Virah\=a\d{n}ka’s observation implies a recurrence for the total number $M(n)$ of $n$-beat meters:
+\[
+M(n) = M(n-2) + M(n-1)
+\]
+It is not hard to see that $M(0) = 1$ (there is only one empty meter) and $M(1) = 1$ (the only one-beat meter consists of a single short syllable).
+
+The same recurrence reappeared in Europe about 500 years after Virah\=a\d{n}ka, in Leonardo of Pisa’s 1202 treatise \textit{Liber Abaci}, one of the most influential early European works on “algorism”.
+In full compliance with Stigler’s Law of Eponymy,\footnote{\textit{“No scientific discovery is named after its original discoverer.”} In his 1980 paper that gives the law its name, the statistician Stephen Stigler jokingly claimed that this law was first proposed by sociologist Robert K. Merton. However, similar statements were previously made by Vladimir Arnol’d in the 1970’s (“Discoveries are rarely attributed to the correct person.”), Carl Boyer in 1968 (“Clio, the muse of history, often is fickle in attaching names to theorems!”), Alfred North Whitehead in 1917 (“Everything of importance has been said before by someone who did not discover it.”), and even Stephen’s father George Stigler in 1966 (“If we should ever encounter a case where a theory is named for the correct man, it will be noted.”). We will see \textit{many} other examples of Stigler’s law in this book.} the modern \textit{Fibonacci numbers} are defined using Virah\=a\d{n}ka’s recurrence, but with different base cases:
+\[
+F_n = \begin{cases}
+0 & \text{if } n = 0\\
+1 & \text{if } n = 1\\
+F_{n-1} + F_{n-2} & \text{otherwise}
+\end{cases}
+\]
+In particular, we have $M(n) = F_{n+1}$ for all $n$.
+
+\subsection{Backtracking Can Be Slow}
+
+The recursive definition of Fibonacci numbers immediately gives us a recursive algorithm for computing them.
+Here is the same algorithm written in pseudocode:
+
+\begin{pseudocode}
+\Header{\Proc{RecFibo}$(n)$:}\\
+if $n = 0$\\
+\Indent return $0$\\
+else if $n = 1$\\
+\Indent return $1$\\
+else\\
+\Indent return $\Proc{RecFibo}(n-1) + \Proc{RecFibo}(n-2)$
+\end{pseudocode}
+
+Unfortunately, this naive recursive algorithm is horribly slow.
+Except for the recursive calls, the entire algorithm requires only a constant number of steps: one comparison and possibly one addition.
+Let $T(n)$ denote the number of recursive calls to \Proc{RecFibo}; this function satisfies the recurrence
+\[
+T(0) = 1, \quad T(1) = 1, \quad T(n) = T(n-1) + T(n-2) + 1,
+\]
+which looks an awful lot like the recurrence for Fibonacci numbers themselves!
+Writing out the first several values of $T(n)$ suggests the closed-form solution $\symbfit{T(n) = 2F_{n+1} - 1}$, which we can verify by induction (hint, hint).
+So computing $F_n$ using this algorithm takes about twice as long as just counting to $F_n$.
+Methods beyond the scope of this book\footnote{See http://algorithms.wtf for notes on solving backtracking recurrences.} imply that $F_n = \Theta(\phi^n)$, where $\phi = (\sqrt{5} + 1)/2 \approx 1.61803$ is the so-called \textit{golden ratio}.
+In short, the running time of this recursive algorithm is exponential in $n$.
+
+We can actually see this exponential growth directly as follows.
+Think of the recursion tree for \Proc{RecFibo} as a binary tree of additions, with only $0$s and $1$s at the leaves.
+Since the eventual output is $F_n$, exactly $F_n$ of the leaves must have value $1$; these leaves represent the calls to \Proc{RecRibo}$(1)$.
+An easy inductive argument (hint, hint) implies that \Proc{RecFibo}$(0)$ is called exactly $F_{n-1}$ times.
+(If we just want an asymptotic bound, it’s enough to observe that the number of calls to \Proc{RecFibo}$(0)$ is at most the number of calls to \Proc{RecFibo}$(1)$.)
+Thus, the recursion tree has exactly $F_n + F_{n-1} = F_{n+1} = O(F_n)$ leaves, and therefore, because it’s a full binary tree, $2F_{n+1} - 1 = O(F_n)$ nodes altogether.
+
+\subsection{Memo(r)ization: Remember Everything}
+
+The obvious reason for the recursive algorithm’s lack of speed is that it computes the same Fibonacci numbers over and over and over.
+A single call to \Proc{RecFibo}$(n)$ results in one recursive call to \Proc{RecFibo}$(n-1)$, two recursive calls to \Proc{RecFibo}$(n-2)$, three recursive calls to \Proc{RecFibo}$(n-3)$, five recursive calls to \Proc{RecFibo}$(n-4)$, and in general $F_{k-1}$ recursive calls to \Proc{RecFibo}$(n-k)$ for any integer $0 \le k < n$.
+Each call is recomputing some Fibonacci number from scratch.
+
+We can speed up our recursive algorithm considerably by writing down the results of our recursive calls and looking them up again if we need them later.
+This optimization technique, now known as \textit{memoization} (yes, without an R), is usually credited to Donald Michie in 1967, but essentially the same technique was proposed in 1959 by Arthur Samuel.\footnote{Michie proposed that programming languages should support an abstraction he called a “memo function”, consisting of both a standard function (“rule”) and a dictionary (“rote”), instead of separately supporting arrays and functions. Whenever a memo function computes a function value for the first time, it “memorises” (yes, with an R) that value into its dictionary. Michie was inspired by Samuel’s use of “rote learning” to speed up the recursive evaluation of checkers game trees; Michie describes his more general proposal as “enabling the programmer to ‘Samuelize’ any functions he pleases.” (As far as I can tell, Michie never used the term “memoisation” himself.) Memoization was used even earlier by Claude Shannon’s maze-solving robot “Theseus”, which he designed and constructed in 1950.}
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p118-Im45}
+\caption{The recursion tree for computing $F_7$; arrows represent recursive calls.}
+\label{fig:3.1}
+\end{figure}
+
+\begin{pseudocode}
+\Header{\Proc{MemFibo}$(n)$:}\\
+if $n = 0$\\
+\Indent return $0$\\
+else if $n = 1$\\
+\Indent return $1$\\
+else\\
+\Indent if $F[n]$ is undefined\\
+\Indent\Indent $F[n] \gets \Proc{MemFibo}(n-1) + \Proc{MemFibo}(n-2)$\\
+\Indent return $F[n]$
+\end{pseudocode}
+
+Memoization clearly decreases the running time of the algorithm, but by how much?
+If we actually trace through the recursive calls made by \Proc{MemFibo}, we find that the array $F[\,]$ is filled from the bottom up: first $F[2]$, then $F[3]$, and so on, up to $F[n]$.
+This pattern can be verified by induction: Each entry $F[i]$ is filled only after its predecessor $F[i-1]$.
+If we ignore the time spent in recursive calls, it requires only constant time to evaluate the recurrence for each Fibonacci number $F_i$.
+But by design, the recurrence for $F_i$ is evaluated only once for each index $i$.
+We conclude that \Proc{MemFibo} performs only $O(n)$ additions, an \textit{exponential} improvement over the naïve recursive algorithm!
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p119-Im46}
+\caption{The recursion tree for $F_7$ trimmed by memoization. Downward green arrows indicate writing into the memoization array; upward red arrows indicate reading from the memoization array.}
+\label{fig:3.2}
+\end{figure}
+
+\subsection{Dynamic Programming: Fill Deliberately}
+
+Once we see how the array $F[\,]$ is filled, we can replace the memoized recurrence with a simple for-loop that \textit{intentionally} fills the array in that order, instead of relying on a more complicated recursive algorithm to do it for us accidentally.
+
+\begin{pseudocode}
+\Header{\Proc{IterFibo}$(n)$:}\\
+$F[0] \gets 0$\\
+$F[1] \gets 1$\\
+for $i \gets 2$ to $n$\\
+\Indent $F[i] \gets F[i-1] + F[i-2]$\\
+return $F[n]$
+\end{pseudocode}
+
+Now the time analysis is immediate: \Proc{IterFibo} clearly uses \textbf{\textit{$\symbfit{O(n)}$ additions}} and stores $O(n)$ \textit{integers}.
+
+This is our first explicit \textbf{\textit{dynamic programming}} algorithm.
+The dynamic programming paradigm was formalized and popularized by Richard Bellman in the mid-1950s, while working at the RAND Corporation, although he was far from the first to use the technique.
+In particular, this iterative algorithm for Fibonacci numbers was already proposed by Virah\=a\d{n}ka and later Sanskrit prosodists in the 12th century, and again by Fibonacci at the turn of the 13th century!\footnote{More general dynamic programming techniques were independently deployed several times in the late 1930s and early 1940s. For example, Pierre Massé used dynamic programming algorithms to optimize the operation of hydroelectric dams in France during the Vichy regime. John von Neumann and Oskar Morgenstern developed dynamic programming algorithms to determine the winner of any two-player game with perfect information (for example, checkers). Alan Turing and his cohorts used similar methods as part of their code-breaking efforts at Bletchley Park. Both Massé’s work and von Neumann and Mergenstern’s work were first published in 1944, six years before Bellman coined the phrase “dynamic programming”. The details of Turing’s “Banburismus” were kept secret until the mid-1980s.}
+
+Many years after the fact, Bellman claimed that he deliberately chose the name “dynamic programming” to hide the mathematical character of his work from his military bosses, who were actively hostile toward anything resembling mathematical research.\footnote{Charles Erwin Wilson became Secretary of Defense in January 1953, after a dozen years as the president of General Motors. “Engine Charlie” reorganized the Department of Defense and significantly decreased its budget in his first year in office, with the explicit goal of running the Department much more like an industrial corporation. Bellman described Wilson in his 1984 autobiography as follows:
+\begin{quote}
+\sffamily We had a very interesting gentleman in Washington named Wilson. He was secretary of Defense, and he actually had a pathological fear and hatred of the word “\textit{research}”. I’m not using the term lightly; I’m using it precisely. His face would suffuse, he would turn red, and he would get violent if people used the term “\textit{research}” in his presence. You can imagine how he felt, then, about the term “\textit{mathematical}”. \dots I felt I had to do something to shield Wilson and the Air Force from the fact that I was really doing mathematics inside the RAND Corporation. What title, what name, could I choose?
+\end{quote}
+However, Bellman’s first published use of the term “dynamic programming” already appeared in 1952, several months before Wilson took office, so this story is at least \textit{slightly} embellished.}
+The word “programming” does not refer to writing code, but rather to the older sense of \textit{planning} or \textit{scheduling}, typically by filling in a table.
+For example, sports programs and theater programs are schedules of important events (with ads); television programming involves filling each available time slot with a show (and ads); degree programs are schedules of classes to be taken (with ads).
+The Air Force funded Bellman and others to develop methods for constructing training and logistics schedules, or as they called them, “programs”.
+The word “dynamic” was not only a reference to the multistage, time-varying processes that Bellman and his colleagues were attempting to optimize, but also a marketing buzzword that would resonate with the Futuristic Can-Do Zeitgeist™ of post-WW\,II America.\footnote{\dots and just possibly a riff on the iconic brand name “Dynamic-Tension” for Charles Atlas’s famous series of exercises, which Charles Roman coined in 1928. Hero of the Beach!}
+Thanks in part to Bellman’s proselytizing, dynamic programming is now a standard tool for multistage planning in economics, robotics, control theory, and several other disciplines.
+
+\subsection{Don't Remember Everything After All}
+
+In many dynamic programming algorithms, it is not necessary to retain \textit{all} intermediate results through the entire computation.
+For example, we can significantly reduce the space requirements of our algorithm \Proc{IterFibo} by maintaining only the two newest elements of the array:
+
+\begin{pseudocode}
+\Header{\Proc{IterFibo2}$(n)$:}\\
+$\Var{prev} \gets 1$\\
+$\Var{curr} \gets 0$\\
+for $i \gets 1$ to $n$\\
+\Indent $\Var{next} \gets \Var{curr} + \Var{prev}$\\
+\Indent $\Var{prev} \gets \Var{curr}$\\
+\Indent $\Var{curr} \gets \Var{next}$\\
+return \Var{curr}
+\end{pseudocode}
+
+(This algorithm uses the non-standard but consistent base case $F_{-1} = 1$ so that \Proc{IterFibo2}$(0)$ returns the correct value $0$.)
+Although saving space can be absolutely crucial in practice, we won’t focus on space issues in this book.
+
+\section{\difficulty{H}Aside: Even Faster Fibonacci Numbers}
+\label{sec:3.2}
+
+Although the previous algorithm is simple and attractive, it is \textit{not} the fastest algorithm to compute Fibonacci numbers.
+We can derive a faster algorithm by exploiting the following matrix reformulation of the Fibonacci recurrence:
+\[
+\begin{bmatrix} 0 & 1\\ 1 & 1 \end{bmatrix} \begin{bmatrix} x\\ y \end{bmatrix} = \begin{bmatrix} y\\ x + y \end{bmatrix}
+\]
+In other words, multiplying a two-dimensional vector by the matrix $\left[\begin{smallmatrix} 0 & 1\\ 1 & 1 \end{smallmatrix}\right]$ has exactly the same effect as one iteration of the inner loop of \Proc{IterFibo2}.
+It follows that multiplying by the matrix $n$ times is the same as iterating the loop $n$ times:
+\[
+\begin{bmatrix} 0 & 1\\ 1 & 1 \end{bmatrix}^n \begin{bmatrix} 1\\ 0 \end{bmatrix} = \begin{bmatrix} F_{n-1}\\ F_n \end{bmatrix}.
+\]
+So if we want the $n$th Fibonacci number, we only need to compute the $n$th power of the matrix $\left[\begin{smallmatrix} 0 & 1\\ 1 & 1 \end{smallmatrix}\right]$.
+If we use repeated squaring,\footnote{as suggested by Pi\.{n}gala for powers of $2$ elsewhere in \textit{Chanda\d{h}\'s\=astra}} computing the $n$th power of something requires only $O(\log n)$ multiplications.
+Here, because “something” is a $2 \times 2$ matrix, that means $O(\log n)$ $2 \times 2$ matrix multiplications, each of which reduces to a constant number of integer multiplications and additions.
+Thus, we can compute $F_n$ in only \textbf{\textit{$\symbfit{O(}\symbf{log}\,\symbfit{n)}$ integer arithmetic operations}}.
+
+We can achieve the same speedup using the identity $F_n = F_m F_{n-m-1} + F_{m+1} F_{n-m}$, which holds (by induction!) for all integers $m$ and $n$.
+In particular, this identity implies the following mutual recurrence for pairs of adjacent Fibonacci numbers, first proposed by Édouard Lucas in 1898:
+\begin{align*}
+F_{2n-1} &= F_{n-1}^2 + F_n^2\\
+F_{2n} &= F_n(F_{n-1} + F_{n+1}) = F_n(2F_{n-1} + F_n)
+\end{align*}
+(We can also derive this mutual recurrence directly from the matrix-squaring algorithm.)
+These recurrences translate directly into the following algorithm:
+
+\begin{pseudocode}
+\Comment{Compute the pair $F_{n-1}$, $F_n$}\\
+\Header{\Proc{FastRecFibo}$(n):$}\\
+if $n = 1$\\
+\Indent return $0, 1$\\
+$m \gets \lfloor n/2 \rfloor$\\
+$\Var{hprv}, \Var{hcur} \gets \Proc{FastRecFibo}(m)$ \Comment{$F_{m-1}$, $F_m$}\\
+$\Var{prev} \gets \Var{hprv}^2 + \Var{hcur}^2$ \Comment{$F_{2m-1}$}\\
+$\Var{curr} \gets \Var{hcur} \cdot (2 \cdot \Var{hprv} + \Var{hcur})$ \Comment{$F_{2m}$}\\
+$\Var{next} \gets \Var{prev} + \Var{curr}$ \Comment{$F_{2m+1}$}\\
+if $n$ is even\\
+\Indent return $\Var{prev}, \Var{curr}$\\
+else\\
+\Indent return $\Var{curr}, \Var{next}$
+\end{pseudocode}
+
+Our standard recursion tree technique implies that this algorithm performs only $O(\log n)$ integer arithmetic operations.
+
+This is an exponential speedup over the standard iterative algorithm, which was already an exponential speedup over our original recursive algorithm.
+Right?
+
+\subsection{Whoa! Not so fast!}
+
+Well, not exactly.
+Fibonacci numbers grow exponentially fast.
+The $n$th Fibonacci number is approximately $n \log_{10} \phi \approx n/5$ decimal digits long, or $n \log_2 \phi \approx 2n/3$ bits.
+So we can’t possibly compute $F_n$ in logarithmic \textit{time} --- we need $\Omega(n)$ time just to write down the answer!
+
+The way out of this apparent paradox is to observe that \textbf{\textit{we can’t perform arbitrary-precision arithmetic in constant time}}.
+Let $M(n)$ denote the time required to multiply two $n$-digit numbers.
+The running time of \Proc{FastRecFibo} satisfies the recurrence $T(n) = T(\lfloor n/2 \rfloor) + M(n)$, which solves to $T(n) = \symbfit{O(M(n))}$ via recursion trees.
+The fastest integer multiplication algorithm known (as of 2019) runs in $O(n \log n)$ time, so that is also the running time of the fastest algorithm known (as of 2019) to compute Fibonacci numbers.
+
+Is this algorithm slower than our “linear-time” iterative algorithms?
+Actually, no---addition isn’t free, either!
+Adding two $n$-digit numbers requires $O(n)$ time, so the iterative algorithms \Proc{IterFibo} and \Proc{IterFibo2} actually run in \textbf{\textit{$\symbfit{O(n^2)}$ time}}.
+(Do you see why?)
+So \Proc{FastRecFibo} is significantly faster than the iterative algorithms, just not \textit{exponentially} faster.
+
+In the original recursive algorithm, the extra cost of arbitrary-precision arithmetic is overwhelmed by the huge number of recursive calls.
+The correct recurrence is $T(n) = T(n-1) + T(n-2) + O(n)$, which still has the solution $T(n) = O(\phi^n)$.
+
+\section{\textit{Interpunctio Verborum Redux}}
+\label{sec:3.3}
+
+For our next dynamic programming algorithm, let’s consider the text segmentation problem from the previous chapter.
+We are given a string $A[1\,..\,n]$ and a subroutine \Proc{IsWord} that determines whether a given string is a word (whatever that means), and we want to know whether $A$ can be partitioned into a sequence of words.
+
+We solved this problem by defining a function $\Var{Splittable}(i)$ that returns \Const{True} if and only if the suffix $A[i\,..\,n]$ can be partitioned into a sequence of words.
+We need to compute $\Var{Splittable}(1)$.
+This function satisfies the recurrence
+\[
+\Var{Splittable}(i) = \begin{cases}
+\Const{True} & \text{if } i > n\\[1ex]
+\displaystyle\bigvee_{j=i}^{n} \bigl(\Var{IsWord}(i, j) \;\wedge\; \Var{Splittable}(j+1)\bigr) & \text{otherwise}
+\end{cases}
+\]
+where $\Var{IsWord}(i, j)$ is shorthand for $\Var{IsWord}(A[i\,..\,j])$.
+This recurrence translates directly into a recursive backtracking algorithm that calls the \Proc{IsWord} subroutine $O(2^n)$ times in the worst case.
+
+But for any fixed string $A[1\,..\,n]$, there are only $n$ different ways to call the recursive function $\Var{Splittable}(i)$---one for each value of $i$ between $1$ and $n+1$---and only $O(n^2)$ different ways to call \Proc{IsWord}$(i, j)$---one for each pair $(i, j)$ such that $1 \le i \le j \le n$.
+Why are we spending exponential time computing only a polynomial amount of stuff?
+
+Each recursive subproblem is specified by an integer between $1$ and $n+1$, so we can memoize the function \Var{Splittable} into an array $\Var{SplitTable}[1\,..\,n+1]$.
+Each subproblem $\Var{Splittable}(i)$ depends only on results of subproblems $\Var{Splittable}(j)$ where $j > i$, so the memoized recursive algorithm fills the array in \textit{decreasing} index order.
+If we fill the array in this order deliberately, we obtain the dynamic programming algorithm shown in \figref{fig:3.3}.
+The algorithm makes $O(n^2)$ calls to \Proc{IsWord}, an exponential improvement over our earlier backtracking algorithm.
+
+\begin{figure}[ht]
+\centering
+\begin{pseudocode}
+\Header{\Proc{FastSplittable}$(A[1\,..\,n])$:}\\
+$\Var{SplitTable}[n+1] \gets \Const{True}$\\
+for $i \gets n$ down to $1$\\
+\Indent $\Var{SplitTable}[i] \gets \Const{False}$\\
+\Indent for $j \gets i$ to $n$\\
+\Indent\Indent if $\Proc{IsWord}(i, j)$ and $\Var{SplitTable}[j+1]$\\
+\Indent\Indent\Indent $\Var{SplitTable}[i] \gets \Const{True}$\\
+return $\Var{SplitTable}[1]$
+\end{pseudocode}
+\caption{Interpunctio verborum velox}
+\label{fig:3.3}
+\end{figure}
+
+\section{The Pattern: Smart Recursion}
+\label{sec:3.4}
+
+In a nutshell, dynamic programming is \textit{recursion without repetition}.
+Dynamic programming algorithms store the solutions of intermediate subproblems, often \textit{but not always} in some kind of array or table.
+Many algorithms students (and instructors, and textbooks) make the mistake of focusing on the table---because tables are easy and familiar---instead of the \textit{much} more important (and difficult) task of finding a correct recurrence.
+As long as we memoize the correct recurrence, an explicit table isn’t really necessary, but if the recurrence is incorrect, we are well and truly hosed.
+\begin{problembox}
+{\centering\color{JEred}\sffamily\bfseries\large Dynamic programming is \textit{not} about filling in tables.\\ It’s about smart recursion!\par}
+\end{problembox}
+Dynamic programming algorithms are best developed in two distinct stages.
+\begin{enumerate}
+\item \textbf{Formulate the problem recursively.}
+Write down a recursive formula or algorithm for the whole problem in terms of the answers to smaller subproblems.
+This is the hard part.
+A complete recursive formulation has two parts:
+\begin{enumerate}
+\item \textbf{Specification.}
+Describe the problem that you want to solve recursively, in coherent and precise English---not \textit{how} to solve that problem, but \textit{what} problem you’re trying to solve.
+Without this specification, it is impossible, even in principle, to determine whether your solution is correct.
+\item \textbf{Solution.}
+Give a clear recursive formula or algorithm for the whole problem in terms of the answers to smaller instances of \textit{exactly} the same problem.
+\end{enumerate}
+\item \textbf{Build solutions to your recurrence from the bottom up.}
+Write an algorithm that starts with the base cases of your recurrence and works its way up to the final solution, by considering intermediate subproblems in the correct order.
+This stage can be broken down into several smaller, relatively mechanical steps:
+\begin{enumerate}
+\item \textbf{Identify the subproblems.}
+What are all the different ways your recursive algorithm can call itself, starting with some initial input?
+For example, the argument to \Proc{RecFibo} is always an integer between $0$ and $n$.
+\item \textbf{Choose a memoization data structure.}
+Find a data structure that can store the solution to \textit{every} subproblem you identified in step (a).
+This is usually \textit{but not always} a multidimensional array.
+\item \textbf{Identify dependencies.}
+Except for the base cases, every subproblem depends on other subproblems---which ones?
+Draw a picture of your data structure, pick a generic element, and draw arrows from each of the other elements it depends on.
+Then formalize your picture.
+\item \textbf{Find a good evaluation order.}
+Order the subproblems so that each one comes \textit{after} the subproblems it depends on.
+You should consider the base cases first, then the subproblems that depends only on base cases, and so on, eventually building up to the original top-level problem.
+The dependencies you identified in the previous step define a partial order over the subproblems; you need to find a linear extension of that partial order.
+\textbf{\textit{Be careful!}}
+\item \textbf{Analyze space and running time.}
+The number of distinct subproblems determines the space complexity of your memoized algorithm.
+To compute the total running time, add up the running times of all possible subproblems, \textit{assuming deeper recursive calls are already memoized}.
+You can actually do this immediately after step (a).
+\item \textbf{Write down the algorithm.}
+You know what order to consider the subproblems, and you know how to solve each subproblem.
+So do that!
+If your data structure is an array, this usually means writing a few nested for-loops around your original recurrence, and replacing the recursive calls with array look-ups.
+\end{enumerate}
+\end{enumerate}
+Of course, you have to prove that each of these steps is correct.
+If your recurrence is wrong, or if you try to build up answers in the wrong order, your algorithm won’t work!
+
+\section{Warning: Greed is Stupid}
+\label{sec:3.5}
+
+If we’re incredibly lucky, we can bypass all the recurrences and tables and so forth, and solve the problem using a \textit{greedy} algorithm.
+Like a backtracking algorithm, a greedy algorithm constructs a solution through a series of decisions, but it makes those decisions directly, \textit{without} solving at any recursive subproblems.
+While this approach seems very natural, it almost never works; optimization problems that can be solved correctly by a greedy algorithm are quite rare.
+Nevertheless, for many problems that should be solved by backtracking or dynamic programming, many students’ first intuition is to apply a greedy strategy.
+
+For example, a greedy algorithm for the text segmentation problem might find the shortest (or, if you prefer, longest) prefix of the input string that is a word, accept that prefix as the first word in the segmentation, and then recursively segment the remaining suffix of the input string.
+Similarly, a greedy algorithm for the longest increasing subsequence problem might look for the smallest element of the input array, accept that element as the start of the target subsequence, and then recursively look for the longest increasing subsequence to the right of that element.
+If these sound like stupid hacks to you, pat yourself on the back; these aren’t even \textit{close} to correct solutions.
+
+Everyone should tattoo the following sentence on the back of their hands, right under all the rules about logarithms and big-Oh notation:
+\begin{problembox}
+{\centering\color{JEred}\sffamily\bfseries{\LARGE Greedy algorithms never work!}\\ \large Use dynamic programming instead!\par}
+\end{problembox}
+
+What, never?
+
+No, never!
+
+What, \textit{never}?
+
+Well\dots\ hardly ever.\footnote{They hardly ever ever work! Then give three cheers, and one cheer more, for the rigorous Captain of the \textit{Pinafore}! Then give three cheers, and one cheer more, for the Captain of the \textit{Pinafore}!}
+
+Because the greedy approach is so incredibly tempting, but so rarely correct, I strongly advocate the following policy in any algorithms course, even (or perhaps \textit{especially}) for courses that do not normally ask for proofs of correctness.\footnote{Introducing this policy in my own algorithms courses significantly improved students’ grades, because it significantly reduced the frequency of incorrect greedy algorithms.}
+\begin{center}
+\textbf{You will not receive \textit{any} credit for \textit{any} greedy algorithm,\\ on \textit{any} homework or exam, even if the algorithm is correct,\\ without a \textit{formal} proof of correctness.}
+\end{center}
+Moreover, the vast majority of problems for which students are tempted to submit a greedy algorithm are actually best solved using dynamic programming.
+So I always offer the following advice to my algorithms students.
+\begin{center}
+\textbf{Whenever you write---or even \textit{think}---the word “greeDY”,\\ your subconscious is telling you to use DYnamic programming.}
+\end{center}
+Even for problems that \textit{can} be correctly solved by greedy algorithms, it’s usually more productive to develop a backtracking or dynamic programming algorithm first.
+First make it work, then make it fast.
+We will see techniques for proving greedy algorithms correct in the next chapter.
+
+\section{Longest Increasing Subsequence}
+\label{sec:3.6}
+
+Another problem we considered in the previous chapter was computing the length of the longest increasing subsequence of a given array $A[1\,..\,n]$ of numbers.
+We developed two different recursive backtracking algorithms for this problem.
+Both algorithms run in $O(2^n)$ time in the worst case; both algorithms can be sped up significantly via dynamic programming.
+
+\subsection{First Recurrence: Is This Next?}
+
+Our first backtracking algorithm evaluated the function $\Var{LISbigger}(i, j)$, which we defined as the length of the longest increasing subsequence of $A[j\,..\,n]$ in which every element is larger than $A[i]$.
+We derived the following recurrence for this function:
+\[
+\Var{LISbigger}(i, j) = \begin{cases}
+0 & \text{if } j > n\\
+\Var{LISbigger}(i, j+1) & \text{if } A[i] \ge A[j]\\
+\max\left\{\begin{array}{c} \Var{LISbigger}(i, j+1)\\ 1 + \Var{LISbigger}(j, j+1) \end{array}\right\} & \text{otherwise}
+\end{cases}
+\]
+To solve the original problem, we can add a sentinel value $A[0] = -\infty$ to the array and compute $\Var{LISbigger}(0, 1)$.
+
+Each recursive subproblem is identified by two indices $i$ and $j$, so there are only $O(n^2)$ distinct recursive subproblems to consider.
+We can memoize the results of these subproblems into a two-dimensional array {\bfseries\Var{LISbigger}}$\symbfit{[0\,..\,n, 1\,..\,n]}$.\footnote{In fact, we only need half of this array, because we always have $i < j$. But even if we cared about constant factors in this book (we don’t), this would be the wrong time to worry about them. First make it work; then make it better.}
+Moreover, each subproblem can be solved in $O(1)$ time, not counting recursive calls, so we should expect the final dynamic programming algorithm to run in \textbf{\textit{$\symbfit{O(n^2)}$ time}}.
+
+The order in which the memoized recursive algorithm fills this array is not immediately clear; all we can tell from the recurrence is that each entry $\Var{LISbigger}[i, j]$ is filled in \textit{after} the entries $\Var{LISbigger}[i, j+1]$ and $\Var{LISbigger}[j, j+1]$ in the next column, as indicated on the left in \figref{fig:3.4}.
+
+Fortunately, this partial information is enough to give us a \textit{valid} evaluation order.
+If we fill the table one column at a time, from right to left, then whenever we reach an entry in the table, the entries it depends on are already available.
+This may not be the order that the recursive algorithm would use, but it works, so we’ll go with it.
+The right figure in \figref{fig:3.4} illustrates this evaluation order, with a double arrow indicating the outer loop and single arrows indicating the inner loop.
+In this case, the single arrows are bidirectional, because the order that we use to fill each column doesn’t matter.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p128-Im47}
+\caption{Subproblem dependencies for longest increasing subsequence, and a valid evaluation order}
+\label{fig:3.4}
+\end{figure}
+
+And we’re done!
+Pseudocode for our dynamic programming algorithm is shown below; as expected, our algorithm clearly runs in $O(n^2)$ time.
+If necessary, we can reduce the space bound from $O(n^2)$ to $O(n)$ by maintaining only the two most recent columns of the table, $\Var{LISbigger}[\cdot, j]$ and $\Var{LISbigger}[\cdot, j+1]$.\footnote{See, I told you not to worry about constant factors yet!}
+
+\begin{pseudocode}
+\Header{\Proc{FastLIS}$(A[1\,..\,n])$:}\\
+$A[0] \gets -\infty$ \Comment{Add a sentinel}\\
+for $i \gets 0$ to $n$ \Comment{Base cases}\\
+\Indent $\Var{LISbigger}[i, n+1] \gets 0$\\
+for $j \gets n$ down to $1$\\
+\Indent for $i \gets 0$ to $j-1$ \Comment{\dots or whatever}\\
+\Indent\Indent $\Var{keep} \gets 1 + \Var{LISbigger}[j, j+1]$\\
+\Indent\Indent $\Var{skip} \gets \Var{LISbigger}[i, j+1]$\\
+\Indent\Indent if $A[i] \ge A[j]$\\
+\Indent\Indent\Indent $\Var{LISbigger}[i, j] \gets \Var{skip}$\\
+\Indent\Indent else\\
+\Indent\Indent\Indent $\Var{LISbigger}[i, j] \gets \max\{\Var{keep}, \Var{skip}\}$\\
+return $\Var{LISbigger}[0, 1]$
+\end{pseudocode}
+
+\subsection{Second Recurrence: What's Next?}
+
+Our second backtracking algorithm evaluated the function $\Var{LISfirst}(i)$, which we defined as the length of the longest increasing subsequence of $A[i\,..\,n]$ that begins with $A[i]$.
+We derived the following recurrence for this function:
+\[
+\Var{LISfirst}(i) = 1 + \max\bigl\{\Var{LISfirst}(j) \bigm| j > i \text{ and } A[j] > A[i]\bigr\}
+\]
+Here, we assume that $\max\emptyset = 0$, so that the base cases like $\Var{LISfirst}(n) = 1$ fall out of the recurrence automatically.
+To solve the original problem, we can add a sentinel value $A[0] = -\infty$ to the array and compute $\Var{LISfirst}(0) - 1$.
+
+In this case, recursive subproblems are indicated by a single index $i$, so we can memoize the recurrence into a one-dimensional array $\Var{LISfirst}[1\,..\,n]$.
+Each entry $\Var{LISfirst}[i]$ depends only on entries $\Var{LISfirst}[j]$ with $j > i$, so we can fill the array in decreasing index order.
+To compute each $\Var{LISfirst}[i]$, we need to consider $\Var{LISfirst}[j]$ for \textit{all} indices $j > i$, but we don’t need to consider those indices $j$ in any particular order.
+The resulting dynamic programming algorithm runs in \textbf{\textit{$\symbfit{O(n^2)}$ time}} and uses $O(n)$ space.
+
+\begin{pseudocode}
+\Header{\Proc{FastLIS2}$(A[1\,..\,n])$:}\\
+$A[0] = -\infty$ \Comment{Add a sentinel}\\
+for $i \gets n$ downto $0$\\
+\Indent $\Var{LISfirst}[i] \gets 1$\\
+\Indent for $j \gets i+1$ to $n$ \Comment{\dots or whatever}\\
+\Indent\Indent if $A[j] > A[i]$ and $1 + \Var{LISfirst}[j] > \Var{LISfirst}[i]$\\
+\Indent\Indent\Indent $\Var{LISfirst}[i] \gets 1 + \Var{LISfirst}[j]$\\
+return $\Var{LISfirst}[0] - 1$ \Comment{Don’t count the sentinel}
+\end{pseudocode}
+
+\section{Edit Distance}
+\label{sec:3.7}
+
+The \textbf{\textit{edit distance}} between two strings is the minimum number of letter insertions, letter deletions, and letter substitutions required to transform one string into the other.
+For example, the edit distance between \Str{FOOD} and \Str{MONEY} is at most four:
+\[
+\mbox{\Str{\underline{F}OOD}} \to \mbox{\Str{MO\underline{O}D}} \to \mbox{\Str{MON}\raisebox{-1.1ex}{$\scriptscriptstyle\wedge$}\Str{D}} \to \mbox{\Str{MONE\underline{D}}} \to \mbox{\Str{MONEY}}
+\]
+This distance function was independently proposed by Vladimir Levenshtein in 1965 (working on coding theory), Taras Vintsyuk in 1968 (working on speech recognition), and Stanislaw Ulam in 1972 (working with biological sequences).
+For this reason, edit distance is sometimes called \textbf{\textit{Levenshtein distance}} or \textbf{\textit{Ulam distance}} (but strangely, never “Vintsyuk distance”).
+
+We can visualize this editing process by aligning the strings one above the other, with a gap in the first word for each insertion and a gap in the second word for each deletion.
+Columns with two \textit{different} characters correspond to substitutions.
+In this representation, the number of editing steps is just the number of columns that do \textit{not} contain the same character twice.
+\[
+\begin{array}{ccccc}
+\mbox{\Str{F}} & \mbox{\Str{O}} & \mbox{\Str{O}} & & \mbox{\Str{D}}\\
+\mbox{\Str{M}} & \mbox{\Str{O}} & \mbox{\Str{N}} & \mbox{\Str{E}} & \mbox{\Str{Y}}
+\end{array}
+\]
+It’s fairly obvious that we can’t transform \Str{FOOD} into \Str{MONEY} in three steps, so the edit distance between \Str{FOOD} and \Str{MONEY} is exactly four.
+Unfortunately, it’s not so easy in general to tell when a sequence of edits is as short as possible.
+For example, the following alignment shows that the distance between the strings \Str{ALGORITHM} and \Str{ALTRUISTIC} is \textit{at most} 6.
+Is that the best we can do?
+\[
+\begin{array}{ccccccccccc}
+\mbox{\Str{A}} & \mbox{\Str{L}} & \mbox{\Str{G}} & \mbox{\Str{O}} & \mbox{\Str{R}} & & \mbox{\Str{I}} & & \mbox{\Str{T}} & \mbox{\Str{H}} & \mbox{\Str{M}}\\
+\mbox{\Str{A}} & \mbox{\Str{L}} & & \mbox{\Str{T}} & \mbox{\Str{R}} & \mbox{\Str{U}} & \mbox{\Str{I}} & \mbox{\Str{S}} & \mbox{\Str{T}} & \mbox{\Str{I}} & \mbox{\Str{C}}
+\end{array}
+\]
+
+\subsection{Recursive Structure}
+
+To develop a dynamic programming algorithm to compute edit distance, we first need to formulate the problem recursively.
+Our alignment representation for edit sequences has a crucial “optimal substructure” property.
+Suppose we have the gap representation for the shortest edit sequence for two strings.
+\textbf{If we remove the last column, the remaining columns must represent the shortest edit sequence for the remaining prefixes.}
+We can easily prove this observation by contradiction: If the prefixes had a shorter edit sequence, gluing the last column back on would gives us a shorter edit sequence for the original strings.
+So once we figure out what should happen in the last column, the Recursion Fairy can figure out the rest of the optimal gap representation.
+
+Said differently, the alignment we are looking for represents a sequence of editing operations, ordered (for no particular reason) from right to left.
+Solving the edit distance problem requires making a sequence of decisions, one for each column in the output alignment.
+In the middle of this sequence of decisions, we have already aligned a suffix of one string with a suffix of the other.
+\[
+\begin{array}{|c!{\vrule width 2.5pt}c|c|c|c|c|}
+\hline
+\mbox{\Str{ALGOR}} & \mbox{\Str{I}} & & \mbox{\Str{T}} & \mbox{\Str{H}} & \mbox{\Str{M}}\\
+\mbox{\Str{ALTRU}} & \mbox{\Str{I}} & \mbox{\Str{S}} & \mbox{\Str{T}} & \mbox{\Str{I}} & \mbox{\Str{C}}\\
+\hline
+\end{array}
+\]
+Because the cost of an alignment is just the number of mismatched columns, our remaining decisions don’t depend on the editing operations we’ve already chosen; they only depend on the prefixes we haven’t aligned yet.
+\[
+\begin{array}{|c!{\vrule width 2.5pt}}
+\hline
+\mbox{\Str{ALGOR}}\\
+\mbox{\Str{ALTRU}}\\
+\hline
+\end{array}
+\]
+Thus, for any two input strings $A[1\,..\,m]$ and $B[1\,..\,n]$, we can formulate the edit distance problem recursively as follows: For any indices $i$ and $j$, let {\bfseries\Var{Edit}}$\symbfit{(i, j)}$ denote the edit distance between the prefixes $A[1\,..\,i]$ and $B[1\,..\,j]$.
+We need to compute $\Var{Edit}(m, n)$.
+
+\subsection{Recurrence}
+
+When $i$ and $j$ are both positive, there are exactly three possibilities for the last column in the optimal alignment of $A[1\,..\,i]$ and $B[1\,..\,j]$:
+\begin{itemize}
+\item \textbf{Insertion:} The last entry in the top row is empty.
+In this case, the edit distance is equal to $\Var{Edit}(i, j-1) + 1$.
+The $+1$ is the cost of the final insertion, and the recursive expression gives the minimum cost for the remaining alignment.
+\[
+\begin{array}{|c!{\vrule width 2.5pt}c|}
+\hline
+\mbox{\Str{ALGOR}} & \\
+\mbox{\Str{ALTR}} & \mbox{\Str{U}}\\
+\hline
+\end{array}
+\]
+\item \textbf{Deletion:} The last entry in the bottom row is empty.
+In this case, the edit distance is equal to $\Var{Edit}(i-1, j) + 1$.
+The $+1$ is the cost of the final deletion, and the recursive expression gives the minimum cost for the remaining alignment.
+\[
+\begin{array}{|c!{\vrule width 2.5pt}c|}
+\hline
+\mbox{\Str{ALGO}} & \mbox{\Str{R}}\\
+\mbox{\Str{ALTRU}} & \\
+\hline
+\end{array}
+\]
+\item \textbf{Substitution:} Both rows have characters in the last column.
+If these two characters are different, then the edit distance is equal to $\Var{Edit}(i-1, j-1) + 1$.
+If these two characters are equal, the substitution is free, so the edit distance is $\Var{Edit}(i-1, j-1)$.
+\[
+\begin{array}{|c!{\vrule width 2.5pt}c|}
+\hline
+\mbox{\Str{ALGO}} & \mbox{\Str{R}}\\
+\mbox{\Str{ALTR}} & \mbox{\Str{U}}\\
+\hline
+\end{array}
+\qquad
+\begin{array}{|c!{\vrule width 2.5pt}c|}
+\hline
+\mbox{\Str{ALGO}} & \mbox{\Str{R}}\\
+\mbox{\Str{ALT}} & \mbox{\Str{R}}\\
+\hline
+\end{array}
+\]
+\end{itemize}
+This generic case analysis breaks down if either $i = 0$ or $j = 0$, but those boundary cases are easy to handle directly.
+\begin{itemize}
+\item Transforming the empty string into a string of length $j$ requires $j$ insertions, so $\Var{Edit}(0, j) = j$.
+\item Transforming a string of length $i$ into the empty string requires $i$ deletions, so $\Var{Edit}(i, 0) = i$.
+\end{itemize}
+As a sanity check, both of these base cases correctly indicate that the edit distance between the empty string and the empty string is zero!
+
+We conclude that the \Var{Edit} function satisfies the following recurrence:
+\[
+\Var{Edit}(i, j) = \begin{cases}
+i & \text{if } j = 0\\
+j & \text{if } i = 0\\
+\min\left\{\begin{array}{c}
+\Var{Edit}(i, j-1) + 1\\
+\Var{Edit}(i-1, j) + 1\\
+\Var{Edit}(i-1, j-1) + [A[i] \neq B[j]]
+\end{array}\right\} & \text{otherwise}
+\end{cases}
+\]
+
+\subsection{Dynamic Programming}
+
+Now that we have a recurrence, we can transform it into a dynamic programming algorithm following our usual mechanical recipe.
+\begin{itemize}
+\item \textbf{Subproblems:} Each recursive subproblem is identified by two indices $0 \le i \le m$ and $0 \le j \le n$.
+\item \textbf{Memoization structure:} So we can memoize all possible values of $\Var{Edit}(i, j)$ in a two-dimensional array $\Var{Edit}[0\,..\,m, 0\,..\,n]$.
+\item \textbf{Dependencies:} Each entry $\Var{Edit}[i, j]$ depends only on its three neighboring entries $\Var{Edit}[i-1, j]$, $\Var{Edit}[i, j-1]$, and $\Var{Edit}[i-1, j-1]$.
+\item \textbf{Evaluation order:} If we fill this array in standard row-major order---row by row from top down, each row from left to right---then whenever we reach an entry in the array, all the entries it depends on are already available.
+(This isn’t the \textit{only} evaluation order we could use, but it works, so let’s go with it.)
+\begin{center}
+\includegraphics{p132-Im48}
+\end{center}
+\item \textbf{Space and time:} The memoization structure uses $O(mn)$ space.
+We can compute each entry $\Var{Edit}[i, j]$ in $O(1)$ time once we know its predecessors, so the overall algorithm runs in \textbf{\textit{$\symbfit{O(mn)}$ time.}}
+\end{itemize}
+Here is the resulting dynamic programming algorithm:
+
+\begin{pseudocode}
+\Header{\Proc{EditDistance}$(A[1\,..\,m], B[1\,..\,n])$:}\\
+for $j \gets 0$ to $n$\\
+\Indent $\Var{Edit}[0, j] \gets j$\\
+for $i \gets 1$ to $m$\\
+\Indent $\Var{Edit}[i, 0] \gets i$\\
+\Indent for $j \gets 1$ to $n$\\
+\Indent\Indent $\Var{ins} \gets \Var{Edit}[i, j-1] + 1$\\
+\Indent\Indent $\Var{del} \gets \Var{Edit}[i-1, j] + 1$\\
+\Indent\Indent if $A[i] = B[j]$\\
+\Indent\Indent\Indent $\Var{rep} \gets \Var{Edit}[i-1, j-1]$\\
+\Indent\Indent else\\
+\Indent\Indent\Indent $\Var{rep} \gets \Var{Edit}[i-1, j-1] + 1$\\
+\Indent\Indent $\Var{Edit}[i, j] \gets \min\{\Var{ins}, \Var{del}, \Var{rep}\}$\\
+return $\Var{Edit}[m, n]$
+\end{pseudocode}
+
+This algorithm is most commonly attributed to Robert Wagner and Michael Fischer, who described the algorithm in 1974.
+However, in full compliance with Stigler’s Law of Eponymy, either identical or more general algorithms were independently discovered by Taras Vintsyuk in 1968, V. M. Velichko and N. G. Zagoruyko in 1970, David Sankoff in 1972, Peter Sellers in 1974, and almost certainly several others.\footnote{This algorithm is sometimes also \textit{incorrectly} attributed to Saul Needleman and Christian Wunsch in 1970. “The Needleman-Wunsch algorithm” more commonly refers to the standard dynamic programming algorithm for computing the longest common subsequence of two strings (or equivalently, the edit distance where only insertions and deletions are permitted) in $O(mn)$ time, but that attribution is \textit{also} incorrect! In fact, Needleman and Wunsch’s algorithm computes (weighted) longest common subsequences (possibly with gap costs) in $O(m^2 n^2)$ time, using a different recurrence. Sankoff explicitly describes his $O(mn)$-time algorithm as an improvement of Needleman and Wunsch’s algorithm.}
+Interestingly, \textit{none} of these authors cite either Levenshtein or Ulam!
+
+The memoization table for the input strings \Str{ALGORITHM} and \Str{ALTRUISTIC} is shown below.
+Bold numbers indicate places where characters in the two strings are equal.
+The edit distance between \Str{ALGORITHM} and \Str{ALTRUISTIC} is indeed six!
+\[
+\setlength{\arraycolsep}{1.5pt}
+\begin{array}{r|ccccccccccccccccccc|}
+\multicolumn{1}{r}{} &  &  & \mbox{\Str{A}} &  & \mbox{\Str{L}} &  & \mbox{\Str{G}} &  & \mbox{\Str{O}} &  & \mbox{\Str{R}} &  & \mbox{\Str{I}} &  & \mbox{\Str{T}} &  & \mbox{\Str{H}} &  & \multicolumn{1}{c}{\mbox{\Str{M}}}\\
+\cline{2-20}
+ & 0 & \color{JEgray}\rightarrow & 1 & \color{JEgray}\rightarrow & 2 & \color{JEgray}\rightarrow & 3 & \color{JEgray}\rightarrow & 4 & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6 & \color{JEgray}\rightarrow & 7 & \color{JEgray}\rightarrow & 8 & \color{JEgray}\rightarrow & 9\\
+ & \color{JEgray}\downarrow & \color{JEred}\searrow &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+\mbox{\Str{A}} & 1 &  & \color{JEred}\symbf{0} & \color{JEgray}\rightarrow & 1 & \color{JEgray}\rightarrow & 2 & \color{JEgray}\rightarrow & 3 & \color{JEgray}\rightarrow & 4 & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6 & \color{JEgray}\rightarrow & 7 & \color{JEgray}\rightarrow & 8\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEred}\searrow &  &  &  &  &  &  &  &  &  &  &  &  &  &  & \\
+\mbox{\Str{L}} & 2 &  & 1 &  & \color{JEred}\symbf{0} & \color{JEgray}\rightarrow & 1 & \color{JEgray}\rightarrow & 2 & \color{JEgray}\rightarrow & 3 & \color{JEgray}\rightarrow & 4 & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6 & \color{JEgray}\rightarrow & 7\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow &  & \color{JEred}\searrow &  &  &  &  & \\
+\mbox{\Str{T}} & 3 &  & 2 &  & 1 &  & 1 & \color{JEgray}\rightarrow & 2 & \color{JEgray}\rightarrow & 3 & \color{JEgray}\rightarrow & 4 &  & \color{JEred}\symbf{4} & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow &  & \color{JEred}\searrow &  &  &  &  &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow & \\
+\mbox{\Str{R}} & 4 &  & 3 &  & 2 &  & 2 &  & 2 &  & \color{JEred}\symbf{2} & \color{JEgray}\rightarrow & 3 & \color{JEgray}\rightarrow & 4 & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow & \\
+\mbox{\Str{U}} & 5 &  & 4 &  & 3 &  & 3 &  & 3 &  & 3 &  & 3 & \color{JEgray}\rightarrow & 4 & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEred}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow & \\
+\mbox{\Str{I}} & 6 &  & 5 &  & 4 &  & 4 &  & 4 &  & 4 &  & \color{JEred}\symbf{3} & \color{JEgray}\rightarrow & 4 & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow & \\
+\mbox{\Str{S}} & 7 &  & 6 &  & 5 &  & 5 &  & 5 &  & 5 &  & 4 &  & 4 &  & 5 &  & 6\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEred}\searrow &  & \color{JEgray}\searrow &  & \color{JEgray}\searrow & \\
+\mbox{\Str{T}} & 8 &  & 7 &  & 6 &  & 6 &  & 6 &  & 6 &  & 5 &  & \color{JEred}\symbf{4} & \color{JEgray}\rightarrow & 5 & \color{JEgray}\rightarrow & 6\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEred}\searrow & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow &  & \color{JEgray}\searrow & \\
+\mbox{\Str{I}} & 9 &  & 8 &  & 7 &  & 7 &  & 7 &  & 7 &  & \color{JEred}\symbf{6} &  & 5 &  & 5 & \color{JEgray}\rightarrow & 6\\
+ & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow &  & \color{JEgray}\downarrow & \color{JEgray}\searrow & \color{JEgray}\downarrow & \color{JEgray}\searrow & \\
+\mbox{\Str{C}} & 10 &  & 9 &  & 8 &  & 8 &  & 8 &  & 8 &  & 7 &  & 6 &  & 6 &  & 6\\
+\cline{2-20}
+\end{array}
+\]
+The arrows in this table indicate which predecessor(s) actually define each entry.
+Each direction of arrow corresponds to a different edit operation: horizontal=deletion, vertical=insertion, and diagonal=substitution.
+Bold red diagonal arrows indicate “free” substitutions of a letter for itself.
+Any path of arrows from the top left corner to the bottom right corner of this table represents an optimal edit sequence between the two strings.
+The example memoization array contains exactly three directed paths from the top left corner to the bottom right corner, each indicating a different sequence of six edits transforming \Str{ALGORITHM} into \Str{ALTRUISTIC}, as shown on the next page.
+\[
+\begin{array}{ccccccccccc}
+\mbox{\Str{A}} & \mbox{\Str{L}} & \mbox{\Str{G}} & \mbox{\Str{O}} & \mbox{\Str{R}} & \mbox{\Str{I}} & & \mbox{\Str{T}} & \mbox{\Str{H}} & \mbox{\Str{M}}\\
+\mbox{\Str{A}} & \mbox{\Str{L}} & \mbox{\Str{T}} & \mbox{\Str{R}} & \mbox{\Str{U}} & \mbox{\Str{I}} & \mbox{\Str{S}} & \mbox{\Str{T}} & \mbox{\Str{I}} & \mbox{\Str{C}}\\[2ex]
+\mbox{\Str{A}} & \mbox{\Str{L}} & \mbox{\Str{G}} & \mbox{\Str{O}} & \mbox{\Str{R}} & & \mbox{\Str{I}} & & \mbox{\Str{T}} & \mbox{\Str{H}} & \mbox{\Str{M}}\\
+\mbox{\Str{A}} & \mbox{\Str{L}} & & \mbox{\Str{T}} & \mbox{\Str{R}} & \mbox{\Str{U}} & \mbox{\Str{I}} & \mbox{\Str{S}} & \mbox{\Str{T}} & \mbox{\Str{I}} & \mbox{\Str{C}}\\[2ex]
+\mbox{\Str{A}} & \mbox{\Str{L}} & \mbox{\Str{G}} & \mbox{\Str{O}} & \mbox{\Str{R}} & & \mbox{\Str{I}} & & \mbox{\Str{T}} & \mbox{\Str{H}} & \mbox{\Str{M}}\\
+\mbox{\Str{A}} & \mbox{\Str{L}} & \mbox{\Str{T}} & & \mbox{\Str{R}} & \mbox{\Str{U}} & \mbox{\Str{I}} & \mbox{\Str{S}} & \mbox{\Str{T}} & \mbox{\Str{I}} & \mbox{\Str{C}}
+\end{array}
+\]
+Our \Proc{EditDistance} algorithm does not actually compute or store any arrows in the table, but the arrow(s) leading into any entry in the table can be reconstructed on the fly in $O(1)$ time from the numerical values.
+Thus, once we’ve filled in the table, we can reconstruct the shortest edit sequence in $O(n+m)$ additional time.
+
+\section{Subset Sum}
+\label{sec:3.8}
+
+Recall that the \textit{Subset Sum} problem asks whether any subset of a given array $X[1\,..\,n]$ of positive integers sums to a given integer $T$.
+In the previous chapter, we developed a recursive Subset Sum algorithm that can be reformulated as follows.
+Fix the original input array $X[1\,..\,n]$ and define the boolean function
+\[
+SS(i, t) = \Const{True} \text{ if and only if some subset of } X[i\,..\,n] \text{ sums to } t.
+\]
+We need to compute $SS(1, T)$.
+This function satisfies the following recurrence:
+\[
+SS(i, t) = \begin{cases}
+\Const{True} & \text{if } t = 0\\
+\Const{False} & \text{if } t < 0 \text{ or } i > n\\
+SS(i+1, t) \;\vee\; SS(i+1, t - X[i]) & \text{otherwise}
+\end{cases}
+\]
+We can transform this recurrence into a dynamic programming algorithm following the usual boilerplate.
+\begin{itemize}
+\item \textbf{Subproblems:} Each subproblem is described by an integer $i$ such that $1 \le i \le n+1$, and an integer $t \le T$.
+However, subproblems with $t < 0$ are trivial, so it seems rather silly to memoize them.\footnote{Yes, I’m breaking my own rule against premature optimization.}
+Indeed, we can modify the recurrence so that those subproblems never arise:
+\[
+SS(i, t) = \begin{cases}
+\Const{True} & \text{if } t = 0\\
+\Const{False} & \text{if } i > n\\
+SS(i+1, t) & \text{if } t < X[i]\\
+SS(i+1, t) \;\vee\; SS(i+1, t - X[i]) & \text{otherwise}
+\end{cases}
+\]
+\item \textbf{Data structure:} We can memoize our recurrence into a two-dimensional array $S[1\,..\,n+1, 0\,..\,T]$, where $S[i, t]$ stores the value of $SS(i, t)$.
+\item \textbf{Evaluation order:} Each entry $S[i, t]$ depends on at most two other entries, both of the form $SS[i+1, \cdot]$.
+So we can fill the array by considering rows from bottom to top in the outer loop, and considering the elements in each row in arbitrary order in the inner loop.
+\item \textbf{Space and time:} The memoization structure uses $O(nT)$ space.
+If $S[i+1, t]$ and $S[i+1, t - X[i]]$ are already known, we can compute $S[i, t]$ in constant time, so the algorithm runs in \textbf{\textit{$\symbfit{O(nT)}$ time}}.
+\end{itemize}
+Here is the resulting dynamic programming algorithm:
+
+\begin{pseudocode}
+\Header{\Proc{FastSubsetSum}$(X[1\,..\,n], T)$:}\\
+$S[n+1, 0] \gets \Const{True}$\\
+for $t \gets 1$ to $T$\\
+\Indent $S[n+1, t] \gets \Const{False}$\\
+for $i \gets n$ downto $1$\\
+\Indent $S[i, 0] = \Const{True}$\\
+\Indent for $t \gets 1$ to $X[i] - 1$\\
+\Indent\Indent $S[i, t] \gets S[i+1, t]$ \Comment{Avoid the case $t < 0$}\\
+\Indent for $t \gets X[i]$ to $T$\\
+\Indent\Indent $S[i, t] \gets S[i+1, t] \vee S[i+1, t - X[i]]$\\
+return $S[1, T]$
+\end{pseudocode}
+
+The worst-case running time $O(nT)$ for this algorithm is a significant improvement over the $O(2^n)$-time recursive backtracking algorithm when $T$ is small.\footnote{Even though the subset sum problem is NP-hard, this time bound does \textit{not} imply that P=NP, because $T$ is not necessarily bounded by a polynomial function of the input size.}
+However, if the target sum $T$ is significantly larger than $2^n$, this iterative algorithm is actually slower than the naïve recursive algorithm, because it’s wasting time solving subproblems that the recursive algorithm never considers.
+Dynamic programming isn’t \textit{always} an improvement!\footnote{In the 1967 research memorandum(!) where he proposed memo functions, Donald Michie wrote, “To tabulate values of a function which will not be needed is a waste of space, and to recompute the same values more than once is a waste of time.” But in fact, tabulating values of a function that will not be needed is also a waste of \textit{time}!}
+
+\section{Optimal Binary Search Trees}
+\label{sec:3.9}
+
+The final problem we considered in the previous chapter was the optimal binary search tree problem.
+The input is a sorted array $A[1\,..\,n]$ of search keys and an array $f[1\,..\,n]$ of frequency counts, where $f[i]$ is the number of times we will search for $A[i]$.
+Our task is to construct a binary search tree for that set such that the total cost of all the searches is as small as possible.
+
+Fix the frequency array $f$, and let $\Var{OptCost}(i, k)$ denote the total search time in the optimal search tree for the subarray $A[i\,..\,k]$.
+We derived the following recurrence for the function \Var{OptCost}:
+\[
+\Var{OptCost}(i, k) = \begin{cases}
+0 & \text{if } i > k\\[1ex]
+\displaystyle\sum_{j=i}^{k} f[j] + \min_{i \le r \le k} \left\{\begin{aligned} &\Var{OptCost}(i, r-1)\\ &\quad + \Var{OptCost}(r+1, k) \end{aligned}\right\} & \text{otherwise}
+\end{cases}
+\]
+You can probably guess what we’re going to do with this recurrence eventually, but let’s rid of that ugly summation first.
+
+For any pair of indices $i \le k$, let $F(i, k)$ denote the total frequency count for all the keys in the interval $A[i\,..\,k]$:
+\[
+F(i, k) := \sum_{j=i}^{k} f[j]
+\]
+This function satisfies the following simple recurrence:
+\[
+F(i, k) = \begin{cases}
+f[i] & \text{if } i = k\\
+F(i, k-1) + f[k] & \text{otherwise}
+\end{cases}
+\]
+We can compute all possible values of $F(i, k)$ in $O(n^2)$ time using---you guessed it!---dynamic programming!
+The usual mechanical steps give us the following dynamic programming algorithm:
+
+\begin{pseudocode}
+\Header{\Proc{InitF}$(f[1\,..\,n])$:}\\
+for $i \gets 1$ to $n$\\
+\Indent $F[i, i-1] \gets 0$\\
+\Indent for $k \gets i$ to $n$\\
+\Indent\Indent $F[i, k] \gets F[i, k-1] + f[k]$
+\end{pseudocode}
+
+We will use this short algorithm as an initialization subroutine.
+This initialization allows us to simplify the original \Var{OptCost} recurrence as follows:
+\[
+\Var{OptCost}(i, k) = \begin{cases}
+0 & \text{if } i > k\\[1ex]
+F[i, k] + \displaystyle\min_{i \le r \le k} \left\{\begin{aligned} &\Var{OptCost}(i, r-1)\\ &\quad + \Var{OptCost}(r+1, k) \end{aligned}\right\} & \text{otherwise}
+\end{cases}
+\]
+Now let’s turn the crank.
+\begin{itemize}
+\item \textbf{Subproblems:} Each recursive subproblem is specified by two integers $i$ and $k$, such that $1 \le i \le n+1$ and $0 \le k \le n$.
+\item \textbf{Memoization:} We can store all possible values of \Var{OptCost} in a two-dimensional array $\Var{OptCost}[1\,..\,n+1, 0\,..\,n]$.
+(Only the entries $\Var{OptCost}[i, j]$ with $j \ge i-1$ will actually be used, but whatever.)
+\item \textbf{Dependencies:} Each entry $\Var{OptCost}[i, k]$ depends on the entries $\Var{OptCost}[i, j-1]$ and $\Var{OptCost}[j+1, k]$, for all $j$ such that $i \le j \le k$.
+In other words, each table entry depends on all entries either directly to the left or directly below.
+\begin{center}
+\includegraphics{p137-Im49}
+\end{center}
+
+The following subroutine fills the entry $\Var{OptCost}[i, k]$, assuming all the entries it depends on have already been computed.
+\begin{pseudocode}
+\Header{\Proc{ComputeOptCost}$(i, k)$:}\\
+$\Var{OptCost}[i, k] \gets \infty$\\
+for $r \gets i$ to $k$\\
+\Indent $\Var{tmp} \gets \Var{OptCost}[i, r-1] + \Var{OptCost}[r+1, k]$\\
+\Indent if $\Var{OptCost}[i, k] > \Var{tmp}$\\
+\Indent\Indent $\Var{OptCost}[i, k] \gets \Var{tmp}$\\
+$\Var{OptCost}[i, k] \gets \Var{OptCost}[i, k] + F[i, k]$
+\end{pseudocode}
+\item \textbf{Evaluation order:} There are at least three different orders that can be used to fill the array.
+The first one that occurs to most students is to scan through the table one diagonal at a time, starting with the trivial base cases $\Var{OptCost}[i, i-1]$ and working toward the final answer $\Var{OptCost}[1, n]$, like so:
+\begin{pseudocode}
+\Header{\Proc{OptimalBST}$(f[1\,..\,n])$:}\\
+\Proc{InitF}$(f[1\,..\,n])$\\
+for $i \gets 1$ to $n+1$\\
+\Indent $\Var{OptCost}[i, i-1] \gets 0$\\
+for $d \gets 0$ to $n-1$\\
+\Indent for $i \gets 1$ to $n-d$ \Comment{\dots or whatever}\\
+\Indent\Indent $\Proc{ComputeOptCost}(i, i+d)$\\
+return $\Var{OptCost}[1, n]$
+\end{pseudocode}
+We could also traverse the array row by row from the bottom up, traversing each row from left to right, or column by column from left to right, traversing each columns from the bottom up.
+\begin{center}
+\begin{minipage}[c]{0.48\linewidth}
+\begin{pseudocode}
+\Header{\Proc{OptimalBST2}$(f[1\,..\,n])$:}\\
+\Proc{InitF}$(f[1\,..\,n])$\\
+for $i \gets n+1$ downto $1$\\
+\Indent $\Var{OptCost}[i, i-1] \gets 0$\\
+\Indent for $j \gets i$ to $n$\\
+\Indent\Indent $\Proc{ComputeOptCost}(i, j)$\\
+return $\Var{OptCost}[1, n]$
+\end{pseudocode}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.48\linewidth}
+\begin{pseudocode}
+\Header{\Proc{OptimalBST3}$(f[1\,..\,n])$:}\\
+\Proc{InitF}$(f[1\,..\,n])$\\
+for $j \gets 0$ to $n+1$\\
+\Indent $\Var{OptCost}[j+1, j] \gets 0$\\
+\Indent for $i \gets j$ downto $1$\\
+\Indent\Indent $\Proc{ComputeOptCost}(i, j)$\\
+return $\Var{OptCost}[1, n]$
+\end{pseudocode}
+\end{minipage}
+\end{center}
+As before, we can illustrate these evaluation orders using a double-lined arrow to indicate the outer loop and single-lined arrows to indicate the inner loop.
+The bidirectional arrows in the first evaluation order indicate that the order of the inner loops doesn’t matter.
+\begin{center}
+\includegraphics{p138-Im50}
+\end{center}
+\item \textbf{Time and space:} The memoization structure uses $O(n^2)$ space.
+No matter which evaluation order we choose, we need $O(n)$ time to compute each entry $\Var{OptCost}[i, k]$, so our overall algorithm runs in \textbf{\textit{$\symbfit{O(n^3)}$ time}}.
+\end{itemize}
+As usual, we could have predicted the final space and time bounds directly from the original recurrence:
+\[
+\Var{OptCost}(i, k) = \begin{cases}
+0 & \text{if } i > k\\[1ex]
+F[i, k] + \displaystyle\min_{i \le r \le k} \left\{\begin{aligned} &\Var{OptCost}(i, r-1)\\ &\quad + \Var{OptCost}(r+1, k) \end{aligned}\right\} & \text{otherwise}
+\end{cases}
+\]
+The \Var{OptCost} function has two arguments, each of which can take on roughly $n$ different values, so we probably need a data structure of size $O(n^2)$.
+On the other hand, there are \textit{three} variables in the body of the recurrence ($i$, $k$, and $r$), each of which can take roughly $n$ different values, so it should take $O(n^3)$ time to compute everything.
+
+\section{Dynamic Programming on Trees}
+\label{sec:3.10}
+
+So far, all of our dynamic programming examples use multidimensional arrays to store the results of recursive subproblems.
+However, as the next example shows, this is not always the most appropriate data structure to use.
+
+An \textbf{\textit{independent set}} in a graph is a subset of the vertices with no edges between them.
+Finding the largest independent set in an arbitrary graph is extremely hard; in fact, this is one of the canonical NP-hard problems we will study in \chapref{ch:12}.
+But in some special classes of graphs, we can find largest independent sets quickly.
+In particular, when the input graph is a \textit{tree} with $n$ vertices, we can actually compute the largest independent set in $O(n)$ time.
+
+Suppose we are given a tree $T$.
+Without loss of generality, suppose $T$ is a rooted tree; that is, there is a special node in $T$ called the \textit{root}, and all edges are implicitly directed away from this vertex.
+(If $T$ is an unrooted tree---a connected acyclic undirected graph---we can choose an arbitrary vertex as the root.)
+We call vertex $w$ a \textit{descendant} of vertex $v$ if the unique path from $w$ to the root includes $v$; equivalently, the descendants of $v$ are $v$ itself and the descendants of the children of $v$.
+The \textit{subtree rooted at} $v$ consists of all the descendants of $v$ and the edges between them.
+
+For any node $v$ in $T$, let $\Var{MIS}(v)$ denote the size of the largest independent set in the subtree rooted at $v$.
+Any independent set in this subtree that excludes $v$ itself is the union of independent sets in the subtrees rooted at the children of $v$.
+On the other hand, any independent set that \textit{includes} $v$ necessarily excludes all of $v$’s children, and therefore includes independent sets in the subtrees rooted at $v$’s grandchildren.
+Thus, the function \Var{MIS} obeys the following recurrence, where the nonstandard notation $w \downarrow v$ means “$w$ is a child of $v$”:
+\[
+\Var{MIS}(v) = \max\left\{\sum_{w \downarrow v} \Var{MIS}(w), \;\; 1 + \sum_{w \downarrow v} \sum_{x \downarrow w} \Var{MIS}(x)\right\}
+\]
+We need to compute $\Var{MIS}(r)$, where $r$ is the root of $T$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics{p139-Im51}
+\caption{Computing the maximum independent set in a tree}
+\label{fig:3.5}
+\end{figure}
+
+What data structure should we use to memoize this recurrence?
+The most natural choice is \textbf{\textit{the tree}} $\symbfit{T}$ \textbf{\textit{itself!}}
+Specifically, for each vertex $v$ in $T$, we store the result of $\Var{MIS}(v)$ in a new field $v.\Var{MIS}$.
+(In principle, we \textit{could} use an array instead, but then we’d need pointers back and forth between each node and its corresponding array entry, so why bother?)
+
+What’s a good order to consider the subproblems?
+The subproblem associated with any node $v$ depends on the subproblems associated with the children and grandchildren of $v$.
+So we can visit the nodes in any order we like, provided that every vertex is visited before its parent; in particular, we can use a standard \textbf{\textit{post-order}} traversal.
+
+What’s the running time of the algorithm?
+The non-recursive time associated with each node $v$ is proportional to the number of children and grandchildren of $v$; this number can be very different from one vertex to the next.
+But we can turn the analysis around: Each vertex contributes a constant amount of time to its parent and its grandparent!
+Because each vertex has at most one parent and at most one grandparent, the algorithm runs in \textbf{\textit{$\symbfit{O(n)}$ time}}.
+
+Here is the resulting dynamic programming algorithm.
+Yes, it’s still recursive, because that’s the most natural way to implement a post-order tree traversal.
+
+\begin{pseudocode}
+\Header{\Proc{TreeMIS}$(v)$:}\\
+$\Var{skipv} \gets 0$\\
+for each child $w$ of $v$\\
+\Indent $\Var{skipv} \gets \Var{skipv} + \Proc{TreeMIS}(w)$\\
+$\Var{keepv} \gets 1$\\
+for each grandchild $x$ of $v$\\
+\Indent $\Var{keepv} \gets \Var{keepv} + x.\Var{MIS}$\\
+$v.\Var{MIS} \gets \max\{keepv, skipv\}$\\
+return $v.\Var{MIS}$
+\end{pseudocode}
+
+We can derive an even simpler linear-time algorithm by defining two separate functions over the nodes of $T$:
+\begin{itemize}
+\item Let $\Var{MISyes}(v)$ denote the size of the largest independent set of the subtree rooted at $v$ that \textit{includes} $v$.
+\item Let $\Var{MISno}(v)$ denote the size of the largest independent set of the subtree rooted at $v$ that \textit{excludes} $v$.
+\end{itemize}
+Again, we need to compute $\max\{\Var{MISyes}(r), \Var{MISno}(r)\}$, where $r$ is the root of $T$.
+The first two functions satisfy the following mutual recurrence:
+\begin{align*}
+\Var{MISyes}(v) &= 1 + \sum_{w \downarrow v} \Var{MISno}(w)\\
+\Var{MISno}(v) &= \sum_{w \downarrow v} \max\{\Var{MISyes}(w), \Var{MISno}(w)\}
+\end{align*}
+Again, we can memoize these functions into the tree itself, by defining two new fields for each vertex.
+A straightforward post-order tree traversal evaluates both functions at every node in \textbf{\textit{$\symbfit{O(n)}$ time}}.
+The following algorithm not only memoizes both function values at $v$, it also returns the larger of those two values.
+
+\begin{pseudocode}
+\Header{\Proc{TreeMIS2}$(v)$:}\\
+$v.\Var{MISno} \gets 0$\\
+$v.\Var{MISyes} \gets 1$\\
+for each child $w$ of $v$\\
+\Indent $v.\Var{MISno} \gets v.\Var{MISno} + \Proc{TreeMIS2}(w)$\\
+\Indent $v.\Var{MISyes} \gets v.\Var{MISyes} + w.\Var{MISno}$\\
+return $\max\{v.\Var{MISyes}, v.\Var{MISno}\}$
+\end{pseudocode}
+
+In the second line of the inner loop, we are using the value $w.\Var{MISno}$ that was memoized by the recursive call in the previous line.
+
+\section*{\ExercisesName}
+\addcontentsline{toc}{section}{\ExercisesName}
+\markright{\ExercisesName}
+
+For all of the following exercises---and more generally when developing \textbf{\textit{any}} new dynamic programming algorithm---I strongly recommend following the steps outlined in \secref{sec:3.4}.
+In particular, don’t even \textit{start} thinking about tables or for-loops until you have a complete recursive solution, including a clear English specification of the recursive subproblems you are actually solving.\footnote{In my algorithms classes, any dynamic programming solution that does \textit{not} include an English specification of the underlying recursive subproblems automatically gets a score of \textit{zero}, even if the solution is otherwise perfect. Introducing this policy significantly improved students’ grades, because it significantly reduced the number of times they submitted incorrect (or incoherent) dynamic programming algorithms.}
+\textbf{First make it work, then make it fast.}
+
+\subsection*{Sequences/Arrays}
+
+\begin{enumerate}[label=\arabic*.,ref=\thechapter.\arabic*,leftmargin=*,align=left,widest*=99,itemsep=1.5ex plus 0.5ex]
+\item In a previous life, you worked as a cashier in the lost Antarctican colony of Nadiria, spending the better part of your day giving change to your customers.
+Because paper is a very rare and valuable resource in Antarctica, cashiers were required by law to use the fewest bills possible whenever they gave change.
+Thanks to the numerological predilections of one of its founders, the currency of Nadiria, called Dream-Dollars, was available in the following denominations: \$1, \$4, \$7, \$13, \$28, \$52, \$91, and \$365.\footnote{For more details on the history and culture of Nadiria, including images of the various denominations of Dream-Dollars, see http://moneyart.biz/dd/.}
+\begin{enumerate}
+\item \difficulty{s} The greedy change algorithm repeatedly takes the largest bill that does not exceed the target amount.
+For example, to make \$122 using the greedy algorithm, we first take a \$91 bill, then a \$28 bill, and finally three \$1 bills.
+Give an example where this greedy algorithm uses more Dream-Dollar bills than the minimum possible.
+\Hint{It may be easier to write a small program than to work this out by hand.}
+\item Describe and analyze a recursive algorithm that computes, given an integer $k$, the minimum number of bills needed to make $k$ Dream-Dollars.
+(Don’t worry about making your algorithm fast; just make sure it’s correct.)
+\item Describe a dynamic programming algorithm that computes, given an integer $k$, the minimum number of bills needed to make $k$ Dream-Dollars.
+(This one needs to be fast.)
+\end{enumerate}
+
+\item Describe efficient algorithms for the following variants of the text segmentation problem.
+Assume that you have a subroutine \Proc{IsWord} that takes an array of characters as input and returns \Const{True} if and only if that string is a “word”.
+Analyze your algorithms by bounding the number of calls to \Proc{IsWord}.
+\begin{enumerate}
+\item Given an array $A[1\,..\,n]$ of characters, compute the number of partitions of $A$ into words.
+For example, given the string \Str{ARTISTOIL}, your algorithm should return $2$, for the partitions \Str{ARTIST·OIL} and \Str{ART·IS·TOIL}.
+\item Given two arrays $A[1\,..\,n]$ and $B[1\,..\,n]$ of characters, decide whether $A$ and $B$ can be partitioned into words at the same indices.
+For example, the strings \Str{BOTHEARTHANDSATURNSPIN} and \Str{PINSTARTRAPSANDRAGSLAP} can be partitioned into words at the same indices as follows:
+\[
+\begin{array}{c}
+\mbox{\Str{BOT·HEART·HAND·SAT·URNS·PIN}}\\
+\mbox{\Str{PIN·START·RAPS·AND·RAGS·LAP}}
+\end{array}
+\]
+\item Given two arrays $A[1\,..\,n]$ and $B[1\,..\,n]$ of characters, compute the number of different ways that $A$ and $B$ can be partitioned into words at the same indices.
+\end{enumerate}
+
+\item Suppose you are given an array $A[1\,..\,n]$ of numbers, which may be positive, negative, or zero, and which are \textbf{\textit{not}} necessarily integers.
+\begin{enumerate}
+\item Describe and analyze an algorithm that finds the largest sum of elements in a contiguous subarray $A[i\,..\,j]$.
+\item Describe and analyze an algorithm that finds the largest \textit{product} of elements in a contiguous subarray $A[i\,..\,j]$.
+\end{enumerate}
+For example, given the array $[-6, 12, -7, 0, 14, -7, 5]$ as input, your first algorithm should return $19$, and your second algorithm should return $504$.
+\[
+\begin{array}{|c|c|c|c|c|c|c|}
+\multicolumn{1}{c}{} & \multicolumn{4}{c}{\overbrace{\hspace{85pt}}^{\text{sum}=19}} & \multicolumn{2}{c}{}\\[-0.7ex]
+\hline
+-6 & 12 & -7 & 0 & 14 & -7 & 5\\
+\hline
+\multicolumn{3}{c}{\underbrace{\hspace{68pt}}_{\text{product}=504}} & \multicolumn{4}{c}{}
+\end{array}
+\]
+Given the one-element array $[-374]$ as input, your first algorithm should return $0$, and your second algorithm should return $1$.
+(The empty interval is still an interval!)
+For the sake of analysis, assume that comparing, adding, or multiplying any pair of numbers takes $O(1)$ time.
+
+\Hint{Part (a) has been a standard computer science interview question since at least the mid-1980s. You can find many correct solutions on the web; the problem even has its own Wikipedia page! But at least in 2016, a significant fraction of the solutions I found on the web for part (b) were either slower than necessary or actually incorrect.}
+
+\item This exercise explores variants of the maximum-subarray problem (Problem 3).
+In all cases, your input consists of an array $A[1\,..\,n]$ of real numbers (which could be positive, negative, or zero) and possibly an additional integer $X \ge 0$.
+\begin{enumerate}
+\item \textit{Wrapping around:} Suppose $A$ is a \textit{circular} array.
+In this setting, a “contiguous subarray” can be either an interval $A[i\,..\,j]$ or a suffix followed by a prefix $A[i\,..\,n] \cdot A[1\,..\,j]$.
+Describe and analyze an algorithm that finds a contiguous subarray of $A$ with the largest sum.
+\item \textit{Long subarrays only:} Describe and analyze an algorithm that finds a contiguous subarray of $A$ \textit{of length at least} $X$ that has the largest sum.
+(Assume $X \le n$.)
+\item \textit{Short subarrays only:} Describe and analyze an algorithm that finds a contiguous subarray of $A$ \textit{of length at most} $X$ that has the largest sum.
+\item \textit{The Price Is Right:} Describe and analyze an algorithm that finds a contiguous subarray of $A$ with the largest sum \textit{less than or equal to} $X$.
+\item Describe a faster algorithm for Problem 4(d) when every number in the array $A$ is non-negative.
+\end{enumerate}
+
+\item This exercise asks you to develop efficient algorithms to find optimal \textit{subsequences} of various kinds.
+A subsequence is anything obtained from a sequence by extracting a subset of elements, but keeping them in the same order; the elements of the subsequence need not be contiguous in the original sequence.
+For example, the strings \Str{C}, \Str{DAMN}, \Str{YAIOAI}, and \Str{DYNAMICPROGRAMMING} are all subsequences of the string \Str{DYNAMICPROGRAMMING}.
+
+\Hint{Exactly one of these problems can be solved in $O(n)$ time using a greedy algorithm.}
+\begin{enumerate}
+\item Let $A[1\,..\,m]$ and $B[1\,..\,n]$ be two arbitrary arrays.
+A \textbf{\textit{common subsequence}} of $A$ and $B$ is another sequence that is a subsequence of both $A$ and $B$.
+Describe an efficient algorithm to compute the length of the \textit{longest} common subsequence of $A$ and $B$.
+\item Let $A[1\,..\,m]$ and $B[1\,..\,n]$ be two arbitrary arrays.
+A \textbf{\textit{common supersequence}} of $A$ and $B$ is another sequence that contains both $A$ and $B$ as subsequences.
+Describe an efficient algorithm to compute the length of the \textit{shortest} common supersequence of $A$ and $B$.
+\item Call a sequence $X[1\,..\,n]$ of numbers \textbf{\textit{bitonic}} if there is an index $i$ with $1 < i < n$, such that the prefix $X[1\,..\,i]$ is increasing and the suffix $X[i\,..\,n]$ is decreasing.
+Describe an efficient algorithm to compute the length of the longest bitonic subsequence of an arbitrary array $A$ of integers.
+\item Call a sequence $X[1\,..\,n]$ of numbers \textbf{\textit{oscillating}} if $X[i] < X[i+1]$ for all even $i$, and $X[i] > X[i+1]$ for all odd $i$.
+Describe an efficient algorithm to compute the length of the longest oscillating subsequence of an arbitrary array $A$ of integers.
+\item Describe an efficient algorithm to compute the length of the shortest oscillating supersequence of an arbitrary array $A$ of integers.
+\item Call a sequence $X[1\,..\,n]$ of numbers \textbf{\textit{convex}} if $2 \cdot X[i] < X[i-1] + X[i+1]$ for all $i$.
+Describe an efficient algorithm to compute the length of the longest convex subsequence of an arbitrary array $A$ of integers.
+\item Call a sequence $X[1\,..\,n]$ of numbers \textbf{\textit{weakly increasing}} if each element is larger than the average of the two previous elements; that is, $2 \cdot X[i] > X[i-1] + X[i-2]$ for all $i > 2$.
+Describe an efficient algorithm to compute the length of the longest weakly increasing subsequence of an arbitrary array $A$ of integers.
+\item Call a sequence $X[1\,..\,n]$ of numbers \textbf{\textit{double-increasing}} if $X[i] > X[i-2]$ for all $i > 2$.
+(In other words, a double-increasing sequence is a perfect shuffle of two increasing sequences.)
+Describe an efficient algorithm to compute the length of the longest double-increasing subsequence of an arbitrary array $A$ of integers.
+\item Recall that a sequence $X[1\,..\,n]$ of numbers is \textit{increasing} if $X[i] < X[i+1]$ for all $i$.
+Describe an efficient algorithm to compute the length of the \textit{longest common increasing subsequence} of two given arrays of integers.
+For example, $\langle 1,4,5,6,7,9 \rangle$ is the longest common increasing subsequence of the sequences $\langle 3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3 \rangle$ and $\langle 1,4,1,4,2,1,3,5,6,2,3,7,3,0,9,5 \rangle$.
+\end{enumerate}
+
+\item A \textit{shuffle} of two strings $X$ and $Y$ is formed by interspersing the characters into a new string, keeping the characters of $X$ and $Y$ in the same order.
+For example, the string \Str{BANANAANANAS} is a shuffle of the strings \Str{BANANA} and \Str{ANANAS} in several different ways.
+\[
+\mbox{\raisebox{0.2ex}{{\color{JEcyan}\ttfamily BANANA}}\raisebox{-0.35ex}{\Str{ANANAS}}} \qquad \mbox{\raisebox{0.2ex}{{\color{JEcyan}\ttfamily BAN}}\raisebox{-0.35ex}{\Str{ANA}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily ANA}}\raisebox{-0.35ex}{\Str{NAS}}} \qquad \mbox{\raisebox{0.2ex}{{\color{JEcyan}\ttfamily B}}\raisebox{-0.35ex}{\Str{AN}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily AN}}\raisebox{-0.35ex}{\Str{A}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily A}}\raisebox{-0.35ex}{\Str{NA}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily NA}}\raisebox{-0.35ex}{\Str{S}}}
+\]
+Similarly, the strings \Str{PRODGYRNAMAMMIINCG} and \Str{DYPRONGARMAMMICING} are both shuffles of {\color{JEcyan}\ttfamily DYNAMIC} and \Str{PROGRAMMING}:
+\[
+\mbox{\raisebox{-0.35ex}{\Str{PRO}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily D}}\raisebox{-0.35ex}{\Str{G}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily Y}}\raisebox{-0.35ex}{\Str{R}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily NAM}}\raisebox{-0.35ex}{\Str{AMMI}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily I}}\raisebox{-0.35ex}{\Str{N}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily C}}\raisebox{-0.35ex}{\Str{G}}} \qquad \mbox{\raisebox{0.2ex}{{\color{JEcyan}\ttfamily DY}}\raisebox{-0.35ex}{\Str{PRO}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily N}}\raisebox{-0.35ex}{\Str{G}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily A}}\raisebox{-0.35ex}{\Str{R}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily M}}\raisebox{-0.35ex}{\Str{AMM}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily IC}}\raisebox{-0.35ex}{\Str{ING}}}
+\]
+\begin{enumerate}
+\item Given three strings $A[1\,..\,m]$, $B[1\,..\,n]$, and $C[1\,..\,m+n]$, describe and analyze an algorithm to determine whether $C$ is a shuffle of $A$ and $B$.
+\item A \textbf{\textit{smooth}} shuffle of $X$ and $Y$ is a shuffle of $X$ and $Y$ that never uses more than two consecutive symbols of either string.
+For example,
+\begin{itemize}
+\item \mbox{\raisebox{0.2ex}{{\color{JEcyan}\ttfamily PR}}\raisebox{-0.35ex}{\Str{D}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily O}}\raisebox{-0.35ex}{\Str{Y}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily G}}\raisebox{-0.35ex}{\Str{NA}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily RA}}\raisebox{-0.35ex}{\Str{M}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily MM}}\raisebox{-0.35ex}{\Str{I}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily I}}\raisebox{-0.35ex}{\Str{C}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily NG}}} is a smooth shuffle of the strings \Str{DYNAMIC} and {\color{JEcyan}\ttfamily PROGRAMMING}.
+\item \mbox{\raisebox{-0.35ex}{\Str{DY}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily PR}}\raisebox{-0.35ex}{\Str{N}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily OGR}}\raisebox{-0.35ex}{\Str{A}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily A}}\raisebox{-0.35ex}{\Str{M}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily MM}}\raisebox{-0.35ex}{\Str{IC}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily ING}}} is a shuffle of \Str{DYNAMIC} and {\color{JEcyan}\ttfamily PROGRAMMING}, but it is not a smooth shuffle (because of the substrings {\color{JEcyan}\ttfamily OGR} and {\color{JEcyan}\ttfamily ING}).
+\item \mbox{\raisebox{0.2ex}{{\color{JEcyan}\ttfamily XX}}\raisebox{-0.35ex}{\Str{X}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily X}}\raisebox{-0.35ex}{\Str{X}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily X}}\raisebox{-0.35ex}{\Str{XX}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily XX}}\raisebox{-0.35ex}{\Str{XX}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily XX}}\raisebox{-0.35ex}{\Str{X}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily X}}\raisebox{-0.35ex}{\Str{X}}\raisebox{0.2ex}{{\color{JEcyan}\ttfamily XX}}} is a smooth shuffle of the strings \Str{XXXXXXX} and {\color{JEcyan}\ttfamily XXXXXXXXXXX}.
+\item There is no smooth shuffle of the strings \Str{XXXX} and {\color{JEcyan}\ttfamily XXXXXXXXXXXX}.
+\end{itemize}
+Describe and analyze an algorithm to decide, given three strings $X$, $Y$, and $Z$, whether $Z$ is a smooth shuffle of $X$ and $Y$.
+\end{enumerate}
+
+\item For each of the following problems, the input consists of two arrays $X[1\,..\,k]$ and $Y[1\,..\,n]$ where $k \le n$.
+\begin{enumerate}
+\item Describe and analyze an algorithm to decide whether $X$ is a subsequence of $Y$.
+For example, the string \Str{PPAP} is a subsequence of the string \Str{\StrMark{P}EN\StrMark{P}INE\StrMark{A}PPLEAPPLE\StrMark{P}EN}.
+\item Describe and analyze an algorithm to find the smallest number of symbols that can be removed from $Y$ so that $X$ is no longer a subsequence.
+Equivalently, your algorithm should find the longest subsequence of $Y$ that is \textit{not} a supersequence of $X$.
+For example, after removing removing two symbols from the string \Str{PENPINE\StrMark{A}PPLE\StrMark{A}PPLEPEN}, the string \Str{PPAP} is no longer a subsequence.
+\item \difficulty{h} Describe and analyze an algorithm to determine whether $X$ occurs as two \textit{disjoint} subsequences of $Y$.
+For example, the string \Str{PPAP} appears as two disjoint subsequences in the string \Str{\StrMark{P}EN\StrMark{P}INE\StrMark{A}\StrMarkAlt{PP}LE\StrMarkAlt{A}\StrMark{P}PLE\StrMarkAlt{P}EN}.
+\item Suppose the input also includes a third array $C[1\,..\,n]$ of numbers, which may be positive, negative, or zero, where $C[i]$ is the \textit{cost} of $Y[i]$.
+Describe and analyze an algorithm to compute the minimum-cost occurrence of $X$ as a subsequence of $Y$.
+That is, we want to find an array $I[1\,..\,k]$ such that $I[j] < I[j+1]$ and $X[I[j]] = Y[j]$ for every index $j$, and the total cost $\sum_{j=1}^{k} C[j]$ is as small as possible.
+\item Describe and analyze an algorithm to compute the total number of (possibly overlapping) occurrences of $X$ as a subsequence of $Y$.
+For purposes of analysis, assume that we can add two arbitrary integers in $O(1)$ time.
+For example, the string \Str{PPAP} appears exactly 23 times as a subsequence of the string \Str{PENPINEAPPLEAPPLEPEN}.
+If all characters in $X$ and $Y$ are equal, your algorithm should return $\binom{n}{k}$.
+\item What is the running time of your algorithm for part (d) if adding two $\ell$-bit integers requires $O(\ell)$ time?
+\end{enumerate}
+
+\item Describe and analyze an efficient algorithm to find the length of the longest contiguous substring that appears both forward and backward in an input string $T[1\,..\,n]$.
+The forward and backward substrings must not overlap.
+Here are several examples:
+\begin{itemize}
+\item Given the input string \Str{ALGORITHM}, your algorithm should return $0$.
+\item Given the input string \Str{\underline{R}ECU\underline{R}SION}, your algorithm should return $1$, for the substring \Str{R}.
+\item Given the input string \Str{R\underline{EDI}V\underline{IDE}}, your algorithm should return $3$, for the substring \Str{EDI}.
+(The forward and backward substrings must not overlap!)
+\item Given the input string \Str{D\underline{YNAM}ICPROGRAMMING\underline{MANY}TIMES}, your algorithm should return $4$, for the substring \Str{YNAM}.
+(In particular, it should \textit{not} return $6$, for the subsequence \Str{YNAMIR}).
+\end{itemize}
+
+\item A palindrome is any string that is exactly the same as its reversal, like \Str{I}, or \Str{DEED}, or \Str{RACECAR}, or \Str{AMANAPLANACATACANALPANAMA}.
+\begin{enumerate}
+\item Describe and analyze an algorithm to find the length of the \textit{longest subsequence} of a given string that is also a palindrome.
+
+For example, the longest palindrome subsequence of the string \Str{\StrMark{M}A\StrMark{H}D\StrMark{Y}NA\StrMark{M}ICP\StrMark{RO}G\StrMark{R}AMZLET\StrMark{M}ESHOW\StrMark{Y}OUT\StrMark{H}E\StrMark{M}} is \Str{MHYMRORMYHM}; thus, given that string as input, your algorithm should return $11$.
+\item Describe and analyze an algorithm to find the length of the \textit{shortest supersequence} of a given string that is also a palindrome.
+For example, the shortest palindrome supersequence of \Str{TWENTYONE} is \Str{\StrMark{TWENT}O\StrMark{YO}T\StrMark{NE}WT}, so given the string \Str{TWENTYONE} as input, your algorithm should return $13$.
+\item Any string can be decomposed into a sequence of palindromes.
+For example, the string \Str{BUBBASEESABANANA} (“Bubba sees a banana.”) can be broken into palindromes in the following ways (and 65 others):
+\[
+\begin{array}{c}
+\mbox{\Str{BUB} • \Str{BASEESAB} • \Str{ANANA}}\\
+\mbox{\Str{B} • \Str{U} • \Str{BB} • \Str{ASEESA} • \Str{B} • \Str{ANANA}}\\
+\mbox{\Str{BUB} • \Str{B} • \Str{A} • \Str{SEES} • \Str{ABA} • \Str{N} • \Str{ANA}}\\
+\mbox{\Str{B} • \Str{U} • \Str{BB} • \Str{A} • \Str{S} • \Str{EE} • \Str{S} • \Str{A} • \Str{B} • \Str{A} • \Str{NAN} • \Str{A}}\\
+\mbox{\Str{B} • \Str{U} • \Str{B} • \Str{B} • \Str{A} • \Str{S} • \Str{E} • \Str{E} • \Str{S} • \Str{A} • \Str{B} • \Str{A} • \Str{N} • \Str{A} • \Str{N} • \Str{A}}
+\end{array}
+\]
+Describe and analyze an efficient algorithm to find the smallest number of palindromes that make up a given input string.
+For example, given the input string \Str{BUBBASEESABANANA}, your algorithm should return $3$.
+\item Describe and analyze an efficient algorithm to find the largest integer $k$ such that a given string can be split into palindromes of length at least $k$.
+For example:
+\begin{itemize}
+\item Given the string \Str{PALINDROME}, your algorithm should return $1$.
+\item Given the string \Str{BUBBASEESABANANA}, your algorithm should return $3$, for the partition \Str{BUB} • \Str{BASEESAB} • \Str{ANANA}.
+\item Given a string of $n$ identical symbols, your algorithm should return $n$.
+\end{itemize}
+\item Describe and analyze an efficient algorithm to find the number of different ways that a given string can be decomposed into palindromes.
+For example:
+\begin{itemize}
+\item Given the string \Str{PALINDROME}, your algorithm should return $1$.
+\item Given the string \Str{BUBBASEESABANANA}, your algorithm should return $70$.
+\item Given a string of $n$ identical symbols, your algorithm should return $2^{n-1}$.
+\end{itemize}
+\item \difficulty{h} A \textbf{\textit{metapalindrome}} is a decomposition of a string into a sequence of palindromes, such that the sequence of palindrome lengths is itself a palindrome.
+For example:
+\[
+\mbox{\Str{BOB} • \Str{S} • \Str{MAM} • \Str{ASEESA} • \Str{UKU} • \Str{L} • \Str{ELE}}
+\]
+is a metapalindrome for the string \Str{BOBSMAMASEESAUKULELE}, whose length sequence is the palindrome $(3,1,3,6,3,1,3)$.
+Describe and analyze an efficient algorithm to find the length of the shortest metapalindrome for a given string.
+For example, given the input string \Str{BOBSMAMASEESAUKULELE}, your algorithm should return 11.
+\end{enumerate}
+
+\item Suppose you are given an array $A[1\,..\,n]$ of positive integers.
+An \textit{increasing back-and-forth subsequence} is an sequence of indices $I[1\,..\,\ell]$ with the following properties:
+\begin{itemize}
+\item $1 \le I[j] \le n$ for all $j$.
+\item $A[I[j]] < A[I[j+1]]$ for all $j < \ell$.
+\item If $I[j]$ is even, then $I[j+1] > I[j]$.
+\item If $I[j]$ is odd, then $I[j+1] < I[j]$.
+\end{itemize}
+Less formally, suppose we are given an array of $n$ squares, each containing a positive integer.
+Suppose we place a token on one of the squares, and then repeatedly move the token left (if it’s on an odd-indexed square) or right (if it’s on an even-indexed square), always moving from a smaller number to a larger number.
+Then the sequence of token positions is an increasing back-and-forth subsequence.
+
+Describe an algorithm to compute the length of the longest increasing back-and-forth subsequence of a given array of $n$ integers.
+For example, given the input array
+\[
+\setlength{\arraycolsep}{3.7pt}
+\begin{array}{|*{20}{c|}}
+\hline
+{\color{JEred}1} & {\color{JEcyan}1} & {\color{JEred}8} & {\color{JEcyan}7} & {\color{JEred}5} & {\color{JEcyan}6} & {\color{JEred}3} & {\color{JEcyan}6} & {\color{JEred}4} & {\color{JEcyan}4} & {\color{JEred}8} & {\color{JEcyan}3} & {\color{JEred}9} & {\color{JEcyan}1} & {\color{JEred}2} & {\color{JEcyan}2} & {\color{JEred}3} & {\color{JEcyan}9} & {\color{JEred}4} & {\color{JEcyan}0}\\
+\hline
+\multicolumn{1}{c}{\textsf{\tiny 1\textless}} & \multicolumn{1}{c}{\textsf{\tiny 2\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 3\textless}} & \multicolumn{1}{c}{\textsf{\tiny 4\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 5\textless}} & \multicolumn{1}{c}{\textsf{\tiny 6\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 7\textless}} & \multicolumn{1}{c}{\textsf{\tiny 8\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 9\textless}} & \multicolumn{1}{c}{\textsf{\tiny 10\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 11\textless}} & \multicolumn{1}{c}{\textsf{\tiny 12\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 13\textless}} & \multicolumn{1}{c}{\textsf{\tiny 14\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 15\textless}} & \multicolumn{1}{c}{\textsf{\tiny 16\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 17\textless}} & \multicolumn{1}{c}{\textsf{\tiny 18\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 19\textless}} & \multicolumn{1}{c}{\textsf{\tiny 20\textgreater}}
+\end{array}
+\]
+your algorithm should return the integer $9$, which is the length of the following increasing back-and-forth subsequence:
+\[
+\setlength{\arraycolsep}{3.7pt}
+\begin{array}{|*{9}{c|}}
+\hline
+{\color{JEcyan}0} & {\color{JEred}1} & {\color{JEred}2} & {\color{JEcyan}3} & {\color{JEcyan}4} & {\color{JEcyan}6} & {\color{JEcyan}7} & {\color{JEred}8} & {\color{JEred}9}\\
+\hline
+\multicolumn{1}{c}{\textsf{\tiny 20\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 1\textless}} & \multicolumn{1}{c}{\textsf{\tiny 15\textless}} & \multicolumn{1}{c}{\textsf{\tiny 18\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 10\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 6\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 4\textgreater}} & \multicolumn{1}{c}{\textsf{\tiny 3\textless}} & \multicolumn{1}{c}{\textsf{\tiny 13\textless}}
+\end{array}
+\]
+
+\item Suppose we want to typeset a paragraph of text onto a piece of paper (or if you insist, a computer screen).
+The text consists of a sequence of $n$ words, where the $i$th word has length $\ell[i]$.
+We want to break the paragraph into several lines of total length exactly $L$.
+For example, according to \TeX, the program used to typeset these notes, \textit{the paragraph you are reading right now} is approximately 11.94794 cm $\approx$ 4.7055 inches wide.
+
+Depending on how the paragraph is broken into lines of text, we must insert different amounts of white space between the words.
+The paragraph should be fully justified, meaning that the first character on each line starts at the left margin, and \textit{except for the last line}, the last character on each line ends at the right margin.
+There must be at least one unit of white space between any two words on the same line.
+See \textit{the paragraph you are reading right now}?
+Just like that.
+
+Define the \textit{slop} of a paragraph layout as the sum over all lines, \textit{except the last}, of the cube of the amount of extra white-space in each line, not counting the one unit of required space between each adjacent pair of words.
+Specifically, if a line contains words $i$ through $j$, then the slop of that line is defined to be $\bigl(L - j + i - \sum_{k=i}^{j} \ell[k]\bigr)^3$.
+Describe a dynamic programming algorithm to print the paragraph with minimum slop.
+
+\item You and your eight-year-old nephew Elmo decide to play a simple card game.
+At the beginning of the game, the cards are dealt face up in a long row.
+Each card is worth a different number of points.
+After all the cards are dealt, you and Elmo take turns removing either the leftmost or rightmost card from the row, until all the cards are gone.
+At each turn, you can decide which of the two cards to take.
+The winner of the game is the player that has collected the most points when the game ends.
+
+Having never taken an algorithms class, Elmo follows the obvious greedy strategy---when it’s his turn, Elmo \textit{always} takes the card with the higher point value.
+Your task is to find a strategy that will beat Elmo whenever possible.
+(It might seem mean to beat up on a little kid like this, but Elmo absolutely \textit{hates} it when grown-ups let him win.)
+\begin{enumerate}
+\item Prove that you should not also use the greedy strategy.
+That is, show that there is a game that you can win, but only if you do \textit{not} follow the same greedy strategy as Elmo.
+\item Describe and analyze an algorithm to determine, given the initial sequence of cards, the maximum number of points that you can collect playing against Elmo.
+\item \difficulty{c} When Elmo was four, he used an even simpler strategy---on his turn, he always chose his next card uniformly at random.
+That is, if there was more than one card left on his turn, he would take the leftmost card with probability $1/2$, and the rightmost card with probability $1/2$.
+Describe an algorithm to determine, given the initial sequence of cards, the maximum \textit{expected} number of points you can collect playing against four-year-old-Elmo.
+\item Five years later, thirteen-year-old Elmo has become a \textit{much} stronger player.
+Describe and analyze an algorithm to determine, given the initial sequence of cards, the maximum number of points that you can collect playing against a \textit{perfect} opponent.
+\end{enumerate}
+
+\item It’s almost time to show off your flippin’ sweet dancing skills!
+Tomorrow is the big dance contest you’ve been training for your entire life, except for that summer you spent with your uncle in Alaska hunting wolverines.
+You’ve obtained an advance copy of the list of $n$ songs that the judges will play during the contest, in chronological order.
+Yessssssssss!
+
+You know all the songs, all the judges, and your own dancing ability extremely well.
+For each integer $k$, you know that if you dance to the $k$th song on the schedule, you will be awarded exactly $\Var{Score}[k]$ points, but then you will be physically unable to dance for the next $\Var{Wait}[k]$ songs (that is, you cannot dance to songs $k+1$ through $k + \Var{Wait}[k]$).
+The dancer with the highest total score at the end of the night wins the contest, so you want your total score to be as high as possible.
+
+Describe and analyze an efficient algorithm to compute the maximum total score you can achieve.
+The input to your sweet algorithm is the pair of arrays $\Var{Score}[1\,..\,n]$ and $\Var{Wait}[1\,..\,n]$.
+
+\item The new swap-puzzle game \textit{Candy Swap Saga XIII} involves $n$ cute animals numbered from $1$ to $n$.
+Each animal holds one of three types of candy: circus peanuts, Heath bars, and Cioccolateria Gardini chocolate truffles.
+You also have a candy in your hand; at the start of the game, you have a circus peanut.
+
+To earn points, you visit each of the animals in order from $1$ to $n$.
+For each animal, you can either keep the candy in your hand or exchange it with the candy the animal is holding.
+\begin{itemize}
+\item If you swap your candy for another candy of the \textit{same} type, you earn one point.
+\item If you swap your candy for a candy of a \textit{different} type, you lose one point.
+(Yes, your score can be negative.)
+\item If you visit an animal and decide not to swap candy, your score does not change.
+\end{itemize}
+You \textit{must} visit the animals in order, and once you visit an animal, you can never visit it again.
+
+Describe and analyze an efficient algorithm to compute your maximum possible score.
+Your input is an array $C[1\,..\,n]$, where $C[i]$ is the type of candy that the $i$th animal is holding.
+
+\item Lenny Rutenbar, the founding dean of the new Maksymilian R. Levchin College of Computer Science, has commissioned a series of snow ramps on the south slope of the Orchard Downs sledding hill\footnote{The north slope is faster, but too short for an interesting contest.} and challenged Bill Kudeki, head of the Department of Electrical and Computer Engineering, to a sledding contest.
+Bill and Lenny will both sled down the hill, each trying to maximize their air time.
+The winner gets to expand their department/college into both Siebel Center and the new ECE Building; the loser has to move their entire department/college in the Boneyard culvert next to Loomis Lab.
+
+Whenever Lenny or Bill reaches a ramp \textit{while on the ground}, they can either use that ramp to jump through the air, possibly flying over one or more ramps, or sled past that ramp and stay on the ground.
+Obviously, if someone flies over a ramp, they cannot use that ramp to extend their jump.
+\begin{enumerate}
+\item Suppose you are given a pair of arrays $\Var{Ramp}[1\,..\,n]$ and $\Var{Length}[1\,..\,n]$, where $\Var{Ramp}[i]$ is the distance from the top of the hill to the $i$th ramp, and $\Var{Length}[i]$ is the distance that any sledder who takes the $i$th ramp will travel through the air.
+Describe and analyze an algorithm to determine the maximum total distance that Lenny or Bill can spend in the air.
+\item The university lawyers heard about Lenny and Bill’s little bet and immediately objected.
+To protect the university from either lawsuits or sky-rocketing insurance rates, they impose an upper bound on the number of jumps that either sledder can take.
+Describe and analyze an algorithm to determine the maximum total distance that Lenny or Bill can spend in the air \textit{with at most} $k$ \textit{jumps}, given the original arrays $\Var{Ramp}[1\,..\,n]$ and $\Var{Length}[1\,..\,n]$ and the integer $k$ as input.
+\item \difficulty{h} When the lawyers realized that imposing their restriction didn’t immediately shut down the contest, they added a new restriction: No ramp can be used more than once!
+Disgusted by the legal interference, Lenny and Bill give up on their bet and decide to cooperate to put on a good show for the spectators.
+Describe and analyze an algorithm to determine the maximum total distance that Lenny and Bill can spend in the air, each taking at most $k$ jumps (so at most $2k$ jumps total), and with each ramp used at most once.
+\end{enumerate}
+
+\item Farmers Boggis, Bunce, and Bean have set up an obstacle course for Mr. Fox.
+The course consists of a long row of booths, each with a number painted on the front with bright red paint.
+Formally, Mr. Fox is given an array $A[1\,..\,n]$, where $A[i]$ is the number painted on the front of the $i$th booth.
+Each number $A[i]$ could be positive, negative, or zero.
+Everyone agrees with the following rules:
+\begin{itemize}
+\item At each booth, Mr. Fox \textbf{\textit{must}} say either “Ring!” or “Ding!”.
+\item If Mr. Fox says “Ring!” at the $i$th booth, he earns a reward of $A[i]$ chickens.
+(If $A[i] < 0$, Mr. Fox pays a penalty of $-A[i]$ chickens.)
+\item If Mr. Fox says “Ding!” at the $i$th booth, he pays a penalty of $A[i]$ chickens.
+(If $A[i] < 0$, Mr. Fox earns a reward of $-A[i]$ chickens.)
+\item Mr. Fox is forbidden to say the same word more than three times in a row.
+For example, if he says “Ring!” at booths 6, 7, and 8, then he must say “Ding!” at booth 9.
+\item All accounts will be settled at the end, after Mr. Fox visits every booth and the umpire calls “Hot box!”
+Mr. Fox does not actually have to carry chickens through the obstacle course.
+\item Finally, if Mr. Fox violates any of the rules, or if he ends the obstacle course owing the farmers chickens, the farmers will shoot him.
+\end{itemize}
+Describe and analyze an algorithm to compute, the largest number of chickens that Mr. Fox can earn by running the obstacle course, given the array $A[1\,..\,n]$ of numbers as input.
+\Hint{Watch out for the burning pine cone!}
+
+
+
+
+\item \textbf{\textit{Dance Dance Revolution}} is a dance video game, first introduced in Japan by Konami in 1998.
+Players stand on a platform marked with four arrows, pointing forward, back, left, and right, arranged in a cross pattern.
+During play, the game plays a song and scrolls a sequence of $n$ arrows ($\leftarrow$, $\uparrow$, $\downarrow$, or $\rightarrow$) from the bottom to the top of the screen.
+At the precise moment each arrow reaches the top of the screen, the player must step on the corresponding arrow on the dance platform.
+(The arrows are timed so that you’ll step with the beat of the song.)
+You are playing a variant of this game called “Vogue Vogue Revolution”, where the goal is to play perfectly but move as little as possible.
+When an arrow reaches the top of the screen, if one of your feet is already on the correct arrow, you are awarded one style point for maintaining your current pose.
+If neither foot is on the right arrow, you must move one (and \textit{only} one) foot from its current location to the correct arrow on the platform.
+If you ever step on the wrong arrow, or fail to step on the correct arrow, or move more than one foot at a time, or move either foot when you are already standing on the correct arrow, all your style points are taken away and you lose the game.
+How should you move your feet to maximize your total number of style points?
+For purposes of this problem, assume you always start with your left foot on $\leftarrow$ and your right foot on $\rightarrow$, and that you’ve memorized the entire sequence of arrows.
+For example, if the sequence is $\uparrow\uparrow\downarrow\downarrow\leftarrow\rightarrow\leftarrow\rightarrow$, you can earn $5$ style points by moving your feet as shown below:
+\begin{center}
+\includegraphics{p152-Im52}
+\end{center}
+\begin{enumerate}
+\item \textbf{\textit{Prove}} that for \textit{any} sequence of $n$ arrows, it is possible to earn at least $n/4-1$ style points.
+\item Describe an efficient algorithm to find the maximum number of style points you can earn during a given VVR routine.
+The input to your algorithm is an array $\Var{Arrow}[1\,..\,n]$ containing the sequence of arrows.
+\end{enumerate}
+\item Consider the following solitaire form of Scrabble.
+We begin with a fixed, finite sequence of tiles; each tile has both a letter and a numerical value.
+At the start of the game, we draw the first seven tiles from the sequence and put them into our hand.
+In each turn, we form an English word from some or all of the tiles in our hand, place those tiles on the table, and receive the total value of those tiles as points.
+(If no English word can be formed from the tiles in our hand, the game immediately ends.)
+Then we repeatedly draw the next tile from the start of the sequence until either (a) we have seven tiles in our hand, or (b) the sequence is empty.
+(Sorry, no double/triple word/letter scores, bingos, blanks, or passing.)
+Our goal is to obtain as many points as possible.
+For example, consider the following sequence of 20 tiles:
+\[
+\mbox{\fbox{\Str{I}$_{2}$}\fbox{\Str{N}$_{2}$}\fbox{\Str{X}$_{8}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{N}$_{2}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{D}$_{3}$}\fbox{\Str{U}$_{5}$}\fbox{\Str{D}$_{3}$}\fbox{\Str{I}$_{2}$}\fbox{\Str{D}$_{3}$}\fbox{\Str{K}$_{8}$}\fbox{\Str{U}$_{5}$}\fbox{\Str{B}$_{4}$}\fbox{\Str{L}$_{2}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{K}$_{8}$}\fbox{\Str{H}$_{5}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{N}$_{2}$}}
+\]
+Given this sequence of tiles at the beginning of the game, we can earn 68 points as follows:
+\begin{itemize}
+\item We initially draw \fbox{\Str{I}$_{2}$}\fbox{\Str{N}$_{2}$}\fbox{\Str{X}$_{8}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{N}$_{2}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{D}$_{3}$}.
+\item Play the word \fbox{\Str{N}$_{2}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{I}$_{2}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{D}$_{3}$} for 9 points, leaving \fbox{\Str{N}$_{2}$}\fbox{\Str{X}$_{8}$} in hand.
+\item Draw the next five tiles \fbox{\Str{U}$_{5}$}\fbox{\Str{D}$_{3}$}\fbox{\Str{I}$_{2}$}\fbox{\Str{D}$_{3}$}\fbox{\Str{K}$_{8}$}.
+\item Play the word \fbox{\Str{U}$_{5}$}\fbox{\Str{N}$_{2}$}\fbox{\Str{D}$_{3}$}\fbox{\Str{I}$_{2}$}\fbox{\Str{D}$_{3}$} for 15 points, leaving \fbox{\Str{K}$_{8}$}\fbox{\Str{X}$_{8}$} in hand.
+\item Draw the next five tiles \fbox{\Str{U}$_{5}$}\fbox{\Str{B}$_{4}$}\fbox{\Str{L}$_{2}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{K}$_{8}$}.
+\item Play the word \fbox{\Str{B}$_{4}$}\fbox{\Str{U}$_{5}$}\fbox{\Str{L}$_{2}$}\fbox{\Str{K}$_{8}$} for 19 points, leaving \fbox{\Str{K}$_{8}$}\fbox{\Str{X}$_{8}$}\fbox{\Str{A}$_{1}$} in hand.
+\item Draw the last three tiles \fbox{\Str{H}$_{5}$}\fbox{\Str{A}$_{1}$}\fbox{\Str{N}$_{2}$}.
+\item Play the word \fbox{\Str{A}$_{1}$}\fbox{\Str{N}$_{2}$}\fbox{\Str{K}$_{8}$}\fbox{\Str{H}$_{5}$} for 16 points, leaving \fbox{\Str{X}$_{8}$}\fbox{\Str{A}$_{1}$} in hand.
+\item Play the word \fbox{\Str{A}$_{1}$}\fbox{\Str{X}$_{8}$} for 9 points, emptying our hand and ending the
+game.
+\end{itemize}
+\begin{enumerate}
+\item Suppose the sequence of tiles is represented by two arrays $\Var{Letter}[1\,..\,n]$, containing a sequence of letters between \Str{A} and \Str{Z}, and $\Var{Value}[$\Str{A} $..$ \Str{Z}$]$, where $\Var{Value}[\ell ]$ is the value of any tile with letter $\ell$.
+Design and analyze an efficient algorithm to compute the maximum number of points that can be earned from the given sequence of tiles.
+\item Now suppose two tiles with the same letter might have different values.
+Now the tile sequence is represented by two arrays $\Var{Letter}[1\,..\,n]$ and $\Var{Value}[1\,..\,n]$, where $\Var{Value}[i]$ is the value of the $i$th tile.
+Design and analyze an efficient algorithm to compute the maximum number of points that can be earned from the given sequence of tiles.
+In both problems, the output is a single number: the maximum possible score.
+Assume (because it’s true) that you can find all English words that can be made from any set of at most seven tiles, along with the point values of those words, in $O(1)$ time.
+\end{enumerate}
+\item Suppose we are given a set $L$ of $n$ line segments in the plane, where each segment has one endpoint on the line $y=0$ and one endpoint on the line $y=1$, and all $2n$ endpoints are distinct.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute the largest subset of $L$ in which no pair of segments intersects.
+\item Describe and analyze an algorithm to compute the largest subset of $L$ in which \textbf{\textit{every}} pair of segments intersects.
+\end{enumerate}
+Now suppose we are given a set $L$ of $n$ line segments in the plane, where both endpoints of each segment lie on the unit circle $x^2+y^2=1$, and all $2n$ endpoints are distinct.
+\begin{enumerate}[resume]
+\item Describe and analyze an algorithm to compute the largest subset of $L$ in which no pair of segments intersects.
+\item Describe and analyze an algorithm to compute the largest subset of $L$ in which \textbf{\textit{every}} pair of segments intersects.
+\end{enumerate}
+\item Let $P$ be a set of $n$ points evenly distributed on the unit circle, and let $S$ be a set of $m$ line segments with endpoints in $P$.
+The endpoints of the $m$ segments are \textit{not} necessarily distinct; $n$ could be significantly smaller than $2m$.
+\begin{enumerate}
+\item Describe an algorithm to find the size of the largest subset of segments in $S$ such that every pair is disjoint.
+Two segments are disjoint if they do not intersect even at their endpoints.
+\item Describe an algorithm to find the size of the largest subset of segments in $S$ such that every pair is interior-disjoint.
+Two segments are interiordisjoint if their intersection is either empty or an endpoint of both segments.
+\item Describe an algorithm to find the size of the largest subset of segments in $S$ such that every pair intersects.
+\item Describe an algorithm to find the size of the largest subset of segments in $S$ such that every pair crosses.
+Two segments cross if they intersect but not at their endpoints.
+\end{enumerate}
+For full credit, all four algorithms should run in $O(mn)$ time.
+\item You are driving a bus along a highway, full of rowdy, hyper, thirsty students and a soda fountain machine.
+Each minute that a student is on your bus, that student drinks one ounce of soda.
+Your goal is to drop the students off quickly, so that the total amount of soda consumed by all students is as small as possible.
+You know how many students will get off of the bus at each exit.
+Your bus begins somewhere along the highway (probably not at either end) and moves at a constant speed of 37.4 miles per hour.
+You must drive the bus along the highway; however, you may drive forward to one exit then backward to an exit in the opposite direction, switching as often as you like.
+(You can stop the bus, drop off students, and turn around instantaneously.)
+Describe an efficient algorithm to drop the students off so that they drink as little soda as possible.
+Your input consists of the bus route (a list of the exits, together with the travel time between successive exits), the number of students you will drop off at each exit, and the current location of your bus (which you may assume is an exit).
+\item Let’s define a \textit{summary} of two strings $A$ and $B$ to be a concatenation of substrings of the following form:
+\begin{itemize}
+\item {\color{JEcyan}$\bigblacktriangleup$}\Str{SNA} indicates a substring \Str{SNA} of only the first string $A$.
+\item $\vardiamondsuit$\Str{FOO} indicates a common substring \Str{FOO} of both strings.
+\item {\color{JEred}$\bigblacktriangledown$}\Str{BAR} indicates a substring \Str{BAR} of only the second string $B$.
+\end{itemize}
+A summary is \textit{valid} if we can recover the original strings $A$ and $B$ by concatenating the appropriate substrings of the summary in order and discarding the delimiters {\color{JEcyan}$\bigblacktriangleup$}, $\vardiamondsuit$, and {\color{JEred}$\bigblacktriangledown$}.
+Each regular character has length $1$, and each delimiter {\color{JEcyan}$\bigblacktriangleup$}, $\vardiamondsuit$, or {\color{JEred}$\bigblacktriangledown$} has some fixed non-negative length $\Delta$.
+The \textit{length} of a summary is the sum of the lengths of its symbols.
+For example, each of the following strings is a valid summary of the strings \Str{KITTEN} and \Str{KNITTING}:
+\begin{itemize}
+\item $\vardiamondsuit$\Str{K}{\color{JEred}$\bigblacktriangledown$}\Str{N}$\vardiamondsuit$\Str{ITT}{\color{JEcyan}$\bigblacktriangleup$}\Str{E}{\color{JEred}$\bigblacktriangledown$}\Str{I}$\vardiamondsuit$\Str{N}{\color{JEred}$\bigblacktriangledown$}\Str{G} has length $9+7\Delta$.
+\item $\vardiamondsuit$\Str{K}{\color{JEred}$\bigblacktriangledown$}\Str{N}$\vardiamondsuit$\Str{ITT}{\color{JEcyan}$\bigblacktriangleup$}\Str{EN}{\color{JEred}$\bigblacktriangledown$}\Str{ING} has length $10+5\Delta$.
+\item $\vardiamondsuit$\Str{K}{\color{JEcyan}$\bigblacktriangleup$}\Str{ITTEN}{\color{JEred}$\bigblacktriangledown$}\Str{NITTING} has length $13+3\Delta$.
+\item {\color{JEcyan}$\bigblacktriangleup$}\Str{KITTEN}{\color{JEred}$\bigblacktriangledown$}\Str{KNITTING} has length $14+2\Delta$.
+\end{itemize}
+Describe and analyze an algorithm that computes the length of the shortest summary of two given strings $A[1\,..\,m]$ and $B[1\,..\,n]$.
+The delimiter length $\Delta$ is also part of the input to your algorithm.
+For example:
+\begin{itemize}
+\item Given strings \Str{KITTEN} and \Str{KNITTING} and $\Delta =0$, your algorithm should return $9$.
+\item Given strings \Str{KITTEN} and \Str{KNITTING} and $\Delta =1$, your algorithm should return $15$.
+\item Given strings \Str{KITTEN} and \Str{KNITTING} and $\Delta =2$, your algorithm should return $18$.
+\end{itemize}
+\item \textit{Vankin’s Mile} is an American solitaire game played on an $n\times n$ square grid.
+The player starts by placing a token on any square of the grid.
+Then on each turn, the player moves the token either one square to the right or one square down.
+The game ends when player moves the token off the edge of the board.
+Each square of the grid has a numerical value, which could be positive, negative, or zero.
+The player starts with a score of zero; whenever the token lands on a square, the player adds its value to his score.
+The object of the game is to score as many points as possible.
+For example, given the grid below, the player can score $8-6+7-3+4=10$ points by placing the initial token on the 8 in the second row, and then moving down, down, right, down, down.
+(This is \textit{not} the best possible score for this grid of numbers.)
+\[
+\begin{array}{|r|r|r|r|r|}
+\hline
+-1 & 7 & -8 & 10 & -5\\[4.7pt]
+\hline
+-4 & -9 & {\color{JEred}\smash{\underset{\raisebox{0pt}{$\Downarrow$}}{\symbf{8}}}} & -6 & 0\\[4.7pt]
+\hline
+5 & -2 & {\color{JEred}\smash{\underset{\raisebox{0pt}{$\Downarrow$}}{\symbf{-6}}}} & -6 & 7\\[4.7pt]
+\hline
+-7 & 4 & {\color{JEred}\symbf{7}\rlap{$\Rightarrow$}} & {\color{JEred}\smash{\underset{\raisebox{0pt}{$\Downarrow$}}{\symbf{-3}}}} & -3\\[4.7pt]
+\hline
+7 & 1 & -6 & {\color{JEred}\smash{\underset{\raisebox{0pt}{$\Downarrow$}}{\symbf{4}}}} & -9\\[4.7pt]
+\hline
+\end{array}
+\]
+\begin{enumerate}
+\item Describe and analyze an efficient algorithm to compute the maximum possible score for a game of Vankin’s Mile, given the $n\times n$ array of values as input.
+\item In the European version of this game, appropriately called \textit{Vankin’s Kilometer}, the player can move the token either one square down, one square right, \textit{or one square left} in each turn.
+However, to prevent infinite scores, the token cannot land on the same square more than once.
+Describe and analyze an efficient algorithm to compute the maximum possible score for a game of Vankin’s Kilometer, given the $n\times n$ array of
+values as input.\footnote{If we also allowed \textit{upward} movement, the resulting game (Vankin’s Fathom?) would be NP-hard.}
+\end{enumerate}
+\item Suppose you are given an $m \times n$ bitmap as an array $M[1\,..\,n,1\,..\,n]$ of $0$s and $1$s.
+A \textit{solid block} in $M$ is a subarray of the form $M[i\,..\,i',j\,..\,j']$ in which all bits are equal.
+A solid block is square if it has the same number of rows and columns.
+\begin{enumerate}
+\item Describe an algorithm to find the maximum area of a solid \textit{square} block in $M$ in $O(n^2)$ time.
+\item Describe an algorithm to find the maximum area of a solid block in $M$ in $O(n^3)$ time.
+\item Describe an algorithm to find the maximum area of a solid block in $M$ in $O(n^2\log n)$ time.
+\Hint{Divide and conquer.}
+\item \difficulty{h} Describe an algorithm to find the maximum area of a solid block in $M$ in $O(n^2)$ time.
+\end{enumerate}
+\item Suppose you are given an array $M[1\,..\,n,1\,..\,n]$ of numbers, which may be positive, negative, or zero, and which are \textit{not} necessarily integers.
+Describe an algorithm to find the largest sum of elements in any rectangular subarray of the form $M[i\,..\,i',j\,..\,j']$.
+For full credit, your algorithm should run in $O(n^3)$ time.
+\Hint{See problem 3.}
+\item Describe and analyze an algorithm that finds the maximum-area rectangular pattern that appears more than once in a given bitmap.
+Specifically, given a two-dimensional array $M[1\,..\,n,1\,..\,n]$ of bits as input, your algorithm should output the area of the largest repeated rectangular pattern in $M$.
+For example, given the bitmap shown on the left in the figure below, your algorithm should return the integer $195$, which is the area of the $15\times 13$ doggo.
+(Although it doesn’t happen in this example, the two copies of the repeated pattern might overlap.)
+\begin{center}
+\includegraphics{p157-Im53}
+\end{center}
+\begin{enumerate}
+\item For full credit, describe an algorithm that runs in $O(n^5)$ time.
+\item \difficulty{h} For extra credit, describe an algorithm that runs in $O(n^4)$ time.
+\item \difficulty{ch} For extra extra credit, describe an algorithm that runs in $O(n^3 \operatorname{polylog} n)$ time.
+\end{enumerate}
+\item Let $P$ be a set of points in the plane in \textit{convex position}.
+Intuitively, if a rubber band were wrapped around the points, then every point would touch the rubber band.
+More formally, for any point $p$ in $P$, there is a line that separates $p$ from the other points in $P$.
+Moreover, suppose the points are indexed $P[1],P[2],...,P[n]$ in counterclockwise order around the “rubber band”, starting with the leftmost point $P[1]$.
+This problem asks you to solve a special case of the traveling salesman problem, where the salesman must visit every point in $P$, and the cost of moving from one point $p\in P$ to another point $q\in P$ is the Euclidean distance $|pq|$.
+\begin{enumerate}
+\item Describe a simple algorithm to compute the shortest \textit{cyclic} tour of $P$.
+\item A \textit{simple} tour is one that never crosses itself.
+Prove that the shortest tour of $P$ must be simple.
+\item Describe and analyze an efficient algorithm to compute the shortest tour of $P$ that starts at the leftmost point $P[1]$ and ends at the rightmost point $P[r]$.
+\item Describe and analyze an efficient algorithm to compute the shortest tour of $P$, with no restrictions on the endpoints.
+\end{enumerate}
+\item \difficulty{h} Describe and analyze an algorithm to solve the traveling salesman problem in $O(2^n \operatorname{poly}(n))$ time.
+Given an undirected $n$-vertex graph $G$ with weighted edges, your algorithm should return the weight of the lightest cycle in $G$ that visits every vertex exactly once, or $\infty$ if $G$ has no such cycles.
+\Hint{The obvious recursive backtracking algorithm takes $O(n!)$ time.}
+\item Let $W=\{w_1,w_2,\ldots,w_n\}$ be a finite set of strings over some fixed alphabet $\Sigma$.
+An \textit{edit center} for $W$ is a string $C\in \Sigma^*$ such that the maximum edit distance
+from $C$ to any string in $W$ is as small as possible.
+The \textit{edit radius} of $W$ is the maximum edit distance from an edit center to a string in $W$.
+A set of strings may have several edit centers, but its edit radius is unique.
+\[
+\begin{array}{l}
+\Var{EditRadius}(W) := \displaystyle\min_{C \in \Sigma^*} \max_{w \in W} \Var{Edit}(w,C)\\[1ex]
+\Var{EditCenter}(W) := \displaystyle\arg\min_{C \in \Sigma^*} \max_{w \in W} \Var{Edit}(w,C)
+\end{array}
+\]
+\begin{enumerate}
+\item Describe and analyze an efficient algorithm to compute the edit radius of three given strings.
+\item \difficulty{ch} Describe and analyze an efficient algorithm to approximate the edit radius of an arbitrary set of strings within a factor of $2$.
+(Computing the \textit{exact} edit radius is NP-hard unless the number of strings is fixed.)
+\end{enumerate}
+\item \difficulty{h} Let $D[1\,..\,n]$ be an array of digits, each an integer between $0$ and $9$.
+A \textbf{\textit{digital}} \textbf{\textit{subsequence}} of $D$ is a sequence of positive integers composed in the usual way from disjoint substrings of $D$.
+For example, the sequence $3,4,5,6,8,9,32,38,46,64,83,279$ is a digital subsequence of the first several digits of $\pi$:
+\[
+\underbrace{3},1,\underbrace{4},1,\underbrace{5},9,2,\underbrace{6},5,3,5,\underbrace{8},\underbrace{9},7,9,\underbrace{3,2},\underbrace{3,8},\underbrace{4,6},2,\underbrace{6,4},3,3,\underbrace{8,3},\underbrace{2,7,9}
+\]
+The \textit{length} of a digital subsequence is the number of integers it contains, \textit{not} the number of digits; the preceding example has length $12$.
+As usual, a digital subsequence is \textbf{\textit{increasing}} if each number is larger than its predecessor.
+Describe and analyze an efficient algorithm to compute the longest increasing digital subsequence of $D$.
+\Hint{Be careful about your computational assumptions. How long does it take to compare two $k$-digit numbers?}
+For full credit, your algorithm should run in $O(n^4)$ time; faster algorithms are worth extra credit.
+The fastest algorithm I know for this problem runs in $O(n^{3/2}\log n)$ time; achieving this bound requires several tricks, both in the design of the algorithm and in its analysis, but nothing outside the scope of this class.\footnote{With more advanced techniques, I believe the running time can be reduced to $O(n^{3/2}\log\log n)$, but I haven’t worked through the details.}
+\item \difficulty{h} Consider the following variant of the classical Tower of Hanoi problem.
+As usual, there are $n$ disks with distinct sizes, placed on three pegs numbered $0$, $1$, and $2$.
+Initially, all $n$ disks are on peg $0$, sorted by size from smallest on top to largest on bottom.
+Our goal is to move all the disks to peg $2$.
+In a single step, we can move the highest disk on any peg to a different peg,
+provided we satisfy two constraints.
+First, we must never place a smaller disk on top of a larger disk.
+Second—and this is the non-standard part—\textbf{\textit{we}} \textbf{\textit{must never move a disk directly from peg}} $0$ \textbf{\textit{to peg}} $2$\textbf{\textit{.}}
+Describe and analyze an algorithm to compute the exact number of moves required to move all $n$ disks from peg $0$ to peg $2$, subject to the stated restrictions.
+For full credit, your algorithm should use only $O(\log n)$ arithmetic operations in the worst case.
+For the sake of analysis, assume that adding or multiplying two $k$-digit numbers requires $O(k)$ time.
+\Hint{Matrices!}
+\end{enumerate}
+\subsection*{Splitting Sequences/Arrays}
+\begin{enumerate}[label=\arabic*.,ref=\thechapter.\arabic*,leftmargin=*,align=left,widest*=99,itemsep=1.5ex plus 0.5ex,resume]
+\item A \textbf{\textit{basic}} \textbf{\textit{arithmetic}} \textbf{\textit{expression}} is composed of characters from the set $\{1,+,\times\}$ and parentheses.
+Almost every integer can be represented by more than one basic arithmetic expression.
+For example, all of the following basic arithmetic expression represent the integer 14:
+\[
+\begin{array}{c}
+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1\\
+((1+1)\times (1+1+1+1+1)) + ((1+1)\times (1+1))\\
+(1+1)\times (1+1+1+1+1+1+1)\\
+(1+1)\times (((1+1+1)\times (1+1)) +1)
+\end{array}
+\]
+Describe and analyze an algorithm to compute, given an integer $n$ as input, the minimum number of $1$s in a basic arithmetic expression whose value is equal to $n$.
+The number of parentheses doesn’t matter, just the number of $1$s.
+For example, when $n=14$, your algorithm should return $8$, for the final expression above.
+The running time of your algorithm should be bounded by a small polynomial function of $n$.
+\item Suppose you are given a sequence of integers separated by $+$ and $-$ signs; for example:
+\[
+1+3-2-5+1-6+7
+\]
+You can change the value of this expression by adding parentheses in different places.
+For example:
+\[
+\begin{array}{c}
+1+3-2-5+1-6+7=-1\\
+(1+3-(2-5)) + (1-6) +7=9\\
+(1+ (3-2))-(5+1)-(6+7) =-17
+\end{array}
+\]
+Describe and analyze an algorithm to compute, given a list of integers separated by $+$ and $-$ signs, the maximum possible value the expression can take by adding parentheses.
+Parentheses must be used only to group additions and subtractions; in particular, do not use them to create implicit multiplication as in $1+3(-2)(-5) +1-6+7=33$.
+\item Suppose you are given a sequence of integers separated by $+$ and $\times$ signs; for example:
+\[
+1+3\times 2\times 0+1\times 6+7
+\]
+You can change the value of this expression by adding parentheses in different places.
+For example:
+\[
+\begin{array}{l}
+(1+ (3\times 2))\times 0+ (1\times 6) +7=13\\
+((1+ (3\times 2\times 0) +1)\times 6) +7=19\\
+(1+3)\times 2\times (0+1)\times (6+7) =104
+\end{array}
+\]
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute the maximum possible value the given expression can take by adding parentheses, assuming all integers in the input are \textit{positive}.
+\Hint{This is easy.}
+\item Describe and analyze an algorithm to compute the maximum possible value the given expression can take by adding parentheses, assuming all integers in the input are \textit{non-negative}.
+\item Describe and analyze an algorithm to compute the maximum possible value the given expression can take by adding parentheses, with no restrictions on the input numbers.
+\end{enumerate}
+Assume any arithmetic operation takes $O(1)$ time.
+\item After graduating from Sham-Poobanana University, you decide to interview for a position at the Wall Street bank \textbf{\textit{Long}} \textbf{\textit{Live}} \textbf{\textit{Boole}}.
+The managing director of the bank, Eloob Egroeg, poses a ’solve-or-die’ problems to each new employee, which they must solve within 24 hours.
+Those who fail to solve the problem are fired immediately!
+Entering the bank for the first time, you notice that the employee offices are organized in a straight row, with a large $T$ or $F$ printed on the door of each office.
+Furthermore, between each adjacent pair of offices, there is a board marked by one of the symbols $\wedge ,\vee$, or $\oplus$.
+When you ask about these arcane symbols, Eloob confirms that $T$ and $F$ represent the boolean values True and False, and the symbols on the boards represent the standard boolean operators And, Or, and Xor.
+He also explains that these letters and symbols describe whether certain combinations of employees can work together successfully.
+At the start of any new project, Eloob hierarchically clusters his employees by adding parentheses to the sequence of symbols, to obtain an unambiguous boolean expression.
+The project is successful if this parenthesized boolean expression evaluates to $T$.
+For example, if the bank has three employees, and the sequence of symbols on and between their doors is $T\wedge F\oplus T$, there is exactly one successful parenthesization scheme: $(T\wedge (F\oplus T))$.
+However, if the list of door symbols is $F\wedge T\oplus F$, there is no way to add parentheses to make the project successful.
+Eloob finally poses your solve-or-die interview question: Describe an algorithm to decide whether a given sequence of symbols can be parenthesized so that the resulting boolean expression evaluates to $T$.
+Your input is an array $S[0\,..\,2n]$, where $S[i] \in \{T,F\}$ when $i$ is even, and $S[i] \in \{\vee,\wedge,\oplus\}$ when $i$ is odd.
+\item Every year, as part of its annual meeting, the Antarctican Snail Lovers of Upper Glacierville hold a Round Table Mating Race.
+Several high-quality breeding snails are placed at the edge of a round table.
+The snails are numbered in order around the table from $1$ to $n$.
+During the race, each snail wanders around the table, leaving a trail of slime behind it.
+The snails have been specially trained never to fall off the edge of the table or to cross a slime trail, even their own.
+If two snails meet, they are declared a breeding pair, removed from the table, and whisked away to a romantic hole in the ground to make little baby snails.
+Note that some snails may never find a mate, even if the race goes on forever.
+\begin{figure}[ht]
+\centering
+\includegraphics{p161-Im54}
+\caption{The end of a typical Antarctican SLUG race. Snails 6 and 8 never find mates. The organizers must pay $M[3,4] + M[2,5] + M[1,7]$.}
+\label{fig:3.6}
+\end{figure}
+For every pair of snails, the Antarctican SLUG race organizers have posted a monetary reward, to be paid to the owners if that pair of snails meets during the Mating Race.
+Specifically, there is a two-dimensional array $M[1\,..\,n,1\,..\,n]$ posted on the wall behind the Round Table, where $M[i,j] =M[j,i]$ is the reward to be paid if snails $i$ and $j$ meet.
+Describe and analyze an algorithm to compute the maximum total reward that the organizers could be forced to pay, given the array $M$ as input.
+\item You have mined a large slab of marble from a quarry.
+For simplicity, suppose the marble slab is a rectangle measuring $n$ inches in height and $m$ inches in width.
+You want to cut the slab into smaller rectangles of various sizes— some for kitchen counter tops, some for large sculpture projects, others for memorial headstones.
+You have a marble saw that can make either horizontal or vertical cuts across any rectangular slab.
+At any time, you can query the spot price $P[x,y]$ of an $x$-inch by $y$-inch marble rectangle, for any positive integers $x$ and $y$.
+These prices depend on customer demand, and people who buy marble counter tops are weird, so don’t make any assumptions about them; in particular, larger rectangles may have significantly smaller spot prices.
+Given the array of spot prices and the integers $m$ and $n$ as input, describe an algorithm to compute how to subdivide an $n\times m$ marble slab to maximize your profit.
+\item This problem asks you to design efficient algorithms to construct optimal binary search trees that satisfy additional balance constraints.
+Your input consists of a sorted array $A[1\,..\,n]$ of search keys and an array $f[1\,..\,n]$ of frequency counts, where $f[i]$ is the number of searches for $A[i]$.
+This is exactly the same cost function as described in Section 3.9.
+But now your task is to compute an optimal tree that satisfies some additional constraints.
+\begin{enumerate}
+\item \textbf{\textit{AVL trees}} were the earliest self-balancing balanced binary search trees, first described in 1962 by Georgy Adelson-Velsky and Evgenii Landis.
+An AVL tree is a binary search tree where for every node $v$, the height of the left subtree of $v$ and the height of the right subtree of $v$ differ by at most one.
+Describe and analyze an algorithm to construct an optimal AVL tree for a given set of search keys and frequencies.
+\item \textbf{\textit{Symmetric binary B-trees}} are another self-balancing binary trees, first described by Rudolf Bayer in 1972; these are better known by the name \textbf{\textit{red-black trees}}, after a somewhat simpler reformulation by Leo Guibas and Bob Sedgwick in 1978.
+A red-black tree is a binary search tree with the following additional constraints:
+\begin{itemize}
+\item Every node is either red or black.
+\item Every red node has a black parent.
+\item Every root-to-leaf path contains the same number of black nodes.
+Describe a recursive backtracking algorithm to construct an optimal red-black tree for a given set of search keys and frequencies.
+\end{itemize}
+\item \textbf{\textit{AA}} \textbf{\textit{trees}} were proposed by proposed by Arne Andersson in 1993 and slightly simplified (and named) by Mark Allen Weiss in 2000.
+AA trees are also known as \textit{left-leaning red-black trees}, after a symmetric reformulation (with different rebalancing algorithms) by Bob Sedgewick in 2006.
+An AA tree is a red-black tree with one additional constraint:
+\begin{itemize}
+\item No left child is red.\footnote{Sedgwick’s reformulation requires that no \textit{right} child is red. Whatever. Andersson and Sedgewick are strangely silent about whether to measure angles clockwise or counterclockwise, whether Pluto is a planet, whether “lower rank” means “better” or “worse”, and whether it’s better to fight a hundred duck-sized horses or a single horse-sized duck.}
+\end{itemize}
+Describe and analyze an algorithm to construct an optimal AA tree for a given set of search keys and frequencies.
+\end{enumerate}
+\item Suppose you are given an $m\times n$ bitmap as an array $M[1\,..\,m,1\,..\,n]$ of $0$s and $1$s.
+A \textit{solid block} in $M$ is a subarray of the form $M[i\,..\,i',j\,..\,i']$ in which all bits are equal.
+Suppose you want to decompose $M$ into as few disjoint blocks as possible.
+One natural recursive partitioning strategy is called a \textit{guillotine subdivision}.
+If the entire bitmap $M$ is a solid block, there is nothing to do.
+Otherwise, we cut $M$ into two smaller bitmaps along a horizontal or vertical line, and then recursively decompose the two smaller bitmaps into solid blocks.
+Any guillotine subdivision can be represented as a binary tree, where each internal node stores the position and orientation of a cut, and each leaf stores a single but $0$ or $1$ indicting the contents of the corresponding block.
+The \textit{size} of a guillotine subdivision is the number of leaves in the corresponding binary tree (that is, the final number of solid blocks), and the \textit{depth} of a guillotine subdivision is the depth of the corresponding binary tree.
+\begin{enumerate}
+\item Describe and analyze an algorithm to compute a guillotine subdivision of $M$ of minimum possible size.
+\item Show that a guillotine subdivision does \textit{not} always yield a partition into the smallest number of solid blocks.
+\item Describe and analyze an algorithm to compute a guillotine subdivision for $M$ with the smallest possible depth.
+\item Describe and analyze an algorithm to determine $M[i,j]$, given the tree representing a guillotine decomposition for $M$ and two indices $i$ and $j$.
+\begin{figure}[ht]
+\centering
+\includegraphics{p164-Im55}
+\caption{A guillotine subdivision with size 8 and depth 5.}
+\label{fig:3.7}
+\end{figure}
+\item Define the \textit{depth} of a pixel $M[i,j]$ in a guillotine subdivision to be the depth of the leaf that contains that pixel.
+Describe and analyze an algorithm to compute a guillotine subdivision for $M$ such that the sum of the depths of the pixels as small as possible.
+\item Describe and analyze an algorithm to compute a guillotine subdivision for $M$ such that the sum of the depths of the \textit{black} pixels as small as possible.
+\end{enumerate}
+\item \difficulty{s} Congratulations!
+You’ve been hired by the giant online bookstore DeNile (“Not just a river in Egypt!”) to optimize their warehouse robots.
+Each book that DeNile sells has a unique ISBN (International Standard Book Number), which is just a numerical value.
+Each of DeNile’s warehouses contains a long row of bins, each containing multiple copies of a single book.
+These bins are arranged in sorted order by ISBN; each bin’s ISBN is printed on the front of the bin in machine-readable form.
+Books are retrieved from these bins by robots, which run along rails parallel to the row of bins.
+DeNile does not maintain a list of which bins contain which ISBN numbers; that would be too simple!
+Instead, to retrieve a desired book, the robot must first find that book’s bin using a binary search.
+Because the search requires physical motion by the robot, we can no longer assume that each step of the binary search requires $O(1)$ time.
+Specifically:
+\begin{itemize}
+\item The robot always starts at the “$0$th bin” (where the books are loaded into boxes to ship to customers).
+\item Moving the robot from the $i$th bin to the $j$th bin requires $\alpha |i-j|$ seconds for some constant $\alpha$.
+\item The robot must be directly in front of a bin in order to read that bin’s ISBN.
+Reading an ISBN requires $\beta$ seconds, for some constant $\beta$.
+\item Reversing the robot’s direction of motion (from increasing to decreasing or vice versa) requires $\gamma$ additional seconds, for some constant $\gamma$.
+\item When the robot finds the target bin, it extracts one book from that bin and returns to “the $0$th bin”.
+\end{itemize}
+Design and analyze an algorithm to compute a binary search tree over the bins that minimizes the total time the robot spends searching for books.
+Your input is an array $f[1\,..\,n]$ of integers, where $f[i]$ is the number of times that the robot will be asked to retrieve a book from the $i$th bin, along with the time parameters $\alpha$, $\beta$, and $\gamma$.
+\item \difficulty{s} A standard method to improve the cache performance of search trees is to pack more search keys and subtrees into each node.
+A $B$\textbf{\textit{-tree}} is a rooted tree in which each internal node stores up to $B$ keys and pointers to up to $B+1$ children, each the root of a smaller $B$-tree.
+Specifically, each node $v$ stores three fields:
+\begin{itemize}
+\item a positive integer $v.d\le B$,
+\item a \textit{sorted} array $v.\Var{key}[1\,..\,v.d]$, and
+\item an array $v.\Var{child}[0\,..\,v.d]$ of child pointers.
+\end{itemize}
+In particular, the number of child pointers is always exactly one more than the number of keys.\footnote{Normally, $B$-trees are required to satisfy two additional constraints, which guarantee a worst-case search cost of $O(\log_B n)$: Every leaf must have exactly the same depth, and every node except possibly the root must contain at least $B/2$ keys. However, in this problem, we are not interested in optimizing the \textit{worst-case} search cost, but rather the \textit{total} cost of a sequence of searches, so we will not impose these additional constraints.}
+Each pointer $v.\Var{child}[i]$ is either \Const{Null} or a pointer to the root of a $B$-tree whose keys are all larger than $v.\Var{key}[i]$ and smaller than $v.\Var{key}[i+1]$.
+In particular, all keys in the leftmost subtree $v.\Var{child}[0]$ are smaller than $v.\Var{key}[1]$, and all keys in the rightmost subtree $v.\Var{child}[v.d]$ are larger than $v.\Var{key}[v.d]$.
+Intuitively, you should have the following picture in mind:
+\[
+\begin{array}{ccccccccc}
+[\,\bullet & {} < \Var{key}[1] < {} & \bullet & {} < \Var{key}[2] < {} & \bullet & \cdots & \bullet & {} < \Var{key}[d] < {} & \bullet\,]\\
+\downarrow & & \downarrow & & \downarrow & & \downarrow & & \downarrow\\
+T_0 & & T_1 & & T_2 & \cdots & T_{d-1} & & T_d
+\end{array}
+\]
+Here $T_i$ is the subtree pointed to by $\Var{child}[i]$.
+The \textbf{\textit{cost}} of searching for a key $x$ in a $B$-tree is the number of nodes in the path from the root to the node containing $x$ as one of its keys.
+A $1$-tree is just a standard binary search tree.
+Fix an arbitrary positive integer $B>0$.
+(I suggest $B=8$.)
+Suppose your are given a sorted array $A[1,...,n]$ of search keys and a corresponding array $F[1,...,n]$ of frequency counts, where $F[i]$ is the number of times that we will search for $A[i]$.
+Your task is to describe and analyze an efficient algorithm to find a $B$-tree that minimizes the total cost of searching for the given keys with the given frequencies.
+\begin{enumerate}
+\item Describe a polynomial-time algorithm for the special case $B=2$.
+\item Describe an algorithm for arbitrary $B$ that runs in $O(n^{B+c})$ time for some fixed integer $c$.
+\item \difficulty{h} Describe an algorithm for arbitrary $B$ that runs in $O(n^c)$ time for some fixed integer $c$ that does \textit{not} depend on $B$.
+\end{enumerate}
+\item A string $w$ of parentheses \Str{(} and \Str{)} and brackets \Str{[} and \Str{]} is \textbf{\textit{balanced}} if it satisfies one of the following conditions:
+\begin{itemize}
+\item $w$ is the empty string.
+\item $w=$ \Str{(}$x$\Str{)} for some balanced string $x$
+\item $w=$ \Str{[}$x$\Str{]} for some balanced string $x$
+\item $w=x y$ for some balanced strings $x$ and $y$
+\end{itemize}
+For example, the string
+\[
+\mbox{$w=$ \Str{(}\Str{[}\Str{()}\Str{][]}\Str{())} \Str{[}\Str{()()}\Str{]} \Str{()}}
+\]
+is balanced, because $w=x y$, where
+\[
+\mbox{$x=$ \Str{(} \Str{[}\Str{()}\Str{] []} \Str{() )} and $y=$ \Str{[} \Str{() ()} \Str{]} \Str{()}$.$}
+\]
+\begin{enumerate}
+\item Describe and analyze an algorithm to determine whether a given string of parentheses and brackets is balanced.
+\item Describe and analyze an algorithm to compute the length of a longest balanced subsequence of a given string of parentheses and brackets.
+\item Describe and analyze an algorithm to compute the length of a shortest balanced supersequence of a given string of parentheses and brackets.
+\item Describe and analyze an algorithm to compute the minimum edit distance from a given string of parentheses and brackets to a balanced string of parentheses and brackets.
+\item \difficulty{h} Describe and analyze an algorithm to compute the longest common balanced subsequence of two given strings of parentheses and brackets.
+\item \difficulty{h} Describe and analyze an algorithm to compute the longest palindromic balanced subsequence of a given string of parentheses and brackets.
+\item \difficulty{h} Describe and analyze an algorithm to compute the longest common palindromic balanced subsequence (whew!)
+of two given strings of parentheses and brackets.
+\end{enumerate}
+For each problem, your input is an array $w[1\,..\,n]$, where $w[i] \in \{$\Str{(}$,$ \Str{)}$,$ \Str{[}$,$ \Str{]}$\}$ for every index $i$.
+(You may prefer to use different symbols instead of parentheses and brackets—for example, \Str{L}$,$ \Str{R}$,$ \Str{l}$,$ \Str{r} or $\triangleleft,\triangleright,\blacktriangleleft,\blacktriangleright$—but please tell your grader what symbols you’re using!)
+\item \difficulty{h} Congratulations!
+Your research team has just been awarded a \$50M multiyear project, jointly funded by DARPA, Google, and McDonald’s, to produce DWIM: The first compiler to read programmers’ minds!
+Your proposal and your numerous press releases all promise that DWIM will automatically correct errors in any given piece of code, while modifying that code as little as possible.
+Unfortunately, now it’s time to start actually making the damn thing work.
+As a warmup exercise, you decide to tackle the following necessary subproblem.
+Recall that the \textit{edit distance} between two strings is the minimum number of single-character insertions, deletions, and replacements required to transform one string into the other.
+An \textit{arithmetic expression} is a string $w$ such that
+\begin{itemize}
+\item $w$ is a string of one or more decimal digits,
+\item $w=$ \Str{(}$x$\Str{)} for some arithmetic expression $x$, or
+\item $w=x\diamond y$ for some arithmetic expressions $x$ and $y$ and some binary operator $\diamond$.
+\end{itemize}
+Suppose you are given a string of tokens from the alphabet $\{$\Str{\#}$,\diamond ,$ \Str{(}$,$ \Str{)}$\}$, where \Str{\#} represents a decimal digit and $\diamond$ represents a binary operator.
+Describe and analyze an algorithm to compute the minimum edit distance from the given string to an arithmetic expression.
+\item Ribonucleic acid (RNA) molecules are long chains of millions of nucleotides or \textit{bases} of four different types: adenine (\Str{A}), cytosine (\Str{C}), guanine (\Str{G}), and uracil (\Str{U}).
+The \textit{sequence} of an RNA molecule is a string $b[1\,..\,n]$, where each character $b[i] \in \{$\Str{A}$,$ \Str{C}$,$ \Str{G}$,$ \Str{U}$\}$ corresponds to a base.
+In addition to the chemical bonds between adjacent bases in the sequence, hydrogen bonds can form between certain pairs of bases.
+The set of bonded base pairs is called the \textit{secondary structure} of the RNA molecule.
+We say that two base pairs $(i,j)$ and $(i',j')$ with $i<j$ and $i'<j'$ \textbf{\textit{overlap}} if $i<i'<j<j'$ or $i'<i<j'<j$.
+In practice, most base pairs are non-overlapping.
+Overlapping base pairs create so-called \textit{pseudoknots} in the secondary structure, which are essential for some RNA functions, but are more difficult to predict.
+Suppose we want to predict the best possible secondary structure for a given RNA sequence.
+We will adopt a drastically simplified model of secondary structure:
+\begin{itemize}
+\item Each base can bond with at most one other base.
+\item Only \Str{A}–\Str{U} pairs and \Str{C}–\Str{G} pairs can bond.
+\item Pairs of the form $(i,i+1)$ and $(i,i+2)$ cannot bond.
+\item Bonded base pairs cannot overlap.
+\end{itemize}
+The last (and least realistic) restriction allows us to visualize RNA secondary structure as a sort of fat tree, as shown below.
+\begin{figure}[ht]
+\centering
+\includegraphics{p168-Im56}
+\caption{Example RNA secondary structure with 21 bonded base pairs, indicated by heavy red lines. Gaps are indicated by dotted curves. This structure has score $2^2 + 2^2 + 8^2 + 1^2 + 7^2 + 4^2 + 7^2 = 187$.}
+\label{fig:3.8}
+\end{figure}
+\begin{enumerate}
+\item Describe and analyze an algorithm that computes the maximum possible \textit{number} of bonded base pairs in a secondary structure for a given RNA sequence.
+\item A \textit{gap} in a secondary structure is a maximal substring of unpaired bases.
+Large gaps lead to chemical instabilities, so secondary structures with smaller gaps are more likely.
+To account for this preference, let’s define the \textit{score} of a secondary structure to be the sum of the \textit{squares} of the gap lengths; see Figure 3.8.
+(This score function is utterly fictional; real RNA structure prediction requires \textit{much} more complicated scoring functions.)
+Describe and analyze an algorithm that computes the minimum possible score of a secondary structure for a given RNA sequence.
+\end{enumerate}
+\item \difficulty{c}
+\begin{enumerate}
+\item Describe and analyze an efficient algorithm to determine, given a string $w$ and a regular expression $R$, whether $w\in L(R)$.
+\item \textit{Generalized} regular expressions allow the binary operator $\cap$ (intersection) and the unary operator $\neg$ (complement), in addition to the usual • (concatenation), $+$ (or), and $^*$ (Kleene closure) operators.
+NFA constructions and Kleene’s theorem imply that any generalized regular expression $E$ represents a regular language $L(E)$.
+Describe and analyze an efficient algorithm to determine, given a string $w$ and a generalized regular expression $E$, whether $w\in L(E)$.
+\end{enumerate}
+In both problems, assume that you are actually given a parse tree for the (generalized) regular expression, not just a string.
+\end{enumerate}
+\subsection*{Trees and Subtrees}
+\begin{enumerate}[label=\arabic*.,ref=\thechapter.\arabic*,leftmargin=*,align=left,widest*=99,itemsep=1.5ex plus 0.5ex,resume]
+\item You’ve just been appointed as the new organizer of the first annual mandatory holiday party at Giggle (a subsidiary of Abugida).
+Giggle employees are organized into a strict hierarchy—a tree with the company president at the root.
+The all-knowing oracles in Human Resources have assigned a real number to each employee measuring how “fun” the employee is.
+To keep things social, there is one restriction on the guest list: an employee cannot attend the party if their immediate supervisor is also present.
+On the other hand, the president of the company \textit{must} attend the party, even though she has a negative fun rating; it’s her company, after all.
+Give an algorithm that makes a guest list for the party that maximizes the sum of the “fun” ratings of the guests.
+\item Since so few people came to last year’s holiday party, the president of Giggle decides to give each employee a present instead this year.
+Specifically, each employee must receive on the three gifts: (1) an all-expenses-paid sixweek vacation anywhere in the world, (2) an all-the-pancakes-you-can-sort breakfast for two at Jumping Jack Flash’s Flapjack Stack Shack, or (3) a burning paper bag full of dog poop.
+Corporate regulations prohibit any employee from receiving exactly the same gift as his/her direct supervisor.
+Any employee who receives a better gift than his/her direct supervisor will almost certainly be fired in a fit of jealousy.
+As Giggle’s official party czar, it’s \textit{your} job to decide which gift each employee receives.
+Describe an algorithm to distribute gifts so that the minimum number of people are fired.
+Yes, you may send the president a flaming bag of dog poop.
+More formally, you are given a rooted tree $T$, representing the company hierarchy, and you want to label the nodes of $T$ with integers $1$, $2$, or $3$, so that every node has a different label from its parent.
+The \textit{cost} of an labeling is the number of nodes with smaller labels than their parents.
+See Figure 3.9 for an example.
+Describe and analyze an algorithm to compute the minimum-cost labeling of $T$.
+\begin{figure}[ht]
+\centering
+\includegraphics{p170-Im57}
+\caption{A tree labeling with cost 9. The nine bold nodes have smaller labels than their parents. This is not the optimal labeling for this tree.}
+\label{fig:3.9}
+\end{figure}
+\item After the Flaming Dog Poop Holiday Debacle, you were strongly encouraged to seek other employment, and so you left Giggle for rival company Twitbook.
+Unfortunately, the new president of Twitbook just decided to imitate Giggle by throwing her own holiday party, and in light of your past experience, appointed you as the official party organizer.
+The president demands that you invite exactly $k$ employees, including the president herself, and everyone who is invited is required to attend.
+Yeah, that’ll be fun.
+Just like at Giggle, employees at Twitbook are organized into a strict hierarchy: a tree with the company president at the root.
+The all-knowing oracles in Human Resources have assigned a real number to each employee indicating the \textit{awkwardness} of inviting both that employee and their immediate supervisor; a negative value indicates that the employee and their supervisor actually like each other.
+Your goal is to choose a subset of exactly $k$ employees to invite, so that the total awkwardness of the resulting party is as small as possible.
+For example, if the guest list does not include both an employee and their immediate supervisor, the total awkwardness is zero.
+The input to your algorithm is the tree $T$, the integer $k$, and the awkwardness of each node in $T$.
+\begin{enumerate}
+\item Describe an algorithm that computes the total awkwardness of the least awkward subset of $k$ employees, assuming the company hierarchy is described by a \textit{binary} tree.
+That is, assume that each employee directly supervises at most two others.
+\item \difficulty{h} Describe an algorithm that computes the total awkwardness of the least awkward subset of $k$ employees, with no restrictions on the company hierarchy.
+\end{enumerate}
+\item Suppose we need to broadcast a message to all the nodes in a rooted tree.
+Initially, only the root node knows the message.
+In a single round, any node that knows the message can forward it to at most one of its children.
+See Figure 3.10 for an example.
+\begin{enumerate}
+\item Design an algorithm to compute the minimum number of rounds required to broadcast the message to all nodes in a \textit{binary} tree.
+\item \difficulty{d} Design an algorithm to compute the minimum number of rounds required to broadcast the message to all nodes in an \textit{arbitrary} rooted tree.
+\Hint{You may find techniques in the next chapter useful to prove your algorithm is correct, even though it’s not a greedy algorithm.}
+\begin{figure}[ht]
+\centering
+\includegraphics{p171-Im58}
+\caption{A message being distributed through a tree in five rounds.}
+\label{fig:3.10}
+\end{figure}
+\end{enumerate}
+\item One day, Alex got tired of climbing in a gym and decided to take a very large group of climber friends outside to climb.
+The climbing area where they went, had a huge wide boulder, not very tall, with various marked hand and foot holds.
+Alex quickly determined an “allowed” set of moves that her group of friends can perform to get from one hold to another.
+The overall system of holds can be described by a rooted tree $T$ with $n$ vertices, where each vertex corresponds to a hold and each edge corresponds to an allowed move between holds.
+The climbing paths converge as they go up the boulder, leading to a unique hold at the summit, represented by the
+root of $T$.\footnote{Q: Why do computer science professors think trees have their roots at the top? A: Because they’ve never been outside!}
+Alex and her friends (who are all excellent climbers) decided to play a game, where as many climbers as possible are simultaneously on the boulder and each climber needs to perform a sequence of \textit{exactly} $k$ moves.
+Each climber can choose an arbitrary hold to start from, and all moves must move away from the ground.
+Thus, each climber traces out a path of $k$ edges in the tree $T$, all directed toward the root.
+However, no two climbers are allowed to touch the same hold; the paths followed by different climbers cannot intersect at all.
+Describe and analyze an efficient algorithm to compute the maximum number of climbers that can play this game.
+More formally, you are given a rooted tree $T$ and an integer $k$, and you want to find the largest possible number of disjoint paths in $T$, where each path has length $k$.
+Do \textbf{\textit{not}} assume that $T$ is a binary tree.
+For example, given the tree $T$ below and $k=3$ as input, your algorithm should return the integer $8$.
+\begin{figure}[ht]
+\centering
+\includegraphics{p172-Im59}
+\caption{Seven disjoint paths of length $k = 3$. This is \textit{not} the largest such set of paths in this tree.}
+\label{fig:3.11}
+\end{figure}
+\item Let $T$ be a rooted binary tree with $n$ vertices, and let $k\le n$ be a positive integer.
+We would like to mark $k$ vertices in $T$ so that every vertex has a nearby marked ancestor.
+More formally, we define the \textit{clustering cost} of any subset $K$ of vertices as
+\[
+\Var{cost}(K) = \max_v \Var{cost}(v,K),
+\]
+where the maximum is taken over all vertices $v$ in the tree, and $\Var{cost}(v,K)$ is the distance from $v$ to its nearest ancestor in $K$:
+\[
+\Var{cost}(v,K) =
+\begin{cases}
+0 & \text{if } v \in K\\
+\infty & \text{if $v$ is the root of $T$ and } v \notin K\\
+1 + \Var{cost}(\Var{parent}(v)) & \text{otherwise}
+\end{cases}
+\]
+In particular, $\Var{cost}(K) = \infty$ if $K$ excludes the root of $T$.
+\begin{figure}[ht]
+\centering
+\includegraphics{p172-Im60}
+\caption{A subset of five vertices in a binary tree, with clustering cost 3.}
+\label{fig:3.12}
+\end{figure}
+\begin{enumerate}
+\item \difficulty{h} Describe a dynamic programming algorithm to compute, given the tree $T$ and an integer $k$, the minimum clustering cost of any subset of $k$ vertices in $T$.
+For full credit, your algorithm should run in $O(n^2k^2)$ time.
+\item Describe a dynamic programming algorithm to compute, given the tree $T$ and an integer $r$, the size of the smallest subset of vertices whose clustering cost is at most $r$.
+For full credit, your algorithm should run in $O(nr)$ time.
+\item Show that your solution for part (b) implies an algorithm for part (a) that runs in $O(n^2\log n)$ time.
+\end{enumerate}
+\item This question asks you to find efficient algorithms to compute the \textbf{\textit{largest}} \textbf{\textit{common}} \textbf{\textit{rooted}} \textbf{\textit{subtree}} of two given rooted trees.
+Recall that a \textit{rooted tree} is a connected acyclic graph with a designated node called the root.
+A rooted subtree of a rooted tree consists of an arbitrary node and all its descendants.
+The precise definition of “common” depends on which pairs of rooted trees we consider isomorphic.
+\begin{enumerate}
+\item Recall that a \textit{binary} tree is a rooted tree in which every node has a (possibly empty) \textit{left} subtree and a (possibly empty) \textit{right} subtree.
+Two binary trees are isomorphic if and only if they are both empty, or their left subtrees are isomorphic and their right subtrees are isomorphic.
+Describe an algorithm to find the largest common \textit{binary} subtree of two given \textit{binary} trees.
+\begin{figure}[ht]
+\centering
+\includegraphics{p173-Im61}
+\caption{Two binary trees, with their largest common (rooted) subtree emphasized.}
+\label{fig:3.13}
+\end{figure}
+\item In an \textit{ordered} rooted tree, each node has a \textit{sequence} of children, which are the roots of ordered rooted subtrees.
+Two ordered rooted trees are isomorphic if they are both empty, or if their $i$th subtrees are isomorphic for every index $i$.
+Describe an algorithm to find the largest common ordered subtree of two ordered trees $T_1$ and $T_2$.
+\item \difficulty{dh} In an \textit{unordered} rooted tree, each node has an unordered \textit{set} of children, which are the roots of unordered rooted subtrees.
+Two unordered rooted trees are isomorphic if they are both empty, or the subtrees of each root \textit{can be ordered so that} their $i$th subtrees are isomorphic for every index $i$.
+Describe an algorithm to find the largest common unordered subtree of two unordered trees $T_1$ and $T_2$.
+\end{enumerate}
+\item This question asks you to find efficient algorithms to compute optimal subtrees in \textit{unrooted} trees—connected acyclic undirected graphs.
+A \textit{subtree} of an unrooted tree is any connected subgraph.
+\begin{enumerate}
+\item Suppose you are given an unrooted tree $T$ with weights on its \textit{edges}, which may be positive, negative, or zero.
+Describe an algorithm to find a \textit{path} in $T$ with maximum total weight.
+\item Suppose you are given an unrooted tree $T$ with weights on its \textit{vertices}, which may be positive, negative, or zero.
+Describe an algorithm to find a \textit{subtree} of $T$ with maximum total weight.
+\textit{[This was a 2016 Google interview question.]}
+\item Let $T_1$ and $T_2$ be arbitrary \textit{ordered} unrooted trees, meaning that the
+neighbors of every node have a well-defined cyclic order.
+Describe an algorithm to find the largest common \textit{ordered} subtree of $T_1$ and $T_2$.
+\item \difficulty{dh} Let $T_1$ and $T_2$ be arbitrary \textit{unordered} unrooted trees.
+Describe an algorithm to find the largest common \textit{unordered} subtree of $T_1$ and $T_2$.
+\end{enumerate}
+\item \textbf{\textit{Rooted minors}} of rooted trees are a natural generalization of subsequences.
+A rooted minor of a rooted tree $T$ is any tree obtained by \textit{contracting} one or more edges.
+When we contract an edge $\arc{u}{v}$, where $u$ is the parent of $v$, the children of $v$ become new children of $u$ and then $v$ is deleted.
+In particular, the root of $T$ is also the root of every rooted minor of $T$.
+\begin{figure}[ht]
+\centering
+\includegraphics{p174-Im62}
+\caption{A rooted tree and one of its rooted minors.}
+\label{fig:3.14}
+\end{figure}
+\begin{enumerate}
+\item Let $T$ be a rooted tree with labeled nodes.
+We say that $T$ is \textit{boring} if, for each node $x$, all children of $x$ have the same label; children of different nodes may have different labels.
+Describe an algorithm to find the largest boring rooted minor of a given labeled rooted tree.
+\item Suppose we are given a rooted tree $T$ whose nodes are labeled with numbers.
+Describe an algorithm to find the largest \textit{heap-ordered rooted minor} of $T$.
+That is, your algorithm should return the largest rooted minor $M$ such that every node in $M$ has a smaller label than its children in $M$.
+\item Suppose we are given a \textit{binary} tree $T$ whose nodes are labeled with numbers.
+Describe an algorithm to find the largest \textit{binary-search-ordered rooted minor} of $T$.
+That is, your algorithm should return a rooted minor $M$ such that every node in $M$ has at most two children, and an inorder traversal of $M$ is an increasing subsequence of an inorder traversal of $T$.
+\item Recall that a rooted tree is \textit{ordered} if the children of each node have a well-defined left-to-right order.
+Describe an algorithm to find the largest binary-search-ordered minor of an \textit{arbitrary} ordered tree $T$ whose nodes are labeled with numbers.
+Again, the left-to-right order of nodes in $M$ should be consistent with their order in $T$.
+\item \difficulty{h} Describe an algorithm to find the largest common \textit{ordered} rooted minor of two \textit{ordered} labeled rooted trees.
+\item \difficulty{dh} Describe an algorithm to find the largest common \textit{unordered} rooted minor of two \textit{unordered} labeled rooted trees.
+\Hint{Combine dynamic programming with maximum flows.}
+\end{enumerate}
+\end{enumerate}
