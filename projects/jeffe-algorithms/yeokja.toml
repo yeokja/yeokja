@@ -1,0 +1,59 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# source/는 원서 PDF에서 복원한 영어 원고입니다(RECONSTRUCTION.md). main.tex,
+# preamble.tex, 한국어판 판권 면(frontmatter/translation-notice.tex)에는 번역할
+# 산문이 없으므로 장·서문·뒷부분 원고만 번역합니다.
+[[sources]]
+path = "source"
+pattern = "chapters/*.tex"
+parser = "latex"
+output = "ko/{path}"
+
+[[sources]]
+path = "source"
+pattern = "frontmatter/preface.tex"
+parser = "latex"
+output = "ko/{path}"
+
+[[sources]]
+path = "source"
+pattern = "backmatter/*.tex"
+parser = "latex"
+output = "ko/{path}"
+
+[derive]
+base = "source"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.pdf]
+command = '''
+set -eu
+python3 "$YEOKJA_ROOT/scripts/prepare_pdf.py" .
+latexmk -lualatex -interaction=nonstopmode -halt-on-error -e '$max_repeat=10' -usepretex='\def\KoreanEdition{1}' main.tex
+if grep -Eq 'Missing character|There were undefined references|multiply defined|Reference .* undefined' main.log; then
+  echo "PDF validation failed: missing glyphs or unresolved references" >&2
+  exit 1
+fi
+cp main.pdf Algorithms-ko.pdf
+'''
+outputs = ["Algorithms-ko.pdf"]
+dist = "output/pdf"
+
+[provider]
+type = "claude_code"
+model = "claude-sonnet-5"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
