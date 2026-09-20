@@ -33,19 +33,35 @@ pub fn find_terms_in_text(terms: &HashMap<String, String>, text: &str) -> HashMa
     let text_lower = text.to_lowercase();
     let chars: Vec<char> = text_lower.chars().collect();
     let verbatim = verbatim_spans(&chars);
-    terms
-        .iter()
-        .filter(|(term, _)| {
-            let term_chars: Vec<char> = term.to_lowercase().chars().collect();
-            occurrences(&chars, &term_chars).any(|start| {
-                let end = start + term_chars.len();
-                !verbatim.iter().any(|s| s.start < end && start < s.end)
-                    && (start == 0 || !is_word_char(chars[start - 1]))
-                    && (end >= chars.len() || !is_word_char(chars[end]))
-            })
-        })
-        .map(|(k, v)| (k.clone(), v.clone()))
-        .collect()
+
+    // Longest match wins: a term nested in a longer one ("tensor" inside
+    // "Tensor Unit") is not a term of its own where the longer one stands.
+    // Without this the evaluator demands a Korean word inside a name the
+    // glossary itself says to keep in English, and the retry cannot converge.
+    let mut ordered: Vec<(&String, &String)> = terms.iter().collect();
+    ordered.sort_by(|(a, _), (b, _)| b.chars().count().cmp(&a.chars().count()).then(a.cmp(b)));
+
+    let mut claimed: Vec<Range<usize>> = Vec::new();
+    let mut found = HashMap::new();
+    for (term, translation) in ordered {
+        let term_chars: Vec<char> = term.to_lowercase().chars().collect();
+        let mut spans = Vec::new();
+        for start in occurrences(&chars, &term_chars) {
+            let end = start + term_chars.len();
+            let standalone = (start == 0 || !is_word_char(chars[start - 1]))
+                && (end >= chars.len() || !is_word_char(chars[end]));
+            let hidden = verbatim.iter().any(|s| s.start < end && start < s.end);
+            let inside_longer = claimed.iter().any(|c| c.start <= start && end <= c.end);
+            if standalone && !hidden && !inside_longer {
+                spans.push(start..end);
+            }
+        }
+        if !spans.is_empty() {
+            claimed.extend(spans);
+            found.insert(term.clone(), translation.clone());
+        }
+    }
+    found
 }
 
 /// Every position in `haystack` where `needle` starts.
@@ -282,6 +298,28 @@ translation = "커밋"
         let matches = g.find_matching_terms("The repository stores commits.");
         assert_eq!(matches.get("repository").unwrap(), "저장소");
         assert_eq!(matches.get("commit"), None);
+    }
+
+    #[test]
+    fn a_longer_term_wins_over_the_shorter_one_it_contains() {
+        let g = Glossary::from_toml(
+            r#"
+[terms.tensor]
+translation = "텐서"
+
+[terms."Tensor Unit"]
+translation = "Tensor Unit"
+"#,
+        )
+        .unwrap();
+        // Only the proper noun occurs, so its parts must not be demanded too.
+        let matches = g.find_matching_terms("The Fetch Engine feeds the Tensor Unit.");
+        assert_eq!(matches.get("Tensor Unit").unwrap(), "Tensor Unit");
+        assert_eq!(matches.get("tensor"), None);
+        // The bare word still counts where it stands on its own.
+        let both = g.find_matching_terms("A tensor enters the Tensor Unit.");
+        assert_eq!(both.get("tensor").unwrap(), "텐서");
+        assert_eq!(both.get("Tensor Unit").unwrap(), "Tensor Unit");
     }
 
     #[test]
