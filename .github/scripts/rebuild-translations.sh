@@ -82,6 +82,11 @@ case "$project" in
     "$yeokja" translate upstream/peps
     "$yeokja" status --check upstream/peps
     ;;
+  jeffe-algorithms)
+    # 복원한 영어 원고(source/) 전체를 확인한 뒤 ko/를 재구성합니다.
+    "$yeokja" status --check source
+    "$yeokja" translate source
+    ;;
   cp-algorithms)
     # 문서 디렉터리 전체와 홈 본문(README → src/index_body)을 함께 확인해
     # upstream이 추가한 문서가 state 없이 빠지는 경우도 배포를 막습니다.

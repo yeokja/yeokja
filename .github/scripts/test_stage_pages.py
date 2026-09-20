@@ -43,6 +43,10 @@ class StagePagesTests(unittest.TestCase):
 
     def add_required_artifacts(self) -> None:
         self.write(self.artifacts / "dist-hott-pdf" / "HoTT-ko.pdf", "hott pdf")
+        self.write(
+            self.artifacts / "dist-jeffe-algorithms-pdf" / "Algorithms-ko.pdf",
+            "algorithms pdf",
+        )
         self.add_site_artifact("dist-cpython-devguide", "cpython-devguide")
         self.write(
             self.artifacts
@@ -106,6 +110,9 @@ class StagePagesTests(unittest.TestCase):
     def test_required_files_preserved_from_published_tree_suffice(self) -> None:
         # plan 잡이 빌드를 건너뛰면 산출물은 없지만 보존된 트리에 이미 있습니다.
         self.write(self.site / "hott" / "HoTT-ko.pdf", "published hott")
+        self.write(
+            self.site / "jeffe-algorithms" / "Algorithms-ko.pdf", "published algorithms"
+        )
         self.write(self.site / "cpython-devguide" / "index.html", "published cpython-devguide")
         self.write(
             self.site / "chisel-book" / "Digital-Design-with-Chisel-ko.pdf",
