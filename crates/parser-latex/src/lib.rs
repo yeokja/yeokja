@@ -39,6 +39,9 @@ const OPAQUE_ENVIRONMENTS: &[&str] = &[
     "multline",
     "multline*",
     "pmatrix",
+    // Line-by-line pseudocode: keywords and identifiers stay as written; only
+    // `\Comment{...}` arguments inside are offered (see VISIBLE_TEXT_COMMANDS).
+    "pseudocode",
     "smallmatrix",
     "split",
     "tabular",
@@ -82,6 +85,9 @@ const TEXT_ARGUMENT_COMMANDS: &[&str] = &["caption", "pitch", "prototype", "todo
 /// reconstruction pass. That lets `\text{otherwise}` be translated without
 /// offering the surrounding equation, matrix, or diagram to the model.
 const VISIBLE_TEXT_COMMANDS: &[&str] = &[
+    // Pseudocode comment (algorithmicx convention), readable prose inside an
+    // otherwise untranslated `pseudocode` environment.
+    "Comment",
     "emph",
     "intertext",
     "shortintertext",
@@ -1270,6 +1276,24 @@ mod tests {
             .map(|segment| segment.source.as_str())
             .collect();
         assert_eq!(sources, ["Intro.", "Outro."]);
+    }
+
+    #[test]
+    fn pseudocode_is_opaque_except_its_comments() {
+        let source = "Prose before.\n\\begin{pseudocode}\n\\Header{\\Proc{PlaceQueens}$(Q[1\\,..\\,n], r)$:}\\\\\nif $r = n+1$\\\\\n\\Indent print $Q[1\\,..\\,n]$ \\Comment{Recursion!}\n\\end{pseudocode}\nProse after.\n";
+        let document = LatexParser.parse(source);
+        let sources: Vec<_> = document
+            .translatable_segments()
+            .into_iter()
+            .map(|segment| segment.source.as_str())
+            .collect();
+        assert_eq!(sources, ["Prose before.", "Prose after.", "Recursion!"]);
+
+        let map = translated(&document, &[("Recursion!", "재귀!")]);
+        assert_eq!(
+            LatexParser.reconstruct(&document, &map),
+            source.replace("\\Comment{Recursion!}", "\\Comment{재귀!}")
+        );
     }
 
     #[test]
