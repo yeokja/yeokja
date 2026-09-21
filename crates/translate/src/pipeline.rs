@@ -183,6 +183,12 @@ pub async fn translate_with_evaluation_observed(
                 Markup::Rst => {
                     crate::evaluator_format::repair_rst_boundaries(source, translation)
                 }
+                Markup::Markdown => {
+                    crate::evaluator_format::repair_markdown_emphasis(source, translation)
+                }
+                Markup::Asciidoc => {
+                    crate::evaluator_format::repair_asciidoc_boundaries(source, translation)
+                }
                 _ => translation.clone(),
             };
 
@@ -691,5 +697,76 @@ mod tests {
         // Should stop after max_retries + 1 attempts (initial + 3 retries = 4)
         assert!(results[&1].attempts <= 4);
         assert_eq!(results[&1].translation, "bad");
+    }
+
+    #[tokio::test]
+    async fn markdown_emphasis_is_repaired_before_evaluation() {
+        let provider = MockProvider::new(vec![
+            [(1, "선형대수학의 **외적(outer product)**에서 유래합니다.".to_string())].into(),
+        ]);
+        let format = crate::evaluator_format::FormatEvaluator;
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![&format];
+        let source = "It comes from the **outer product** of linear algebra.";
+        let request = TranslateRequest {
+            segments: vec![(1, source.to_string())],
+            block_context: source.to_string(),
+            glossary: HashMap::new(),
+            source_lang: "en".to_string(),
+            target_lang: "ko".to_string(),
+            markup: Markup::Markdown,
+            feedback: None,
+            prompt_template: None,
+            paragraphs: HashMap::new(),
+        };
+        let results = translate_with_evaluation(
+            &provider,
+            &evaluators,
+            request,
+            &HashMap::new(),
+            "en",
+            "ko",
+            Markup::Markdown,
+            3,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            results[&1].translation,
+            "선형대수학의 **외적**(outer product)에서 유래합니다."
+        );
+        assert_eq!(results[&1].attempts, 1);
+    }
+
+    #[tokio::test]
+    async fn asciidoc_pairs_are_doubled_before_evaluation() {
+        let provider = MockProvider::new(vec![[(1, "`erlc`의 출력입니다.".to_string())].into()]);
+        let format = crate::evaluator_format::FormatEvaluator;
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![&format];
+        let source = "The output of `erlc`.";
+        let request = TranslateRequest {
+            segments: vec![(1, source.to_string())],
+            block_context: source.to_string(),
+            glossary: HashMap::new(),
+            source_lang: "en".to_string(),
+            target_lang: "ko".to_string(),
+            markup: Markup::Asciidoc,
+            feedback: None,
+            prompt_template: None,
+            paragraphs: HashMap::new(),
+        };
+        let results = translate_with_evaluation(
+            &provider,
+            &evaluators,
+            request,
+            &HashMap::new(),
+            "en",
+            "ko",
+            Markup::Asciidoc,
+            3,
+        )
+        .await
+        .unwrap();
+        assert_eq!(results[&1].translation, "``erlc``의 출력입니다.");
+        assert_eq!(results[&1].attempts, 1);
     }
 }

@@ -9,7 +9,7 @@ impl TranslationEvaluator for FormatEvaluator {
         &self,
         context: &EvaluationContext,
     ) -> Result<EvaluationResult, EvaluationError> {
-        let mut issues = Self::markup_issues(context);
+        let mut issues = Self::markup_issues(context, context.markup == Markup::Markdown);
         issues.extend(parenthesis_issues(context));
         let passed = !issues.iter().any(|i| i.severity == IssueSeverity::Error);
         Ok(EvaluationResult { passed, issues })
@@ -25,7 +25,10 @@ impl TranslationEvaluator for FormatEvaluator {
 }
 
 impl FormatEvaluator {
-    fn markup_issues(context: &EvaluationContext) -> Vec<EvaluationIssue> {
+    /// `commonmark` says whether emphasis follows CommonMark's delimiter
+    /// rules. MkDocs checks its masked text as Markdown, but Python-Markdown
+    /// closes `*` wherever it finds one.
+    fn markup_issues(context: &EvaluationContext, commonmark: bool) -> Vec<EvaluationIssue> {
         if context.markup == Markup::MkDocs {
             let mut issues = mkdocs_issues(&context.source, &context.translation);
             // Formulas are copied verbatim (checked above); hide them so their
@@ -36,11 +39,12 @@ impl FormatEvaluator {
                 markup: Markup::Markdown,
                 ..context.clone()
             };
-            issues.extend(Self::markup_issues(&masked));
+            issues.extend(Self::markup_issues(&masked, false));
             return issues;
         }
 
         let mut issues = Vec::new();
+        let mut told_about_emphasis = false;
 
         // A full reference link keeps the source text as its label so the
         // text can be translated, `[*단형화*][_monomorphized_]`. The label is
@@ -146,6 +150,7 @@ impl FormatEvaluator {
             ];
             for (name, in_source, in_translation) in checks {
                 if in_source != in_translation {
+                    told_about_emphasis |= name == "Emphasis marker runs";
                     issues.push(EvaluationIssue {
                         severity: IssueSeverity::Error,
                         kind: IssueKind::FormatLost,
@@ -207,6 +212,10 @@ impl FormatEvaluator {
         // nothing is left unclosed and the run count still matches. What gives it
         // away is how many pairs actually form.
         for &(mark, unconstrained) in constrained_marks(context.markup) {
+            // CommonMark's own count, below, takes in `_` along with `*`.
+            if commonmark && mark == '_' {
+                continue;
+            }
             let source = pair_up(&chars(&context.source), mark);
             // A source that leaves a pair open has no count worth matching, and
             // demanding the translation match it would reject the rewrite that
@@ -396,6 +405,7 @@ impl FormatEvaluator {
             // and leaves the rest.
             let shown: Vec<&str> = unclosable.iter().map(|u| u.text.as_str()).collect();
             let unconstrained = unclosable[0].unconstrained;
+            told_about_emphasis |= unclosable.iter().any(|u| !u.text.starts_with('`'));
             issues.push(EvaluationIssue {
                 severity: IssueSeverity::Error,
                 kind: IssueKind::FormatLost,
@@ -409,6 +419,49 @@ impl FormatEvaluator {
                     unconstrained,
                 ),
             });
+        }
+
+        // CommonMark closes `*` against a Korean particle — unless punctuation
+        // sits on its inner side: then only a space or punctuation after it
+        // lets it close, and `**외적(outer product)**에서` prints its marks.
+        // The pairs that form are counted by the parser mdBook itself uses.
+        if commonmark {
+            let source = commonmark_emphasis(&visible_source);
+            let translation = commonmark_emphasis(&visible_translation);
+            if source.stray.is_empty() && source.formed != translation.formed {
+                let blocked = blocked_emphasis(&visible_translation, &translation.stray);
+                if !blocked.is_empty() {
+                    issues.push(EvaluationIssue {
+                        severity: IssueSeverity::Error,
+                        kind: IssueKind::FormatLost,
+                        message: format!(
+                            "{} never closes: CommonMark closes * or ** right after \
+                             punctuation — ), ], `, \" — only when a space or punctuation \
+                             follows it, so a particle straight after it prints the marks as \
+                             themselves. End the emphasis on a letter: keep a gloss, a link or \
+                             quotation marks outside it — **외적**(outer product)에서, \
+                             [**Fetch**](url)는, \"*권한*\"은 — and when the term itself ends in \
+                             code or a symbol, take the particle inside: *`impl Trait`의*. An \
+                             opening mark right before punctuation likewise needs a space or \
+                             punctuation in front of it.",
+                            blocked.join(", "),
+                        ),
+                    });
+                } else if !told_about_emphasis {
+                    issues.push(EvaluationIssue {
+                        severity: IssueSeverity::Error,
+                        kind: IssueKind::FormatLost,
+                        message: format!(
+                            "Emphasis pairs do not line up: the source forms {}, the \
+                             translation {}. CommonMark leaves a * or _ run unpaired when \
+                             punctuation sits on its inner side and a letter on its outer \
+                             side; end each emphasis on a letter and start it after a space: \
+                             **외적**(outer product)에서.",
+                            source.formed, translation.formed,
+                        ),
+                    });
+                }
+            }
         }
 
         // A segment's span starts where a line does, so the first character of
@@ -551,6 +604,118 @@ fn markdown_emphasis_pairs(text: &str) -> usize {
     pair_up(&chars(text), '_').formed + mark_runs(text, '*') / 2
 }
 
+/// Emphasis the way CommonMark reads it: the pairs that form, and every `*`
+/// or `_` run left printed as itself where a mark could open or close.
+///
+/// mdBook parses with pulldown-cmark, and markdown-it (MyST), micromark (MDX)
+/// and pandoc's gfm reader implement the same delimiter algorithm, so asking
+/// pulldown-cmark is asking the renderer. Simulating it the way `pair_up`
+/// does for AsciiDoc would mean reproducing the delimiter stack, the rule of
+/// three, and the precedence of code spans and links.
+struct CommonMarkEmphasis {
+    formed: usize,
+    /// Char ranges of the runs left as text.
+    stray: Vec<std::ops::Range<usize>>,
+}
+
+fn commonmark_emphasis(text: &str) -> CommonMarkEmphasis {
+    use pulldown_cmark::{Event, Options, Parser, Tag};
+    let mut formed = 0;
+    let mut literal = vec![false; text.len()];
+    for (event, range) in Parser::new_ext(text, Options::empty()).into_offset_iter() {
+        match event {
+            Event::Start(Tag::Emphasis | Tag::Strong) => formed += 1,
+            Event::Text(_) => literal[range].fill(true),
+            _ => {}
+        }
+    }
+    let chars: Vec<(usize, char)> = text.char_indices().collect();
+    let mut stray = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let (byte, mark) = chars[i];
+        if !matches!(mark, '*' | '_') || !literal[byte] || (i > 0 && chars[i - 1].1 == '\\') {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        while chars.get(i).is_some_and(|&(byte, c)| c == mark && literal[byte]) {
+            i += 1;
+        }
+        let before = start.checked_sub(1).map(|at| chars[at].1);
+        let after = chars.get(i).map(|&(_, c)| c);
+        // `min_heap_size` flanks on both sides and still opens nothing.
+        let intraword = mark == '_'
+            && before.is_some_and(char::is_alphanumeric)
+            && after.is_some_and(char::is_alphanumeric);
+        if (left_flanking(before, after) || left_flanking(after, before)) && !intraword {
+            stray.push(start..i);
+        }
+    }
+    CommonMarkEmphasis { formed, stray }
+}
+
+/// Whether a delimiter run between `before` and `after` is left-flanking and
+/// so may open; with the arguments swapped, whether it is right-flanking and
+/// may close. The edge of the text counts as whitespace.
+fn left_flanking(before: Option<char>, after: Option<char>) -> bool {
+    let space = |c: Option<char>| c.is_none_or(char::is_whitespace);
+    let punctuation = |c: Option<char>| c.is_some_and(commonmark_punctuation);
+    !space(after) && (!punctuation(after) || space(before) || punctuation(before))
+}
+
+/// CommonMark's punctuation: ASCII punctuation, and — since 0.31 — any
+/// Unicode punctuation or symbol, taken here as whatever non-ASCII character
+/// is not a letter, digit or space.
+fn commonmark_punctuation(c: char) -> bool {
+    c.is_ascii_punctuation() || (!c.is_ascii() && !c.is_alphanumeric() && !c.is_whitespace())
+}
+
+/// The stray runs of `text` that punctuation blocks — a closing mark between
+/// punctuation and a letter, or an opening one between a letter and
+/// punctuation — each quoted with the run it was meant to pair with and the
+/// word the particle belongs to.
+fn blocked_emphasis(text: &str, stray: &[std::ops::Range<usize>]) -> Vec<String> {
+    let chars = chars(text);
+    let letter = |at: usize| chars.get(at).is_some_and(|c| c.is_alphanumeric());
+    let punctuation = |at: usize| chars.get(at).is_some_and(|c| commonmark_punctuation(*c));
+    let same = |a: &std::ops::Range<usize>, b: &std::ops::Range<usize>| {
+        a.len() == b.len() && chars[a.start] == chars[b.start]
+    };
+    let mut shown = Vec::new();
+    for (k, run) in stray.iter().enumerate() {
+        let (from, to) = if run.start > 0 && punctuation(run.start - 1) && letter(run.end) {
+            let from = stray[..k]
+                .iter()
+                .rev()
+                .find(|open| same(open, run))
+                .map_or(run.start, |open| open.start);
+            let mut to = run.end;
+            while letter(to) {
+                to += 1;
+            }
+            (from, to)
+        } else if run.start > 0 && letter(run.start - 1) && punctuation(run.end) {
+            let mut from = run.start;
+            while from > 0 && letter(from - 1) {
+                from -= 1;
+            }
+            let to = stray[k + 1..]
+                .iter()
+                .find(|close| same(close, run))
+                .map_or(run.end, |close| close.end);
+            (from, to)
+        } else {
+            continue;
+        };
+        let text: String = chars[from..to].iter().collect();
+        if !shown.contains(&text) {
+            shown.push(text);
+        }
+    }
+    shown
+}
+
 /// What a mark does across a stretch of text: how many pairs it actually forms,
 /// and every pair it opens without being able to close.
 ///
@@ -560,6 +725,9 @@ fn markdown_emphasis_pairs(text: &str) -> usize {
 struct Pairing {
     formed: usize,
     unclosable: Vec<std::ops::Range<usize>>,
+    /// For each unclosable pair, in the same order, the run of marks it first
+    /// met and could not close on.
+    blocked_closers: Vec<std::ops::Range<usize>>,
 }
 
 /// An inline pair that cannot close: the offending text as written, and the
@@ -1498,7 +1666,7 @@ fn pair_up(chars: &[char], mark: char) -> Pairing {
             };
             let close = from + offset;
             let close_len = run_len(close);
-            first_candidate.get_or_insert(close + close_len);
+            first_candidate.get_or_insert(close..close + close_len);
             let usable = close_len == open_len
                 && (open_len > 1
                     || (!chars[close - 1].is_whitespace()
@@ -1515,9 +1683,10 @@ fn pair_up(chars: &[char], mark: char) -> Pairing {
             }
             // A mark with nothing after it to pair with is text, not markup.
             (None, None) => break,
-            (None, Some(end)) => {
-                pairing.unclosable.push(i..(end + 1).min(chars.len()));
-                i = end;
+            (None, Some(candidate)) => {
+                pairing.unclosable.push(i..(candidate.end + 1).min(chars.len()));
+                i = candidate.end;
+                pairing.blocked_closers.push(candidate);
             }
         }
     }
@@ -1793,6 +1962,140 @@ fn rst_malformed_role_closures(text: &str) -> Vec<String> {
         at = close + 1;
     }
     found
+}
+
+/// Double the marks of an AsciiDoc pair a Korean particle keeps from
+/// closing: `` `erlc`의 `` → ``` ``erlc``의 ```.
+///
+/// The evaluator names the doubled form, and the model still wrote the single
+/// one four retries running (thebeambook `compiler.asciidoc`); like
+/// `repair_rst_boundaries`, this is typography, not translation. A pair
+/// doubled at its closing end only gets its opening end doubled too. A
+/// passthrough span `` `+x+` `` gets a space after it instead — told to double,
+/// the model dropped the pluses. A mark the source itself leaves open is left
+/// alone, and a repair is kept only when the mark then forms more pairs and
+/// leaves none open.
+pub(crate) fn repair_asciidoc_boundaries(source: &str, translation: &str) -> String {
+    let mut repaired = translation.to_string();
+    for &(mark, _) in constrained_marks(Markup::Asciidoc) {
+        if !pair_up(&chars(source), mark).unclosable.is_empty() {
+            continue;
+        }
+        let text = chars(&repaired);
+        let before = pair_up(&text, mark);
+        let mut doubled = std::collections::BTreeSet::new();
+        let mut spaced = std::collections::BTreeSet::new();
+        for (span, close) in before.unclosable.iter().zip(&before.blocked_closers) {
+            let open_len = text[span.start..].iter().take_while(|c| **c == mark).count();
+            if open_len != 1 || text[close.start - 1].is_whitespace() {
+                continue;
+            }
+            let content = &text[span.start + 1..close.start];
+            let passthrough = mark == '`'
+                && content.len() > 1
+                && content.first() == Some(&'+')
+                && content.last() == Some(&'+');
+            match close.len() {
+                1 if passthrough => {
+                    spaced.insert(close.end);
+                }
+                1 => {
+                    doubled.insert(span.start);
+                    doubled.insert(close.start);
+                }
+                2 if !passthrough => {
+                    doubled.insert(span.start);
+                }
+                _ => {}
+            }
+        }
+        if doubled.is_empty() && spaced.is_empty() {
+            continue;
+        }
+        let mut candidate = String::with_capacity(repaired.len() + doubled.len() + spaced.len());
+        for (at, c) in text.iter().enumerate() {
+            if doubled.contains(&at) {
+                candidate.push(mark);
+            }
+            if spaced.contains(&at) {
+                candidate.push(' ');
+            }
+            candidate.push(*c);
+        }
+        let after = pair_up(&chars(&candidate), mark);
+        if after.unclosable.is_empty() && after.formed > before.formed {
+            repaired = candidate;
+        }
+    }
+    repaired
+}
+
+/// Move the closing mark of an emphasis that ends on a parenthesised gloss
+/// in front of the gloss: `**외적(outer product)**에서` →
+/// `**외적**(outer product)에서`.
+///
+/// CommonMark does not close `**` between `)` and a particle (see
+/// `commonmark_emphasis`), and Korean glosses a term in parentheses straight
+/// after it, so the model writes that shape again and again. In front of the
+/// `(` the mark follows the term and closes. The repair is kept only when it
+/// forms more pairs without forming more than the source does; everything
+/// else is left for the evaluator to report. Also run once over stored
+/// translations, hence `pub`.
+pub fn repair_markdown_emphasis(source: &str, translation: &str) -> String {
+    let wanted = commonmark_emphasis(&without_reference_labels(source));
+    if !wanted.stray.is_empty() {
+        return translation.to_string();
+    }
+    let chars = chars(translation);
+    let mut moves: Vec<(std::ops::Range<usize>, usize)> = Vec::new();
+    for run in commonmark_emphasis(translation).stray {
+        if run.start == 0
+            || chars[run.start - 1] != ')'
+            || !chars.get(run.end).is_some_and(|c| c.is_alphanumeric())
+        {
+            continue;
+        }
+        let Some(open) = chars[..run.start - 1].iter().rposition(|c| *c == '(') else {
+            continue;
+        };
+        if chars[open + 1..run.start - 1]
+            .iter()
+            .any(|c| matches!(c, '*' | '_' | '`' | '(' | ')' | '\\'))
+        {
+            continue;
+        }
+        let term_end = if open > 0 && chars[open - 1] == ' ' { open - 1 } else { open };
+        // A link destination or escaped math is no gloss, and nothing before
+        // the `(` means there is no term to end the emphasis on.
+        if term_end == 0
+            || chars[term_end - 1].is_whitespace()
+            || matches!(chars[term_end - 1], ']' | '\\' | '*' | '_')
+        {
+            continue;
+        }
+        moves.push((run, term_end));
+    }
+    if moves.is_empty() {
+        return translation.to_string();
+    }
+    let mut repaired = String::with_capacity(translation.len());
+    for (at, c) in chars.iter().enumerate() {
+        for (run, to) in &moves {
+            if *to == at {
+                repaired.extend(&chars[run.clone()]);
+            }
+        }
+        if !moves.iter().any(|(run, _)| run.contains(&at)) {
+            repaired.push(*c);
+        }
+    }
+    let before = commonmark_emphasis(&without_reference_labels(translation)).formed;
+    let after = commonmark_emphasis(&without_reference_labels(&repaired)).formed;
+    if after > before && after <= wanted.formed {
+        repaired
+    } else {
+        translation.to_string()
+    }
 }
 
 /// Insert invisible RST boundaries where Korean particles touch inline markup.
@@ -3556,5 +3859,184 @@ mod tests {
             "(($\\OO_K$에서의)) 사상 $x \\mapsto x^p$를 생각합시다.",
         );
         assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+
+    /// mdBook, MyST, MDX and pandoc read emphasis by CommonMark's rules, and a
+    /// closing mark after punctuation needs a space or punctuation after it.
+    /// 88 translations across seven projects printed their stars this way.
+    #[tokio::test]
+    async fn markdown_emphasis_does_not_close_between_punctuation_and_a_particle() {
+        let ctx = context_in(
+            Markup::Markdown,
+            "\"Outer\" comes from the **outer product** of linear algebra.",
+            "\"Outer\"는 선형대수학의 **외적(outer product)**에서 유래합니다.",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(!result.passed);
+        let message = &result
+            .issues
+            .iter()
+            .find(|i| i.message.contains("never closes"))
+            .expect("the unclosed emphasis should be named")
+            .message;
+        assert!(message.contains("**외적(outer product)**에서"), "{message}");
+        assert!(message.contains("**외적**(outer product)에서"), "{message}");
+    }
+
+    #[tokio::test]
+    async fn markdown_emphasis_ending_in_code_or_a_link_does_not_close_before_a_particle() {
+        for (source, translation) in [
+            (
+                "Short for _argument-position `impl Trait`_.",
+                "*argument-position `impl Trait`*의 줄임말입니다.",
+            ),
+            (
+                "**[Fetch](./fetch-engine.md)** reads DM.",
+                "**[Fetch](./fetch-engine.md)**는 DM을 읽습니다.",
+            ),
+            ("approved by *FCPs* or *r+*.", "*FCP* 또는 *r+*로 승인합니다."),
+        ] {
+            let ctx = context_in(Markup::Markdown, source, translation);
+            assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed, "{translation}");
+        }
+    }
+
+    #[tokio::test]
+    async fn markdown_emphasis_that_ends_on_a_letter_closes() {
+        for (source, translation) in [
+            ("comes from the **outer product** of it.", "**외적**(outer product)에서 유래합니다."),
+            (
+                "Short for _argument-position `impl Trait`_.",
+                "*argument-position `impl Trait`의* 줄임말입니다.",
+            ),
+            (
+                "**[Fetch](./fetch-engine.md)** reads DM.",
+                "[**Fetch**](./fetch-engine.md)는 DM을 읽습니다.",
+            ),
+            ("No _\"formal power\"_: none.", "\"*공식 권한*\"은 없습니다: 없습니다."),
+        ] {
+            let ctx = context_in(Markup::Markdown, source, translation);
+            let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+            assert!(result.passed, "{translation}: {:?}", result.issues);
+        }
+    }
+
+    #[tokio::test]
+    async fn mkdocs_stars_close_against_a_particle_after_punctuation() {
+        // Python-Markdown has no flanking rule for `*`.
+        let ctx = mkdocs_ctx(
+            "**Simulated Annealing (SA)** is a randomized algorithm.",
+            "**시뮬레이티드 어닐링(SA)**은 무작위 알고리즘입니다.",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+    }
+
+    #[tokio::test]
+    async fn markdown_source_with_an_unclosed_mark_is_no_measure() {
+        // rustc-dev-guide `diagnostic-structs.md`: the source forgets its closing `_`.
+        let ctx = context_in(
+            Markup::Markdown,
+            "_Applied to `Span` fields on `Subdiagnostic`s.",
+            "*`Subdiagnostic`*의 `Span` 필드에 적용됩니다.",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(
+            !result.issues.iter().any(|i| i.message.contains("never closes")),
+            "{:?}",
+            result.issues
+        );
+    }
+
+    #[tokio::test]
+    async fn a_markdown_underscore_before_a_particle_gets_one_message() {
+        let ctx = context_in(Markup::Markdown, "The _arity_ is the count.", "_arity_는 개수입니다.");
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(!result.passed);
+        assert_eq!(result.issues.len(), 1, "{:?}", result.issues);
+    }
+
+    #[test]
+    fn commonmark_emphasis_counts_what_forms_and_names_what_prints() {
+        let read = commonmark_emphasis("**외적(outer product)**에서 *a*");
+        assert_eq!(read.formed, 1);
+        assert_eq!(read.stray, vec![0..2, 19..21]);
+        // An identifier's underscore and a spaced star are text, not marks.
+        let read = commonmark_emphasis("min_heap_size 는 2 * 3 입니다");
+        assert_eq!((read.formed, read.stray.len()), (0, 0));
+        // An escaped star is text too.
+        assert!(commonmark_emphasis(r"\*외적\*에서").stray.is_empty());
+    }
+
+    #[test]
+    fn markdown_repair_moves_a_closing_mark_before_a_gloss() {
+        let source = "The **goal** is to prove and the **clause** is known.";
+        assert_eq!(
+            repair_markdown_emphasis(
+                source,
+                "**목표(goal)**란 증명할 것이며 **조항(clause)**이란 아는 것입니다."
+            ),
+            "**목표**(goal)란 증명할 것이며 **조항**(clause)이란 아는 것입니다.",
+        );
+        assert_eq!(
+            repair_markdown_emphasis("an *issue (kind)*.", "*이슈 (종류)*로 봅니다."),
+            "*이슈* (종류)로 봅니다.",
+        );
+    }
+
+    #[test]
+    fn markdown_repair_leaves_what_it_cannot_move_alone() {
+        for (source, translation) in [
+            // A link's destination is no gloss.
+            ("**[Fetch](./fetch-engine.md)** reads.", "**[Fetch](./fetch-engine.md)**는 읽습니다."),
+            // Code at the end has no gloss to move.
+            ("Short for _`impl Trait` in assoc_.", "*연관 타입의 `impl Trait`*의 줄임말입니다."),
+            // Math is no gloss.
+            ("holds *tensor \\\\(T\\\\)*.", "*텐서 \\\\(T\\\\)*를 보유합니다."),
+            // Emphasis the source does not have is not repaired into existence.
+            ("the outer product", "**외적(outer product)**에서"),
+            // A source that leaves a mark open is no measure.
+            ("_Applied to `Span` fields.", "*필드(fields)*에 적용됩니다."),
+        ] {
+            assert_eq!(repair_markdown_emphasis(source, translation), translation);
+        }
+    }
+
+    #[test]
+    fn asciidoc_repair_doubles_a_pair_a_particle_keeps_open() {
+        assert_eq!(
+            repair_asciidoc_boundaries(
+                "The `erlc` compiler and *bold* and _it_ work.",
+                "`erlc`의 컴파일러와 *굵게*를, _기울임_은 동작합니다.",
+            ),
+            "``erlc``의 컴파일러와 **굵게**를, __기울임__은 동작합니다.",
+        );
+    }
+
+    #[test]
+    fn asciidoc_repair_finishes_a_half_doubled_pair() {
+        assert_eq!(
+            repair_asciidoc_boundaries("the `Atom` chunk", "`Atom``이라는 청크"),
+            "``Atom``이라는 청크",
+        );
+    }
+
+    #[test]
+    fn asciidoc_repair_spaces_a_passthrough_instead_of_doubling() {
+        assert_eq!(
+            repair_asciidoc_boundaries(
+                "Write `+receive [] -> ok end+` here.",
+                "`+receive [] -> ok end+`를 씁니다.",
+            ),
+            "`+receive [] -> ok end+` 를 씁니다.",
+        );
+    }
+
+    #[test]
+    fn asciidoc_repair_leaves_a_source_that_cannot_close_alone() {
+        let translation = "`{...}``의 모양";
+        assert_eq!(repair_asciidoc_boundaries("the `{...}`` shape", translation), translation);
+        let fine = "``erlc``의 컴파일러";
+        assert_eq!(repair_asciidoc_boundaries("The `erlc` compiler", fine), fine);
     }
 }

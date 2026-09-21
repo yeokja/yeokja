@@ -109,7 +109,10 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
         Markup::Markdown => {
             "A closing _ that a letter follows does not close the pair. When the translation \
              puts a suffix straight after an italicised term, use * instead: _arity_ → \
-             *arity*는.\n"
+             *arity*는. A closing * or ** right after punctuation — ), ], `, \" — does not \
+             close when a letter follows it either, so end emphasis on a letter: \
+             **외적**(outer product)에서, not **외적(outer product)**에서; \
+             [**Fetch**](url)는; *`impl Trait`의*.\n"
         }
         Markup::MkDocs => {
             "A closing _ that a letter follows does not close the pair. When the translation \
@@ -304,6 +307,11 @@ mod tests {
         let markdown = build_prompt(&req);
         assert!(markdown.contains("*arity*는"));
         assert!(!markdown.contains("``heap``"));
+        // CommonMark does not close `**` between `)` and a particle; MkDocs'
+        // Python-Markdown does.
+        assert!(markdown.contains("**외적**(outer product)에서"));
+        req.markup = Markup::MkDocs;
+        assert!(!build_prompt(&req).contains("**외적**(outer product)에서"));
 
         // RST has no doubled form to escape to; the rule names the
         // backslash-escaped space instead.
