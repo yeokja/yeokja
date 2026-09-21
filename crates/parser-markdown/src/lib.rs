@@ -367,6 +367,34 @@ mod tests {
     }
 
     #[test]
+    fn gfm_alert_marker_stays_out_of_the_segment_and_on_its_own_line() {
+        let parser = MarkdownParser;
+        let source = "Intro.\n\n> [!NOTE]\n> Prose line one\n> and line two.\n\nAfter.\n";
+        let doc = parser.parse(source);
+        let sources: Vec<String> = doc.translatable_segments().iter().map(|s| s.source.clone()).collect();
+        assert_eq!(sources, ["Intro.", "Prose line one and line two.", "After."]);
+        let mut translations = TranslationMap::new();
+        for (seg, ko) in doc.translatable_segments().iter().zip(["소개.", "본문입니다.", "다음."]) {
+            translations.insert(seg.id.clone(), ko.to_string());
+        }
+        assert_eq!(
+            parser.reconstruct(&doc, &translations),
+            "소개.\n\n> [!NOTE]\n> 본문입니다.\n\n다음.\n"
+        );
+    }
+
+    #[test]
+    fn every_gfm_alert_kind_is_recognised() {
+        let parser = MarkdownParser;
+        for kind in ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"] {
+            let source = format!("> [!{kind}]\n> Body.\n");
+            let doc = parser.parse(&source);
+            let sources: Vec<String> = doc.translatable_segments().iter().map(|s| s.source.clone()).collect();
+            assert_eq!(sources, ["Body."], "{kind}");
+        }
+    }
+
+    #[test]
     fn escaped_bracket_at_paragraph_start_stays_in_segment() {
         let parser = MarkdownParser;
         let source = "\\[ x^2 \\] is a formula.\n";

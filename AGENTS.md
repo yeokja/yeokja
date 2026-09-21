@@ -43,9 +43,18 @@ spec-driven 워크플로(design spec → implementation plan)를 따릅니다. �
 `[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!IMPORTANT]`, `[!CAUTION]`은 GFM 문법
 토큰이며 렌더러가 그대로 인식해야 하므로, 대괄호 안 단어를 한국어로 옮기거나
 (`[!참고]`), 콜론 문구로 바꾸거나(`참고: ...`), 통째로 빠뜨려서는 안 됩니다.
-`crates/translate/src/prompt.rs`의 기본 프롬프트가 이 규칙을 강제하지만,
-프로젝트별 `yeokja.toml`에 `[provider].prompt_template`을 커스텀으로 두면
-이 규칙이 자동으로 포함되지 않으므로 **커스텀 템플릿을 쓰는 프로젝트는 이
-문장을 직접 명시**해야 합니다(예: `projects/webassembly-component-docs/yeokja.toml`).
-새 프로젝트를 추가하거나 기존 `state/**/*.yeokja.json`을 검토할 때는 원문의
-alert 마커가 번역문에도 영어 그대로 남아 있는지 확인하세요.
+또한 마커는 **제 줄에 홀로** 있어야 합니다(`> [!NOTE] 본문`처럼 본문과 한 줄이
+되면 GitHub와 mdBook은 일반 인용문으로 렌더링합니다).
+
+Markdown 계열 파서(`markdown`, `mdx`, `myst`, `mkdocs`)는
+`parser-markdown-dialect`에서 `Options::ENABLE_GFM`으로 마커를 인용문의 종류로
+읽으므로, 마커는 번역 세그먼트에 들어가지 않고 재구성 때 원문 줄 그대로
+남습니다. 프로젝트에서 따로 복원 스크립트를 둘 필요가 없습니다.
+`crates/translate/src/prompt.rs`의 기본 프롬프트에도 마커 보존 규칙이 있어,
+세그먼트에 마커가 섞이는 다른 경로에 대한 안전망이 됩니다. 프로젝트별
+`yeokja.toml`에 `[provider].prompt_template`을 커스텀으로 두면 이 규칙이
+자동으로 포함되지 않으므로 **커스텀 템플릿을 쓰는 프로젝트는 이 문장을 직접
+명시**합니다(예: `projects/webassembly-component-docs/yeokja.toml`). 새 프로젝트를
+추가하거나 빌드 결과를 검토할 때는 경고 표시가 실제로 경고 상자로
+렌더링되는지(mdBook은 `blockquote-tag`, GitHub는 `markdown-alert` 클래스)
+확인하세요.

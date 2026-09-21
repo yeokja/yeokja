@@ -265,6 +265,11 @@ fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: 
     options.insert(Options::ENABLE_TASKLISTS);
     options.insert(Options::ENABLE_FOOTNOTES);
     options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
+    // GitHub alerts (`> [!NOTE]`): the marker becomes the blockquote's kind
+    // instead of prose, so it stays out of the segment and keeps its own line
+    // when the translation is spliced back. A marker joined onto the prose
+    // line is no longer an alert to GitHub or mdBook.
+    options.insert(Options::ENABLE_GFM);
 
     let mut state = ParseState {
         source,
