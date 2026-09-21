@@ -431,6 +431,9 @@ impl FormatEvaluator {
             if source.stray.is_empty() && source.formed != translation.formed {
                 let blocked = blocked_emphasis(&visible_translation, &translation.stray);
                 if !blocked.is_empty() {
+                    let shown: Vec<&str> = blocked.iter().map(|b| b.text.as_str()).collect();
+                    let rewrites: Vec<&str> =
+                        blocked.iter().filter_map(|b| b.rewrite.as_deref()).collect();
                     issues.push(EvaluationIssue {
                         severity: IssueSeverity::Error,
                         kind: IssueKind::FormatLost,
@@ -438,13 +441,20 @@ impl FormatEvaluator {
                             "{} never closes: CommonMark closes * or ** right after \
                              punctuation — ), ], `, \" — only when a space or punctuation \
                              follows it, so a particle straight after it prints the marks as \
-                             themselves. End the emphasis on a letter: keep a gloss, a link or \
-                             quotation marks outside it — **외적**(outer product)에서, \
-                             [**Fetch**](url)는, \"*권한*\"은 — and when the term itself ends in \
-                             code or a symbol, take the particle inside: *`impl Trait`의*. An \
+                             themselves. End the emphasis on a letter{} Keeping a gloss, a \
+                             link or quotation marks outside the emphasis works too: \
+                             **외적**(outer product)에서, [**Fetch**](url)는, \"*권한*\"은. An \
                              opening mark right before punctuation likewise needs a space or \
                              punctuation in front of it.",
-                            blocked.join(", "),
+                            shown.join(", "),
+                            if rewrites.is_empty() {
+                                ".".to_string()
+                            } else {
+                                format!(
+                                    " by taking the particle inside: write {}.",
+                                    rewrites.join(", ")
+                                )
+                            },
                         ),
                     });
                 } else if !told_about_emphasis {
@@ -671,20 +681,31 @@ fn commonmark_punctuation(c: char) -> bool {
     c.is_ascii_punctuation() || (!c.is_ascii() && !c.is_alphanumeric() && !c.is_whitespace())
 }
 
-/// The stray runs of `text` that punctuation blocks — a closing mark between
+/// A stray run that punctuation blocks, quoted with the run it was meant to
+/// pair with and the word the particle belongs to — and, for a closing mark,
+/// the same text with the mark moved past the particle, where it closes.
+struct BlockedEmphasis {
+    text: String,
+    rewrite: Option<String>,
+}
+
+/// The stray runs of `text` that punctuation blocks: a closing mark between
 /// punctuation and a letter, or an opening one between a letter and
-/// punctuation — each quoted with the run it was meant to pair with and the
-/// word the particle belongs to.
-fn blocked_emphasis(text: &str, stray: &[std::ops::Range<usize>]) -> Vec<String> {
+/// punctuation.
+///
+/// Told the rule, the model still ended emphasis on code four retries
+/// running (`` *충족되지 않은 `import`*를 ``); the rewrite spelled out for the
+/// very text is what it follows.
+fn blocked_emphasis(text: &str, stray: &[std::ops::Range<usize>]) -> Vec<BlockedEmphasis> {
     let chars = chars(text);
     let letter = |at: usize| chars.get(at).is_some_and(|c| c.is_alphanumeric());
     let punctuation = |at: usize| chars.get(at).is_some_and(|c| commonmark_punctuation(*c));
     let same = |a: &std::ops::Range<usize>, b: &std::ops::Range<usize>| {
         a.len() == b.len() && chars[a.start] == chars[b.start]
     };
-    let mut shown = Vec::new();
+    let mut shown: Vec<BlockedEmphasis> = Vec::new();
     for (k, run) in stray.iter().enumerate() {
-        let (from, to) = if run.start > 0 && punctuation(run.start - 1) && letter(run.end) {
+        let (from, to, closing) = if run.start > 0 && punctuation(run.start - 1) && letter(run.end) {
             let from = stray[..k]
                 .iter()
                 .rev()
@@ -694,7 +715,7 @@ fn blocked_emphasis(text: &str, stray: &[std::ops::Range<usize>]) -> Vec<String>
             while letter(to) {
                 to += 1;
             }
-            (from, to)
+            (from, to, true)
         } else if run.start > 0 && letter(run.start - 1) && punctuation(run.end) {
             let mut from = run.start;
             while from > 0 && letter(from - 1) {
@@ -704,13 +725,20 @@ fn blocked_emphasis(text: &str, stray: &[std::ops::Range<usize>]) -> Vec<String>
                 .iter()
                 .find(|close| same(close, run))
                 .map_or(run.end, |close| close.end);
-            (from, to)
+            (from, to, false)
         } else {
             continue;
         };
         let text: String = chars[from..to].iter().collect();
-        if !shown.contains(&text) {
-            shown.push(text);
+        let rewrite = closing.then(|| {
+            chars[from..run.start]
+                .iter()
+                .chain(&chars[run.end..to])
+                .chain(&chars[run.clone()])
+                .collect()
+        });
+        if !shown.iter().any(|b| b.text == text) {
+            shown.push(BlockedEmphasis { text, rewrite });
         }
     }
     shown
@@ -3899,6 +3927,25 @@ mod tests {
             let ctx = context_in(Markup::Markdown, source, translation);
             assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed, "{translation}");
         }
+    }
+
+    /// Told the rule, the model still ended the emphasis on code four retries
+    /// running; the rewrite spelled out for the very text is what it follows.
+    #[tokio::test]
+    async fn markdown_emphasis_feedback_spells_out_the_rewrite() {
+        let ctx = context_in(
+            Markup::Markdown,
+            "the component still has *unfulfilled `import`s*: we *use* it.",
+            "컴포넌트가 아직 *충족되지 않은 `import`*를 가집니다: 우리는 이를 *사용*합니다.",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        let message = &result
+            .issues
+            .iter()
+            .find(|i| i.message.contains("never closes"))
+            .expect("the unclosed emphasis should be named")
+            .message;
+        assert!(message.contains("*충족되지 않은 `import`를*"), "{message}");
     }
 
     #[tokio::test]
