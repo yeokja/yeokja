@@ -9,6 +9,23 @@ impl TranslationEvaluator for FormatEvaluator {
         &self,
         context: &EvaluationContext,
     ) -> Result<EvaluationResult, EvaluationError> {
+        let mut issues = Self::markup_issues(context);
+        issues.extend(parenthesis_issues(context));
+        let passed = !issues.iter().any(|i| i.severity == IssueSeverity::Error);
+        Ok(EvaluationResult { passed, issues })
+    }
+
+    fn triggers_retranslation(&self) -> bool {
+        true
+    }
+
+    fn name(&self) -> &'static str {
+        "Format"
+    }
+}
+
+impl FormatEvaluator {
+    fn markup_issues(context: &EvaluationContext) -> Vec<EvaluationIssue> {
         if context.markup == Markup::MkDocs {
             let mut issues = mkdocs_issues(&context.source, &context.translation);
             // Formulas are copied verbatim (checked above); hide them so their
@@ -19,9 +36,8 @@ impl TranslationEvaluator for FormatEvaluator {
                 markup: Markup::Markdown,
                 ..context.clone()
             };
-            issues.extend(self.evaluate(&masked).await?.issues);
-            let passed = !issues.iter().any(|i| i.severity == IssueSeverity::Error);
-            return Ok(EvaluationResult { passed, issues });
+            issues.extend(Self::markup_issues(&masked));
+            return issues;
         }
 
         let mut issues = Vec::new();
@@ -75,6 +91,53 @@ impl TranslationEvaluator for FormatEvaluator {
                         ),
                     });
                 }
+            }
+        }
+
+        // Counting markers says nothing about what is between them. Code is
+        // copied, not translated: every code span of the source has to come
+        // back unchanged, wherever Korean word order puts it. A source that
+        // leaves a span open pairs its marks differently from a translation
+        // that closes it, so its spans are no measure.
+        let source_spans = backtick_spans(&chars(&context.source), context.markup);
+        let open_source = source_spans.unclosed
+            || (context.markup == Markup::Asciidoc
+                && !pair_up(&chars(&context.source), '`').unclosable.is_empty());
+        if !open_source {
+            let translation_spans = backtick_spans(&chars(&context.translation), context.markup);
+            let (missing, left) = unmatched_code(&source_spans.spans, &translation_spans.spans);
+            if !missing.is_empty() {
+                issues.push(EvaluationIssue {
+                    severity: IssueSeverity::Error,
+                    kind: IssueKind::FormatLost,
+                    message: format!(
+                        "Inline code changed: {} is not in the translation{}. Copy the content \
+                         of every code span byte for byte, even prose or a typo inside it; only \
+                         the text around it is translated.{}",
+                        missing.join(", "),
+                        if left.is_empty() {
+                            String::new()
+                        } else {
+                            format!(", which writes {} instead", left.join(", "))
+                        },
+                        // Told to double the marks before a particle, the
+                        // translator takes the passthrough pluses for marks too
+                        // and drops them, retry after retry; a space it keeps.
+                        if context.markup == Markup::Asciidoc
+                            && missing.iter().any(|written| {
+                                let content = written.trim_matches('`');
+                                content.len() > 1 && content.starts_with('+') && content.ends_with('+')
+                            })
+                        {
+                            " A `+…+` span is a passthrough: without its pluses AsciiDoc rewrites \
+                             its text (-> becomes an arrow). Keep the span exactly as the source \
+                             writes it and put a space after its closing mark instead of doubling \
+                             the marks: `+x+` 같은, `+x+` 와."
+                        } else {
+                            ""
+                        },
+                    ),
+                });
             }
         }
 
@@ -296,20 +359,58 @@ impl TranslationEvaluator for FormatEvaluator {
             });
         }
 
-        let has_errors = issues.iter().any(|i| i.severity == IssueSeverity::Error);
-        Ok(EvaluationResult {
-            passed: !has_errors,
-            issues,
-        })
+        issues
+    }
+}
+
+/// Parentheses the translation doubles or leaves unpaired.
+///
+/// They are read in the raw text, where the source's math is still there to
+/// be seen; MkDocs math is masked here rather than by the caller.
+fn parenthesis_issues(context: &EvaluationContext) -> Vec<EvaluationIssue> {
+    let (source, translation, markup) = if context.markup == Markup::MkDocs {
+        (
+            yeokja_parser_mkdocs::mask_math(&context.source),
+            yeokja_parser_mkdocs::mask_math(&context.translation),
+            Markup::Markdown,
+        )
+    } else {
+        (context.source.clone(), context.translation.clone(), context.markup)
+    };
+    let mut issues = Vec::new();
+
+    // Korean has no preposition to open a parenthetical with, so "(in
+    // [`panicking.rs`])" becomes a link and a particle — and the pair around
+    // it has come back written twice, `(([`panicking.rs`]에서))`. Prose
+    // never needs a pair that holds nothing but another pair.
+    let doubled = doubled_parentheses(&translation, markup);
+    if doubled.len() > doubled_parentheses(&source, markup).len() {
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: format!(
+                "{} wraps its text in two pairs of parentheses where the source has one. \
+                 Write a single pair: (X에서), not ((X에서)).",
+                doubled.join(", "),
+            ),
+        });
+    } else if parentheses_balance(&source, markup)
+        // Code or math that leaves a parenthesis open can pair it with the
+        // prose — `(with length $O(\sqrt{n}$)` — and a translation that
+        // reads it that way is right.
+        && context.source.matches('(').count() == context.source.matches(')').count()
+        && !parentheses_balance(&translation, markup)
+    {
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: "Parentheses do not balance: the translation opens or closes a pair \
+                      the source does not. Keep each ( ) pair of the source exactly once."
+                .to_string(),
+        });
     }
 
-    fn triggers_retranslation(&self) -> bool {
-        true
-    }
-
-    fn name(&self) -> &'static str {
-        "Format"
-    }
+    issues
 }
 
 /// How many times `mark` opens or closes an inline pair, counting a run of
@@ -410,6 +511,281 @@ fn unclosable_pairs(text: &str, markup: Markup) -> Vec<Unclosable> {
 
 fn chars(text: &str) -> Vec<char> {
     text.chars().collect()
+}
+
+/// A backtick-delimited span: where it sits (marks included), as written, its
+/// content with whitespace runs collapsed — a source line break inside a span
+/// renders as a space — and whether that content is code.
+struct BacktickSpan {
+    range: std::ops::Range<usize>,
+    written: String,
+    content: String,
+    code: bool,
+}
+
+struct BacktickSpans {
+    spans: Vec<BacktickSpan>,
+    /// Whether a run of marks opened a span that nothing closes.
+    unclosed: bool,
+}
+
+/// Every backtick-delimited span in `chars`.
+///
+/// A run of marks closes on the next run of the same length, except that an
+/// RST inline literal closes on the last two marks of the next run of two or
+/// more:
+/// ``:func:`filter``` holds a role, backtick and all.
+///
+/// Only some spans hold code. A MyST role (`` {ref}`guide <target>` ``) and
+/// RST interpreted text (`` `label`_ ``, `` :term:`…` ``) put a visible label
+/// between their backticks, which a translation translates; an AsciiDoc curved
+/// quote (`` "`term`" ``) borrows the backtick without being a span at all.
+/// Verso compares its payloads in `verso_structure`, and in LaTeX a backtick is
+/// an opening quotation mark.
+fn backtick_spans(chars: &[char], markup: Markup) -> BacktickSpans {
+    let mut found = BacktickSpans { spans: Vec::new(), unclosed: false };
+    if markup == Markup::Latex {
+        return found;
+    }
+    let borrowed: std::collections::HashSet<usize> = if markup == Markup::Asciidoc {
+        curved_quotes(chars)
+            .into_iter()
+            .flat_map(|(open, close)| [open, close])
+            .collect()
+    } else {
+        std::collections::HashSet::new()
+    };
+    let is_mark = |at: usize| chars[at] == '`' && !borrowed.contains(&at);
+    let run_at = |at: usize| (at..chars.len()).take_while(|&k| is_mark(k)).count();
+    let collapse = |text: &[char]| {
+        text.iter().collect::<String>().split_whitespace().collect::<Vec<_>>().join(" ")
+    };
+
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '\\' {
+            i += 2;
+            continue;
+        }
+        if !is_mark(i) {
+            i += 1;
+            continue;
+        }
+        let run = run_at(i);
+        let literal = markup == Markup::Rst && run >= 2;
+        let open_len = if literal { 2 } else { run };
+        let mut at = i + run;
+        // Where the closing marks start and where the span ends.
+        let close = loop {
+            if at >= chars.len() {
+                break None;
+            }
+            if !is_mark(at) {
+                at += 1;
+                continue;
+            }
+            let found = run_at(at);
+            if literal && found >= 2 {
+                break Some((at + found - 2, at + found));
+            }
+            if !literal && found == run {
+                break Some((at, at + found));
+            }
+            at += found;
+        };
+        let Some((close, end)) = close else {
+            found.unclosed = true;
+            i += run;
+            continue;
+        };
+        let code = match markup {
+            Markup::Markdown | Markup::MkDocs => i == 0 || chars[i - 1] != '}',
+            Markup::Asciidoc => true,
+            Markup::Rst => literal,
+            Markup::Verso | Markup::Latex => false,
+        };
+        // RST does not nest inline markup, but a translation that moves a
+        // literal into link text keeps the literal's content; count it there.
+        if markup == Markup::Rst && !literal {
+            let nested = backtick_spans(&chars[i + open_len..close], markup);
+            found.spans.extend(nested.spans.into_iter().map(|span| BacktickSpan {
+                range: span.range.start + i + open_len..span.range.end + i + open_len,
+                ..span
+            }));
+        }
+        found.spans.push(BacktickSpan {
+            range: i..end,
+            written: collapse(&chars[i..end]),
+            content: collapse(&chars[i + open_len..close.max(i + open_len)]),
+            code,
+        });
+        i = end;
+    }
+    found
+}
+
+/// The source's code spans that no translation span stands for, and the
+/// translation's code spans left over, each as written.
+fn unmatched_code(source: &[BacktickSpan], translation: &[BacktickSpan]) -> (Vec<String>, Vec<String>) {
+    let mut left: Vec<&BacktickSpan> = translation.iter().filter(|span| span.code).collect();
+    // Exact copies first, so that a looser form does not take the span an
+    // exact copy needs.
+    let mut pending = Vec::new();
+    for span in source.iter().filter(|span| span.code) {
+        match left.iter().position(|written| written.content == span.content) {
+            Some(at) => drop(left.remove(at)),
+            None => pending.push(span),
+        }
+    }
+    let mut missing = Vec::new();
+    for span in pending {
+        match left.iter().position(|written| stands_for(&written.content, &span.content)) {
+            Some(at) => drop(left.remove(at)),
+            None => missing.push(span.written.clone()),
+        }
+    }
+    (missing, left.iter().map(|span| span.written.clone()).collect())
+}
+
+/// Whether a translation may write `written` for the source's code `content`
+/// by shedding what the Korean sentence around it carries instead.
+///
+/// Korean does not inflect, so an English plural or the call parentheses of a
+/// function named in prose may go (``ParamSpecs``, ``tp_alloc()``); and so may
+/// sentence punctuation or a parenthesis the source let slip inside its end
+/// marks (``MyRing.``, ``PyObject_IsTrue())``). Nothing may be added: that is
+/// how PEP 818's ``({next(){}})`` gained a `)`.
+fn stands_for(written: &str, content: &str) -> bool {
+    let plural = content.strip_suffix('s').is_some_and(|stem| {
+        stem.chars().all(|c| c.is_ascii_alphabetic())
+            && !stem.ends_with('s')
+            // `ORs` and `VMs`, but not `is` or `has`.
+            && (stem.len() >= 3 || (stem.len() == 2 && stem.chars().all(|c| c.is_ascii_uppercase())))
+    });
+    (plural && written == &content[..content.len() - 1])
+        || content.strip_suffix("()") == Some(written)
+        || written == shed_edges(content)
+}
+
+/// `content` without the sentence punctuation and unmatched parentheses at its
+/// edges.
+fn shed_edges(mut content: &str) -> &str {
+    loop {
+        let opens = content.matches('(').count();
+        let closes = content.matches(')').count();
+        content = if content.ends_with(['.', ',', ';', ':', '!', '?'])
+            || (content.ends_with(')') && closes > opens)
+        {
+            &content[..content.len() - 1]
+        } else if content.starts_with('(') && opens > closes {
+            &content[1..]
+        } else {
+            return content;
+        };
+    }
+}
+
+/// Char ranges of the math in a LaTeX text: `$…$`, `$$…$$`, `\(…\)`, `\[…\]`.
+fn latex_math_ranges(chars: &[char]) -> Vec<std::ops::Range<usize>> {
+    let run_at = |at: usize| chars[at..].iter().take_while(|c| **c == '$').count();
+    let mut found = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '\\' if matches!(chars.get(i + 1), Some('(' | '[')) => {
+                let close = if chars[i + 1] == '(' { ')' } else { ']' };
+                match (i + 2..chars.len().saturating_sub(1))
+                    .find(|&at| chars[at] == '\\' && chars[at + 1] == close)
+                {
+                    Some(at) => {
+                        found.push(i..at + 2);
+                        i = at + 2;
+                    }
+                    None => i += 2,
+                }
+            }
+            '\\' => i += 2,
+            '$' => {
+                let run = run_at(i);
+                let mut at = i + run;
+                let mut end = None;
+                while at < chars.len() {
+                    match chars[at] {
+                        '\\' => at += 2,
+                        '$' if run_at(at) == run => {
+                            end = Some(at + run);
+                            break;
+                        }
+                        '$' => at += run_at(at),
+                        _ => at += 1,
+                    }
+                }
+                match end {
+                    Some(end) => {
+                        found.push(i..end);
+                        i = end;
+                    }
+                    None => i += run,
+                }
+            }
+            _ => i += 1,
+        }
+    }
+    found
+}
+
+/// The parenthesis pairs of the prose in `chars` as (open, close) indices,
+/// and whether every parenthesis found its partner.
+///
+/// Code and math are left out. They are compared on their own, and Korean word
+/// order moves them, which reorders their brackets: `$[0, 1)$` holds a `)`
+/// that closes nothing.
+fn prose_parentheses(chars: &[char], markup: Markup) -> (Vec<(usize, usize)>, bool) {
+    let mut verbatim = vec![false; chars.len()];
+    let ranges = backtick_spans(chars, markup)
+        .spans
+        .into_iter()
+        .map(|span| span.range)
+        .chain(if markup == Markup::Latex { latex_math_ranges(chars) } else { Vec::new() });
+    for range in ranges {
+        verbatim[range].fill(true);
+    }
+    let mut open = Vec::new();
+    let mut pairs = Vec::new();
+    let mut balanced = true;
+    for (at, c) in chars.iter().enumerate() {
+        match c {
+            _ if verbatim[at] => {}
+            // A smiley closes nothing — though PEP 102 lets `:-)` close its
+            // own parenthetical, which a translation may well spell `:-))`.
+            ')' if at >= 2 && matches!(chars[at - 2..at], [':' | ';', '-']) => {}
+            '(' => open.push(at),
+            ')' => match open.pop() {
+                Some(from) => pairs.push((from, at)),
+                None => balanced = false,
+            },
+            _ => {}
+        }
+    }
+    (pairs, balanced && open.is_empty())
+}
+
+/// Every parenthesis pair in the prose of `text` that holds nothing but
+/// another pair — `((…))` — as written.
+fn doubled_parentheses(text: &str, markup: Markup) -> Vec<String> {
+    let chars = chars(text);
+    let (mut pairs, _) = prose_parentheses(&chars, markup);
+    pairs.sort_unstable();
+    let close_of: std::collections::HashMap<usize, usize> = pairs.iter().copied().collect();
+    pairs
+        .iter()
+        .filter(|&&(open, close)| close_of.get(&(open + 1)) == Some(&(close - 1)))
+        .map(|&(open, close)| chars[open..=close].iter().collect())
+        .collect()
+}
+
+fn parentheses_balance(text: &str, markup: Markup) -> bool {
+    prose_parentheses(&chars(text), markup).1
 }
 
 /// The marks that open a constrained pair, each with the unconstrained form to
@@ -1569,7 +1945,7 @@ mod tests {
     async fn passes_when_formatting_preserved() {
         let ctx = make_context(
             "This is **bold** and `code`.",
-            "이것은 **굵게** 그리고 `코드`.",
+            "이것은 **굵게** 그리고 `code`.",
         );
         let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed);
@@ -2505,5 +2881,234 @@ mod tests {
     async fn mkdocs_added_jinja_delimiter_is_an_error() {
         let result = FormatEvaluator.evaluate(&mkdocs_ctx("Use a set.", "{# 집합 #}을 사용합니다.")).await.unwrap();
         assert!(!result.passed);
+    }
+
+    /// PEP 818 shipped ``type(run_js("({next(){}})"))`` with one more `)`
+    /// inside the literal: the marker counts matched, and the reader was shown
+    /// code that does not run.
+    #[tokio::test]
+    async fn fails_when_the_code_inside_a_span_changes() {
+        let ctx = context_in(
+            Markup::Rst,
+            r#"This is ``type(run_js("({next(){}})"))``."#,
+            r#"이는 ``type(run_js("({next(){}}))"))``\ 입니다."#,
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(!result.passed);
+        assert!(
+            result.issues.iter().any(|i| i.message.contains(r#"``type(run_js("({next(){}}))"))``"#)),
+            "the message should quote the changed span: {:?}",
+            result.issues
+        );
+
+        let ctx = context_in(Markup::Markdown, "Call `panic_fmt()` here.", "여기서 `panic_impl()`을 호출합니다.");
+        assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+
+    /// thebeambook's `` `+receive [] -> ok end+` `` came back as
+    /// `` ``receive [] -> ok end``와 `` on every retry, which renders `->` as
+    /// an arrow.
+    #[tokio::test]
+    async fn an_asciidoc_passthrough_keeps_its_pluses_when_the_marks_double() {
+        let source = "For a selective receive like e.g. `+receive [] -> ok end+` we loop.";
+        let dropped = FormatEvaluator
+            .evaluate(&make_context(source, "``receive [] -> ok end``와 같은 선택적 receive의 경우 순회합니다."))
+            .await
+            .unwrap();
+        assert!(!dropped.passed);
+        assert!(dropped.issues.iter().any(|i| i.message.contains("`+x+` 같은")), "{:?}", dropped.issues);
+        for kept in [
+            "`+receive [] -> ok end+` 와 같은 선택적 receive의 경우 순회합니다.",
+            "``+receive [] -> ok end+``와 같은 선택적 receive의 경우 순회합니다.",
+        ] {
+            let result = FormatEvaluator.evaluate(&make_context(source, kept)).await.unwrap();
+            assert!(result.passed, "{kept:?}: {:?}", result.issues);
+        }
+    }
+
+    #[tokio::test]
+    async fn code_may_move_and_change_its_marks_but_not_its_content() {
+        for (markup, source, translation) in [
+            (Markup::Markdown, "Call `a` before `b`.", "`b` 앞에서 `a`를 호출합니다."),
+            // A source line break inside a span is a space.
+            (Markup::Markdown, "Set `max\n  depth` first.", "먼저 `max depth`를 설정합니다."),
+            (Markup::Asciidoc, "Allocate on the `heap`.", "``heap``에 할당합니다."),
+            (Markup::Rst, "Use ``x`` here.", "여기서 ``x``\\ 를 사용합니다."),
+        ] {
+            let result = FormatEvaluator.evaluate(&context_in(markup, source, translation)).await.unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
+        }
+    }
+
+    /// Backticks that do not open code carry prose a translation translates.
+    #[tokio::test]
+    async fn backticked_labels_are_not_code() {
+        for (markup, source, translation) in [
+            // MyST roles and RST interpreted text name a target with a visible label.
+            (Markup::Markdown, "See {ref}`the guide <guide>`.", "{ref}`안내서 <guide>`를 참고하십시오."),
+            (Markup::Rst, "See `the guide`_ and :term:`garbage collection`.", "`안내서 <the guide_>`_\\ 와 :term:`쓰레기 수집 <garbage collection>`\\ 을 참고하십시오."),
+            // An AsciiDoc curved quote borrows the backtick.
+            (Markup::Asciidoc, "It is called \"`the heap`\" here.", "여기서는 “힙”이라고 부릅니다."),
+        ] {
+            let result = FormatEvaluator.evaluate(&context_in(markup, source, translation)).await.unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
+        }
+    }
+
+    /// The English preposition that opens a parenthetical disappears into a
+    /// Korean particle, and the pair around the link was written twice:
+    /// furiosa-opt's `dma-engine.md` and rustc-dev-guide's
+    /// `panic-implementation.md`.
+    #[tokio::test]
+    async fn fails_when_a_parenthetical_is_wrapped_twice() {
+        for (source, translation) in [
+            (
+                "The Tensor Unit (via [Fetch](./fetch-engine.md) and [Commit](./commit-engine.md) Engines) is often more efficient.",
+                "Tensor Unit(([Fetch](./fetch-engine.md) 및 [Commit](./commit-engine.md) Engine을 통해))은 더 효율적인 경우가 많습니다.",
+            ),
+            (
+                "The `core` `panic!` macro eventually makes the following call (in [`library/core/src/panicking.rs`]):",
+                "`core`의 `panic!` 매크로는 결국 다음과 같은 호출을 수행합니다(([`library/core/src/panicking.rs`]에서)):",
+            ),
+        ] {
+            let result = FormatEvaluator.evaluate(&context_in(Markup::Markdown, source, translation)).await.unwrap();
+            assert!(!result.passed, "{translation:?}");
+            assert!(
+                result.issues.iter().any(|i| i.message.contains("((")),
+                "the message should quote the doubled pair: {:?}",
+                result.issues
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn parentheses_the_source_has_are_kept() {
+        for (source, translation) in [
+            (
+                "The Tensor Unit (via [Fetch](./fetch-engine.md) Engines) is efficient.",
+                "Tensor Unit([Fetch](./fetch-engine.md) Engine을 통해)은 효율적입니다.",
+            ),
+            // A gloss inside a parenthetical nests; it does not wrap twice.
+            ("Sort it (e.g. insertion sort).", "정렬합니다(예: 삽입 정렬(insertion sort))."),
+            ("Apply f((x)) twice.", "f((x))를 두 번 적용합니다."),
+            // Code is compared as code, not as prose.
+            ("Write `f((x))` here.", "여기에 `f((x))`를 씁니다."),
+        ] {
+            let result = FormatEvaluator.evaluate(&context_in(Markup::Markdown, source, translation)).await.unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
+        }
+    }
+
+    #[tokio::test]
+    async fn fails_when_the_translation_leaves_a_parenthesis_open() {
+        let ctx = context_in(
+            Markup::Markdown,
+            "Transfer it (see [PCIe DMA](#pcie-dma)).",
+            "전송합니다(([PCIe DMA](#pcie-dma) 참고).",
+        );
+        assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+
+    #[tokio::test]
+    async fn an_rst_literal_closes_on_the_last_two_marks_of_a_longer_run() {
+        let ctx = context_in(
+            Markup::Rst,
+            "``:func:`filter``` could refer to a function named ``filter``.",
+            "``:func:`filter```\\ 는 ``filter``\\ 라는 함수를 가리킬 수 있습니다.",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+    }
+
+    /// Korean carries plurals, call parentheses and sentence punctuation
+    /// outside the span, and a translation that moves what the source let slip
+    /// inside the marks is right.
+    #[tokio::test]
+    async fn a_translation_may_shed_what_the_sentence_carries() {
+        for (markup, source, translation) in [
+            (Markup::Markdown, "Edit the `Makefiles`.", "`Makefile`을 수정합니다."),
+            (Markup::Markdown, "Chain the `ORs`.", "`OR`를 잇습니다."),
+            (Markup::Rst, "Call ``tp_alloc()`` first.", "먼저 ``tp_alloc``\\ 을 호출합니다."),
+            (Markup::Rst, "a new namespace called ``MyRing.``", "``MyRing``\\ 이라는 새 네임스페이스"),
+            (
+                Markup::Rst,
+                "It exists (it calls the C API ``PyObject_IsTrue())``.",
+                "존재합니다(C API인 ``PyObject_IsTrue()``\\ 를 호출합니다).",
+            ),
+        ] {
+            let result = FormatEvaluator.evaluate(&context_in(markup, source, translation)).await.unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
+        }
+    }
+
+    #[tokio::test]
+    async fn nothing_may_be_added_to_code() {
+        for (source, translation) in [
+            ("It returns `f(x)`.", "`f(x))`를 반환합니다."),
+            ("Always has ``fold=0``.", "``fold``\\ 는 항상 0입니다."),
+            ("Use ``reapply()``.", "``.reapply()``\\ 를 사용합니다."),
+            // A single backtick is interpreted text in RST, not a literal.
+            ("Files ending ``.py`` count.", "`.py`\\ 로 끝나는 파일을 셉니다."),
+            ("It ``is`` there.", "그것은 거기 ``있다``."),
+        ] {
+            let markup = if source.contains("``") { Markup::Rst } else { Markup::Markdown };
+            let result = FormatEvaluator.evaluate(&context_in(markup, source, translation)).await.unwrap();
+            assert!(!result.passed, "{translation:?}");
+        }
+    }
+
+    /// A segment that starts inside a literal pairs its marks one off.
+    #[tokio::test]
+    async fn a_source_that_leaves_a_span_open_is_no_measure() {
+        let ctx = context_in(
+            Markup::Rst,
+            "or issubclass(type(x), B)``.  (It is possible ``type(x)`` and",
+            "또는 issubclass(type(x), B)``\\ 입니다. (``type(x)``\\ 도 가능하며",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(!result.issues.iter().any(|i| i.message.contains("Inline code changed")), "{:?}", result.issues);
+    }
+
+    #[tokio::test]
+    async fn parentheses_that_are_not_prose_pairs_are_left_alone() {
+        for (markup, source, translation) in [
+            // PEP 102 lets a smiley close its parenthetical.
+            (
+                Markup::Rst,
+                "Type a subject (e.g. \"Python 2.2c1 released\" :-) in the box.",
+                "상자에 제목(예: \"Python 2.2c1 released\" :-))을 입력하십시오.",
+            ),
+            // The source's math leaves a parenthesis for the prose to close.
+            (
+                Markup::MkDocs,
+                "only nodes on layer $1$ (with length $O(\\sqrt{n}$) can be lazy.",
+                "레이어 $1$(길이가 $O(\\sqrt{n}$)인)의 노드만 lazy가 될 수 있습니다.",
+            ),
+            // Math moves with Korean word order, brackets and all.
+            (
+                Markup::Latex,
+                "Take $[0, 1)$ (a half-open interval) here.",
+                "여기서 (반열린 구간인) $[0, 1)$을 택합니다.",
+            ),
+        ] {
+            let result = FormatEvaluator.evaluate(&context_in(markup, source, translation)).await.unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
+        }
+    }
+
+    #[tokio::test]
+    async fn latex_prose_parentheses_are_checked_too() {
+        let ctx = context_in(
+            Markup::Latex,
+            "Consider the map (in $\\OO_K$) given by $x \\mapsto x^p$.",
+            "($\\OO_K$에서의) 사상 $x \\mapsto x^p$를 생각합시다.",
+        );
+        assert!(FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
+        let ctx = context_in(
+            Markup::Latex,
+            "Consider the map (in $\\OO_K$) given by $x \\mapsto x^p$.",
+            "(($\\OO_K$에서의)) 사상 $x \\mapsto x^p$를 생각합시다.",
+        );
+        assert!(!FormatEvaluator.evaluate(&ctx).await.unwrap().passed);
     }
 }

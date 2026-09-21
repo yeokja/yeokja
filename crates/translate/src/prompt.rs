@@ -42,7 +42,9 @@ pub fn build_prompt(request: &TranslateRequest) -> String {
     ));
     prompt.push_str("Respond with each numbered translation in the same [N] format.\n");
     prompt.push_str(
-        "Preserve all markup exactly: links, URLs, bold/italic markers, and inline code.\n",
+        "Preserve all markup exactly: links, URLs, bold/italic markers, and inline code. \
+         Copy what is inside inline code byte for byte — never translate, correct or \
+         reformat it, even when it reads as prose.\n",
     );
     prompt.push_str(
         "A segment beginning with a GitHub-flavored Markdown alert marker such as [!NOTE], \

@@ -66,6 +66,42 @@ impl TranslationEvaluator for LinkEvaluator {
             }
         }
 
+        // A relative destination or an in-page anchor is as much a link as a
+        // URL, but folding the link into the prose — `[Fetch](./fetch-engine.md)`
+        // read as "Fetch" — leaves no URL behind to miss. Neither does dropping
+        // the brackets of a reference link whose label is code, which resolves
+        // against a definition elsewhere on the page and cannot be translated.
+        if matches!(context.markup, Markup::Markdown | Markup::MkDocs) {
+            let mut left = markdown_destinations(&context.translation);
+            for destination in markdown_destinations(&context.source) {
+                match left.iter().position(|d| *d == destination) {
+                    Some(at) => drop(left.remove(at)),
+                    None => issues.push(EvaluationIssue {
+                        severity: IssueSeverity::Error,
+                        kind: IssueKind::LinkBroken,
+                        message: format!(
+                            "Link to '{destination}' from source is missing in translation. \
+                             Keep every [text]({destination}) link; translate only the text in \
+                             brackets."
+                        ),
+                    }),
+                }
+            }
+            for label in code_reference_labels(&context.source) {
+                if !context.translation.contains(&label) {
+                    issues.push(EvaluationIssue {
+                        severity: IssueSeverity::Error,
+                        kind: IssueKind::LinkBroken,
+                        message: format!(
+                            "Reference link {label} from source is missing in translation. It \
+                             links to a definition elsewhere on the page, so keep it exactly as \
+                             written, brackets included."
+                        ),
+                    });
+                }
+            }
+        }
+
         Ok(EvaluationResult {
             passed: issues.is_empty(),
             issues,
@@ -242,6 +278,62 @@ fn rst_anonymous_references(text: &str) -> usize {
 /// In `[label](https://example.com)에서`, whitespace tokenization alone reads
 /// `)에서` as part of the URL. Parentheses that occur inside a URL are balanced,
 /// while the unmatched `)` that closes the Markdown/Verso link ends it.
+/// The destination of every Markdown inline link and image in `text` other
+/// than absolute URLs, which `extract_urls` already covers.
+fn markdown_destinations(text: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut rest = text;
+    while let Some(at) = rest.find("](") {
+        let after = &rest[at + 2..];
+        let mut depth = 0usize;
+        let end = after
+            .char_indices()
+            .find(|&(_, c)| match c {
+                '(' => {
+                    depth += 1;
+                    false
+                }
+                ')' if depth == 0 => true,
+                ')' => {
+                    depth -= 1;
+                    false
+                }
+                c => c.is_whitespace(),
+            })
+            .map_or(after.len(), |(offset, _)| offset);
+        let destination = after[..end].trim_start_matches('<').trim_end_matches('>');
+        if !destination.is_empty()
+            && !destination.starts_with("http://")
+            && !destination.starts_with("https://")
+        {
+            found.push(destination.to_string());
+        }
+        rest = &after[end..];
+    }
+    found
+}
+
+/// Every Markdown shortcut or collapsed reference link in `text` whose label
+/// is a code span — `` [`ConstEvaluatable`] `` — as written.
+fn code_reference_labels(text: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut rest = text;
+    while let Some(at) = rest.find("[`") {
+        let after = &rest[at + 2..];
+        let Some(close) = after.find('`') else { break };
+        let label_end = at + 2 + close + 1;
+        if close > 0
+            && !after[..close].contains(']')
+            && rest[label_end..].starts_with(']')
+            && !rest[label_end + 1..].starts_with(['(', ':'])
+        {
+            found.push(rest[at..=label_end].to_string());
+        }
+        rest = &rest[label_end.min(rest.len())..];
+    }
+    found
+}
+
 fn extract_urls(text: &str) -> Vec<String> {
     let mut urls = Vec::new();
     let mut search_from = 0;
@@ -544,5 +636,61 @@ mod tests {
         assert_eq!(rst_anonymous_references("Adding a __dir__() method"), 0);
         assert_eq!(rst_anonymous_references("check obj.__json__ first"), 0);
         assert_eq!(rst_anonymous_references("follow here__ for details"), 1);
+    }
+
+    fn markdown(source: &str, translation: &str) -> EvaluationContext {
+        EvaluationContext { markup: Markup::Markdown, ..make_context(source, translation) }
+    }
+
+    /// furiosa-opt's `dma-engine.md` came back with both links folded into
+    /// the prose, and no URL was lost to notice it by.
+    #[tokio::test]
+    async fn fails_when_a_relative_link_is_folded_into_prose() {
+        let source = "The Tensor Unit (via [Fetch](./fetch-engine.md) and [Commit](./commit-engine.md) Engines) is efficient.";
+        let lost = LinkEvaluator
+            .evaluate(&markdown(source, "Tensor Unit은 (Fetch와 Commit Engine을 통해) 효율적입니다."))
+            .await
+            .unwrap();
+        assert!(!lost.passed);
+        assert!(lost.issues.iter().any(|i| i.message.contains("./fetch-engine.md")), "{:?}", lost.issues);
+        let kept = LinkEvaluator
+            .evaluate(&markdown(source, "Tensor Unit은 ([Fetch](./fetch-engine.md)와 [Commit](./commit-engine.md) Engine을 통해) 효율적입니다."))
+            .await
+            .unwrap();
+        assert!(kept.passed, "{:?}", kept.issues);
+
+        let anchor = LinkEvaluator
+            .evaluate(&markdown("Assigning priority (discussion on [Zulip](#)).", "우선순위 지정(Zulip에서의 논의(#))."))
+            .await
+            .unwrap();
+        assert!(!anchor.passed);
+    }
+
+    #[tokio::test]
+    async fn a_lost_url_destination_is_reported_once() {
+        let result = LinkEvaluator
+            .evaluate(&markdown("See [the guide](https://example.com/guide).", "안내서를 참고하십시오."))
+            .await
+            .unwrap();
+        assert_eq!(result.issues.len(), 1, "{:?}", result.issues);
+    }
+
+    /// rustc-dev-guide links `[`ConstEvaluatable`]` to a definition at the
+    /// bottom of the page; without its brackets it is plain code.
+    #[tokio::test]
+    async fn fails_when_a_code_reference_link_loses_its_brackets() {
+        let source = "well formedness requires that they can be evaluated (via [`ConstEvaluatable`] goals).";
+        let lost = LinkEvaluator
+            .evaluate(&markdown(source, "정형성은 (`ConstEvaluatable` 목표를 통해) 평가될 수 있어야 합니다."))
+            .await
+            .unwrap();
+        assert!(!lost.passed);
+        for kept in [
+            "정형성은 ([`ConstEvaluatable`] 목표를 통해) 평가될 수 있어야 합니다.",
+            "정형성은 ([평가 가능성][`ConstEvaluatable`] 목표를 통해) 평가될 수 있어야 합니다.",
+        ] {
+            let result = LinkEvaluator.evaluate(&markdown(source, kept)).await.unwrap();
+            assert!(result.passed, "{kept:?}: {:?}", result.issues);
+        }
     }
 }
