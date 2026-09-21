@@ -156,26 +156,51 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
 }
 
 /// Parse a translation response in [N] format.
+///
+/// A translation is expected on one line, but a model sometimes breaks a line
+/// anyway — after an inline `<br>`, say. Lines that follow an `[N]` entry
+/// without a blank line in between continue that entry and are joined with a
+/// space. A blank line closes the entry, so trailing chatter ("Hope this
+/// helps!") is never glued onto the last translation; such stray lines, and
+/// anything before the first entry, are dropped and logged rather than lost
+/// silently.
 pub fn parse_response(response: &str) -> Result<HashMap<usize, String>, String> {
-    let mut translations = HashMap::new();
+    let mut translations: HashMap<usize, String> = HashMap::new();
+    let mut open: Option<usize> = None;
+    let mut dropped: Vec<&str> = Vec::new();
 
     for line in response.lines() {
         let line = line.trim();
         if line.is_empty() {
+            open = None;
             continue;
         }
 
         if let Some(rest) = line.strip_prefix('[')
             && let Some(bracket_end) = rest.find(']')
+            && let Ok(idx) = rest[..bracket_end].parse::<usize>()
         {
-            let idx_str = &rest[..bracket_end];
-            if let Ok(idx) = idx_str.parse::<usize>() {
-                let translation = rest[bracket_end + 1..].trim().to_string();
-                if !translation.is_empty() {
-                    translations.insert(idx, translation);
-                }
+            let translation = rest[bracket_end + 1..].trim().to_string();
+            if translation.is_empty() {
+                open = None;
+            } else {
+                translations.insert(idx, translation);
+                open = Some(idx);
             }
+            continue;
         }
+
+        match open.and_then(|idx| translations.get_mut(&idx)) {
+            Some(entry) => {
+                entry.push(' ');
+                entry.push_str(line);
+            }
+            None => dropped.push(line),
+        }
+    }
+
+    if !dropped.is_empty() && !translations.is_empty() {
+        tracing::warn!(lines = ?dropped, "Dropped response lines outside any [N] entry");
     }
 
     if translations.is_empty() {
@@ -357,6 +382,31 @@ mod tests {
         assert_eq!(result.len(), 2);
         assert_eq!(result[&1], "Hello translation.");
         assert_eq!(result[&2], "World translation.");
+    }
+
+    #[test]
+    fn parse_response_keeps_a_translation_the_model_split_across_lines() {
+        // A model that breaks a line after an inline <br> must not lose the rest.
+        let response = "[1] 첫 줄입니다.<br>\n둘째 줄입니다.\n[2] 다음 세그먼트입니다.";
+        let result = parse_response(response).unwrap();
+        assert_eq!(result.get(&1).unwrap(), "첫 줄입니다.<br> 둘째 줄입니다.");
+        assert_eq!(result.get(&2).unwrap(), "다음 세그먼트입니다.");
+    }
+
+    #[test]
+    fn parse_response_ends_a_segment_at_a_blank_line() {
+        // Trailing chatter after a blank line must not be glued onto the last segment.
+        let response = "[1] 번역입니다.\n\n도움이 되었길 바랍니다.";
+        let result = parse_response(response).unwrap();
+        assert_eq!(result.get(&1).unwrap(), "번역입니다.");
+    }
+
+    #[test]
+    fn parse_response_ignores_a_preamble_before_the_first_entry() {
+        let response = "Here are the translations:\n[1] 번역입니다.";
+        let result = parse_response(response).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result.get(&1).unwrap(), "번역입니다.");
     }
 
     #[test]
