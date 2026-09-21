@@ -164,6 +164,11 @@ pub struct SourceConfig {
     #[serde(default)]
     pub parser_manifest: Option<String>,
     pub output: String,
+    /// Exchange inline markup with the model as numbered tags and let a
+    /// serializer write the Markdown back (see the inline-tag-transport
+    /// design). Phase 1 supports the `markdown` parser only.
+    #[serde(default)]
+    pub inline_tags: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -342,8 +347,47 @@ impl ProjectConfig {
         Self::from_toml(&content)
     }
 
+    /// The source rule that owns `file`: the first whose directory holds it
+    /// and whose pattern matches the rest of its path — the rule the parser
+    /// registry uses to pick a parser.
+    pub fn source_for(&self, file: &Path) -> Option<&SourceConfig> {
+        let file = file.strip_prefix(".").unwrap_or(file);
+        self.sources.iter().find(|source| {
+            let dir = Path::new(&source.path);
+            let dir = dir.strip_prefix(".").unwrap_or(dir);
+            let Ok(rel) = file.strip_prefix(dir) else {
+                return false;
+            };
+            glob::Pattern::new(&source.pattern).is_ok_and(|pattern| {
+                pattern.matches_path_with(
+                    rel,
+                    glob::MatchOptions { require_literal_separator: true, ..glob::MatchOptions::new() },
+                )
+            })
+        })
+    }
+
     pub fn from_toml(content: &str) -> Result<Self, ConfigError> {
         let config: Self = toml::from_str(content)?;
+        for source in config.sources.iter().filter(|source| source.inline_tags) {
+            if source.parser != "markdown" {
+                return Err(ConfigError::Invalid(format!(
+                    "source {} sets inline_tags, which supports the markdown parser only (not {})",
+                    source.path, source.parser
+                )));
+            }
+            if config
+                .provider
+                .prompt_template
+                .as_deref()
+                .is_some_and(|template| !template.contains("{inline_tags}"))
+            {
+                return Err(ConfigError::Invalid(format!(
+                    "source {} sets inline_tags, so the custom prompt_template needs an {{inline_tags}} placeholder",
+                    source.path
+                )));
+            }
+        }
         for (index, rule) in config.tables.iter().enumerate() {
             if rule.headerless && !rule.headers.is_empty() {
                 return Err(ConfigError::Invalid(format!(
@@ -653,5 +697,76 @@ skip = [0]
                 .to_string()
                 .contains("sets both headerless = true and headers")
         );
+    }
+
+    fn inline_config(parser: &str, template: &str) -> String {
+        format!(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "upstream/src"
+pattern = "**/*.md"
+parser = "{parser}"
+output = "ko/src/{{path}}"
+inline_tags = true
+
+[provider]
+type = "claude_code"
+model = "sonnet"
+{template}
+"#
+        )
+    }
+
+    #[test]
+    fn inline_tags_default_off_and_read_per_source() {
+        let off = ProjectConfig::from_toml(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "src"
+pattern = "**/*.md"
+parser = "markdown"
+output = "ko/{path}"
+
+[provider]
+type = "claude_code"
+model = "sonnet"
+"#,
+        )
+        .unwrap();
+        assert!(!off.sources[0].inline_tags);
+        let on = ProjectConfig::from_toml(&inline_config("markdown", "")).unwrap();
+        assert!(on.sources[0].inline_tags);
+    }
+
+    #[test]
+    fn inline_tags_are_only_for_the_markdown_parser() {
+        let error = ProjectConfig::from_toml(&inline_config("myst", "")).unwrap_err();
+        assert!(error.to_string().contains("inline_tags"), "{error}");
+    }
+
+    #[test]
+    fn inline_tags_need_their_placeholder_in_a_custom_template() {
+        let error =
+            ProjectConfig::from_toml(&inline_config("markdown", "prompt_template = \"{segments}\"")).unwrap_err();
+        assert!(error.to_string().contains("{inline_tags}"), "{error}");
+        ProjectConfig::from_toml(&inline_config("markdown", "prompt_template = \"{inline_tags} {segments}\""))
+            .unwrap();
+    }
+
+    #[test]
+    fn source_for_matches_the_way_the_parser_is_chosen() {
+        let config = ProjectConfig::from_toml(&inline_config("markdown", "")).unwrap();
+        assert!(config.source_for(Path::new("upstream/src/a/b.md")).is_some());
+        assert!(config.source_for(Path::new("./upstream/src/b.md")).is_some());
+        assert!(config.source_for(Path::new("upstream/src/b.rst")).is_none());
+        assert!(config.source_for(Path::new("upstream/other/b.md")).is_none());
     }
 }

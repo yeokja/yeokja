@@ -11,26 +11,8 @@ use yeokja_core::parser::DocumentParser;
 /// `pattern` both match, and falling back to file-extension detection.
 pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn DocumentParser> {
     let file_path = file_path.strip_prefix(".").unwrap_or(file_path);
-    for source in &config.sources {
-        let source_dir = Path::new(&source.path);
-        let source_dir = source_dir.strip_prefix(".").unwrap_or(source_dir);
-        let Ok(rel) = file_path.strip_prefix(source_dir) else {
-            continue;
-        };
-        let pattern_matches = glob::Pattern::new(&source.pattern)
-            .map(|pattern| {
-                pattern.matches_path_with(
-                    rel,
-                    glob::MatchOptions {
-                        require_literal_separator: true,
-                        ..glob::MatchOptions::new()
-                    },
-                )
-            })
-            .unwrap_or(false);
-        if pattern_matches {
-            return parser_by_name(&source.parser, file_path, source.parser_manifest.as_deref());
-        }
+    if let Some(source) = config.source_for(file_path) {
+        return parser_by_name(&source.parser, file_path, source.parser_manifest.as_deref());
     }
     match file_path.extension().and_then(|e| e.to_str()) {
         Some("adoc" | "asciidoc" | "asc") => Box::new(yeokja_parser_asciidoc::AsciidocParser),
