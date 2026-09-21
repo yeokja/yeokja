@@ -36,6 +36,4 @@ nix develop path:../../nix#furiosa-opt -c ../../target/release/yeokja build html
 
 빌드는 영어 원본과 한국어판을 함께 만들고, 원문의 영어 제목 앵커를 한국어
 페이지에 보존합니다(`scripts/preserve_anchors.py`). 원문에 없던 깨진 로컬
-링크가 생기면 `scripts/check_links.py`가 빌드를 실패시킵니다. yeokja가 문단을
-한 줄로 합치면서 `> [!NOTE]` 같은 경고 표시 마커 뒤에 붙은 본문은 빌드 전에
-다시 제 줄로 나눕니다(`scripts/restore_alerts.py`).
+링크가 생기면 `scripts/check_links.py`가 빌드를 실패시킵니다.
