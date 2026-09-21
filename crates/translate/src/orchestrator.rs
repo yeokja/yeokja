@@ -981,6 +981,15 @@ impl FileTranslator {
             .map(|(req_idx, (_, seg))| (req_idx + 1, seg.source.clone()))
             .collect();
 
+        let paragraphs: HashMap<usize, String> = block_segments
+            .iter()
+            .enumerate()
+            .filter_map(|(req_idx, (_, seg))| {
+                let (section, block, _) = seg.id.position()?;
+                Some((req_idx + 1, format!("{section}/{block}")))
+            })
+            .collect();
+
         let glossary_terms = self.glossary.terms().clone();
 
         let request = TranslateRequest {
@@ -992,6 +1001,7 @@ impl FileTranslator {
             markup,
             feedback: None,
             prompt_template: self.config.provider.prompt_template.clone(),
+            paragraphs,
         };
 
         let translations: Vec<(usize, String, Vec<String>)> = if self.options.auto_evaluate {

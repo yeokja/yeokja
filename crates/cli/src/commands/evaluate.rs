@@ -88,6 +88,38 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
             }
         }
 
+        // A slipped batch leaves translations that are each fine on their own,
+        // so the per-segment evaluators above cannot see it. Compare every
+        // stored translation with its neighbours' sources instead.
+        let stored: Vec<(String, (String, String))> = reconciled
+            .iter()
+            .filter(|rs| matches!(rs.status, SegmentStatus::Translated))
+            .filter_map(|rs| {
+                let translation = rs.state.translation.clone()?;
+                Some((rs.state.id.to_string(), (rs.state.source.clone(), translation)))
+            })
+            .collect();
+        let pairs: Vec<(String, String)> = stored.iter().map(|(_, pair)| pair.clone()).collect();
+        // Segment ids are `section:S/block:B/seg:N`; the paragraph is S/B.
+        let paragraphs: Vec<String> = stored
+            .iter()
+            .map(|(id, _)| id.rsplit_once('/').map_or(id.as_str(), |(paragraph, _)| paragraph).to_string())
+            .collect();
+        for (position, from, anchors) in
+            yeokja_translate::alignment::misaligned_in_sequence(&pairs, &paragraphs, markup, 3)
+        {
+            file_issues += 1;
+            tracing::info!(
+                file = %file_path.display(),
+                segment = %stored[position].0,
+                evaluator = "Alignment",
+                level = "ERROR",
+                "Translation carries {} from segment {}; the batch numbering probably slipped",
+                anchors.join(", "),
+                stored[from].0
+            );
+        }
+
         if file_issues > 0 {
             tracing::info!(file = %file_path.display(), issues = file_issues, "Issues found");
         } else {

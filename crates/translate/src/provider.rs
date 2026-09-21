@@ -44,6 +44,10 @@ pub struct TranslateRequest {
     pub feedback: Option<String>,
     /// Optional custom prompt template (see `prompt::build_prompt`).
     pub prompt_template: Option<String>,
+    /// Paragraph each segment index belongs to. Content moved between
+    /// sentences of one paragraph is not mistaken for a slipped batch (see
+    /// `alignment::misaligned`). Indices left out are compared with all.
+    pub paragraphs: HashMap<usize, String>,
 }
 
 #[derive(Debug, Clone)]

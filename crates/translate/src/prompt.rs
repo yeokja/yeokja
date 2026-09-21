@@ -262,6 +262,7 @@ mod tests {
             markup: Markup::Markdown,
             feedback: None,
             prompt_template: None,
+            paragraphs: HashMap::new(),
         }
     }
 

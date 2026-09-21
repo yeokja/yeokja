@@ -1,4 +1,7 @@
-use crate::evaluator::{EvaluationContext, EvaluationResult, Markup, TranslationEvaluator};
+use crate::evaluator::{
+    EvaluationContext, EvaluationIssue, EvaluationResult, IssueKind, IssueSeverity, Markup,
+    TranslationEvaluator,
+};
 use crate::provider::{TranslateError, TranslateRequest, TranslationProvider};
 use std::collections::HashMap;
 
@@ -70,6 +73,7 @@ pub async fn translate_with_evaluation_observed(
     max_retries: u32,
     on_event: PipelineObserver<'_>,
 ) -> Result<HashMap<usize, PipelineResult>, TranslateError> {
+    let whole_batch = request.segments.clone();
     let mut current_request = request;
     let mut results: HashMap<usize, PipelineResult> = HashMap::new();
     let mut attempts = 0u32;
@@ -80,6 +84,69 @@ pub async fn translate_with_evaluation_observed(
         on_event(PipelineEvent::AttemptStarted { attempt: attempts });
         let response = provider.translate(current_request.clone()).await?;
         on_event(PipelineEvent::Translated { attempt: attempts });
+
+        // A batch answer is filed under the numbers the model wrote. When the
+        // numbering slips, every later segment receives a neighbour's
+        // translation, and each one still looks fine on its own. A shifted
+        // answer loses a number at the end rather than where it slipped, so a
+        // missing or unrequested number means none of this attempt can be
+        // trusted; so does a translation carrying another segment's numbers,
+        // names or code. Retry the whole batch rather than keep the rest.
+        let requested: Vec<usize> = current_request.segments.iter().map(|(idx, _)| *idx).collect();
+        let mut missing: Vec<usize> =
+            requested.iter().filter(|idx| !response.translations.contains_key(idx)).copied().collect();
+        let mut unrequested: Vec<usize> =
+            response.translations.keys().filter(|idx| !requested.contains(idx)).copied().collect();
+        missing.sort_unstable();
+        unrequested.sort_unstable();
+        // Compare with the whole batch, not only the segments retried now: a
+        // segment retried on its own can still copy a neighbour that passed.
+        let mut in_place: HashMap<usize, String> =
+            results.iter().map(|(idx, result)| (*idx, result.translation.clone())).collect();
+        in_place.extend(
+            response
+                .translations
+                .iter()
+                .filter(|(idx, _)| requested.contains(idx))
+                .map(|(idx, text)| (*idx, text.clone())),
+        );
+        let misaligned: Vec<_> =
+            crate::alignment::misaligned(&whole_batch, &in_place, &current_request.paragraphs, markup)
+                .into_iter()
+                .filter(|m| requested.contains(&m.idx))
+                .collect();
+        let numbering_broken = requested.len() > 1 && (!missing.is_empty() || !unrequested.is_empty());
+        if (numbering_broken || !misaligned.is_empty()) && attempts <= max_retries {
+            let mut problems = Vec::new();
+            if !missing.is_empty() {
+                problems.push(format!("no answer for {}", numbered(&missing)));
+            }
+            if !unrequested.is_empty() {
+                problems.push(format!("answers for unrequested {}", numbered(&unrequested)));
+            }
+            for m in &misaligned {
+                problems.push(format!(
+                    "[{}] contains {} from segment [{}]",
+                    m.idx,
+                    m.anchors.join(", "),
+                    m.from
+                ));
+            }
+            let message = format!(
+                "The answer's numbering did not match the segments ({}). Translate every \
+                 segment and write each translation after its own [N], exactly once, in order.",
+                problems.join("; ")
+            );
+            tracing::warn!(attempt = attempts, %message, "Batch numbering mismatch; retrying the whole batch");
+            on_event(PipelineEvent::Evaluated {
+                attempt: attempts,
+                passed: false,
+                issues: vec![message.clone()],
+            });
+            current_request.feedback = Some(message);
+            continue;
+        }
+        let misaligned_from: HashMap<usize, usize> = misaligned.iter().map(|m| (m.idx, m.from)).collect();
 
         // Evaluate each translated segment. Passed segments leave the retry
         // set immediately: retranslating an entire multi-block batch because
@@ -100,6 +167,9 @@ pub async fn translate_with_evaluation_observed(
         }
 
         for (&idx, translation) in &response.translations {
+            if !requested.contains(&idx) {
+                continue;
+            }
             let source = current_request
                 .segments
                 .iter()
@@ -146,6 +216,18 @@ pub async fn translate_with_evaluation_observed(
                 }
             }
 
+            if let Some(from) = misaligned_from.get(&idx) {
+                combined_result.passed = false;
+                combined_result.issues.push(EvaluationIssue {
+                    severity: IssueSeverity::Error,
+                    kind: IssueKind::FormatLost,
+                    message: format!(
+                        "This translation carries numbers, names or code from segment [{from}]; \
+                         the batch numbering probably slipped."
+                    ),
+                });
+            }
+
             tracing::debug!(idx, passed = combined_result.passed, "Evaluation result");
             attempt_issues.extend(combined_result.issues.iter().map(|i| i.message.clone()));
             results.insert(
@@ -190,6 +272,11 @@ pub async fn translate_with_evaluation_observed(
     }
 
     Ok(results)
+}
+
+/// `[1], [3], [4]` for feedback messages.
+fn numbered(indices: &[usize]) -> String {
+    indices.iter().map(|idx| format!("[{idx}]")).collect::<Vec<_>>().join(", ")
 }
 
 #[cfg(test)]
@@ -338,6 +425,7 @@ mod tests {
             markup: Markup::Markdown,
             feedback: None,
             prompt_template: None,
+            paragraphs: HashMap::new(),
         };
 
         let results = translate_with_evaluation(
@@ -358,14 +446,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn retry_contains_only_failed_and_missing_segments() {
+    async fn retry_contains_only_failed_segments_when_numbering_is_complete() {
         let provider = MockProvider::new(vec![
-            [(1, "통과합니다.".to_string()), (2, "bad".to_string())].into(),
             [
-                (2, "고쳤습니다.".to_string()),
+                (1, "통과합니다.".to_string()),
+                (2, "bad".to_string()),
                 (3, "추가했습니다.".to_string()),
             ]
             .into(),
+            [(2, "고쳤습니다.".to_string())].into(),
         ]);
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![&RejectBad];
         let request = TranslateRequest {
@@ -381,6 +470,7 @@ mod tests {
             markup: Markup::Markdown,
             feedback: None,
             prompt_template: None,
+            paragraphs: HashMap::new(),
         };
 
         let result = translate_with_evaluation(
@@ -396,10 +486,117 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(provider.requests(), [vec![1, 2, 3], vec![2, 3]]);
+        assert_eq!(provider.requests(), [vec![1, 2, 3], vec![2]]);
         assert_eq!(result[&1].translation, "통과합니다.");
         assert_eq!(result[&2].translation, "고쳤습니다.");
         assert_eq!(result[&3].translation, "추가했습니다.");
+    }
+
+    fn batch_request(sources: &[&str]) -> TranslateRequest {
+        TranslateRequest {
+            segments: sources.iter().enumerate().map(|(i, s)| (i + 1, s.to_string())).collect(),
+            block_context: sources.join(" "),
+            glossary: HashMap::new(),
+            source_lang: "en".to_string(),
+            target_lang: "ko".to_string(),
+            markup: Markup::Markdown,
+            feedback: None,
+            prompt_template: None,
+            paragraphs: HashMap::new(),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_missing_number_distrusts_the_whole_attempt() {
+        // A shifted answer loses its last number; the others hold neighbours' text.
+        let provider = MockProvider::new(vec![
+            [(1, "빠른 시작".to_string()), (2, "HBM 칩당 1.5TB/s".to_string())].into(),
+            [
+                (1, "Tier".to_string()),
+                (2, "빠른 시작".to_string()),
+                (3, "HBM 칩당 1.5TB/s".to_string()),
+            ]
+            .into(),
+        ]);
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![&AlwaysPassEvaluator];
+        let request = batch_request(&["Tier", "Quick Start", "1.5TB/s per chip over HBM."]);
+
+        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3)
+            .await
+            .unwrap();
+
+        assert_eq!(provider.requests(), [vec![1, 2, 3], vec![1, 2, 3]]);
+        assert_eq!(result[&1].translation, "Tier");
+        assert_eq!(result[&2].translation, "빠른 시작");
+        assert_eq!(result[&3].translation, "HBM 칩당 1.5TB/s");
+    }
+
+    #[tokio::test]
+    async fn a_shifted_answer_with_every_number_is_retried_as_a_whole() {
+        let provider = MockProvider::new(vec![
+            [
+                (1, "HBM 칩당 1.5TB/s".to_string()),
+                (2, "HBM 칩당 1.5TB/s".to_string()),
+                (3, "빠른 시작".to_string()),
+            ]
+            .into(),
+            [
+                (1, "등급".to_string()),
+                (2, "HBM 칩당 1.5TB/s".to_string()),
+                (3, "빠른 시작".to_string()),
+            ]
+            .into(),
+        ]);
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![&AlwaysPassEvaluator];
+        let request = batch_request(&["Tier", "1.5TB/s per chip over HBM.", "Quick Start"]);
+
+        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3)
+            .await
+            .unwrap();
+
+        assert_eq!(provider.requests(), [vec![1, 2, 3], vec![1, 2, 3]]);
+        assert_eq!(result[&1].translation, "등급");
+    }
+
+    #[tokio::test]
+    async fn a_segment_retried_alone_is_still_compared_with_the_whole_batch() {
+        // napkin: [2] failed another check and was retried on its own; the
+        // retry copied [1]'s content, which only the whole batch can show.
+        let provider = MockProvider::new(vec![
+            [(1, "`vector_stash()`가 씁니다.".to_string()), (2, "bad".to_string())].into(),
+            [(2, "`vector_stash()`가 씁니다. 그다음 끝납니다.".to_string())].into(),
+            [(2, "그다음 끝납니다.".to_string())].into(),
+        ]);
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![&RejectBad];
+        let request = batch_request(&["`vector_stash()` writes.", "Then it ends."]);
+
+        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3)
+            .await
+            .unwrap();
+
+        assert_eq!(provider.requests(), [vec![1, 2], vec![2], vec![2]]);
+        assert_eq!(result[&1].translation, "`vector_stash()`가 씁니다.");
+        assert_eq!(result[&2].translation, "그다음 끝납니다.");
+    }
+
+    #[tokio::test]
+    async fn a_misalignment_left_on_the_last_attempt_is_recorded_as_a_failure() {
+        let provider = MockProvider::new(vec![[
+            (1, "HBM 칩당 1.5TB/s".to_string()),
+            (2, "HBM 칩당 1.5TB/s".to_string()),
+        ]
+        .into()]);
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![&AlwaysPassEvaluator];
+        let request = batch_request(&["Tier", "1.5TB/s per chip over HBM."]);
+
+        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 0)
+            .await
+            .unwrap();
+
+        let evaluation = result[&1].evaluation.as_ref().unwrap();
+        assert!(!evaluation.passed);
+        assert!(evaluation.issues.iter().any(|i| i.message.contains("segment [2]")), "{:?}", evaluation.issues);
+        assert!(result[&2].evaluation.as_ref().unwrap().passed);
     }
 
     #[tokio::test]
@@ -419,6 +616,7 @@ mod tests {
             markup: Markup::Markdown,
             feedback: None,
             prompt_template: None,
+            paragraphs: HashMap::new(),
         };
 
         let results = translate_with_evaluation(
@@ -474,6 +672,7 @@ mod tests {
             markup: Markup::Markdown,
             feedback: None,
             prompt_template: None,
+            paragraphs: HashMap::new(),
         };
 
         let results = translate_with_evaluation(

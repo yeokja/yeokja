@@ -12,6 +12,7 @@ pub mod translate_gemma;
 pub mod claude_code;
 pub mod pi;
 pub mod codex;
+pub mod alignment;
 pub mod evaluator;
 pub mod evaluator_ending;
 pub mod evaluator_glossary;
