@@ -9,8 +9,8 @@ impl TranslationEvaluator for LinkEvaluator {
         &self,
         context: &EvaluationContext,
     ) -> Result<EvaluationResult, EvaluationError> {
-        let source_urls = extract_urls(&context.source);
-        let translation_urls = extract_urls(&context.translation);
+        let source_urls = extract_urls(&context.source, context.markup);
+        let translation_urls = extract_urls(&context.translation, context.markup);
         let mut issues = Vec::new();
 
         for url in &source_urls {
@@ -273,11 +273,6 @@ fn rst_anonymous_references(text: &str) -> usize {
     count
 }
 
-/// Extract HTTP(S) URLs without absorbing markup closers or Korean suffixes.
-///
-/// In `[label](https://example.com)에서`, whitespace tokenization alone reads
-/// `)에서` as part of the URL. Parentheses that occur inside a URL are balanced,
-/// while the unmatched `)` that closes the Markdown/Verso link ends it.
 /// The destination of every Markdown inline link and image in `text` other
 /// than absolute URLs, which `extract_urls` already covers.
 fn markdown_destinations(text: &str) -> Vec<String> {
@@ -334,7 +329,14 @@ fn code_reference_labels(text: &str) -> Vec<String> {
     found
 }
 
-fn extract_urls(text: &str) -> Vec<String> {
+/// Extract HTTP(S) URLs without absorbing markup closers or Korean suffixes.
+///
+/// In `[label](https://example.com)에서`, whitespace tokenization alone reads
+/// `)에서` as part of the URL. Parentheses that occur inside a URL are balanced,
+/// while the unmatched `)` that closes the Markdown/Verso link ends it.
+/// In AsciiDoc a `[` ends the URL too: `link:https://example.com/a.html[text]`
+/// and the bare `https://example.com[text]` put the link text right after it.
+fn extract_urls(text: &str, markup: Markup) -> Vec<String> {
     let mut urls = Vec::new();
     let mut search_from = 0;
     while search_from < text.len() {
@@ -355,6 +357,10 @@ fn extract_urls(text: &str) -> Vec<String> {
                     break;
                 }
                 '<' | '>' | '"' | '`' | '}' | ']' => {
+                    end = offset;
+                    break;
+                }
+                '[' if markup == Markup::Asciidoc => {
                     end = offset;
                     break;
                 }
@@ -445,10 +451,26 @@ mod tests {
         assert!(result.passed, "{:?}", result.issues);
     }
 
+    #[tokio::test]
+    async fn asciidoc_link_text_is_not_part_of_the_url() {
+        let ctx = make_context(
+            "The Erlang documentation has a chapter on \
+             link:https://www.erlang.org/doc/apps/erts/alt_dist.html[how to implement an \
+             alternative carrier].",
+            "Erlang 문서에는 link:https://www.erlang.org/doc/apps/erts/alt_dist.html[대체 \
+             캐리어를 구현하는 방법]에 관한 장이 있습니다.",
+        );
+        let result = LinkEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+    }
+
     #[test]
     fn a_balanced_parenthesis_can_belong_to_the_url() {
         assert_eq!(
-            extract_urls("[article](https://example.com/wiki/Foo_(bar))에서"),
+            extract_urls(
+                "[article](https://example.com/wiki/Foo_(bar))에서",
+                Markup::Markdown
+            ),
             vec!["https://example.com/wiki/Foo_(bar)"]
         );
     }
@@ -456,7 +478,10 @@ mod tests {
     #[test]
     fn latex_command_closer_is_not_part_of_the_url() {
         assert_eq!(
-            extract_urls("See \\url{https://example.com/path} for details."),
+            extract_urls(
+                "See \\url{https://example.com/path} for details.",
+                Markup::Latex
+            ),
             vec!["https://example.com/path"]
         );
     }
@@ -481,7 +506,10 @@ mod tests {
 
     #[test]
     fn extract_urls_from_markdown() {
-        let urls = extract_urls("See [link](https://example.com) and https://other.com.");
+        let urls = extract_urls(
+            "See [link](https://example.com) and https://other.com.",
+            Markup::Markdown,
+        );
         assert!(urls.contains(&"https://example.com".to_string()));
         assert!(urls.contains(&"https://other.com".to_string()));
     }
