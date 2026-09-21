@@ -1014,18 +1014,21 @@ impl DocumentParser for RstParser {
                 if let Some(text_offset) = parse_footnote(line.content) {
                     // The first paragraph of the body goes on over the lines
                     // indented under the marker, at the column the second
-                    // line sets.
-                    let text_col = lines
+                    // line sets. Without one it ends on this line.
+                    let continuation = lines
                         .get(i + 1)
                         .filter(|next| !next.is_blank() && next.indent() > line.indent())
-                        .map_or(text_offset, Line::indent);
+                        .map(Line::indent);
                     state.run = Some(Run {
                         block_type: BlockType::Paragraph,
                         span: line.start + text_offset..line.end(),
-                        text_col,
+                        text_col: continuation.unwrap_or(text_offset),
                         start_line: i,
                         last_line: i,
                     });
+                    if continuation.is_none() {
+                        state.flush_run();
+                    }
                     i += 1;
                     continue;
                 }
@@ -3299,6 +3302,25 @@ mod tests {
         assert_eq!(segments[0].source, "The footnote text.");
         let output = translate_all(&RstParser, source, &[("The footnote text.", "각주.")]);
         assert_eq!(output, ".. [1] 각주.\n");
+    }
+
+    /// With no indented line to continue on, a footnote ends where it began:
+    /// a column-zero line after it is no title underline or paragraph line.
+    #[test]
+    fn a_footnote_without_continuation_ends_on_its_line() {
+        let doc = RstParser.parse(".. [1] Footnote text.\n---------------------\n");
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].block_type, BlockType::Paragraph);
+
+        let doc = RstParser.parse(".. [1] X.\n>>> print(1)\n1\n");
+        assert_eq!(
+            doc.translatable_segments()
+                .iter()
+                .map(|s| s.source.as_str())
+                .collect::<Vec<_>>(),
+            vec!["X."]
+        );
     }
 
     #[test]

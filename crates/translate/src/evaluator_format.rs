@@ -66,11 +66,18 @@ impl FormatEvaluator {
         let (missing, left) = unmatched_code(&source_spans.spans, &translation_spans.spans);
         // A left-over span that holds what a role or interpreted text of the
         // source held is that span recast, not an addition.
-        let mut roles: Vec<&BacktickSpan> = source_spans
+        let mut kept: Vec<&BacktickSpan> = translation_spans
             .spans
             .iter()
             .filter(|span| !span.code)
             .collect();
+        let mut roles: Vec<&BacktickSpan> = Vec::new();
+        for role in source_spans.spans.iter().filter(|span| !span.code) {
+            match kept.iter().position(|span| span.content == role.content) {
+                Some(at) => drop(kept.remove(at)),
+                None => roles.push(role),
+            }
+        }
         let mut recast = Vec::new();
         let mut from_source_text = 0;
         if !open_source {
@@ -290,11 +297,15 @@ impl FormatEvaluator {
                 });
             }
 
-            let broken = rst_broken_pairs(&context.translation);
-            if !broken.is_empty()
-                && rst_broken_pairs(&context.source).is_empty()
-                && !rst_starts_inside_emphasis(&context.source)
-            {
+            // A segment that begins inside emphasis an earlier sentence opened
+            // gives its stars no measure; its literals still have one.
+            let marks: &[char] = if rst_starts_inside_emphasis(&context.source) {
+                &['`']
+            } else {
+                &['`', '*']
+            };
+            let broken = rst_broken_pairs_of(&context.translation, marks);
+            if !broken.is_empty() && rst_broken_pairs(&context.source).is_empty() {
                 let shown: Vec<&str> = broken.iter().map(String::as_str).collect();
                 issues.push(EvaluationIssue {
                     severity: IssueSeverity::Error,
@@ -1559,26 +1570,44 @@ fn rst_literal_role_spans(text: &str) -> Vec<std::ops::Range<usize>> {
     spans
 }
 
-/// Whether `text` opens with a `*` run that closes rather than opens — a pair
-/// an earlier segment opened, `It* is *true`: text against its left and none
-/// against its right.
+/// Whether `text` begins inside emphasis an earlier segment opened, as in
+/// `It* is *true…`: its first `*` run closes — text against its left, none
+/// against its right — and a later one opens again. A lone star, `PyObject*`,
+/// `(*)` or an escaped `\*`, is not that.
 fn rst_starts_inside_emphasis(text: &str) -> bool {
     let chars = chars(text);
     let backtick_mask = rst_backtick_mask(&chars);
-    let Some(at) = (0..chars.len()).find(|&at| chars[at] == '*' && !backtick_mask[at]) else {
+    let star =
+        |at: usize| chars[at] == '*' && !backtick_mask[at] && (at == 0 || chars[at - 1] != '\\');
+    let Some(at) = (0..chars.len()).find(|&at| star(at)) else {
         return false;
     };
     let end = at + chars[at..].iter().take_while(|c| **c == '*').count();
-    at > 0 && !chars[at - 1].is_whitespace() && chars.get(end).is_none_or(|c| !is_word(*c))
+    let closes =
+        at > 0 && !chars[at - 1].is_whitespace() && chars.get(end).is_none_or(|c| !is_word(*c));
+    let opens_later = (end..chars.len()).any(|later| {
+        star(later)
+            && chars[later - 1].is_whitespace()
+            && chars
+                .get(later + 1)
+                .is_some_and(|c| !c.is_whitespace() && *c != '*')
+    });
+    closes && opens_later
 }
 
 fn rst_broken_pairs(text: &str) -> Vec<String> {
+    rst_broken_pairs_of(text, &['`', '*'])
+}
+
+/// Every reStructuredText pair of the given marks `text` writes against a word
+/// character.
+fn rst_broken_pairs_of(text: &str, marks: &[char]) -> Vec<String> {
     let chars = chars(text);
     let backtick_mask = rst_backtick_mask(&chars);
     let run_len = |at: usize, mark: char| chars[at..].iter().take_while(|c| **c == mark).count();
     let mut found = Vec::new();
 
-    for mark in ['`', '*'] {
+    for &mark in marks {
         // (start index, run length) of the currently open marker, if any.
         let mut open: Option<(usize, usize)> = None;
         let mut i = 0;
@@ -1862,7 +1891,13 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
         }
         let run_len =
             |at: usize, mark: char| chars[at..].iter().take_while(|c| **c == mark).count();
-        for mark in ['`', '*'] {
+        // A closer the segment never saw open is not an opener to repair.
+        let marks: &[char] = if rst_starts_inside_emphasis(source) {
+            &['`']
+        } else {
+            &['`', '*']
+        };
+        for &mark in marks {
             let mut open: Option<(usize, usize)> = None;
             let mut at = 0usize;
             while at < chars.len() {
@@ -2465,6 +2500,53 @@ mod tests {
             "{:?}",
             result.issues
         );
+    }
+
+    /// The boundary repair must not "fix" that closer into an opener either.
+    #[test]
+    fn rst_boundary_repair_leaves_a_closer_from_an_earlier_segment_alone() {
+        let translation =
+            "그것*\\ 은 *RPython이 더 나은 속도를 내는 경우가 있다는 점에서 사실입니다.";
+        assert_eq!(
+            repair_rst_boundaries(
+                "It* is *true that there are cases where RPython gives you better speed.",
+                translation,
+            ),
+            translation
+        );
+    }
+
+    /// A pointer, a glob or an escaped star is not a closer, and in any case a
+    /// star says nothing about the literals around it.
+    #[tokio::test]
+    async fn rst_a_lone_star_does_not_switch_off_the_literal_check() {
+        for (source, translation) in [
+            (
+                "Pass a PyObject* to ``foo`` here.",
+                "PyObject*를 ``foo``에 전달합니다.",
+            ),
+            (
+                "Items marked (*) need ``foo`` set.",
+                "(*) 표시가 있는 항목은 ``foo``가 설정되어야 합니다.",
+            ),
+            (
+                "Match \\*.py and ``foo`` together.",
+                "\\*.py와 ``foo``를 함께 맞춥니다.",
+            ),
+        ] {
+            let result = FormatEvaluator
+                .evaluate(&context_in(Markup::Rst, source, translation))
+                .await
+                .unwrap();
+            assert!(
+                result
+                    .issues
+                    .iter()
+                    .any(|i| i.message.contains("is not recognized as markup")),
+                "{translation:?}: {:?}",
+                result.issues
+            );
+        }
     }
 
     #[tokio::test]
@@ -3361,6 +3443,28 @@ mod tests {
                 "{translation:?}: {:?}",
                 result.issues
             );
+        }
+    }
+
+    /// A role the translation keeps is no role recast, and the literal beside
+    /// it is source text marked up as code.
+    #[tokio::test]
+    async fn a_kept_role_beside_an_added_literal_is_not_recast() {
+        for (source, translation) in [
+            (
+                "Use :func:`repr` to get it; repr is safe.",
+                ":func:`repr`\\ 로 얻으십시오. ``repr``\\ 은 안전합니다.",
+            ),
+            (
+                "`asyncio`_ is a library. asyncio is great.",
+                "`asyncio`_\\ 는 라이브러리입니다. ``asyncio``\\ 는 훌륭합니다.",
+            ),
+        ] {
+            let result = FormatEvaluator
+                .evaluate(&context_in(Markup::Rst, source, translation))
+                .await
+                .unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
         }
     }
 

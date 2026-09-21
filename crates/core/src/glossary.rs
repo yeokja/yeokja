@@ -82,17 +82,56 @@ fn is_word_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
-/// Whether the word at `start..end` is part of a longer name the punctuation
-/// around it builds: `wg-triage`, `compiler/rustc_hir`, `@reviewer`, `#t-release`,
-/// `package.nix`, `--edition=2021`. A dot or a hyphen with no letter beyond it
-/// ends a sentence or a clause instead.
+/// Whether the word at `start..end` is part of a longer name that stays as
+/// written: a handle or reference (`@reviewer`, `#t-release`), a flag
+/// (`--edition=2021`), a file name (`package.nix`), or a path or identifier
+/// joined by slashes or hyphens (`compiler/rustc_hir/src/hir.rs`,
+/// `trait-system-refactor-initiative#102`).
+///
+/// Prose joins words the same way — `package-level`, `compiler/linker` — and
+/// is translated, so a hyphen or a slash alone does not make a name: the
+/// joined token has to show a file extension, an underscore, a `#`, or a
+/// leading slash. A dot ends a sentence unless a letter or digit follows it.
 fn joined_into_a_name(chars: &[char], start: usize, end: usize) -> bool {
-    let word_at = |at: usize| chars.get(at).is_some_and(|c| is_word_char(*c));
     let before = start.checked_sub(1).map(|at| chars[at]);
     let after = chars.get(end).copied();
-    matches!(before, Some('-' | '/' | '@' | '#'))
-        || (before == Some('.') && start >= 2 && word_at(start - 2))
-        || (matches!(after, Some('-' | '/' | '.' | '=')) && word_at(end + 1))
+    let alnum_at = |at: usize| chars.get(at).is_some_and(|c| c.is_ascii_alphanumeric());
+    if matches!(before, Some('@' | '#'))
+        || (before == Some('-') && start >= 2 && chars[start - 2] == '-')
+        || (after == Some('=') && alnum_at(end + 1))
+        || (before == Some('.') && start >= 2 && alnum_at(start - 2))
+        || (after == Some('.') && alnum_at(end + 1))
+    {
+        return true;
+    }
+    if !matches!(before, Some('/' | '-')) && !matches!(after, Some('/' | '-')) {
+        return false;
+    }
+    // The token runs to whitespace, a bracket or quote, or LaTeX markup (`$`,
+    // `\`, braces); emphasis marks and sentence punctuation at its edges are
+    // not part of it.
+    let bound = |c: &char| c.is_whitespace() || "()[]<>\"'`,;{}$\\".contains(*c);
+    let edge = |c: &char| "*_.:!?".contains(*c);
+    let mut from = chars[..start]
+        .iter()
+        .rposition(bound)
+        .map_or(0, |at| at + 1);
+    let mut to = chars[end..]
+        .iter()
+        .position(bound)
+        .map_or(chars.len(), |at| end + at);
+    while from < start && edge(&chars[from]) {
+        from += 1;
+    }
+    while to > end && edge(&chars[to - 1]) {
+        to -= 1;
+    }
+    let token = &chars[from..to];
+    token.first() == Some(&'/')
+        || token.iter().any(|c| matches!(c, '_' | '#'))
+        || token
+            .windows(2)
+            .any(|pair| pair[0] == '.' && pair[1].is_ascii_alphanumeric())
 }
 
 /// Char ranges of `chars` that a reader sees exactly as written: inline code
@@ -478,21 +517,35 @@ translation = "인터페이스"
         .unwrap()
     }
 
-    /// A hyphen, slash, `@`, `#` or a dot before more letters joins the term
-    /// into a longer name — a team, a path, a handle, a file, a flag — that
-    /// stays as written.
+    /// A handle, a flag, a file name or a path that stays as written holds the
+    /// term as part of a longer name.
     #[test]
     fn a_term_joined_into_a_name_is_part_of_it() {
         let g = names_glossary();
         for text in [
-            "For more information about wg-triage, see the docs.",
-            "It is a short-term band-aid.",
             "See compiler/rustc_hir/src/hir.rs for the definition.",
+            "See [triage-procedure#12] for details.",
             "Edit package.nix and rebuild.",
             "If @reviewer told you to merge, merge.",
             "Run it with --edition=2021 to reproduce.",
         ] {
             assert!(g.find_matching_terms(text).is_empty(), "{text:?}");
+        }
+        // Prose joins words with hyphens and slashes too, and those are
+        // translated: a compound, a list of alternatives, an emphasis that
+        // ends a sentence.
+        for text in [
+            "A package-level setting.",
+            "The compiler/linker pair.",
+            "Pick a compiler/interpreter.",
+            "_It is the compiler._",
+            "_A package-level_ setting.",
+            "A $p$-compiler\\index{p.compiler} here.",
+        ] {
+            assert!(
+                !g.find_matching_terms(text).is_empty(),
+                "{text:?} should still match"
+            );
         }
         // Sentence punctuation still ends a word.
         for text in [

@@ -210,8 +210,8 @@ context changed 535(목록 규칙만으로는 67과 91), cpython-devguide는 3�
 
 4·5절 뒤에도 전 프로젝트 `evaluate --mechanical-only`에 146건(용어집 73, 서식 46, 링크
 21, 정렬 5, 어미 1)이 남아 있었다. 하나씩 원문과 대조해 실제 결함은 다시 번역하고,
-오탐은 규칙을 고치거나 여기에 기록한다. 규칙을 고친 뒤 79건이 남고, 그중 아래
-"그대로 두는 항목"을 뺀 것이 재번역 대상이다.
+오탐은 규칙을 고치거나 여기에 기록한다. 결함을 다시 번역한 뒤 남은 63건(용어집 33,
+링크 21, 정렬 5, 서식 3, 어미 1)은 모두 아래 "그대로 두는 항목"이다.
 
 **줄 머리 검사와 `관련` 접두.** 번역문이 줄 머리에서 표시를 여는지 보는 검사는
 마크업을 몰라, Markdown·RST에서 `.NET`으로 시작하는 번역을 AsciiDoc 블록 제목으로
@@ -242,25 +242,40 @@ cpython-devguide 113, pypy 2) 있었다(예: "관련 :pep:\`340\` 논의 중에�
 - Markdown 전체 참조 링크는 원문 텍스트를 레이블로 남겨 `[*단형화*][_monomorphized_]`로
   옮긴다. 레이블은 렌더링되지 않으므로 강조 개수·짝에서 뺀다(nix-dev의
   `` [`nix` 명령][`nix` command] ``도 같은 꼴).
+- 번역 스팬이 원문 역할과 같은 내용이어도, 번역이 그 역할을 그대로 두었다면 바꾼 것이
+  아니다(`` :func:`repr` ``을 두고 평문 repr을 ``` ``repr`` ```로 감싼 경우).
 - RST 세그먼트가 앞 문장이 연 강조 안에서 시작하면(`It* is *true…`, rpython
-  `faq.rst`) 첫 표시는 닫는 표시다. 코드 스팬처럼, 원문이 짝을 스스로 맞추지 못하면
-  대조하지 않는다.
+  `faq.rst`) 첫 `*`는 닫는 표시다. 첫 `*`(역슬래시로 막지 않은 것)가 닫는 모양이고
+  뒤에 여는 `*`가 또 있을 때만 그렇게 보고, `*` 짝 대조와 경계 보정의 `*` 수선만
+  건너뛴다. `PyObject*`, `(*)`, `\*.py`는 해당하지 않고, 리터럴 검사는 언제나 한다.
+  보정이 이 닫는 표시를 여는 표시로 "고치면" `그것\ *\ 은*…`처럼 강조가 깨지므로
+  보정도 같은 판정을 따른다.
 
-**용어집 검사 오탐.** 용어가 이름의 일부이거나 렌더링되지 않는 곳에 있으면 번역을
-요구하지 않는다: 하이픈·슬래시·`@`·`#`·뒤따르는 `.글자`/`=`로 이어진 이름(`wg-triage`,
-`compiler/rustc_hir/…`, `@reviewer`, `package.nix`, `--edition=2021`, `long-term`),
-HTML 태그(`<a id="interface">`), Markdown 전체 참조 링크의 레이블. 문장 끝 마침표와
-쉼표는 여전히 경계다. 이 판정은 용어집 스냅숏의 낡음 판정에도 쓰이지만, 일치를 줄이기만
-하므로 새로 낡음이 되는 세그먼트는 없다(전 프로젝트 `status`로 확인).
+**용어집 검사 오탐.** 용어가 그대로 두는 이름의 일부이거나 렌더링되지 않는 곳에 있으면
+번역을 요구하지 않는다: 핸들·참조(`@reviewer`, `#t-release`), 플래그(`--edition=2021`),
+파일 이름(`package.nix`, 점 뒤에 글자·숫자), 경로·식별자(`compiler/rustc_hir/…`,
+`trait-system-refactor-initiative#102` — 슬래시·하이픈으로 이어진 토큰이 확장자·`_`·`#`·
+맨 앞 `/`를 지닐 때), HTML 태그(`<a id="interface">`), Markdown 전체 참조 링크의 레이블.
+산문도 하이픈과 슬래시로 낱말을 잇고(`homotopy-inductive`, `Java/Scala`,
+`2-edge-connected`) 그것은 번역하므로, 하이픈·슬래시만으로는 이름으로 보지 않는다.
+처음에 하이픈·슬래시를 모두 이름으로 보았을 때 전 프로젝트 state에서 1,491개 용어 일치가
+사라졌고, 좁힌 뒤에는 287개가 사라지며 표본은 모두 파일 이름·도메인·경로·핸들이었다.
+토큰은 LaTeX 표시(`$`, `\`, 중괄호)에서 끊고 가장자리의 강조 표시·문장 부호는 떼므로
+`$\infty$-groupoids`, `…FPGA._`의 용어는 그대로 센다. 이 판정은 용어집 스냅숏의 낡음
+판정에도 쓰이지만 일치를 줄이기만 하므로(늘어난 일치 0) 새로 낡음이 되는 세그먼트는
+없다(전 프로젝트 비교).
 
 **그대로 두는 항목.**
-- 용어집 24건: 일반어 뜻(동사 "stage a tensor", "issue a command", "package C/C++
+- 용어집 33건: 하이픈 합성어 8건(`on-chip`, `compiler-rt`, `flake-checker`,
+  `long-term`·`short-term`, `impl-trait`, `real-world` 등 — 위 규칙이 산문을 지키려고
+  남긴 것), 일반어 뜻(동사 "stage a tensor", "issue a command", "package C/C++
   software", "the process is similar", "outside world", "near future", "marker pin",
   "`name` attribute set to"), 영어로 둔 고유명·제목(WebAssembly System Interface,
   Erlang Runtime System, `<<…,Compact Term Encoding>>`, ERTS Reference 문서 제목, 발표
-  제목 "Becoming a Nixpkgs Contributor", 발음 표기 "Nix packages", UI 이름 "Label",
-  "process 탭"), 그대로 둬야 하는 Markdown 단축 참조 텍스트(`[Triage Procedure]`,
-  `[new trait solver]`), 명령(`@rustbot label …`), Rust 문법(`impl Trait`).
+  제목 "Becoming a Nixpkgs Contributor", 논문 제목 "Optimizing graph algorithms…",
+  발음 표기 "Nix packages", UI 이름 "Label", "process 탭"), 그대로 둬야 하는 Markdown
+  단축 참조 텍스트(`[Triage Procedure]`, `[new trait solver]`), 명령(`@rustbot label …`),
+  Rust 문법(`impl Trait`).
 - 정렬 5건: 3절의 비문제 항목(HTML5, IPv6, WSGI 1.0, 단위 표기, napkin `limits.tex`).
 - 어미 1건: jeffe-algorithms `00-intro.tex`의 각주 속 헤로도토스 인용문. 인용은
   평서체가 맞다.
@@ -273,11 +288,21 @@ HTML 태그(`<a id="interface">`), Markdown 전체 참조 링크의 레이블. �
   name"이 없다(pypy 빌드로 확인). 다만 제목과 참조 가운데 한쪽만 다시 번역되면 깨지므로,
   재번역할 일이 생기면 평가기의 안내대로 `` `번역 <Wrapping rules_>`_ `` 꼴로 바꾼다.
 
+**파서 보완.** 각주의 첫 줄 다음에 들여 쓴 이어지는 줄이 없으면 5절 이전처럼 그 줄에서
+세그먼트를 닫는다. 열어 두면 바로 아래 0열의 장식 줄을 제목 밑줄로, `>>>`를 문단으로
+읽는다(현재 원문에는 없는 배치다). 5절의 목록 규칙으로 한 문단이 된
+`we focus on:⏎1. Content⏎2. Venue`는 문장 분할기가 `N.` 뒤에서 나눠 번호가 앞 항목과
+한 세그먼트가 되지만(pypy `dev_method.rst`), 렌더링은 원문과 같다.
+
 **재번역한 결함.** 역할을 리터럴로 바꾼 3건(mil 2, peps 1), RST에서 `*강조*(`처럼 닫는
 표시 뒤에 괄호를 붙여 강조가 풀린 2건(pypy), AsciiDoc에서 조사 앞에서 닫히지 않는 코드
 스팬 5건과 원문에 없는 강조를 더하거나 빼거나 코드로 바꾼 5건(thebeambook), 원문에 없는
 강조를 더한 1건(rustc-dev-guide), 인용한 명령의 둘째 줄을 빠뜨린 1건(rust-forge
 `process.md`), 각주의 산문을 번역하지 않은 1건(jeffe-algorithms `09-apsp.tex`).
+thebeambook `compiler.asciidoc`의 코드 스팬 3건은 재시도 4번에도 조사 앞에 한 겹 표시를
+써서, 표시만 두 겹(``` ``erlc``의 ```)으로 고쳤다. 그 밖에 rustc-dev-guide
+`panic-implementation.md`의 어색한 괄호 설명을 다듬고, peps 두 곳(pep-0817, pep-0612)의
+zero-width space를 지웠다.
 
 ## 검증
 
