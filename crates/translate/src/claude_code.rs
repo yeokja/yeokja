@@ -22,6 +22,38 @@ impl ClaudeCodeProvider {
     pub fn new(model: Option<String>, system_prompt: Option<String>) -> Self {
         Self { model, system_prompt }
     }
+
+    /// Arguments for one `claude -p` call; the prompt goes to stdin (`-`) to
+    /// avoid argument size limits.
+    ///
+    /// Only local settings are loaded. The user's settings enable their
+    /// plugins, whose session hooks otherwise ride along on every
+    /// translation: the model saw the Superpowers skill instructions and
+    /// prefaced its `[N]` lines with remarks about not needing a skill.
+    /// `--bare` would drop them too, but also the stored login.
+    fn cli_args(&self) -> Vec<String> {
+        let mut args: Vec<String> = [
+            "-p",
+            "--output-format",
+            "json",
+            "--no-session-persistence",
+            "--disable-slash-commands",
+            "--setting-sources",
+            "local",
+            "--tools",
+            "",
+        ]
+        .map(String::from)
+        .to_vec();
+        if let Some(model) = &self.model {
+            args.extend(["--model".to_string(), model.clone()]);
+        }
+        if let Some(system_prompt) = &self.system_prompt {
+            args.extend(["--system-prompt".to_string(), system_prompt.clone()]);
+        }
+        args.push("-".to_string());
+        args
+    }
 }
 
 #[async_trait]
@@ -30,27 +62,10 @@ impl LlmProvider for ClaudeCodeProvider {
         tracing::debug!(model = ?self.model, prompt_len = request.prompt.len(), "Calling claude CLI");
 
         let mut cmd = Command::new("claude");
-        cmd.arg("-p")
-            .arg("--output-format")
-            .arg("json")
-            .arg("--no-session-persistence")
-            .arg("--disable-slash-commands")
-            .arg("--tools")
-            .arg("")
+        cmd.args(self.cli_args())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-
-        if let Some(model) = &self.model {
-            cmd.arg("--model").arg(model);
-        }
-
-        if let Some(system_prompt) = &self.system_prompt {
-            cmd.arg("--system-prompt").arg(system_prompt);
-        }
-
-        // Pass prompt via stdin to avoid shell argument size limits
-        cmd.arg("-");
 
         let mut child = cmd.spawn().map_err(|e| {
             TranslateError::Api {
@@ -132,6 +147,18 @@ mod tests {
         let provider = ClaudeCodeProvider::new(Some("sonnet".to_string()), Some("You are a translator.".to_string()));
         assert_eq!(provider.model.as_deref(), Some("sonnet"));
         assert_eq!(provider.system_prompt.as_deref(), Some("You are a translator."));
+    }
+
+    /// The CLI otherwise loads the user's settings, and with them their
+    /// plugins' session hooks: translation calls were answering "This is a
+    /// translation task, not requiring skill invocation" before their `[N]`
+    /// lines.
+    #[test]
+    fn cli_leaves_user_settings_out() {
+        let args = ClaudeCodeProvider::new(Some("sonnet".to_string()), None).cli_args();
+        let at = args.iter().position(|a| a == "--setting-sources").expect("sources are restricted");
+        assert_eq!(args[at + 1], "local");
+        assert_eq!(args.last().map(String::as_str), Some("-"));
     }
 
     #[test]
