@@ -358,7 +358,10 @@ webassembly-component-docs 1, learn-fpga 1, zero-to-nix 1. 72건에 괄호 풀�
    글자·숫자·공백이 아닌 비ASCII 문자로 본다(CommonMark 0.31이 기호를 문장 부호에
    넣은 것과 맞는다). 안내: 강조는 글자로 끝내라 — 괄호 풀이·링크·인용 부호는 강조
    밖에 두고(`**외적**(outer product)에서`, `[**Fetch**](url)는`, `"*권한*"은`), 코드나
-   기호로 끝나는 용어는 조사를 강조 안에 넣는다(`` *`impl Trait`의* ``).
+   기호로 끝나는 용어는 조사를 강조 안에 넣는다(`` *`impl Trait`의* ``). 닫지 못한 표시마다
+   그 자리의 글을 고쳐 쓴 꼴도 함께 보인다(`` *충족되지 않은 `import`를* ``). 규칙만
+   알려 주었을 때 모델은 재시도 네 번 내내 `` *충족되지 않은 `import`*를 ``, `` *`r+`*로 ``를
+   다시 썼다.
 3. **괄호 풀이는 결정적으로 고친다.** 번역 직후 평가 전에(RST 경계 보정과 같은 자리)
    닫지 못한 표시 앞이 `)`이고, 짝인 `(`가 강조 안에 있으며 그 앞에 용어가 있고, 괄호
    안에 강조 표시·백틱·괄호가 없으면 닫는 표시를 `(` 앞(사이 공백이 있으면 그 앞)으로
@@ -372,9 +375,23 @@ webassembly-component-docs 1, learn-fpga 1, zero-to-nix 1. 72건에 괄호 풀�
    커스텀 템플릿을 쓰는 webassembly-component-docs에는 같은 문장을 직접 넣는다
    (raytracing은 markdeep이라 넣지 않는다).
 
-**기존 번역.** 괄호 풀이 꼴은 위 보정과 같은 규칙으로 저장된 번역의 표시만 옮긴다
-(모델이 낸 문장은 그대로 두고, `evaluate`로 쌍 수가 맞는지 확인한다). 보정 뒤에도 쌍이
-맞지 않는 세그먼트는 번역을 지우고 파일 단위로 다시 번역한다. rust-forge `compiler/reviews.md`
+**기존 번역.** 새 검사를 켠 전 프로젝트 감사는 조사한 88건과 raytracing 1건을 정확히
+찾았다(다른 항목은 늘지 않았다). 괄호 풀이 꼴은 파이프라인의 보정 함수를 그대로 저장된
+번역에 적용해 표시만 옮겼다(66건, 33개 파일 — 모델이 낸 문장은 그대로다). thebeambook
+state 전체에 AsciiDoc 보정을 적용해 보면 바뀌는 번역이 없다(8절). 보정 뒤에도 쌍이 맞지
+않는 22건과 아래 두 건을 번역을 지우고 파일 단위로 다시 번역했다. 규칙만 알려 주던
+첫 재번역에서 6건이 재시도 한도를 넘겼고, 고쳐 쓴 꼴을 보이도록 피드백을 바꾼 뒤 다시
+번역하자 6건 모두 통과했다(소요 시간으로 보아 첫 재시도에서). 재번역이 새로 만든 결함은
+평가기가 잡지 못해 손으로 고쳤다: 영어 그대로 둔 문장(rust-forge
+`rustdoc/proposals-and-stabilization.md` section:2/block:9/seg:0), 원문에 없는 문장을
+더한 번역(rustc-dev-guide `appendix/glossary.md` section:0/block:10/seg:0, 다음 세그먼트의
+"[AFIT](#afit)도 참고하십시오."를 되풀이), 단축 참조 링크 `[arena]`를 잃은 번역
+(`overview.md` section:2/block:25/seg:1, `[*arena*][arena]`로 고침), 같은 문서의 용어·
+절 제목과 어긋난 번역 세 건. 수선 뒤 대상 프로젝트의 감사 결과는 이전과 같은 세그먼트만
+남고(rustc-dev-guide `diagnostic-structs.md`는 원문이 연 표시 때문에 `_` 쌍 대조를 하지
+않아 항목이 둘에서 하나로 줄었다), CI의 `rebuild-translations.sh`(`status --check`)를
+모두 통과한다. 빌드한 HTML의 code·pre 밖 본문에서 한글 옆에 글자로 남은 `*`·`_`는
+rustc-dev-guide 34곳 → 1곳(위 원문 오타), furiosa-opt 3곳 → 0곳이다. rust-forge `compiler/reviews.md`
 section:2/block:9/seg:1은 조사 중 드러난 번호 밀림이다: "sufficient test coverage"
 자리에 다음 문단(block:10) 세 문장의 번역이 들어 있다. 앵커가 한 단어(`MCP`)뿐이라
 3절의 정렬 검사가 잡지 못했다. 함께 다시 번역한다. raytracing `RayTracingTheNextWeek.html`
