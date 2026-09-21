@@ -2,8 +2,9 @@
 
 세 번역 프로젝트(#1 furiosa-opt, #2 cp-algorithms, #3 Algorithms)를 진행하며 드러난
 yeokja 공통 결함 세 가지를 근본적으로 고친다. 이후 감사에서 드러난 코드 스팬 변경과
-괄호 중복은 4절, reStructuredText 문단이 줄 중간에서 끊기는 문제는 5절에서 다룬다.
-용어집 최장 일치 문제는 이미 `c0db859`에서 고쳤다.
+괄호 중복은 4절, reStructuredText 문단이 줄 중간에서 끊기는 문제는 5절, 그 전부터 남아
+있던 감사 항목의 분류와 그에 따른 규칙 조정은 6절에서 다룬다. 용어집 최장 일치 문제는
+이미 `c0db859`에서 고쳤다.
 
 ## 1. 응답 파서가 `[N]`으로 시작하지 않는 줄을 버림
 
@@ -204,6 +205,79 @@ context changed 535(목록 규칙만으로는 67과 91), cpython-devguide는 3�
 않는다. peps와 cpython-devguide는 번역률 100%였으므로 프로젝트 단위로, pypy는
 미번역 파일이 많으므로 해당 5개 파일만 파일 단위로 번역한다. 이전 분할기 수정
 (`68da000`, `2618d42`)과 같은 방식이다.
+
+## 6. 남아 있던 감사 항목 분류
+
+4·5절 뒤에도 전 프로젝트 `evaluate --mechanical-only`에 146건(용어집 73, 서식 46, 링크
+21, 정렬 5, 어미 1)이 남아 있었다. 하나씩 원문과 대조해 실제 결함은 다시 번역하고,
+오탐은 규칙을 고치거나 여기에 기록한다. 규칙을 고친 뒤 79건이 남고, 그중 아래
+"그대로 두는 항목"을 뺀 것이 재번역 대상이다.
+
+**줄 머리 검사와 `관련` 접두.** 번역문이 줄 머리에서 표시를 여는지 보는 검사는
+마크업을 몰라, Markdown·RST에서 `.NET`으로 시작하는 번역을 AsciiDoc 블록 제목으로
+읽고, `` :pep:`8` `` 같은 역할을 필드·속성 항목으로 읽었다. RST 경계 보정은 이를 피하려고
+번역 앞에 뜻 없는 "관련 "을 붙였고, 그렇게 저장된 번역이 344건(peps 229,
+cpython-devguide 113, pypy 2) 있었다(예: "관련 :pep:\`340\` 논의 중에…"). docutils로
+확인하면 줄 머리의 역할과 `.NET`은 문단이고, 필드 목록은 `:name:` 뒤에 공백이 올 때만
+열린다.
+- `.Word` 블록 제목은 AsciiDoc에서만 본다. `:name:`은 닫는 콜론 뒤에 공백이나 줄
+  끝이 올 때만 필드·속성 항목이다(백틱이 오면 역할).
+- RST 보정은 진짜 필드 표시만 역슬래시로 막는다(`\:name: …`, 렌더링되지 않는다).
+- 저장된 344건에서는 접두만 기계적으로 지웠다. 보정이 붙인 것이 정확히 "관련 "이므로
+  지우면 모델이 낸 번역 그대로다.
+
+**URL 경계 보정.** 원문에 `…/decimal/`과 `…/decimal/decarith.html`이 함께 있으면,
+짧은 URL을 긴 URL 안에서 찾아 그 뒤에 `\ `를 넣었다(pep-0327). 조사와의 경계이므로
+뒤에 한글 같은 비ASCII 글자가 올 때만 넣는다. 저장된 한 건은 URL을 되붙였다.
+
+**서식 검사 오탐.**
+- 원문이 평문으로 쓴 식별자를 번역이 코드로 감싸거나(`.pem`, `subprocess.Popen()`,
+  `rollup=never`), 한국어가 주어를 되풀이하며 원문의 코드 스팬을 한 번 더 쓰는 것
+  (`` `Foo`의 … `Foo`도 ``)은 코드를 덧붙인 것이 아니다. 모델은 재시도 4번에도 이렇게
+  썼다. 남는 번역 스팬의 내용이 원문에 한 단어로 있으면 개수·짝 검사에서 뺀다. 스팬은
+  여전히 닫혀야 한다.
+- 대신, 남는 번역 스팬이 원문의 역할·해석 텍스트와 같은 내용이면 그것을 리터럴로
+  바꾼 것으로 보고 따로 보고한다(`` :mod:`string` ``→``` ``string`` ```는 링크를,
+  `` :math:`A` ``→``` ``A`` ```는 수식을 잃는다). 개수만 세던 때는 우연히 맞아 통과했다.
+- Markdown 전체 참조 링크는 원문 텍스트를 레이블로 남겨 `[*단형화*][_monomorphized_]`로
+  옮긴다. 레이블은 렌더링되지 않으므로 강조 개수·짝에서 뺀다(nix-dev의
+  `` [`nix` 명령][`nix` command] ``도 같은 꼴).
+- RST 세그먼트가 앞 문장이 연 강조 안에서 시작하면(`It* is *true…`, rpython
+  `faq.rst`) 첫 표시는 닫는 표시다. 코드 스팬처럼, 원문이 짝을 스스로 맞추지 못하면
+  대조하지 않는다.
+
+**용어집 검사 오탐.** 용어가 이름의 일부이거나 렌더링되지 않는 곳에 있으면 번역을
+요구하지 않는다: 하이픈·슬래시·`@`·`#`·뒤따르는 `.글자`/`=`로 이어진 이름(`wg-triage`,
+`compiler/rustc_hir/…`, `@reviewer`, `package.nix`, `--edition=2021`, `long-term`),
+HTML 태그(`<a id="interface">`), Markdown 전체 참조 링크의 레이블. 문장 끝 마침표와
+쉼표는 여전히 경계다. 이 판정은 용어집 스냅숏의 낡음 판정에도 쓰이지만, 일치를 줄이기만
+하므로 새로 낡음이 되는 세그먼트는 없다(전 프로젝트 `status`로 확인).
+
+**그대로 두는 항목.**
+- 용어집 24건: 일반어 뜻(동사 "stage a tensor", "issue a command", "package C/C++
+  software", "the process is similar", "outside world", "near future", "marker pin",
+  "`name` attribute set to"), 영어로 둔 고유명·제목(WebAssembly System Interface,
+  Erlang Runtime System, `<<…,Compact Term Encoding>>`, ERTS Reference 문서 제목, 발표
+  제목 "Becoming a Nixpkgs Contributor", 발음 표기 "Nix packages", UI 이름 "Label",
+  "process 탭"), 그대로 둬야 하는 Markdown 단축 참조 텍스트(`[Triage Procedure]`,
+  `[new trait solver]`), 명령(`@rustbot label …`), Rust 문법(`impl Trait`).
+- 정렬 5건: 3절의 비문제 항목(HTML5, IPv6, WSGI 1.0, 단위 표기, napkin `limits.tex`).
+- 어미 1건: jeffe-algorithms `00-intro.tex`의 각주 속 헤로도토스 인용문. 인용은
+  평서체가 맞다.
+- rustc-dev-guide `diagnostic-structs.md`의 "_Applied to `Span` fields on
+  `Subdiagnostic`s.": 원문(175행)이 닫는 `_`를 빠뜨린 오타다.
+- thebeambook `live.asciidoc`: 책에 포함되지 않는 미완성 파일이다(`<markdown>` 줄).
+- learn-fpga `LiteX/orange_crab.md`: 4절에서 둔 뒤집힌 링크.
+- pypy 링크 20건: `` `Wrapping rules`_ ``를 `` `래핑 규칙`_ ``처럼 옮긴 명명 참조. 참조하는
+  절 제목도 같은 말로 번역되어 암시적 대상이 그대로 맞으므로 빌드에 "Unknown target
+  name"이 없다(pypy 빌드로 확인). 다만 제목과 참조 가운데 한쪽만 다시 번역되면 깨지므로,
+  재번역할 일이 생기면 평가기의 안내대로 `` `번역 <Wrapping rules_>`_ `` 꼴로 바꾼다.
+
+**재번역한 결함.** 역할을 리터럴로 바꾼 3건(mil 2, peps 1), RST에서 `*강조*(`처럼 닫는
+표시 뒤에 괄호를 붙여 강조가 풀린 2건(pypy), AsciiDoc에서 조사 앞에서 닫히지 않는 코드
+스팬 5건과 원문에 없는 강조를 더하거나 빼거나 코드로 바꾼 5건(thebeambook), 원문에 없는
+강조를 더한 1건(rustc-dev-guide), 인용한 명령의 둘째 줄을 빠뜨린 1건(rust-forge
+`process.md`), 각주의 산문을 번역하지 않은 1건(jeffe-algorithms `09-apsp.tex`).
 
 ## 검증
 

@@ -49,7 +49,8 @@ pub fn find_terms_in_text(terms: &HashMap<String, String>, text: &str) -> HashMa
         for start in occurrences(&chars, &term_chars) {
             let end = start + term_chars.len();
             let standalone = (start == 0 || !is_word_char(chars[start - 1]))
-                && (end >= chars.len() || !is_word_char(chars[end]));
+                && (end >= chars.len() || !is_word_char(chars[end]))
+                && !joined_into_a_name(&chars, start, end);
             let hidden = verbatim.iter().any(|s| s.start < end && start < s.end);
             let inside_longer = claimed.iter().any(|c| c.start <= start && end <= c.end);
             if standalone && !hidden && !inside_longer {
@@ -81,8 +82,22 @@ fn is_word_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
+/// Whether the word at `start..end` is part of a longer name the punctuation
+/// around it builds: `wg-triage`, `compiler/rustc_hir`, `@reviewer`, `#t-release`,
+/// `package.nix`, `--edition=2021`. A dot or a hyphen with no letter beyond it
+/// ends a sentence or a clause instead.
+fn joined_into_a_name(chars: &[char], start: usize, end: usize) -> bool {
+    let word_at = |at: usize| chars.get(at).is_some_and(|c| is_word_char(*c));
+    let before = start.checked_sub(1).map(|at| chars[at]);
+    let after = chars.get(end).copied();
+    matches!(before, Some('-' | '/' | '@' | '#'))
+        || (before == Some('.') && start >= 2 && word_at(start - 2))
+        || (matches!(after, Some('-' | '/' | '.' | '=')) && word_at(end + 1))
+}
+
 /// Char ranges of `chars` that a reader sees exactly as written: inline code
-/// spans and the targets of URLs and macros.
+/// spans, the targets of URLs and macros, HTML tags, and the labels of full
+/// reference links.
 ///
 /// The link *text* is deliberately left out — `link:https://…[ERTS Reference]`
 /// carries prose after the `[` that a translator may well render.
@@ -90,7 +105,11 @@ fn verbatim_spans(chars: &[char]) -> Vec<Range<usize>> {
     let mut spans = Vec::new();
     let mut i = 0;
     while i < chars.len() {
-        if let Some(end) = code_span_end(chars, i).or_else(|| target_end(chars, i)) {
+        if let Some(end) = code_span_end(chars, i)
+            .or_else(|| target_end(chars, i))
+            .or_else(|| html_tag_end(chars, i))
+            .or_else(|| reference_label_end(chars, i))
+        {
             spans.push(i..end);
             i = end;
         } else {
@@ -119,6 +138,45 @@ fn code_span_end(chars: &[char], at: usize) -> Option<usize> {
         }
         from = close + len;
     }
+}
+
+/// Where the HTML tag opening at `at` ends, if one does: `<a id="x">`, `</a>`,
+/// `<br>`. A tag is a bare name or a name with `=` attributes, so `a <b then c>`
+/// stays prose.
+fn html_tag_end(chars: &[char], at: usize) -> Option<usize> {
+    if chars[at] != '<' || (at > 0 && chars[at - 1] == '<') {
+        return None;
+    }
+    let close = at + chars[at..].iter().position(|c| *c == '>' || *c == '\n')?;
+    if chars[close] != '>' {
+        return None;
+    }
+    let inner: String = chars[at + 1..close].iter().collect();
+    let inner = inner
+        .strip_prefix('/')
+        .unwrap_or(&inner)
+        .trim_end_matches('/');
+    let name_len = inner
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+        .count();
+    let attributes = &inner[name_len..];
+    (inner.starts_with(|c: char| c.is_ascii_alphabetic())
+        && (attributes.trim().is_empty()
+            || (attributes.starts_with(char::is_whitespace) && attributes.contains('='))))
+    .then_some(close + 1)
+}
+
+/// Where the label of a full reference link starting at `at` ends, if one
+/// does: the `[label]` right after the `]` of `[text][label]`.
+fn reference_label_end(chars: &[char], at: usize) -> Option<usize> {
+    if chars[at] != '[' || at == 0 || chars[at - 1] != ']' {
+        return None;
+    }
+    let offset = chars[at + 1..]
+        .iter()
+        .position(|c| matches!(c, ']' | '[' | '\n'))?;
+    (chars[at + 1 + offset] == ']').then_some(at + 1 + offset + 1)
 }
 
 /// Where the URL or macro target starting at `at` ends, if one does. A target
@@ -389,6 +447,101 @@ translation = "컴파일러"
         assert_eq!(
             g.find_matching_terms("The heap grows.").get("heap").unwrap(),
             "힙"
+        );
+    }
+
+    fn names_glossary() -> Glossary {
+        Glossary::from_toml(
+            r#"
+[terms.triage]
+translation = "트리아지"
+
+[terms.term]
+translation = "텀"
+
+[terms.compiler]
+translation = "컴파일러"
+
+[terms.package]
+translation = "패키지"
+
+[terms.reviewer]
+translation = "리뷰어"
+
+[terms.edition]
+translation = "에디션"
+
+[terms.interface]
+translation = "인터페이스"
+"#,
+        )
+        .unwrap()
+    }
+
+    /// A hyphen, slash, `@`, `#` or a dot before more letters joins the term
+    /// into a longer name — a team, a path, a handle, a file, a flag — that
+    /// stays as written.
+    #[test]
+    fn a_term_joined_into_a_name_is_part_of_it() {
+        let g = names_glossary();
+        for text in [
+            "For more information about wg-triage, see the docs.",
+            "It is a short-term band-aid.",
+            "See compiler/rustc_hir/src/hir.rs for the definition.",
+            "Edit package.nix and rebuild.",
+            "If @reviewer told you to merge, merge.",
+            "Run it with --edition=2021 to reproduce.",
+        ] {
+            assert!(g.find_matching_terms(text).is_empty(), "{text:?}");
+        }
+        // Sentence punctuation still ends a word.
+        for text in [
+            "Run the compiler.",
+            "The compiler, then the linker.",
+            "(the compiler)",
+        ] {
+            assert_eq!(
+                g.find_matching_terms(text)
+                    .get("compiler")
+                    .map(String::as_str),
+                Some("컴파일러"),
+                "{text:?}"
+            );
+        }
+    }
+
+    /// An HTML tag is markup, its attribute values included.
+    #[test]
+    fn an_html_tag_is_markup() {
+        let g = names_glossary();
+        assert!(g.find_matching_terms("<a id=\"interface\"></a>").is_empty());
+        assert!(
+            g.find_matching_terms("<span id=\"term-list\">`x`</span>")
+                .is_empty()
+        );
+        // A comparison is not a tag.
+        assert_eq!(
+            g.find_matching_terms("if a <b then the interface>")
+                .get("interface")
+                .map(String::as_str),
+            Some("인터페이스")
+        );
+    }
+
+    /// The label of a full reference link is not rendered: `[text][label]`
+    /// shows only the text.
+    #[test]
+    fn a_reference_label_is_not_prose() {
+        let g = names_glossary();
+        assert!(
+            g.find_matching_terms("See [the docs][compiler].")
+                .is_empty()
+        );
+        assert_eq!(
+            g.find_matching_terms("See [the compiler][docs].")
+                .get("compiler")
+                .map(String::as_str),
+            Some("컴파일러")
         );
     }
 

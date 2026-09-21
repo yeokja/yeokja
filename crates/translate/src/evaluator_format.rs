@@ -42,6 +42,62 @@ impl FormatEvaluator {
 
         let mut issues = Vec::new();
 
+        // A full reference link keeps the source text as its label so the
+        // text can be translated, `[*단형화*][_monomorphized_]`. The label is
+        // not rendered, and its marks are no emphasis of the translation.
+        let (visible_source, visible_translation) = if context.markup == Markup::Markdown {
+            (
+                without_reference_labels(&context.source),
+                without_reference_labels(&context.translation),
+            )
+        } else {
+            (context.source.clone(), context.translation.clone())
+        };
+
+        // Code the translation marks up where the source wrote it as text, or
+        // repeats where Korean names the subject again, is no code gained:
+        // `.pem` for .pem. It is excused from the counts below and still has
+        // to close.
+        let source_spans = backtick_spans(&chars(&context.source), context.markup);
+        let open_source = source_spans.unclosed
+            || (context.markup == Markup::Asciidoc
+                && !pair_up(&chars(&context.source), '`').unclosable.is_empty());
+        let translation_spans = backtick_spans(&chars(&context.translation), context.markup);
+        let (missing, left) = unmatched_code(&source_spans.spans, &translation_spans.spans);
+        // A left-over span that holds what a role or interpreted text of the
+        // source held is that span recast, not an addition.
+        let mut roles: Vec<&BacktickSpan> = source_spans
+            .spans
+            .iter()
+            .filter(|span| !span.code)
+            .collect();
+        let mut recast = Vec::new();
+        let mut from_source_text = 0;
+        if !open_source {
+            for span in &left {
+                if let Some(at) = roles.iter().position(|role| role.content == span.content) {
+                    recast.push(format!(
+                        "{} became the literal {}",
+                        roles.remove(at).written,
+                        span.written
+                    ));
+                } else if written_as_text(&context.source, &span.content) {
+                    from_source_text += 1;
+                }
+            }
+        }
+        if !recast.is_empty() {
+            issues.push(EvaluationIssue {
+                severity: IssueSeverity::Error,
+                kind: IssueKind::FormatLost,
+                message: format!(
+                    "{}. A role or interpreted text renders differently from code — a :mod: \
+                     role links, :math: typesets — so keep it the way the source writes it.",
+                    recast.join(", "),
+                ),
+            });
+        }
+
         // Counted by run, not by character: `` ``code`` `` marks the same one
         // pair as `` `code` ``, written the way an unclosable pair has to be
         // rewritten (see below). Counting characters would read that fix as two
@@ -62,12 +118,13 @@ impl FormatEvaluator {
                 } else {
                     0
                 };
-            let translation_code_runs = mark_runs(&context.translation, '`')
+            let translation_code_runs = (mark_runs(&context.translation, '`')
                 - if context.markup == Markup::Rst {
                     rst_reference_runs(&context.translation)
                 } else {
                     0
-                };
+                })
+            .saturating_sub(2 * from_source_text);
             let checks = [
                 (
                     "Inline code markers (`)",
@@ -76,8 +133,8 @@ impl FormatEvaluator {
                 ),
                 (
                     "Emphasis marker runs",
-                    emphasis_runs(&context.source, context.markup),
-                    emphasis_runs(&context.translation, context.markup),
+                    emphasis_runs(&visible_source, context.markup),
+                    emphasis_runs(&visible_translation, context.markup),
                 ),
             ];
             for (name, in_source, in_translation) in checks {
@@ -99,46 +156,40 @@ impl FormatEvaluator {
         // back unchanged, wherever Korean word order puts it. A source that
         // leaves a span open pairs its marks differently from a translation
         // that closes it, so its spans are no measure.
-        let source_spans = backtick_spans(&chars(&context.source), context.markup);
-        let open_source = source_spans.unclosed
-            || (context.markup == Markup::Asciidoc
-                && !pair_up(&chars(&context.source), '`').unclosable.is_empty());
-        if !open_source {
-            let translation_spans = backtick_spans(&chars(&context.translation), context.markup);
-            let (missing, left) = unmatched_code(&source_spans.spans, &translation_spans.spans);
-            if !missing.is_empty() {
-                issues.push(EvaluationIssue {
-                    severity: IssueSeverity::Error,
-                    kind: IssueKind::FormatLost,
-                    message: format!(
-                        "Inline code changed: {} is not in the translation{}. Copy the content \
-                         of every code span byte for byte, even prose or a typo inside it; only \
-                         the text around it is translated.{}",
-                        missing.join(", "),
-                        if left.is_empty() {
-                            String::new()
-                        } else {
-                            format!(", which writes {} instead", left.join(", "))
-                        },
-                        // Told to double the marks before a particle, the
-                        // translator takes the passthrough pluses for marks too
-                        // and drops them, retry after retry; a space it keeps.
-                        if context.markup == Markup::Asciidoc
-                            && missing.iter().any(|written| {
-                                let content = written.trim_matches('`');
-                                content.len() > 1 && content.starts_with('+') && content.ends_with('+')
-                            })
-                        {
-                            " A `+…+` span is a passthrough: without its pluses AsciiDoc rewrites \
-                             its text (-> becomes an arrow). Keep the span exactly as the source \
-                             writes it and put a space after its closing mark instead of doubling \
-                             the marks: `+x+` 같은, `+x+` 와."
-                        } else {
-                            ""
-                        },
-                    ),
-                });
-            }
+        if !open_source && !missing.is_empty() {
+            issues.push(EvaluationIssue {
+                severity: IssueSeverity::Error,
+                kind: IssueKind::FormatLost,
+                message: format!(
+                    "Inline code changed: {} is not in the translation{}. Copy the content \
+                     of every code span byte for byte, even prose or a typo inside it; only \
+                     the text around it is translated.{}",
+                    missing.join(", "),
+                    if left.is_empty() {
+                        String::new()
+                    } else {
+                        let written: Vec<&str> =
+                            left.iter().map(|span| span.written.as_str()).collect();
+                        format!(", which writes {} instead", written.join(", "))
+                    },
+                    // Told to double the marks before a particle, the
+                    // translator takes the passthrough pluses for marks too
+                    // and drops them, retry after retry; a space it keeps.
+                    if context.markup == Markup::Asciidoc
+                        && missing.iter().any(|written| {
+                            let content = written.trim_matches('`');
+                            content.len() > 1 && content.starts_with('+') && content.ends_with('+')
+                        })
+                    {
+                        " A `+…+` span is a passthrough: without its pluses AsciiDoc rewrites \
+                         its text (-> becomes an arrow). Keep the span exactly as the source \
+                         writes it and put a space after its closing mark instead of doubling \
+                         the marks: `+x+` 같은, `+x+` 와."
+                    } else {
+                        ""
+                    },
+                ),
+            });
         }
 
         // Closing somewhere is not closing where the source closed. Asciidoctor
@@ -159,13 +210,16 @@ impl FormatEvaluator {
             let (in_source, in_translation) =
                 if mark == '_' && matches!(context.markup, Markup::Markdown | Markup::Verso) {
                     (
-                        markdown_emphasis_pairs(&context.source),
-                        markdown_emphasis_pairs(&context.translation),
+                        markdown_emphasis_pairs(&visible_source),
+                        markdown_emphasis_pairs(&visible_translation),
                     )
                 } else {
+                    let excused = if mark == '`' { from_source_text } else { 0 };
                     (
                         source.formed,
-                        pair_up(&chars(&context.translation), mark).formed,
+                        pair_up(&chars(&context.translation), mark)
+                            .formed
+                            .saturating_sub(excused),
                     )
                 };
             if in_source != in_translation {
@@ -237,7 +291,10 @@ impl FormatEvaluator {
             }
 
             let broken = rst_broken_pairs(&context.translation);
-            if !broken.is_empty() && rst_broken_pairs(&context.source).is_empty() {
+            if !broken.is_empty()
+                && rst_broken_pairs(&context.source).is_empty()
+                && !rst_starts_inside_emphasis(&context.source)
+            {
                 let shown: Vec<&str> = broken.iter().map(String::as_str).collect();
                 issues.push(EvaluationIssue {
                     severity: IssueSeverity::Error,
@@ -345,8 +402,8 @@ impl FormatEvaluator {
 
         // A segment's span starts where a line does, so the first character of
         // a translation lands where markup is read.
-        if let Some(opened) = line_start_construct(&context.translation)
-            && Some(opened) != line_start_construct(&context.source)
+        if let Some(opened) = line_start_construct(&context.translation, context.markup)
+            && Some(opened) != line_start_construct(&context.source, context.markup)
         {
             issues.push(EvaluationIssue {
                 severity: IssueSeverity::Error,
@@ -446,6 +503,23 @@ fn mark_runs(text: &str, mark: char) -> usize {
         }
     }
     runs
+}
+
+/// `text` without the labels of its full reference links: `[번역][label]`
+/// reads as `[번역]`.
+fn without_reference_labels(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find("][") {
+        out.push_str(&rest[..=at]);
+        let after = &rest[at + 2..];
+        rest = match after.find(']') {
+            Some(close) if !after[..close].contains('[') => &after[close + 1..],
+            _ => &rest[at + 1..],
+        };
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Emphasis marker runs whose spelling may change without changing meaning.
@@ -624,9 +698,12 @@ fn backtick_spans(chars: &[char], markup: Markup) -> BacktickSpans {
     found
 }
 
-/// The source's code spans that no translation span stands for, and the
-/// translation's code spans left over, each as written.
-fn unmatched_code(source: &[BacktickSpan], translation: &[BacktickSpan]) -> (Vec<String>, Vec<String>) {
+/// The source's code spans that no translation span stands for, as written,
+/// and the translation's code spans left over.
+fn unmatched_code<'a>(
+    source: &[BacktickSpan],
+    translation: &'a [BacktickSpan],
+) -> (Vec<String>, Vec<&'a BacktickSpan>) {
     let mut left: Vec<&BacktickSpan> = translation.iter().filter(|span| span.code).collect();
     // Exact copies first, so that a looser form does not take the span an
     // exact copy needs.
@@ -644,7 +721,18 @@ fn unmatched_code(source: &[BacktickSpan], translation: &[BacktickSpan]) -> (Vec
             None => missing.push(span.written.clone()),
         }
     }
-    (missing, left.iter().map(|span| span.written.clone()).collect())
+    (missing, left)
+}
+
+/// Whether `source` writes `content` as a word of its own — not inside a
+/// longer word — so a translation that marks it up as code adds nothing.
+fn written_as_text(source: &str, content: &str) -> bool {
+    let is_word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');
+    !content.is_empty()
+        && source.match_indices(content).any(|(at, _)| {
+            !is_word(source[..at].chars().next_back())
+                && !is_word(source[at + content.len()..].chars().next())
+        })
 }
 
 /// Whether a translation may write `written` for the source's code `content`
@@ -1471,6 +1559,19 @@ fn rst_literal_role_spans(text: &str) -> Vec<std::ops::Range<usize>> {
     spans
 }
 
+/// Whether `text` opens with a `*` run that closes rather than opens — a pair
+/// an earlier segment opened, `It* is *true`: text against its left and none
+/// against its right.
+fn rst_starts_inside_emphasis(text: &str) -> bool {
+    let chars = chars(text);
+    let backtick_mask = rst_backtick_mask(&chars);
+    let Some(at) = (0..chars.len()).find(|&at| chars[at] == '*' && !backtick_mask[at]) else {
+        return false;
+    };
+    let end = at + chars[at..].iter().take_while(|c| **c == '*').count();
+    at > 0 && !chars[at - 1].is_whitespace() && chars.get(end).is_none_or(|c| !is_word(*c))
+}
+
 fn rst_broken_pairs(text: &str) -> Vec<String> {
     let chars = chars(text);
     let backtick_mask = rst_backtick_mask(&chars);
@@ -1675,14 +1776,14 @@ fn rst_malformed_role_closures(text: &str) -> Vec<String> {
 /// is skipped rather than guessing at a segment boundary.
 pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
     let repaired_line_start;
-    let translation = if line_start_construct(source).is_none()
-        && matches!(
-            line_start_construct(translation),
-            Some("an attribute entry (`:name:`)") | Some("a block title (`.`)")
-        ) {
+    let translation = if line_start_construct(source, Markup::Rst).is_none()
+        && line_start_construct(translation, Markup::Rst) == Some("an attribute entry (`:name:`)")
+    {
+        // A leading field marker opens a field list; a backslash keeps it
+        // prose and renders as nothing.
         let trimmed = translation.trim_start();
         let indent_len = translation.len() - trimmed.len();
-        repaired_line_start = format!("{}관련 {trimmed}", &translation[..indent_len]);
+        repaired_line_start = format!("{}\\{trimmed}", &translation[..indent_len]);
         repaired_line_start.as_str()
     } else {
         translation
@@ -1703,7 +1804,13 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
         }
         for (byte_at, _) in translation.match_indices(url) {
             let byte_end = byte_at + url.len();
-            if translation[byte_end..].chars().next().is_some_and(is_word) {
+            // A particle is Korean; an ASCII letter goes on a longer URL that
+            // starts the same way (`…/decimal/` in `…/decimal/decarith.html`).
+            if translation[byte_end..]
+                .chars()
+                .next()
+                .is_some_and(|c| is_word(c) && !c.is_ascii())
+            {
                 insertions.insert(translation[..byte_end].chars().count());
             }
         }
@@ -1846,9 +1953,9 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
 /// document silently: the paragraph becomes a block title, a heading, a table
 /// cell. Nothing downstream can tell that apart from markup an author wrote.
 ///
-/// The names cover both parsers, since a translation is checked before anyone
-/// knows which file it belongs to.
-fn line_start_construct(text: &str) -> Option<&'static str> {
+/// Most names hold in every markup; a leading `.Word` is a block title in
+/// AsciiDoc alone.
+fn line_start_construct(text: &str, markup: Markup) -> Option<&'static str> {
     let text = text.trim_start();
     // `..` opens a comment, directive, or hyperlink target in
     // reStructuredText, and a nested ordered list in AsciiDoc; `...` is an
@@ -1862,7 +1969,10 @@ fn line_start_construct(text: &str) -> Option<&'static str> {
     let spaced = rest.starts_with([' ', '\t']);
     match first {
         // `.Title` names the block below it; `...` is an ellipsis.
-        '.' if !rest.is_empty() && !rest.starts_with(['.', ' ', '\t']) => {
+        '.' if markup == Markup::Asciidoc
+            && !rest.is_empty()
+            && !rest.starts_with(['.', ' ', '\t']) =>
+        {
             Some("a block title (`.`)")
         }
         '*' | '-' | '+' if spaced => Some("a list item"),
@@ -1872,9 +1982,19 @@ fn line_start_construct(text: &str) -> Option<&'static str> {
         '|' => Some("a table cell (`|`)"),
         '/' if rest.starts_with('/') => Some("a comment (`//`)"),
         '[' if text.ends_with(']') => Some("an attribute line (`[...]`)"),
+        // A space or the line end follows the colon closing an attribute
+        // entry or a field name; a backtick there makes it a role, `:pep:`8``.
         ':' => {
-            let end = rest.find(':')?;
-            (end > 0).then_some("an attribute entry (`:name:`)")
+            for (at, _) in rest.match_indices(':') {
+                let after = &rest[at + 1..];
+                if after.starts_with('`') {
+                    return None;
+                }
+                if at > 0 && (after.is_empty() || after.starts_with([' ', '\t'])) {
+                    return Some("an attribute entry (`:name:`)");
+                }
+            }
+            None
         }
         _ => None,
     }
@@ -1992,28 +2112,65 @@ mod tests {
         }
     }
 
+    /// Only AsciiDoc reads `.Word` as a block title; elsewhere `.NET` at the
+    /// start of a line is prose.
+    #[tokio::test]
+    async fn a_leading_dot_is_prose_outside_asciidoc() {
+        for markup in [Markup::Markdown, Markup::Rst] {
+            let ctx = context_in(
+                markup,
+                "Once you have the .NET SDK installed, create a new project:",
+                ".NET SDK 설치를 완료했다면, 다음과 같이 새 프로젝트를 생성하십시오:",
+            );
+            let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+            assert!(result.passed, "{markup:?}: {:?}", result.issues);
+        }
+    }
+
+    /// A role is not a field: the colon closing its name is followed by a
+    /// backtick, where a field or attribute entry needs a space or the line end.
+    #[tokio::test]
+    async fn a_role_at_line_start_is_prose() {
+        let ctx = context_in(
+            Markup::Rst,
+            "During the discussion of :pep:`340`, I maintained drafts of this PEP.",
+            ":pep:`340` 논의 중에 저는 이 PEP의 초안을 관리했습니다.",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+    }
+
     #[test]
     fn constructs_are_recognised_at_line_start() {
         assert_eq!(
-            line_start_construct("= Title"),
+            line_start_construct("= Title", Markup::Asciidoc),
             Some("a section title (`=`)")
         );
-        assert_eq!(line_start_construct("* item"), Some("a list item"));
         assert_eq!(
-            line_start_construct("[source,erlang]"),
+            line_start_construct("* item", Markup::Asciidoc),
+            Some("a list item")
+        );
+        assert_eq!(
+            line_start_construct("[source,erlang]", Markup::Asciidoc),
             Some("an attribute line (`[...]`)")
         );
         assert_eq!(
-            line_start_construct(":toc: left"),
+            line_start_construct(":toc: left", Markup::Asciidoc),
             Some("an attribute entry (`:name:`)")
         );
         assert_eq!(
-            line_start_construct(":Contact person:"),
+            line_start_construct(":Contact person:", Markup::Asciidoc),
             Some("an attribute entry (`:name:`)")
         );
-        assert_eq!(line_start_construct("// note"), Some("a comment (`//`)"));
-        assert_eq!(line_start_construct("보통 문장입니다."), None);
-        assert_eq!(line_start_construct("3.14 입니다."), None);
+        assert_eq!(
+            line_start_construct("// note", Markup::Asciidoc),
+            Some("a comment (`//`)")
+        );
+        assert_eq!(
+            line_start_construct("보통 문장입니다.", Markup::Asciidoc),
+            None
+        );
+        assert_eq!(line_start_construct("3.14 입니다.", Markup::Asciidoc), None);
     }
 
     /// The case this was written for. 858 of theBeamBook's 1974 code spans came
@@ -2289,6 +2446,27 @@ mod tests {
 
     /// The RST counterpart of the particle problem: docutils wants whitespace
     /// or punctuation after a closing marker, and a Hangul particle is neither.
+    /// A segment can begin inside emphasis an earlier sentence opened
+    /// (`*…whole truth.  It* is *true…`); its first mark closes a pair the
+    /// segment never saw open, so the translation's `그것*\\ 은` is that closer.
+    #[tokio::test]
+    async fn rst_a_source_that_starts_inside_a_pair_is_no_measure() {
+        let ctx = context_in(
+            Markup::Rst,
+            "It* is *true that there are cases where RPython gives you better speed.",
+            "그것*\\ 은 *RPython이 더 나은 속도를 내는 경우가 있다는 점에서 사실입니다.",
+        );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(
+            !result
+                .issues
+                .iter()
+                .any(|i| i.message.contains("is not recognized as markup")),
+            "{:?}",
+            result.issues
+        );
+    }
+
     #[tokio::test]
     async fn rst_fails_when_a_particle_follows_a_closing_marker() {
         let ctx = context_in(
@@ -2427,21 +2605,31 @@ mod tests {
         );
     }
 
+    /// At the start of a line a role and a dotted name are prose; only a
+    /// field marker — the closing colon followed by a space — opens a field
+    /// list, and a backslash, which renders as nothing, keeps it prose.
     #[test]
-    fn rst_boundary_repair_keeps_roles_and_dot_names_out_of_column_zero() {
+    fn rst_boundary_repair_escapes_only_a_field_marker_at_column_zero() {
         assert_eq!(
             repair_rst_boundaries(
                 "As explained in :pep:`252`, descriptors have a get method.",
                 ":pep:`252`\\ 에서 설명한 것처럼 디스크립터에는 get 메서드가 있습니다.",
             ),
-            "관련 :pep:`252`\\ 에서 설명한 것처럼 디스크립터에는 get 메서드가 있습니다."
+            ":pep:`252`\\ 에서 설명한 것처럼 디스크립터에는 get 메서드가 있습니다."
         );
         assert_eq!(
             repair_rst_boundaries(
                 "The .NET platform is supported.",
                 ".NET 플랫폼을 지원합니다."
             ),
-            "관련 .NET 플랫폼을 지원합니다."
+            ".NET 플랫폼을 지원합니다."
+        );
+        assert_eq!(
+            repair_rst_boundaries(
+                "The value of the :class: option is a string.",
+                ":class: 옵션의 값은 문자열입니다."
+            ),
+            "\\:class: 옵션의 값은 문자열입니다."
         );
     }
 
@@ -2453,6 +2641,21 @@ mod tests {
                 "결과는 http://docs.python.org에서 공개됩니다.",
             ),
             "결과는 http://docs.python.org\\ 에서 공개됩니다."
+        );
+    }
+
+    /// A shorter URL the source also cites is no boundary inside a longer one.
+    #[test]
+    fn rst_boundary_repair_leaves_a_longer_url_whole() {
+        let translation = "규격: http://speleotrove.com/decimal/decarith.html (관련 문서는 \
+                           http://speleotrove.com/decimal/ 에 있음)";
+        assert_eq!(
+            repair_rst_boundaries(
+                "Specification: http://speleotrove.com/decimal/decarith.html (related documents \
+                 at http://speleotrove.com/decimal/)",
+                translation,
+            ),
+            translation
         );
     }
 
@@ -2620,10 +2823,13 @@ mod tests {
     #[test]
     fn explicit_markup_start_is_recognised() {
         assert_eq!(
-            line_start_construct(".. 참고하십시오"),
+            line_start_construct(".. 참고하십시오", Markup::Rst),
             Some("an explicit-markup start (`..`)")
         );
-        assert_eq!(line_start_construct("... 그리고 계속됩니다"), None);
+        assert_eq!(
+            line_start_construct("... 그리고 계속됩니다", Markup::Rst),
+            None
+        );
     }
 
     /// Curved quotes borrow the backtick but are not code, so a quotation the
@@ -3053,6 +3259,142 @@ mod tests {
         ] {
             let markup = if source.contains("``") { Markup::Rst } else { Markup::Markdown };
             let result = FormatEvaluator.evaluate(&context_in(markup, source, translation)).await.unwrap();
+            assert!(!result.passed, "{translation:?}");
+        }
+    }
+
+    /// Marking up as code what the source writes as plain text, or repeating
+    /// one of its code spans where Korean names the subject again, adds no code
+    /// the source lacks.
+    #[tokio::test]
+    async fn source_text_may_become_code() {
+        for (markup, source, translation) in [
+            (
+                Markup::Markdown,
+                "copy the .pem file into the same folder as the `gen_temp_access_token.py`",
+                "`.pem` 파일을 `gen_temp_access_token.py`와 같은 폴더로 복사합니다",
+            ),
+            (
+                Markup::Markdown,
+                "The default rules for auto traits say that `Foo` is `Send` if the types of its \
+                 fields are `Send`.",
+                "오토 트레이트의 기본 규칙은 `Foo`의 필드 타입이 모두 `Send`이면 `Foo`도 \
+                 `Send`라는 것입니다.",
+            ),
+            (
+                Markup::Asciidoc,
+                "The .erlang.crypt file should contain a list of tuples in the format \
+                 {debug_info, Mode, Module, Key}.",
+                "`.erlang.crypt` 파일은 `{debug_info, Mode, Module, Key}` 형식의 튜플 목록을 \
+                 포함해야 합니다.",
+            ),
+            (
+                Markup::Rst,
+                "On UNIX since Python 3.2, subprocess.Popen() closes all file descriptors by \
+                 default: ``close_fds=True``.",
+                "Python 3.2부터 UNIX에서, ``subprocess.Popen()``\\ 은 기본적으로 모든 파일 \
+                 디스크립터를 닫습니다: ``close_fds=True``.",
+            ),
+        ] {
+            let result = FormatEvaluator
+                .evaluate(&context_in(markup, source, translation))
+                .await
+                .unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
+        }
+    }
+
+    /// A reference link keeps its source text as the label, `[번역][label]`,
+    /// so the translated text can change while the link still resolves. The
+    /// label is not rendered; its markup is no markup of the translation.
+    #[tokio::test]
+    async fn a_reference_label_is_not_rendered_markup() {
+        for (source, translation) in [
+            (
+                "Rust code is also [_monomorphized_] during code generation.",
+                "러스트 코드는 코드 생성 중에 [*단형화*][_monomorphized_]되기도 합니다.",
+            ),
+            (
+                "[`nix` command]s natively integrate with flakes by default.",
+                "[`nix` 명령][`nix` command]은 기본적으로 플레이크와 통합됩니다.",
+            ),
+        ] {
+            let result = FormatEvaluator
+                .evaluate(&context_in(Markup::Markdown, source, translation))
+                .await
+                .unwrap();
+            assert!(result.passed, "{translation:?}: {:?}", result.issues);
+        }
+    }
+
+    /// A role or interpreted text rewritten as a literal keeps its text but not
+    /// what it does: `:mod:` links, `:math:` typesets.
+    #[tokio::test]
+    async fn a_role_recast_as_a_literal_is_reported() {
+        for (source, translation) in [
+            (
+                "The :mod:`string` module will be converted into a package.",
+                "``string`` 모듈은 패키지로 변환됩니다.",
+            ),
+            (
+                "tends to :math:`x` while remaining in :math:`A` holds.",
+                "``A``\\ 에 머무르면서 :math:`x`\\ 로 수렴합니다.",
+            ),
+        ] {
+            let result = FormatEvaluator
+                .evaluate(&context_in(Markup::Rst, source, translation))
+                .await
+                .unwrap();
+            assert!(
+                result
+                    .issues
+                    .iter()
+                    .any(|i| i.message.contains("became the literal")),
+                "{translation:?}: {:?}",
+                result.issues
+            );
+            assert!(
+                !result
+                    .issues
+                    .iter()
+                    .any(|i| i.message.contains("count mismatch")),
+                "{translation:?}: {:?}",
+                result.issues
+            );
+        }
+    }
+
+    /// Code the source never wrote, as code or as text, is still an addition.
+    #[tokio::test]
+    async fn code_the_source_never_wrote_is_added() {
+        for (markup, source, translation) in [
+            (
+                Markup::Markdown,
+                "Contributors often forget to tag things.",
+                "기여자들은 종종 `rollup=never` 태그를 잊습니다.",
+            ),
+            (
+                Markup::Asciidoc,
+                "The term reduction is old.",
+                "`리덕션`이라는 텀은 오래되었습니다.",
+            ),
+            // A word inside another word is not that word written as text.
+            (
+                Markup::Markdown,
+                "Then they ended.",
+                "그러면 `the` 끝났습니다.",
+            ),
+            // Excused as an addition, the span still has to close.
+            (
+                Markup::Asciidoc,
+                "A deep copy is used for binary_to_term and message passing.",
+                "깊은 복사는 `binary_to_term`과 메시지 전달에 사용됩니다.",
+            ),
+        ] {
+            let result = FormatEvaluator
+                .evaluate(&context_in(markup, source, translation))
+                .await
+                .unwrap();
             assert!(!result.passed, "{translation:?}");
         }
     }
