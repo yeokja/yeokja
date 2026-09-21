@@ -1012,14 +1012,20 @@ impl DocumentParser for RstParser {
                     continue;
                 }
                 if let Some(text_offset) = parse_footnote(line.content) {
+                    // The first paragraph of the body goes on over the lines
+                    // indented under the marker, at the column the second
+                    // line sets.
+                    let text_col = lines
+                        .get(i + 1)
+                        .filter(|next| !next.is_blank() && next.indent() > line.indent())
+                        .map_or(text_offset, Line::indent);
                     state.run = Some(Run {
                         block_type: BlockType::Paragraph,
                         span: line.start + text_offset..line.end(),
-                        text_col: text_offset,
+                        text_col,
                         start_line: i,
                         last_line: i,
                     });
-                    state.flush_run();
                     i += 1;
                     continue;
                 }
@@ -1109,8 +1115,16 @@ impl DocumentParser for RstParser {
                 continue;
             }
 
-            if let Some(text_offset) =
-                parse_bullet_item(line.content).or_else(|| parse_enumerated_item(line.content))
+            // A paragraph runs to the next blank line, so a line that goes on
+            // at its column is text even when it opens like a list item — a
+            // wrapped inline literal can leave `B)` or `-` there.
+            let continues_run = state
+                .run
+                .as_ref()
+                .is_some_and(|run| run.text_col == line.indent());
+            if !continues_run
+                && let Some(text_offset) =
+                    parse_bullet_item(line.content).or_else(|| parse_enumerated_item(line.content))
             {
                 state.flush_run();
                 state.run = Some(Run {
@@ -2724,6 +2738,38 @@ mod tests {
     }
 
     #[test]
+    fn a_list_marker_inside_a_paragraph_is_text() {
+        // docutils reads every line up to a blank one as the paragraph: a
+        // wrapped inline literal can leave `B)` or `-` at the start of a line.
+        let source = "Also, ``isinstance(x, B)`` is equivalent to ``issubclass(x.__class__,\n\
+                      B) or issubclass(type(x), B)``.  (It is possible\n\
+                      - or not.)\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].block_type, BlockType::Paragraph);
+        assert_eq!(
+            segments[0].source,
+            "Also, ``isinstance(x, B)`` is equivalent to ``issubclass(x.__class__, \
+             B) or issubclass(type(x), B)``.  (It is possible - or not.)"
+        );
+    }
+
+    #[test]
+    fn a_list_marker_inside_a_list_item_is_text() {
+        let source = "1. First item text that\n   B) continues.\n2. Second.\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(
+            segments
+                .iter()
+                .map(|s| s.source.as_str())
+                .collect::<Vec<_>>(),
+            vec!["First item text that B) continues.", "Second."]
+        );
+    }
+
+    #[test]
     fn enumerated_list_items_are_separate() {
         let source = "1. First step.\n2. Second step.\n#. Third step.\n";
         let doc = RstParser.parse(source);
@@ -3253,6 +3299,38 @@ mod tests {
         assert_eq!(segments[0].source, "The footnote text.");
         let output = translate_all(&RstParser, source, &[("The footnote text.", "각주.")]);
         assert_eq!(output, ".. [1] 각주.\n");
+    }
+
+    #[test]
+    fn footnote_text_continues_on_its_indented_lines() {
+        let source = ".. [2] `'where' statement in Python\n   <https://example.com/x>`__\n\n\
+                      .. [3] Some long footnote text that\n   continues here.\n\n   A second paragraph.\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(
+            segments
+                .iter()
+                .map(|s| s.source.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "`'where' statement in Python <https://example.com/x>`__",
+                "Some long footnote text that continues here.",
+                "A second paragraph.",
+            ]
+        );
+        let output = translate_all(
+            &RstParser,
+            source,
+            &[(
+                "Some long footnote text that continues here.",
+                "여기서 이어지는 긴 각주입니다.",
+            )],
+        );
+        assert_eq!(
+            output,
+            ".. [2] `'where' statement in Python\n   <https://example.com/x>`__\n\n\
+             .. [3] 여기서 이어지는 긴 각주입니다.\n\n   A second paragraph.\n"
+        );
     }
 
     #[test]
