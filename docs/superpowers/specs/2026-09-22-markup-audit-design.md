@@ -106,13 +106,10 @@ Repaired는 세그먼트 전체를 다시 직렬화하므로 결함과 무관한
   잘못 고친 것이 없음을 확인하고 `--repair`로 썼다(state의 `translation` 값 165줄만 바뀜).
 - 방언 렌더러 전수 채점의 결함이 169건에서 20건으로 줄었다. 남은 것은 허용되는 코드 덜어 내기
   8, linkify 1, learn-fpga의 원문 자체의 짝 없는 `*` 1, 못 고친 참조 10이다.
-- 못 고친 것: 끊긴 참조 여럿에 영어가 남지 않아 짝을 정할 수 없는 것 5(rust-forge
-  `editions/edition-releases.md` section:2/block:22/seg:0, rustc-dev-guide
-  `appendix/code-index.md` section:0/block:95/seg:0, `diagnostics.md` section:7/block:6/seg:0,
-  `unsafety-checking.md` section:3/block:1/seg:0, `overview.md` section:1/block:21/seg:0), 번역이
-  링크 글자를 아예 빠뜨린 것 5(rust-forge `editions/edition-releases.md` section:2/block:53/seg:0,
-  rustc-dev-guide `external-repos.md` section:1/block:41/seg:0, `mir/optimizations.md`
-  section:3/block:1/seg:4, `rustdoc-internals.md` section:5/block:1/seg:0,
-  webassembly-component-docs `language-support/building-a-simple-component/c.md`
-  section:0/block:1/seg:0), learn-fpga `FemtoRV/TUTORIALS/FPU.md` section:1/block:16/seg:3
-  1(원문도 짝 없는 `*`). 손으로 고치거나 다시 번역한다.
+- 못 고친 11건 가운데 끊긴 참조 여럿에 영어가 남지 않아 짝을 정할 수 없던 5건과 링크 대괄호만
+  빠진 3건은 문구를 그대로 두고 손으로 참조 레이블을 붙였다. 번역 자체가 잘린 2건(rustc-dev-guide
+  `external-repos.md` section:1/block:41/seg:0이 "참고:"뿐, `rustdoc-internals.md`
+  section:5/block:1/seg:0이 엉뚱한 문장)은 태그 모드로 다시 번역했다. learn-fpga
+  `FemtoRV/TUTORIALS/FPU.md` section:1/block:16/seg:3은 원문 자체의 짝 없는 `*`라 그대로 둔다.
+  이제 감사가 보고하는 것은 이 1건뿐이다.
+- 수선 뒤 23개 Pages 프로젝트 모두 `rebuild-translations.sh`를 통과했다(재번역 없음).
