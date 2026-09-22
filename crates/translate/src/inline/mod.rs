@@ -4,4 +4,5 @@
 //! serializer that knows the markup's rules. See
 //! `docs/superpowers/specs/2026-09-22-inline-tag-transport-design.md`.
 
+pub mod audit;
 pub mod markdown;

@@ -552,6 +552,50 @@ pub async fn evaluate_translation(
     combined
 }
 
+/// A stored translation whose markup the audit found wanting (see
+/// `inline::audit`).
+#[derive(Debug, Clone)]
+pub struct AuditFinding {
+    pub segment: String,
+    pub translation: String,
+    pub audit: crate::inline::audit::Audit,
+}
+
+/// Audit the stored translations of `file_path`, a source of a parser the
+/// inline codec reads (`markdown`, `myst`, `mdx`), whether or not it uses
+/// inline tags. Sound translations and sources the tags cannot represent are
+/// left out.
+pub fn audit_file(
+    file_path: &Path,
+    config: &ProjectConfig,
+    glossary: &Glossary,
+    parser_factory: &ParserFactory,
+) -> Result<Vec<AuditFinding>, OrchestratorError> {
+    let Some(parser) = config
+        .source_for(file_path)
+        .map(|source| source.parser.clone())
+        .filter(|parser| yeokja_core::config::INLINE_TAG_PARSERS.contains(&parser.as_str()))
+    else {
+        return Ok(Vec::new());
+    };
+    let (doc, reconciled) = scan_file(file_path, config, glossary, parser_factory)?;
+    let inline = InlineFile::new(&doc, Dialect::for_parser(&parser));
+    let mut findings = Vec::new();
+    for rs in reconciled.iter().filter(|rs| matches!(rs.status, yeokja_core::change::SegmentStatus::Translated)) {
+        let Some(translation) = &rs.state.translation else { continue };
+        let position = inline.positions.get(&rs.state.id.0).copied().unwrap_or_default();
+        let mut counter = 0;
+        let Ok(tagged) = crate::inline::markdown::tagify(&rs.state.source, &inline.ctx, position, &mut counter) else {
+            continue;
+        };
+        let audit = crate::inline::audit::audit(translation, &tagged, &inline.ctx);
+        if audit != crate::inline::audit::Audit::Sound {
+            findings.push(AuditFinding { segment: rs.state.id.0.clone(), translation: translation.clone(), audit });
+        }
+    }
+    Ok(findings)
+}
+
 /// Group segments needing translation by their containing block.
 /// Returns `(block_raw_content, [(flat_segment_index, segment_state)])` pairs.
 /// A request as tag text: its context, its numbered segments, and their tags.

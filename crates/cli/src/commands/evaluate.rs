@@ -4,7 +4,63 @@ use yeokja_core::change::SegmentStatus;
 use yeokja_core::project::ProjectContext;
 use yeokja_translate::evaluator::{EvaluationContext, IssueSeverity};
 use yeokja_translate::factory::create_evaluator_provider;
-use yeokja_translate::orchestrator::{collect_files, evaluators_for, inline_tags_for, scan_file};
+use yeokja_translate::inline::audit::Audit;
+use yeokja_translate::orchestrator::{audit_file, collect_files, evaluators_for, inline_tags_for, scan_file};
+
+/// Audit the inline markup of stored translations (see `inline::audit`),
+/// printing every finding; with `repair`, write the confirmed repairs to the
+/// state files. `translated_at` is kept: a repair is not a translation.
+pub fn audit(path: &str, repair: bool) -> Result<()> {
+    let ctx = ProjectContext::load()?;
+    let parser_factory = super::parser_factory();
+    let files = collect_files(Path::new(path), &ctx.config)?;
+    let (mut repaired, mut unrepairable) = (0usize, 0usize);
+    for file_path in &files {
+        let state_path = yeokja_core::state::StateFile::state_file_path(file_path, ctx.config.state_dir());
+        if !state_path.exists() {
+            continue;
+        }
+        let findings = audit_file(file_path, &ctx.config, &ctx.glossary, &parser_factory)?;
+        let mut fixes = std::collections::HashMap::new();
+        for finding in findings {
+            match &finding.audit {
+                Audit::Repaired { markdown, defects } => {
+                    repaired += 1;
+                    println!("{} {} REPAIRED ({})", file_path.display(), finding.segment, defects.join(", "));
+                    println!("  - {}", finding.translation);
+                    println!("  + {markdown}");
+                    fixes.insert(finding.segment.clone(), markdown.clone());
+                }
+                Audit::Unrepairable { defects, reasons } => {
+                    unrepairable += 1;
+                    println!(
+                        "{} {} UNREPAIRABLE ({}): {}",
+                        file_path.display(),
+                        finding.segment,
+                        defects.join(", "),
+                        reasons.join("; ")
+                    );
+                    println!("  = {}", finding.translation);
+                }
+                Audit::Sound => {}
+            }
+        }
+        if repair && !fixes.is_empty() {
+            let mut state = yeokja_core::state::StateFile::load(&state_path)?;
+            for segment in &mut state.segments {
+                if let Some(markdown) = fixes.get(&segment.id.0) {
+                    segment.translation = Some(markdown.clone());
+                }
+            }
+            state.save(&state_path)?;
+        }
+    }
+    println!(
+        "\nAudit complete: {repaired} repairable{}, {unrepairable} unrepairable",
+        if repair { " (written)" } else { "" }
+    );
+    Ok(())
+}
 
 pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
     let ctx = ProjectContext::load()?;

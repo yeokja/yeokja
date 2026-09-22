@@ -63,6 +63,13 @@ enum Commands {
         /// Run deterministic evaluators without the optional LLM style judge
         #[arg(long)]
         mechanical_only: bool,
+        /// Instead of evaluating, audit the inline markup of translations in
+        /// Markdown, MyST and MDX sources against their sources (no model calls)
+        #[arg(long)]
+        audit: bool,
+        /// With --audit, write the confirmed repairs to the state files
+        #[arg(long, requires = "audit")]
+        repair: bool,
     },
     /// Assemble the buildable tree from base, overlays, and steps
     Assemble,
@@ -156,8 +163,14 @@ async fn main() -> anyhow::Result<()> {
         Commands::Evaluate {
             path,
             mechanical_only,
+            audit,
+            repair,
         } => {
-            commands::evaluate::run(&path, mechanical_only).await?;
+            if audit {
+                commands::evaluate::audit(&path, repair)?;
+            } else {
+                commands::evaluate::run(&path, mechanical_only).await?;
+            }
         }
         Commands::Assemble => {
             commands::assemble::run()?;

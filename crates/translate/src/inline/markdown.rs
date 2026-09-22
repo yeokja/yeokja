@@ -94,7 +94,7 @@ pub enum TagKind {
 }
 
 impl TagKind {
-    fn letter(self) -> char {
+    pub(super) fn letter(self) -> char {
         match self {
             TagKind::Italic => 'i',
             TagKind::Bold => 'b',
@@ -109,7 +109,7 @@ impl TagKind {
         }
     }
 
-    fn is_emphasis(self) -> bool {
+    pub(super) fn is_emphasis(self) -> bool {
         matches!(self, TagKind::Italic | TagKind::Bold | TagKind::Strike)
     }
 
@@ -226,7 +226,7 @@ fn events<'a>(text: &'a str, ctx: &DocContext) -> Vec<(Event<'a>, Range<usize>)>
 }
 
 /// Byte ranges of the backtick code spans in `text`, marks included.
-fn code_span_ranges(text: &str) -> Vec<Range<usize>> {
+pub(super) fn code_span_ranges(text: &str) -> Vec<Range<usize>> {
     let b = text.as_bytes();
     let mut ranges = Vec::new();
     let mut i = 0;
@@ -519,6 +519,17 @@ fn pair_inline_html(events: &[(Event, Range<usize>)]) -> HashMap<usize, usize> {
 }
 
 pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut usize) -> Result<Tagged, Untaggable> {
+    tagify_with(source, ctx, position, counter, false)
+}
+
+/// [`tagify`] for Markdown a translation wrote: marks it left open stay
+/// text instead of refusing the whole segment, so that an audit can still
+/// read the rest of it.
+pub(super) fn tagify_lenient(markdown: &str, ctx: &DocContext, position: Position, counter: &mut usize) -> Result<Tagged, Untaggable> {
+    tagify_with(markdown, ctx, position, counter, true)
+}
+
+fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut usize, lenient: bool) -> Result<Tagged, Untaggable> {
     if position == Position::Plain {
         let mut text = String::new();
         for c in source.chars() {
@@ -531,7 +542,7 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
         return Err(Untaggable("the source leaves an MDX expression open".into()));
     }
     // Math is masked first: `\\(\sum_{j} x_j\\)` holds no emphasis marks.
-    if !commonmark_emphasis(&masked).stray.is_empty() {
+    if !lenient && !commonmark_emphasis(&masked).stray.is_empty() {
         return Err(Untaggable("the source leaves an emphasis mark open".into()));
     }
     let guarded = format!("{GUARD_PREFIX}{masked}");
@@ -681,9 +692,10 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
             Event::Text(t) => {
                 let raw_text = &guarded[range.clone()];
                 // The escape can sit just before the event's range.
-                if raw_text
-                    .char_indices()
-                    .any(|(at, c)| c == '`' && !guarded[..range.start + at].ends_with('\\'))
+                if !lenient
+                    && raw_text
+                        .char_indices()
+                        .any(|(at, c)| c == '`' && !guarded[..range.start + at].ends_with('\\'))
                 {
                     return Err(Untaggable("the source leaves a code span open".into()));
                 }
@@ -1588,6 +1600,18 @@ fn levenshtein(a: &str, b: &str) -> usize {
     prev[b.len()]
 }
 
+/// How `markdown` reads back in `tagged`'s dialect and position: the shape
+/// of its constructs (`(b…)`, `(a…)`, `c:code|`, `h`, …) and its text.
+pub(super) fn structure(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> (String, String) {
+    let renderer = Renderer {
+        tags: tagged.tags.iter().map(|t| (t.n, t)).collect(),
+        position: tagged.position,
+        ctx,
+        escape_brackets: false,
+    };
+    renderer.read_back(markdown)
+}
+
 /// Write the tree as Markdown, choosing for each emphasis a form CommonMark
 /// closes where the translation put it.
 ///
@@ -2117,3 +2141,4 @@ mod tests {
         assert_eq!(translate("the Foo type", "`Foo` 타입"), "`Foo` 타입");
     }
 }
+
