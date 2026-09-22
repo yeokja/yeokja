@@ -1647,26 +1647,39 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
         tagged.tags.iter().filter(|t| t.kind.is_emphasis()).map(|t| t.n).collect();
     emphasis.sort_unstable();
 
-    let mut strategies: HashMap<usize, Strategy> = HashMap::new();
-    let mut best = renderer.score(&toks, &strategies);
-    let mut improved = true;
-    while best > 0 && improved {
-        improved = false;
-        for &n in &emphasis {
-            for s in [Strategy::Star, Strategy::Shrink, Strategy::SwapLink, Strategy::QuotesOut, Strategy::ParticleIn, Strategy::Html] {
-                let mut trial = strategies.clone();
-                trial.insert(n, s);
-                let score = renderer.score(&toks, &trial);
-                if score < best {
-                    best = score;
-                    strategies = trial;
-                    improved = true;
+    let search = |mut strategies: HashMap<usize, Strategy>| {
+        let mut best = renderer.score(&toks, &strategies);
+        let mut improved = true;
+        while best > 0 && improved {
+            improved = false;
+            for &n in &emphasis {
+                for s in [Strategy::Star, Strategy::Shrink, Strategy::SwapLink, Strategy::QuotesOut, Strategy::ParticleIn, Strategy::Html] {
+                    let mut trial = strategies.clone();
+                    trial.insert(n, s);
+                    let score = renderer.score(&toks, &trial);
+                    if score < best {
+                        best = score;
+                        strategies = trial;
+                        improved = true;
+                        break;
+                    }
+                }
+                if best == 0 {
                     break;
                 }
             }
-            if best == 0 {
-                break;
-            }
+        }
+        (strategies, best)
+    };
+    let (mut strategies, mut best) = search(HashMap::new());
+    // Two `_` of different pairs can pair with each other instead, and then
+    // no single `_` → `*` reads better on its own: start again from `*` for
+    // every emphasis.
+    if best > 0 {
+        let stars = emphasis.iter().map(|n| (*n, Strategy::Star)).collect();
+        let (again, score) = search(stars);
+        if score < best {
+            (strategies, best) = (again, score);
         }
     }
     if best > 0 {
@@ -1879,6 +1892,14 @@ mod tests {
         assert_eq!(
             translate("Short for _argument-position `impl Trait`_.", "<i1>인자 위치 `impl Trait`</i1>의 줄임말입니다."),
             "_인자 위치 `impl Trait`의_ 줄임말입니다."
+        );
+    }
+
+    #[test]
+    fn marks_that_pair_across_emphasis_all_turn_to_stars() {
+        assert_eq!(
+            translate("commands that _use_ it but _from_ here.", "그것을 <i1>사용</i1>하면서도 여기<i2>에서</i2> 쓰는 명령입니다."),
+            "그것을 *사용*하면서도 여기*에서* 쓰는 명령입니다."
         );
     }
 
