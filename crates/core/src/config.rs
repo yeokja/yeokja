@@ -166,10 +166,14 @@ pub struct SourceConfig {
     pub output: String,
     /// Exchange inline markup with the model as numbered tags and let a
     /// serializer write the Markdown back (see the inline-tag-transport
-    /// design). Phase 1 supports the `markdown` parser only.
+    /// design). Supported by the parsers in [`INLINE_TAG_PARSERS`].
     #[serde(default)]
     pub inline_tags: bool,
 }
+
+/// The parsers whose sources may set `inline_tags`: the Markdown family whose
+/// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX).
+pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderConfig {
@@ -370,10 +374,12 @@ impl ProjectConfig {
     pub fn from_toml(content: &str) -> Result<Self, ConfigError> {
         let config: Self = toml::from_str(content)?;
         for source in config.sources.iter().filter(|source| source.inline_tags) {
-            if source.parser != "markdown" {
+            if !INLINE_TAG_PARSERS.contains(&source.parser.as_str()) {
                 return Err(ConfigError::Invalid(format!(
-                    "source {} sets inline_tags, which supports the markdown parser only (not {})",
-                    source.path, source.parser
+                    "source {} sets inline_tags, which supports the {} parsers only (not {})",
+                    source.path,
+                    INLINE_TAG_PARSERS.join(", "),
+                    source.parser
                 )));
             }
             if config
@@ -747,9 +753,12 @@ model = "sonnet"
     }
 
     #[test]
-    fn inline_tags_are_only_for_the_markdown_parser() {
-        let error = ProjectConfig::from_toml(&inline_config("myst", "")).unwrap_err();
-        assert!(error.to_string().contains("inline_tags"), "{error}");
+    fn inline_tags_are_for_the_markdown_family_parsers() {
+        for parser in ["markdown", "myst", "mdx"] {
+            ProjectConfig::from_toml(&inline_config(parser, "")).unwrap();
+        }
+        let error = ProjectConfig::from_toml(&inline_config("rst", "")).unwrap_err();
+        assert!(error.to_string().contains("inline_tags") && error.to_string().contains("mdx"), "{error}");
     }
 
     #[test]

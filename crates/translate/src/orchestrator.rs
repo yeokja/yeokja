@@ -9,7 +9,7 @@
 use crate::evaluator::TranslationEvaluator;
 use crate::evaluator_ending::EndingEvaluator;
 use crate::evaluator_format::{FormatEvaluator, ParenthesisEvaluator};
-use crate::inline::markdown::{DocContext, Position, Tagged};
+use crate::inline::markdown::{Dialect, DocContext, Position, Tagged};
 use crate::evaluator_glossary::GlossaryEvaluator;
 use crate::evaluator_link::LinkEvaluator;
 use crate::evaluator_style::StyleEvaluator;
@@ -23,7 +23,7 @@ use tokio::sync::{Mutex, Semaphore, mpsc};
 use yeokja_core::config::ProjectConfig;
 use yeokja_core::glossary::Glossary;
 use yeokja_core::hash::content_hash;
-use yeokja_core::model::{BlockType, Document};
+use yeokja_core::model::{BlockRole, BlockType, Document};
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_core::reconcile::{ReconciledSegment, reconcile_with_status};
 use yeokja_core::select::apply_table_rules;
@@ -494,10 +494,11 @@ pub fn standard_evaluators(
     evaluators_for(style_provider, target_lang, false)
 }
 
-/// Whether `file`'s source exchanges inline markup as tags (phase 1: the
-/// `markdown` parser only).
+/// Whether `file`'s source exchanges inline markup as tags.
 pub fn inline_tags_for(config: &ProjectConfig, file: &Path) -> bool {
-    config.source_for(file).is_some_and(|source| source.inline_tags && source.parser == "markdown")
+    config.source_for(file).is_some_and(|source| {
+        source.inline_tags && yeokja_core::config::INLINE_TAG_PARSERS.contains(&source.parser.as_str())
+    })
 }
 
 /// The evaluators for a request, inline-tag or not. With inline tags the
@@ -557,7 +558,8 @@ pub async fn evaluate_translation(
 type TaggedRequest = (String, Vec<(usize, String)>, InlineBatch);
 
 /// What a file whose source uses inline tags needs to tag its requests: the
-/// document's reference labels, each segment's source and position.
+/// document's reference labels and dialect, each segment's source and
+/// position.
 struct InlineFile {
     ctx: DocContext,
     sources: HashMap<String, String>,
@@ -565,17 +567,23 @@ struct InlineFile {
 }
 
 impl InlineFile {
-    fn new(doc: &Document) -> Self {
+    fn new(doc: &Document, dialect: Dialect) -> Self {
         let mut sources = HashMap::new();
         let mut positions = HashMap::new();
         for block in doc.sections.iter().flat_map(|section| &section.blocks) {
-            let position = if block.block_type == BlockType::Table { Position::TableCell } else { Position::Inline };
+            let position = if block.role == BlockRole::Literal {
+                Position::Plain
+            } else if block.block_type == BlockType::Table {
+                Position::TableCell
+            } else {
+                Position::Inline
+            };
             for segment in &block.segments {
                 sources.insert(segment.id.0.clone(), segment.source.clone());
                 positions.insert(segment.id.0.clone(), position);
             }
         }
-        Self { ctx: DocContext::from_markdown(&doc.source), sources, positions }
+        Self { ctx: DocContext::new(&doc.source, dialect), sources, positions }
     }
 
     /// The request's context and segments as tag text, numbered across the
@@ -879,7 +887,10 @@ impl FileTranslator {
             tracing::debug!(file = %file_path.display(), excluded, "Table rules excluded cells");
         }
         let doc = doc;
-        let inline = inline_tags_for(&self.config, file_path).then(|| Arc::new(InlineFile::new(&doc)));
+        let inline = inline_tags_for(&self.config, file_path).then(|| {
+            let parser = self.config.source_for(file_path).map(|source| source.parser.as_str()).unwrap_or_default();
+            Arc::new(InlineFile::new(&doc, Dialect::for_parser(parser)))
+        });
         let state_path = StateFile::state_file_path(file_path, self.config.state_dir());
 
         let existing = if state_path.exists() {
@@ -1838,6 +1849,103 @@ model = "test"
         assert_eq!(
             stored_translation(dir.path(), "ch1.md").as_deref(),
             Some("여기의 **외적**(outer product)에서 옵니다.")
+        );
+    }
+
+    /// Echoes each segment back with `replace` applied, and records requests.
+    struct EchoProvider {
+        replace: Vec<(&'static str, &'static str)>,
+        requests: Arc<std::sync::Mutex<Vec<TranslateRequest>>>,
+    }
+
+    #[async_trait]
+    impl TranslationProvider for EchoProvider {
+        async fn translate(
+            &self,
+            request: TranslateRequest,
+        ) -> Result<TranslateResponse, crate::provider::TranslateError> {
+            let translations = request
+                .segments
+                .iter()
+                .map(|(idx, text)| (*idx, self.replace.iter().fold(text.clone(), |t, (a, b)| t.replace(a, b))))
+                .collect();
+            self.requests.lock().unwrap().push(request);
+            Ok(TranslateResponse { translations, usage: None })
+        }
+    }
+
+    /// Translate `file` (written with `source`) under a `parser` source with
+    /// inline tags on, through the real parser; the requested segment texts
+    /// and the stored translations.
+    async fn translate_with_parser(
+        parser: &str,
+        file: &str,
+        source: &str,
+        replace: Vec<(&'static str, &'static str)>,
+    ) -> (Vec<String>, Vec<Option<String>>) {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(file), source).unwrap();
+        let config = test_config(&format!(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "{}"
+pattern = "*.*"
+parser = "{parser}"
+output = "{{dir}}/{{stem}}.ko{{ext}}"
+inline_tags = true
+
+[provider]
+type = "openai_compatible"
+model = "test"
+"#,
+            dir.path().display()
+        ));
+        let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let orchestrator = Orchestrator {
+            config: Arc::new(config),
+            glossary: Arc::new(Glossary::empty()),
+            provider: Arc::new(EchoProvider { replace, requests: requests.clone() }),
+            eval_provider: None,
+            parser_factory: Arc::new(|path, config| yeokja_parsers::select_parser(path, config)),
+            options: TranslateOptions { auto_evaluate: false, style_evaluate: false, max_retries: 0, concurrency: 1 },
+            cancel: CancelToken::default(),
+        };
+        orchestrator.translate_path(&dir.path().join(file), None).await.unwrap();
+        let sent = requests.lock().unwrap().iter().flat_map(|r| r.segments.iter().map(|(_, t)| t.clone())).collect();
+        let state = StateFile::load(&StateFile::state_file_path(&dir.path().join(file), None)).unwrap();
+        (sent, state.segments.iter().map(|s| s.translation.clone()).collect())
+    }
+
+    #[tokio::test]
+    async fn a_myst_source_sends_role_labels_as_tags_and_writes_roles_back() {
+        let (sent, stored) = translate_with_parser(
+            "myst",
+            "a.md",
+            "See {term}`Nix language` after {ref}`install-nix`.\n",
+            vec![("<a1>Nix language</a1>", "<a1>Nix 언어</a1>")],
+        )
+        .await;
+        assert_eq!(sent, ["See <a1>Nix language</a1> after {ref}`install-nix`."]);
+        assert_eq!(stored, [Some("See {term}`Nix 언어 <Nix language>` after {ref}`install-nix`.".to_string())]);
+    }
+
+    #[tokio::test]
+    async fn an_mdx_front_matter_string_goes_as_plain_text() {
+        let (sent, stored) = translate_with_parser(
+            "mdx",
+            "a.mdx",
+            "---\ntitle: 2 * 3 flakes\n---\n\nA *flake* has {year} outputs.\n",
+            vec![("<i1>flake</i1>", "<i1>플레이크</i1>")],
+        )
+        .await;
+        assert_eq!(sent, ["2 * 3 flakes", "A <i1>flake</i1> has <x2/> outputs."]);
+        assert_eq!(
+            stored,
+            [Some("2 * 3 flakes".to_string()), Some("A *플레이크* has {year} outputs.".to_string())]
         );
     }
 

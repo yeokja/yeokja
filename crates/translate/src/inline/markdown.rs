@@ -14,20 +14,55 @@ use pulldown_cmark::{BrokenLink, CowStr, Event, LinkType, Options, Parser, Tag a
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 
+/// The Markdown a source is written in. They share CommonMark's inline
+/// rules — markdown-it (MyST) and micromark (MDX) implement the same
+/// delimiter algorithm as pulldown-cmark — and differ in what they add.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Dialect {
+    /// mdBook: CommonMark with strikethrough, footnotes and MathJax.
+    #[default]
+    CommonMark,
+    /// MyST for Sphinx: roles (`` {ref}`text <label>` ``); no strikethrough.
+    Myst,
+    /// MDX: `{…}` expressions and JSX; a `{` or a `<` that could open one
+    /// must be escaped in text.
+    Mdx,
+}
+
+impl Dialect {
+    /// The dialect of a source read by `parser`.
+    pub fn for_parser(parser: &str) -> Self {
+        match parser {
+            "myst" => Dialect::Myst,
+            "mdx" => Dialect::Mdx,
+            _ => Dialect::CommonMark,
+        }
+    }
+}
+
 /// Document-level facts a segment cannot show on its own.
 #[derive(Clone, Debug, Default)]
 pub struct DocContext {
     /// Reference definition labels, normalized: `[text][label]` and `[label]`
     /// are links only when the document defines the label.
     reference_labels: HashSet<String>,
+    dialect: Dialect,
 }
 
 impl DocContext {
-    pub fn from_markdown(source: &str) -> Self {
-        let parser = Parser::new_ext(source, options());
+    pub fn new(source: &str, dialect: Dialect) -> Self {
+        let parser = Parser::new_ext(source, options(dialect));
         let reference_labels =
             parser.reference_definitions().iter().map(|(label, _)| normalize_label(label)).collect();
-        Self { reference_labels }
+        Self { reference_labels, dialect }
+    }
+
+    pub fn from_markdown(source: &str) -> Self {
+        Self::new(source, Dialect::CommonMark)
+    }
+
+    pub fn dialect(&self) -> Dialect {
+        self.dialect
     }
 }
 
@@ -38,6 +73,10 @@ pub enum Position {
     Inline,
     /// A table cell, where a bare `|` ends the cell.
     TableCell,
+    /// A string its container quotes rather than parses — a front matter
+    /// value, a JSX attribute, a toctree entry title. No markup: it goes to
+    /// the model as text and comes back as text.
+    Plain,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -50,6 +89,8 @@ pub enum TagKind {
     Opaque,
     Math,
     Code,
+    /// A MyST role's visible label (`` {ref}`label <target>` ``).
+    Role,
 }
 
 impl TagKind {
@@ -63,6 +104,8 @@ impl TagKind {
             TagKind::Opaque => 'x',
             TagKind::Math => 'm',
             TagKind::Code => 'c',
+            // A cross-reference's label reads to the model as a link's text.
+            TagKind::Role => 'a',
         }
     }
 
@@ -89,10 +132,23 @@ pub struct Tag {
     pub label: Option<String>,
     /// Code: the span's content as CommonMark reads it.
     pub code: Option<String>,
+    /// A MyST role: its name and, for a label role, what it points at.
+    pub role: Option<RoleRef>,
     /// How the construct reads back, for verifying a rendering.
     shape: String,
     /// The text it contributes when read back (math renders its own source).
     visible: String,
+}
+
+/// A MyST role, apart from what the model sees of it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RoleRef {
+    pub name: String,
+    /// A label role's target; empty for a role shown as written.
+    pub target: String,
+    /// The source wrote no explicit label: `` {term}`Nix` `` shows its
+    /// target.
+    pub implicit: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -103,6 +159,7 @@ pub struct Tagged {
     pub text: String,
     pub tags: Vec<Tag>,
     pub position: Position,
+    pub dialect: Dialect,
 }
 
 /// A segment the tags cannot represent: its source leaves a mark open, as
@@ -147,9 +204,11 @@ const MASK_BASE: u32 = 0xE000;
 /// against the construct's own punctuation (`**…**[^core]` still closes).
 const MASK_EDGE: char = '\u{2E3A}';
 
-fn options() -> Options {
+fn options(dialect: Dialect) -> Options {
     let mut options = Options::empty();
-    options.insert(Options::ENABLE_STRIKETHROUGH);
+    if dialect != Dialect::Myst {
+        options.insert(Options::ENABLE_STRIKETHROUGH);
+    }
     options.insert(Options::ENABLE_FOOTNOTES);
     options
 }
@@ -163,7 +222,7 @@ fn events<'a>(text: &'a str, ctx: &DocContext) -> Vec<(Event<'a>, Range<usize>)>
     let callback = |link: BrokenLink<'a>| {
         labels.contains(&normalize_label(&link.reference)).then(|| (CowStr::from(""), CowStr::from("")))
     };
-    Parser::new_with_broken_link_callback(text, options(), Some(callback)).into_offset_iter().collect()
+    Parser::new_with_broken_link_callback(text, options(ctx.dialect), Some(callback)).into_offset_iter().collect()
 }
 
 /// Byte ranges of the backtick code spans in `text`, marks included.
@@ -202,14 +261,121 @@ fn code_span_ranges(text: &str) -> Vec<Range<usize>> {
     ranges
 }
 
-/// mdBook MathJax (`\\(…\\)`, `\\[…\\]`) and footnote references (`[^x]`,
-/// whose definitions live elsewhere in the document) as one private-use
-/// character each, so a segment read alone cannot misread them. Code spans
-/// are left alone: `` `[^.,]+` `` is a pattern, not a footnote.
-fn mask(source: &str) -> (String, Vec<String>) {
+/// What a masked construct is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Masked {
+    /// mdBook MathJax, `\\(…\\)` or `\\[…\\]`.
+    Math,
+    /// `[^x]`, whose definition lives elsewhere in the document.
+    Footnote,
+    /// A MyST role: `{name}` and the backtick span right after it.
+    Role,
+    /// An MDX expression, `{…}`.
+    Expression,
+}
+
+/// A segment with each construct it cannot read alone as one private-use
+/// character (see [`mask`]).
+struct Masking {
+    text: String,
+    spans: Vec<(Masked, String)>,
+    /// An MDX `{` that no `}` closes: the segment cannot be tagged.
+    open_expression: bool,
+}
+
+/// MyST role names, as myst-parser reads them.
+fn is_role_name_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '_' | '+' | ':' | '-')
+}
+
+/// The length of a `{name}` role head at the start of `text`.
+fn role_head(text: &str) -> Option<usize> {
+    let rest = text.strip_prefix('{')?;
+    let name = rest.chars().take_while(|c| is_role_name_char(*c)).count();
+    (name > 0 && rest[name..].starts_with('}')).then_some(name + 2)
+}
+
+/// Roles that take an explicit label, `` {ref}`label <target>` ``, the way
+/// Sphinx's cross-reference roles do. A domain role (`py:func`) does too.
+const LABEL_ROLES: &[&str] =
+    &["ref", "doc", "term", "numref", "any", "download", "keyword", "option", "envvar", "token", "pep", "rfc"];
+
+/// A masked role's name, its backtick span and the span's content.
+fn split_role(raw: &str) -> (&str, &str, String) {
+    let head = role_head(raw).unwrap_or(0);
+    let span = &raw[head..];
+    let run = span.chars().take_while(|c| *c == '`').count();
+    let inner = span.get(run..span.len().saturating_sub(run)).unwrap_or("");
+    (raw.get(1..head.saturating_sub(1)).unwrap_or(""), span, code_content(inner))
+}
+
+/// How a role reads to the model: a label to translate, with its target,
+/// or `None` for a role shown as written. Sphinx splits `label <target>` at
+/// the last `<` (`split_explicit_title`); `{term}` shows its target when it
+/// has no label. A label holding a backtick stays as written: the model
+/// would read it as code, which a label cannot hold.
+fn role_label(name: &str, content: &str) -> Option<(String, String, bool)> {
+    if content.contains('`') {
+        return None;
+    }
+    if (LABEL_ROLES.contains(&name) || name.contains(':'))
+        && let Some(body) = content.strip_suffix('>')
+        && let Some(open) = body.rfind('<')
+        && !body[..open].ends_with('\\')
+        && !body[..open].trim_end().is_empty()
+    {
+        return Some((body[..open].trim_end().to_string(), body[open + 1..].to_string(), false));
+    }
+    (name == "term").then(|| (content.to_string(), content.to_string(), true))
+}
+
+/// A label role written back with `label`: as the source wrote it when the
+/// label did not change, else in the explicit form.
+fn write_role(source: &str, role: &RoleRef, original: &str, label: &str) -> String {
+    if label == original {
+        return source.to_string();
+    }
+    let body = if role.implicit && label == role.target { label.to_string() } else { format!("{label} <{}>", role.target) };
+    let longest = body.split(|c| c != '`').map(str::len).max().unwrap_or(0);
+    let marks = "`".repeat(longest + 1);
+    let pad = if body.starts_with('`') || body.ends_with('`') { " " } else { "" };
+    format!("{{{}}}{marks}{pad}{body}{pad}{marks}", role.name)
+}
+
+/// The end of the MDX expression whose `{` is at `start`, past the `}` that
+/// balances it.
+fn expression_end(source: &str, start: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (at, c) in source[start..].char_indices() {
+        match c {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(start + at + 1);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// The constructs a segment read alone would misread, each as one private-use
+/// character: footnote references everywhere, mdBook MathJax in CommonMark,
+/// MyST roles, MDX expressions. Code spans are left alone: `` `[^.,]+` `` is
+/// a pattern, not a footnote.
+fn mask(source: &str, dialect: Dialect) -> Masking {
     let code = code_span_ranges(source);
     let mut out = String::new();
-    let mut masked = Vec::new();
+    let mut spans: Vec<(Masked, String)> = Vec::new();
+    let mut open_expression = false;
+    let mut push = |out: &mut String, kind: Masked, text: &str| {
+        out.push(MASK_EDGE);
+        out.push(char::from_u32(MASK_BASE + spans.len() as u32).expect("private use"));
+        out.push(MASK_EDGE);
+        spans.push((kind, text.to_string()));
+    };
     let mut i = 0;
     while i < source.len() {
         if let Some(span) = code.iter().find(|r| r.start == i) {
@@ -219,19 +385,39 @@ fn mask(source: &str) -> (String, Vec<String>) {
         }
         let rest = &source[i..];
         let escaped = source[..i].ends_with('\\') && !source[..i].ends_with("\\\\");
-        let opening = [("\\\\(", "\\\\)"), ("\\\\[", "\\\\]"), ("[^", "]")]
+        if dialect == Dialect::Myst
+            && !escaped
+            && let Some(head) = role_head(rest)
+            && let Some(span) = code.iter().find(|r| r.start == i + head)
+        {
+            push(&mut out, Masked::Role, &source[i..span.end]);
+            i = span.end;
+            continue;
+        }
+        if dialect == Dialect::Mdx && !escaped && rest.starts_with('{') {
+            match expression_end(source, i) {
+                Some(end) => {
+                    push(&mut out, Masked::Expression, &source[i..end]);
+                    i = end;
+                    continue;
+                }
+                None => open_expression = true,
+            }
+        }
+        let mut openings = vec![("[^", "]", Masked::Footnote)];
+        if dialect == Dialect::CommonMark {
+            openings.extend([("\\\\(", "\\\\)", Masked::Math), ("\\\\[", "\\\\]", Masked::Math)]);
+        }
+        let opening = openings
             .into_iter()
-            .find(|(open, _)| rest.starts_with(open) && !(escaped && *open == "[^"));
-        if let Some((open, close)) = opening
+            .find(|(open, _, kind)| rest.starts_with(open) && !(escaped && *kind == Masked::Footnote));
+        if let Some((open, close, kind)) = opening
             && let Some(rel) = rest[open.len()..].find(close)
         {
             let end = i + open.len() + rel + close.len();
             // A construct is never cut by a code span.
             if !code.iter().any(|r| r.start < end && r.end > i) {
-                out.push(MASK_EDGE);
-                out.push(char::from_u32(MASK_BASE + masked.len() as u32).expect("private use"));
-                out.push(MASK_EDGE);
-                masked.push(source[i..end].to_string());
+                push(&mut out, kind, &source[i..end]);
                 i = end;
                 continue;
             }
@@ -240,20 +426,20 @@ fn mask(source: &str) -> (String, Vec<String>) {
         out.push(c);
         i += c.len_utf8();
     }
-    (out, masked)
+    Masking { text: out, spans, open_expression }
 }
 
-fn masked_index(c: char, masked: &[String]) -> Option<usize> {
+fn masked_index(c: char, masked: &[(Masked, String)]) -> Option<usize> {
     let v = c as u32;
     (MASK_BASE..MASK_BASE + masked.len() as u32).contains(&v).then(|| (v - MASK_BASE) as usize)
 }
 
-fn unmask(text: &str, masked: &[String]) -> String {
+fn unmask(text: &str, masked: &[(Masked, String)]) -> String {
     let mut out = String::new();
     for piece in split_masked(text, masked) {
         match piece {
             Ok(c) => out.push(c),
-            Err(i) => out.push_str(&masked[i]),
+            Err(i) => out.push_str(&masked[i].1),
         }
     }
     out
@@ -261,7 +447,7 @@ fn unmask(text: &str, masked: &[String]) -> String {
 
 /// The characters of `text`, with each edge-wrapped masked construct as its
 /// index.
-fn split_masked(text: &str, masked: &[String]) -> Vec<Result<char, usize>> {
+fn split_masked(text: &str, masked: &[(Masked, String)]) -> Vec<Result<char, usize>> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::new();
     let mut i = 0;
@@ -333,7 +519,17 @@ fn pair_inline_html(events: &[(Event, Range<usize>)]) -> HashMap<usize, usize> {
 }
 
 pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut usize) -> Result<Tagged, Untaggable> {
-    let (masked, spans) = mask(source);
+    if position == Position::Plain {
+        let mut text = String::new();
+        for c in source.chars() {
+            xml_escape(c, &mut text);
+        }
+        return Ok(Tagged { source: source.to_string(), text, tags: Vec::new(), position, dialect: ctx.dialect });
+    }
+    let Masking { text: masked, spans, open_expression } = mask(source, ctx.dialect);
+    if open_expression {
+        return Err(Untaggable("the source leaves an MDX expression open".into()));
+    }
     // Math is masked first: `\\(\sum_{j} x_j\\)` holds no emphasis marks.
     if !commonmark_emphasis(&masked).stray.is_empty() {
         return Err(Untaggable("the source leaves an emphasis mark open".into()));
@@ -360,7 +556,7 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
     };
     let void = |text: &mut String, tags: &mut Vec<Tag>, n: usize, kind: TagKind, open: String, shape: &str, visible: String| {
         text.push_str(&format!("<{}{n}/>", kind.letter()));
-        tags.push(Tag { n, kind, open, close: String::new(), label: None, code: None, shape: shape.into(), visible });
+        tags.push(Tag { n, kind, open, close: String::new(), label: None, code: None, role: None, shape: shape.into(), visible });
     };
 
     for (i, (event, range)) in events.iter().enumerate() {
@@ -394,7 +590,7 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
                 let delim: String = std::iter::repeat_n(mark, len).collect();
                 let n = next(counter);
                 text.push_str(&format!("<{}{n}>", kind.letter()));
-                tags.push(Tag { n, kind, open: delim.clone(), close: delim, label: None, code: None, shape: String::new(), visible: String::new() });
+                tags.push(Tag { n, kind, open: delim.clone(), close: delim, label: None, code: None, role: None, shape: String::new(), visible: String::new() });
                 stack.push(Open { tag: tags.len() - 1, content_start: range.start + len, max_end: range.start + len, end: range.end });
             }
             Event::Start(MdTag::Link { link_type: LinkType::Autolink | LinkType::Email, dest_url, .. }) => {
@@ -418,6 +614,7 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
                     close: String::new(),
                     label: shortcut.then(String::new),
                     code: None,
+                    role: None,
                     shape: String::new(),
                     visible: String::new(),
                 });
@@ -452,6 +649,7 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
                     close: String::new(),
                     label: None,
                     code: Some(content.to_string()),
+                    role: None,
                     shape: format!("c:{content}|"),
                     visible: String::new(),
                 });
@@ -459,7 +657,7 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
             Event::InlineHtml(_) | Event::Html(_) if html_pairs.contains_key(&i) => {
                 let n = next(counter);
                 text.push_str(&format!("<h{n}>"));
-                tags.push(Tag { n, kind: TagKind::Html, open: raw(), close: String::new(), label: None, code: None, shape: "h".into(), visible: String::new() });
+                tags.push(Tag { n, kind: TagKind::Html, open: raw(), close: String::new(), label: None, code: None, role: None, shape: "h".into(), visible: String::new() });
                 html_tag_of.insert(i, tags.len() - 1);
             }
             Event::InlineHtml(_) | Event::Html(_) if html_closes.contains_key(&i) => {
@@ -491,31 +689,75 @@ pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut 
                 }
                 let t = t.strip_prefix(GUARD).map(|r| r.strip_prefix(' ').unwrap_or(r)).unwrap_or(t);
                 for piece in split_masked(t, &spans) {
-                    match piece {
-                        Err(at) if spans[at].starts_with("[^") => {
-                            let n = next(counter);
-                            void(&mut text, &mut tags, n, TagKind::Opaque, spans[at].clone(), "f", String::new());
+                    let Err(at) = piece else {
+                        xml_escape(piece.unwrap_or_default(), &mut text);
+                        continue;
+                    };
+                    let (kind, raw) = (spans[at].0, spans[at].1.clone());
+                    let n = next(counter);
+                    match kind {
+                        Masked::Footnote => void(&mut text, &mut tags, n, TagKind::Opaque, raw, "f", String::new()),
+                        Masked::Expression => void(&mut text, &mut tags, n, TagKind::Opaque, raw, "e", String::new()),
+                        Masked::Math => {
+                            let visible = raw.replace("\\\\", "\\");
+                            void(&mut text, &mut tags, n, TagKind::Math, raw, "", visible);
                         }
-                        Err(at) => {
-                            let n = next(counter);
-                            let visible = spans[at].replace("\\\\", "\\");
-                            void(&mut text, &mut tags, n, TagKind::Math, spans[at].clone(), "", visible);
+                        Masked::Role => {
+                            let (name, _, content) = split_role(&raw);
+                            let name = name.to_string();
+                            match role_label(&name, &content) {
+                                Some((label, target, implicit)) => {
+                                    text.push_str(&format!("<a{n}>"));
+                                    for c in label.chars() {
+                                        xml_escape(c, &mut text);
+                                    }
+                                    text.push_str(&format!("</a{n}>"));
+                                    tags.push(Tag {
+                                        n,
+                                        kind: TagKind::Role,
+                                        open: raw,
+                                        close: String::new(),
+                                        label: Some(label),
+                                        code: None,
+                                        role: Some(RoleRef { name, target, implicit }),
+                                        shape: String::new(),
+                                        visible: String::new(),
+                                    });
+                                }
+                                // Shown as written, and held to it like code.
+                                None => {
+                                    for c in raw.chars() {
+                                        xml_escape(c, &mut text);
+                                    }
+                                    tags.push(Tag {
+                                        n,
+                                        kind: TagKind::Code,
+                                        open: raw,
+                                        close: String::new(),
+                                        label: None,
+                                        shape: format!("r:{content}|"),
+                                        code: Some(content),
+                                        role: Some(RoleRef { name, target: String::new(), implicit: false }),
+                                        visible: String::new(),
+                                    });
+                                }
+                            }
                         }
-                        Ok(c) => xml_escape(c, &mut text),
                     }
                 }
             }
             _ => {}
         }
     }
-    Ok(Tagged { source: source.to_string(), text, tags, position })
+    Ok(Tagged { source: source.to_string(), text, tags, position, dialect: ctx.dialect })
 }
 
 // ---- reading ---------------------------------------------------------------
 
 enum Piece {
     Text(String),
-    Code { written: String, content: String },
+    /// A code span; in MyST, with the `{name}` written right before it.
+    Code { written: String, content: String, role: Option<String> },
 }
 
 /// CommonMark's code span content: one space stripped from each end when both
@@ -563,7 +805,7 @@ fn split_code_spans(text: &str) -> Vec<Piece> {
                 }
                 let written = decode(&chars[i..end + run].iter().collect::<String>());
                 let content = code_content(&decode(&chars[i + run..end].iter().collect::<String>()));
-                pieces.push(Piece::Code { written, content });
+                pieces.push(Piece::Code { written, content, role: None });
                 i = end + run;
             }
             None => {
@@ -583,15 +825,15 @@ enum Token {
     Open(char, Option<usize>),
     Close(char, Option<usize>),
     Void(char, usize),
-    Code { written: String, content: String },
+    Code { written: String, content: String, role: Option<String> },
 }
 
 fn tokenize(pieces: Vec<Piece>) -> Vec<Token> {
     let mut tokens = Vec::new();
     for piece in pieces {
         let text = match piece {
-            Piece::Code { written, content } => {
-                tokens.push(Token::Code { written, content });
+            Piece::Code { written, content, role } => {
+                tokens.push(Token::Code { written, content, role });
                 continue;
             }
             Piece::Text(text) => text,
@@ -644,8 +886,46 @@ fn tokenize(pieces: Vec<Piece>) -> Vec<Token> {
 }
 
 /// Source text outside its code spans.
-fn prose_of(source: &str) -> String {
-    split_code_spans(source)
+/// A MyST reply's `{name}` written right before a code span, taken into the
+/// span: the role it names is restored from the source either way.
+fn absorb_role_names(pieces: Vec<Piece>) -> Vec<Piece> {
+    let mut out: Vec<Piece> = Vec::new();
+    for piece in pieces {
+        if let Piece::Code { written, content, .. } = &piece
+            && let Some(Piece::Text(before)) = out.last_mut()
+            && let Some(at) = before.rfind('{')
+            && role_head(&before[at..]) == Some(before.len() - at)
+        {
+            let head = before.split_off(at);
+            let name = head[1..head.len() - 1].to_string();
+            if before.is_empty() {
+                out.pop();
+            }
+            out.push(Piece::Code { written: format!("{head}{written}"), content: content.clone(), role: Some(name) });
+            continue;
+        }
+        out.push(piece);
+    }
+    out
+}
+
+/// Source text outside its code spans, for telling whether a code span of
+/// the reply marks up words the source wrote as text. A MyST role counts as
+/// the text it shows: `` {term}`Nix` `` shows `Nix`.
+fn prose_of(tagged: &Tagged) -> String {
+    let Masking { text, spans, .. } = mask(&tagged.source, tagged.dialect);
+    let shown: String = split_masked(&text, &spans)
+        .into_iter()
+        .map(|piece| match piece {
+            Ok(c) => c.to_string(),
+            Err(at) if spans[at].0 == Masked::Role => {
+                let (name, _, content) = split_role(&spans[at].1);
+                format!(" {} ", role_label(name, &content).map_or(content, |(label, _, _)| label))
+            }
+            Err(at) => spans[at].1.clone(),
+        })
+        .collect();
+    split_code_spans(&shown)
         .into_iter()
         .map(|piece| match piece {
             Piece::Text(t) => t,
@@ -655,20 +935,34 @@ fn prose_of(source: &str) -> String {
 }
 
 pub fn read(reply: &str, tagged: &Tagged) -> Result<Tree, Vec<String>> {
-    let by_n: HashMap<usize, &Tag> = tagged.tags.iter().map(|t| (t.n, t)).collect();
     let mut notes = Vec::new();
+    if tagged.position == Position::Plain {
+        let mut text = String::new();
+        for token in tokenize(vec![Piece::Text(reply.to_string())]) {
+            match token {
+                Token::Text(t) => text.push_str(&t),
+                _ => notes.push("dropped a tag from plain text".to_string()),
+            }
+        }
+        return Ok(Tree { nodes: vec![Node::Text(text)], notes });
+    }
+    let by_n: HashMap<usize, &Tag> = tagged.tags.iter().map(|t| (t.n, t)).collect();
     let mut problems: Vec<String> = Vec::new();
     let name = |n: usize| format!("<{}{n}>", by_n[&n].kind.letter());
 
     // Lenient reading: the number is the tag's identity.
     let mut nodes: Vec<Node> = Vec::new();
     let mut open: Vec<usize> = Vec::new();
-    let mut codes: Vec<(usize, String)> = Vec::new(); // node index, content
-    for token in tokenize(split_code_spans(reply)) {
+    let mut codes: Vec<(usize, String, Option<String>)> = Vec::new(); // node index, content, role name
+    let mut pieces = split_code_spans(reply);
+    if tagged.dialect == Dialect::Myst {
+        pieces = absorb_role_names(pieces);
+    }
+    for token in tokenize(pieces) {
         match token {
             Token::Text(t) => nodes.push(Node::Text(t)),
-            Token::Code { written, content } => {
-                codes.push((nodes.len(), content));
+            Token::Code { written, content, role } => {
+                codes.push((nodes.len(), content, role));
                 nodes.push(Node::Code { tag: None, written });
             }
             Token::Close(letter, None) => {
@@ -721,25 +1015,40 @@ pub fn read(reply: &str, tagged: &Tagged) -> Result<Tree, Vec<String>> {
     }
 
     // Code: strictly by content. An order-based match would restore another
-    // span's bytes over a span the model changed.
+    // span's bytes over a span the model changed. A MyST role shown as written
+    // is held to the same rule; a span the reply names a role for goes to a
+    // source role first, a bare span to bare code, so that code and a role
+    // with the same content keep their places.
     let source_codes: Vec<&Tag> = tagged.tags.iter().filter(|t| t.kind == TagKind::Code).collect();
     let mut unused: Vec<usize> = (0..source_codes.len()).collect();
     let mut assigned: HashMap<usize, usize> = HashMap::new(); // node index -> source code index
-    for (node, content) in &codes {
-        if let Some(pos) = unused.iter().position(|&c| source_codes[c].code.as_deref() == Some(content.as_str())) {
-            assigned.insert(*node, unused.remove(pos));
+    let role_of = |c: usize| source_codes[c].role.as_ref().map(|r| r.name.as_str());
+    for same_role in [true, false] {
+        for (node, content, role) in &codes {
+            if assigned.contains_key(node) {
+                continue;
+            }
+            if let Some(pos) = unused.iter().position(|&c| {
+                source_codes[c].code.as_deref() == Some(content.as_str())
+                    && (!same_role || role_of(c) == role.as_deref())
+            }) {
+                assigned.insert(*node, unused.remove(pos));
+            }
         }
     }
-    for (node, content) in &codes {
-        if assigned.contains_key(node) {
+    for (node, content, role) in &codes {
+        if assigned.contains_key(node) || role.is_some() {
             continue;
         }
-        if let Some(pos) = unused.iter().position(|&c| stands_for(content, source_codes[c].code.as_deref().unwrap_or(""))) {
+        if let Some(pos) = unused
+            .iter()
+            .position(|&c| role_of(c).is_none() && stands_for(content, source_codes[c].code.as_deref().unwrap_or("")))
+        {
             assigned.insert(*node, unused.remove(pos));
         }
     }
-    let prose = prose_of(&tagged.source);
-    for (node, content) in &codes {
+    let prose = prose_of(tagged);
+    for (node, content, _) in &codes {
         let tag = match assigned.get(node) {
             Some(&c) => Some(source_codes[c].n),
             None => {
@@ -801,12 +1110,37 @@ pub fn read(reply: &str, tagged: &Tagged) -> Result<Tree, Vec<String>> {
         let ok = match tag.kind {
             // Korean word order may split a bold phrase in two.
             k if k.is_emphasis() => o >= 1 && o == c,
-            TagKind::Link | TagKind::Html => o == 1 && c == 1,
+            TagKind::Link | TagKind::Html | TagKind::Role => o == 1 && c == 1,
             _ => v == 1,
         };
         if !ok {
             let what = if o + c + v == 0 { "is missing" } else { "appears more than once" };
             problems.push(format!("{} {what} — keep every tag exactly once", name(tag.n)));
+        }
+    }
+    // A role's label is text inside the role's backticks: nothing nests there.
+    let mut in_role: Option<(usize, bool)> = None; // the role, whether it has text
+    for node in &nodes {
+        match node {
+            Node::Open(n) if by_n[n].kind == TagKind::Role && in_role.is_none() => in_role = Some((*n, false)),
+            Node::Close(n) if in_role.is_some_and(|(open, _)| open == *n) => {
+                if in_role.is_some_and(|(_, text)| !text) {
+                    problems.push(format!("{} is empty — write its translated label inside it", name(*n)));
+                }
+                in_role = None;
+            }
+            Node::Text(t) => {
+                if let Some((_, text)) = &mut in_role {
+                    *text |= !t.trim().is_empty();
+                }
+            }
+            Node::Open(m) | Node::Close(m) | Node::Void(m) if let Some((open, _)) = in_role => {
+                problems.push(format!("{} holds plain text only — move {} outside it", name(open), name(*m)))
+            }
+            Node::Code { written, .. } if let Some((open, _)) = in_role => {
+                problems.push(format!("{} holds plain text only — write {written} outside it", name(open)))
+            }
+            _ => {}
         }
     }
     problems.dedup();
@@ -821,8 +1155,9 @@ enum Tok {
     Open(usize),
     Close(usize),
     Void(usize),
-    /// Markdown to write and the content CommonMark will read.
-    Code(String, String),
+    /// Markdown to write, the shape it reads back as (`c:` code, `r:` a role
+    /// shown as written, `(a)` a label role) and the text it shows.
+    Code(String, String, String),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -998,6 +1333,7 @@ impl Renderer<'_> {
     }
 
     fn escape(&self, text: &str, line_start: bool, out: &mut String) {
+        let dialect = self.ctx.dialect;
         let chars: Vec<char> = text.chars().collect();
         // `1. ` at the start of a line opens a list.
         let digits = chars.iter().take_while(|c| c.is_ascii_digit()).count();
@@ -1011,8 +1347,12 @@ impl Renderer<'_> {
             let at_start = line_start && i == 0;
             let escape = match c {
                 '\\' | '`' | '*' => true,
+                // MDX reads `{` as an expression and `<` as JSX wherever
+                // they stand.
+                '{' | '<' if dialect == Dialect::Mdx => true,
                 '_' => !(prev.is_some_and(|p| p.is_ascii_alphanumeric()) && next.is_some_and(|n| n.is_ascii_alphanumeric())),
-                '~' => prev == Some('~') || next == Some('~'),
+                // GFM strikes through with one tilde as well as two.
+                '~' => dialect != Dialect::Myst && !(prev.is_none_or(char::is_whitespace) && next.is_none_or(char::is_whitespace)),
                 '<' => next.is_some_and(|n| n.is_ascii_alphabetic() || matches!(n, '/' | '!' | '?')),
                 '&' => {
                     next == Some('#')
@@ -1035,14 +1375,36 @@ impl Renderer<'_> {
 
     fn render(&self, toks: &[Tok], strategies: &HashMap<usize, Strategy>, line_start: bool) -> String {
         let mut out = String::new();
+        let mut role_open: Option<usize> = None;
         for (i, tok) in toks.iter().enumerate() {
+            // A role's label is written whole when the role closes.
+            if let Some(start) = role_open {
+                if let Tok::Close(n) = tok
+                    && toks[start] == Tok::Open(*n)
+                {
+                    let tag = self.tags[n];
+                    let label: String = toks[start + 1..i]
+                        .iter()
+                        .filter_map(|t| match t {
+                            Tok::Text(t) => Some(t.as_str()),
+                            _ => None,
+                        })
+                        .collect();
+                    if let Some(role) = &tag.role {
+                        out.push_str(&write_role(&tag.open, role, tag.label.as_deref().unwrap_or(""), &label));
+                    }
+                    role_open = None;
+                }
+                continue;
+            }
             match tok {
                 Tok::Text(t) => {
                     let at_start = line_start && out.is_empty();
                     self.escape(t, at_start, &mut out);
                 }
+                Tok::Open(n) if self.tags[n].kind == TagKind::Role => role_open = Some(i),
                 Tok::Void(n) => out.push_str(&self.tags[n].open),
-                Tok::Code(markdown, _) => out.push_str(markdown),
+                Tok::Code(markdown, _, _) => out.push_str(markdown),
                 Tok::Open(n) | Tok::Close(n) => {
                     let tag = self.tags[n];
                     let opening = matches!(tok, Tok::Open(_));
@@ -1086,7 +1448,7 @@ impl Renderer<'_> {
 
     /// How `markdown` reads back: a shape of constructs and the text.
     fn read_back(&self, markdown: &str) -> (String, String) {
-        let (masked, spans) = mask(markdown);
+        let Masking { text: masked, spans, .. } = mask(markdown, self.ctx.dialect);
         let guarded = format!("{GUARD_PREFIX}{masked}");
         let mut shape = String::new();
         let mut text = String::new();
@@ -1129,8 +1491,22 @@ impl Renderer<'_> {
                 Event::Text(t) => {
                     for piece in split_masked(&t, &spans) {
                         match piece {
-                            Err(at) if spans[at].starts_with("[^") => shape.push('f'),
-                            Err(at) => text.push_str(&spans[at].replace("\\\\", "\\")),
+                            Err(at) => match spans[at].0 {
+                                Masked::Footnote => shape.push('f'),
+                                Masked::Expression => shape.push('e'),
+                                Masked::Math => text.push_str(&spans[at].1.replace("\\\\", "\\")),
+                                Masked::Role => {
+                                    let (name, _, content) = split_role(&spans[at].1);
+                                    match role_label(name, &content) {
+                                        Some((label, _, _)) => {
+                                            shape.push_str("(a");
+                                            text.push_str(&label);
+                                            shape.push(')');
+                                        }
+                                        None => shape.push_str(&format!("r:{content}|")),
+                                    }
+                                }
+                            },
                             Ok(c) if c != GUARD => text.push(c),
                             Ok(_) => {}
                         }
@@ -1161,7 +1537,10 @@ impl Renderer<'_> {
                     shape.push_str(&self.tags[n].shape);
                     text.push_str(&self.tags[n].visible);
                 }
-                Tok::Code(_, content) => shape.push_str(&format!("c:{content}|")),
+                Tok::Code(_, code, shown) => {
+                    shape.push_str(code);
+                    text.push_str(shown);
+                }
             }
         }
         (shape, text)
@@ -1219,6 +1598,17 @@ fn levenshtein(a: &str, b: &str) -> usize {
 /// finally HTML — never an invisible character, which would linger in search,
 /// copy and diffs.
 pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
+    if tagged.position == Position::Plain {
+        let markdown = tree
+            .nodes
+            .iter()
+            .filter_map(|node| match node {
+                Node::Text(t) => Some(t.as_str()),
+                _ => None,
+            })
+            .collect();
+        return Rendered { markdown, strategies: Vec::new(), verified: true };
+    }
     let renderer = Renderer {
         tags: tagged.tags.iter().map(|t| (t.n, t)).collect(),
         position: tagged.position,
@@ -1235,12 +1625,21 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
             Node::Void(n) => Tok::Void(*n),
             Node::Code { tag: Some(n), .. } => {
                 let tag = renderer.tags[n];
-                Tok::Code(tag.open.clone(), tag.code.clone().unwrap_or_default())
+                Tok::Code(tag.open.clone(), tag.shape.clone(), String::new())
+            }
+            Node::Code { tag: None, written } if role_head(written).is_some() => {
+                // A role the reply wrote around words of the source: it reads
+                // back the way `read_back` reads any role.
+                let (name, _, content) = split_role(written);
+                match role_label(name, &content) {
+                    Some((label, _, _)) => Tok::Code(written.clone(), "(a)".into(), label),
+                    None => Tok::Code(written.clone(), format!("r:{content}|"), String::new()),
+                }
             }
             Node::Code { tag: None, written } => {
                 let run = written.chars().take_while(|c| *c == '`').count();
                 let inner: String = written.chars().skip(run).take(written.chars().count().saturating_sub(2 * run)).collect();
-                Tok::Code(written.clone(), code_content(&inner))
+                Tok::Code(written.clone(), format!("c:{}|", code_content(&inner)), String::new())
             }
         })
         .collect();
@@ -1286,7 +1685,7 @@ mod tests {
     use super::*;
 
     fn ctx(labels: &[&str]) -> DocContext {
-        DocContext { reference_labels: labels.iter().map(|l| normalize_label(l)).collect() }
+        DocContext { reference_labels: labels.iter().map(|l| normalize_label(l)).collect(), dialect: Dialect::CommonMark }
     }
 
     fn tag(source: &str) -> Tagged {
@@ -1533,6 +1932,159 @@ mod tests {
         let tagged = tagify("a or b", &ctx(&[]), Position::TableCell, &mut counter).unwrap();
         let tree = read("a | b", &tagged).unwrap();
         assert_eq!(render(&tree, &tagged, &ctx(&[])).markdown, "a \\| b");
+    }
+
+    // --- MyST, MDX, plain text --------------------------------------------------
+
+    fn tag_in(dialect: Dialect, source: &str) -> Tagged {
+        let mut counter = 0;
+        tagify(source, &DocContext::new("", dialect), Position::Inline, &mut counter).unwrap()
+    }
+
+    fn translate_in(dialect: Dialect, source: &str, reply: &str) -> String {
+        let ctx = DocContext::new("", dialect);
+        let tagged = tag_in(dialect, source);
+        let tree = read(reply, &tagged).unwrap_or_else(|p| panic!("{reply}: {p:?}"));
+        let rendered = render(&tree, &tagged, &ctx);
+        assert!(rendered.verified, "{}", rendered.markdown);
+        rendered.markdown
+    }
+
+    #[test]
+    fn myst_label_roles_are_links_and_other_roles_stay_as_written() {
+        assert_eq!(
+            tag_in(Dialect::Myst, "See {ref}`the guide <install-nix>`, {term}`Nix language` and {py:func}`f <m.f>`.").text,
+            "See <a1>the guide</a1>, <a2>Nix language</a2> and <a3>f</a3>."
+        );
+        assert_eq!(
+            tag_in(Dialect::Myst, "Run {ref}`install-nix` and press {kbd}`Ctrl`.").text,
+            "Run {ref}`install-nix` and press {kbd}`Ctrl`."
+        );
+        // CommonMark has no roles: the same bytes are text and code.
+        let common = tag("Run {ref}`install-nix` now.");
+        assert_eq!(common.text, "Run {ref}`install-nix` now.");
+        assert!(common.tags.iter().all(|t| t.role.is_none()));
+    }
+
+    #[test]
+    fn myst_has_no_strikethrough() {
+        assert_eq!(tag_in(Dialect::Myst, "It ~~was~~ is.").text, "It ~~was~~ is.");
+        assert_eq!(translate_in(Dialect::Myst, "It ~~was~~ is.", "~~였~~입니다."), "~~였~~입니다.");
+    }
+
+    #[test]
+    fn a_myst_role_comes_back_whether_or_not_the_reply_names_it() {
+        let src = "First {ref}`install-nix`, then `nix run`.";
+        for reply in ["먼저 {ref}`install-nix`을, 그다음 `nix run`을 실행합니다.", "먼저 `install-nix`을, 그다음 `nix run`을 실행합니다."] {
+            assert_eq!(translate_in(Dialect::Myst, src, reply), "먼저 {ref}`install-nix`을, 그다음 `nix run`을 실행합니다.");
+        }
+    }
+
+    #[test]
+    fn code_and_a_role_with_the_same_content_keep_their_places() {
+        let src = "Use `x` or {ref}`x`.";
+        assert_eq!(translate_in(Dialect::Myst, src, "{ref}`x`나 `x`를 쓰십시오."), "{ref}`x`나 `x`를 쓰십시오.");
+    }
+
+    #[test]
+    fn a_label_role_holds_plain_text_only() {
+        let tagged = tag_in(Dialect::Myst, "See {ref}`the **big** guide <g>` and **this**.");
+        assert_eq!(tagged.text, "See <a1>the **big** guide</a1> and <b2>this</b2>.");
+        let problems = read("<a1>큰 <b2>안내서</b2></a1>를 보십시오.", &tagged).unwrap_err();
+        assert!(problems.iter().any(|p| p.contains("<a1> holds plain text only")), "{problems:?}");
+    }
+
+    #[test]
+    fn a_translated_label_role_is_written_explicitly() {
+        let src = "A {term}`Nix language` file, see {ref}`the guide <install-nix>`.";
+        assert_eq!(
+            translate_in(Dialect::Myst, src, "<a1>Nix 언어</a1> 파일이며 <a2>안내서</a2>를 보십시오."),
+            "{term}`Nix 언어 <Nix language>` 파일이며 {ref}`안내서 <install-nix>`를 보십시오."
+        );
+        assert_eq!(
+            translate_in(Dialect::Myst, src, "<a1>Nix language</a1> 파일이며 <a2>the guide</a2>를 보십시오."),
+            "{term}`Nix language` 파일이며 {ref}`the guide <install-nix>`를 보십시오."
+        );
+    }
+
+    #[test]
+    fn emphasis_around_a_role_closes_before_a_particle() {
+        assert_eq!(
+            translate_in(Dialect::Myst, "The **{term}`Nix`** tool.", "<b1><a2>Nix</a2></b1>는 도구입니다."),
+            "**{term}`Nix`는** 도구입니다."
+        );
+    }
+
+    #[test]
+    fn a_code_span_that_repeats_a_role_label_is_text_the_source_wrote() {
+        let tagged = tag_in(Dialect::Myst, "Install {term}`Nixpkgs` now.");
+        assert!(read("<a1>Nixpkgs</a1>를 지금 설치하십시오. `Nixpkgs`는 큽니다.", &tagged).is_ok());
+    }
+
+    #[test]
+    fn a_role_opened_inside_a_label_role_or_left_empty_is_a_problem() {
+        let tagged = tag_in(Dialect::Myst, "See {ref}`a <x>` and {ref}`b <y>`.");
+        let problems = read("<a1><a2>b</a2></a1>를 보십시오.", &tagged).unwrap_err();
+        assert!(problems.iter().any(|p| p.contains("<a1> holds plain text only")), "{problems:?}");
+        let problems = read("<a1></a1>와 <a2>b</a2>를 보십시오.", &tagged).unwrap_err();
+        assert!(problems.iter().any(|p| p.contains("<a1> is empty")), "{problems:?}");
+    }
+
+    #[test]
+    fn a_role_the_reply_writes_around_source_words_verifies() {
+        assert_eq!(
+            translate_in(
+                Dialect::Myst,
+                "Install {term}`Nixpkgs` now. It is **big**.",
+                "<a1>Nixpkgs</a1>를 지금 설치하십시오. {term}`Nixpkgs`는 <b2>큽니다</b2>."
+            ),
+            "{term}`Nixpkgs`를 지금 설치하십시오. {term}`Nixpkgs`는 **큽니다**."
+        );
+    }
+
+    #[test]
+    fn a_label_with_a_backtick_stays_as_written() {
+        assert_eq!(
+            tag_in(Dialect::Myst, "See {ref}`` the `foo` docs <x> `` now.").text,
+            "See {ref}`` the `foo` docs &lt;x&gt; `` now."
+        );
+    }
+
+    #[test]
+    fn mdx_expressions_and_jsx_are_tags() {
+        assert_eq!(
+            tag_in(Dialect::Mdx, "For <Language />, see *<cite>[x](u)</cite>* in {year}.").text,
+            "For <x1/>, see <i2><h3><a4>x</a4></h3></i2> in <x5/>."
+        );
+        assert_eq!(tag_in(Dialect::Mdx, "Write `{x}` or \\{x\\}.").text, "Write `{x}` or {x}.");
+        let mut counter = 0;
+        assert!(tagify("An open { brace.", &DocContext::new("", Dialect::Mdx), Position::Inline, &mut counter).is_err());
+    }
+
+    #[test]
+    fn mdx_text_escapes_braces_and_angle_brackets() {
+        assert_eq!(
+            translate_in(Dialect::Mdx, "Use \\{x\\} if a \\< b, in {year}.", "a &lt; b이면 {x}를 <x1/>에 씁니다."),
+            "a \\< b이면 \\{x}를 {year}에 씁니다."
+        );
+    }
+
+    #[test]
+    fn plain_text_carries_no_tags_and_no_escapes() {
+        let mut counter = 0;
+        let ctx = DocContext::new("", Dialect::Mdx);
+        let tagged = tagify("2 * 3 <b> `x`", &ctx, Position::Plain, &mut counter).unwrap();
+        assert_eq!(tagged.text, "2 * 3 &lt;b&gt; `x`");
+        assert!(tagged.tags.is_empty());
+        let tree = read("2 * 3 &lt;b&gt; <i1>`x`</i1>", &tagged).unwrap();
+        let rendered = render(&tree, &tagged, &ctx);
+        assert_eq!(rendered.markdown, "2 * 3 <b> `x`");
+    }
+
+    #[test]
+    fn a_tilde_that_could_strike_through_is_escaped() {
+        assert_eq!(translate_in(Dialect::Mdx, "ooze \\~(++)\\~ out", "~(++)~ 흘러나옵니다"), "\\~(++)\\~ 흘러나옵니다");
+        assert_eq!(translate("About ~ 10.", "약 ~ 10입니다."), "약 ~ 10입니다.");
     }
 
     #[test]

@@ -327,7 +327,12 @@ pub async fn translate_with_evaluation_observed(
                 });
             }
 
-            tracing::debug!(idx, passed = combined_result.passed, "Evaluation result");
+            tracing::debug!(
+                idx,
+                passed = combined_result.passed,
+                issues = ?combined_result.issues.iter().map(|i| i.message.as_str()).collect::<Vec<_>>(),
+                "Evaluation result"
+            );
             attempt_issues.extend(combined_result.issues.iter().map(|i| i.message.clone()));
             results.insert(
                 idx,

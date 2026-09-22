@@ -143,7 +143,7 @@ fn scan(source: &str) -> Layout {
     if let Some(end) = front_matter_end(source, &lines) {
         for line in &lines[..=end] {
             if let Some(title) = title_value(source, line.clone()) {
-                layout.extras.push(Extra { range: title, block_type: BlockType::Heading });
+                layout.extras.push(Extra { range: title, block_type: BlockType::Heading, literal: false });
             }
             fill(&mut layout.shadow, line.clone(), b' ');
         }
@@ -235,7 +235,7 @@ fn scan_heading_attr_list(source: &str, line: Range<usize>, layout: &mut Layout)
             && len > 0
         {
             let begin = start + value + 1;
-            layout.extras.push(Extra { range: begin..begin + len, block_type: BlockType::Heading });
+            layout.extras.push(Extra { range: begin..begin + len, block_type: BlockType::Heading, literal: false });
         }
     }
 }
@@ -263,7 +263,7 @@ fn scan_block_header(source: &str, line: Range<usize>, layout: &mut Layout) -> b
         && close > open + 1
     {
         let base = line.start + indent + marker.len();
-        layout.extras.push(Extra { range: base + open + 1..base + close, block_type: BlockType::Heading });
+        layout.extras.push(Extra { range: base + open + 1..base + close, block_type: BlockType::Heading, literal: false });
     }
     let start = line.start + indent;
     fill(&mut layout.shadow, start..line.end, b' ');

@@ -122,10 +122,13 @@ impl Layout {
             .map(|range| Extra {
                 range: range.clone(),
                 block_type: BlockType::HtmlBlock,
+                literal: false,
             })
+            // Front matter values and JSX attributes are strings, not Markdown.
             .chain(self.fields.iter().map(|field| Extra {
                 range: field.range.clone(),
                 block_type: field.block_type,
+                literal: true,
             }))
             .collect();
         extras.sort_by_key(|extra| (extra.range.start, extra.range.end));
@@ -813,6 +816,25 @@ mod tests {
     fn heading_id_suffix_is_mdx_only() {
         let doc = MarkdownParser.parse("## Refs \\{#refs}\n");
         assert_eq!(sources(&doc), ["Refs \\{#refs}"]);
+    }
+
+    #[test]
+    fn front_matter_and_attribute_strings_are_literal() {
+        let doc = MdxParser.parse("---\ntitle: Nix *flakes*\n---\n\n<Admonition title=\"Why?\">\nA *body*.\n</Admonition>\n");
+        let roles: Vec<(String, BlockRole)> = doc
+            .sections
+            .iter()
+            .flat_map(|section| &section.blocks)
+            .flat_map(|block| block.segments.iter().map(move |seg| (seg.source.clone(), block.role.clone())))
+            .collect();
+        assert_eq!(
+            roles,
+            [
+                ("Nix *flakes*".to_string(), BlockRole::Literal),
+                ("Why?".to_string(), BlockRole::Literal),
+                ("A *body*.".to_string(), BlockRole::None),
+            ]
+        );
     }
 
     #[test]

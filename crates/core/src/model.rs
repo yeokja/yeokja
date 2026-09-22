@@ -81,6 +81,10 @@ pub enum BlockRole {
         underline: std::ops::Range<usize>,
         overline: Option<std::ops::Range<usize>>,
     },
+    /// A string its container quotes rather than parses as markup: a front
+    /// matter value, a JSX attribute, a toctree entry title. Its text is
+    /// literal, so nothing in it is markup to keep or escape.
+    Literal,
     /// One cell of a `|===` table.
     TableCell {
         /// Index of the table within its document, so cells of two adjacent

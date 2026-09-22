@@ -69,6 +69,7 @@ impl DocumentParser for MarkdeepParser {
                 extras.push(Extra {
                     range,
                     block_type: BlockType::Paragraph,
+                    literal: false,
                 });
                 let trailing = &source[syntax_end..finish];
                 let trailing_start = syntax_end + trailing.len() - trailing.trim_start().len();
@@ -77,6 +78,7 @@ impl DocumentParser for MarkdeepParser {
                     extras.push(Extra {
                         range: trailing_start..trailing_end,
                         block_type: BlockType::Paragraph,
+                        literal: false,
                     });
                 }
                 blank(&mut shadow[offset..finish]);
@@ -123,6 +125,7 @@ impl DocumentParser for MarkdeepParser {
                         } else {
                             BlockType::Paragraph
                         },
+                        literal: false,
                     });
                     blank(&mut shadow[offset..offset + line.len()]);
                 }

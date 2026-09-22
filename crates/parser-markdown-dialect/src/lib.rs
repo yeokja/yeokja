@@ -19,6 +19,9 @@ use yeokja_parser_utils::{
 pub struct Extra {
     pub range: Range<usize>,
     pub block_type: BlockType,
+    /// The container quotes the text rather than parsing it as markup
+    /// ([`BlockRole::Literal`]).
+    pub literal: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -82,7 +85,7 @@ impl ParseState<'_> {
             heading_level: None,
             span: Some(extra.range),
             translatable: true,
-            role: BlockRole::None,
+            role: if extra.literal { BlockRole::Literal } else { BlockRole::None },
         });
     }
 
@@ -196,6 +199,7 @@ impl ParseState<'_> {
                     self.push_extra(Extra {
                         range: offset + span.start..offset + span.end,
                         block_type: block.block_type,
+                        literal: false,
                     });
                     found_prose = true;
                 }

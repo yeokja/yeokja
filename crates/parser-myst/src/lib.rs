@@ -115,6 +115,9 @@ enum Body {
 struct Field {
     range: Range<usize>,
     block_type: BlockType,
+    /// Sphinx keeps the string as is instead of parsing it as MyST inline
+    /// markup: a toctree's entry titles and caption.
+    literal: bool,
 }
 
 /// What the line scan found.
@@ -139,9 +142,9 @@ impl Layout {
         self.opaque.push(range);
     }
 
-    fn field(&mut self, source: &str, range: Range<usize>, block_type: BlockType) {
+    fn field(&mut self, source: &str, range: Range<usize>, block_type: BlockType, literal: bool) {
         if !source[range.clone()].trim().is_empty() {
-            self.fields.push(Field { range, block_type });
+            self.fields.push(Field { range, block_type, literal });
         }
     }
 
@@ -152,6 +155,7 @@ impl Layout {
             self.fields.push(Field {
                 range,
                 block_type: BlockType::Heading,
+                literal: false,
             });
         }
     }
@@ -177,10 +181,12 @@ impl Layout {
             .map(|range| Extra {
                 range: range.clone(),
                 block_type: BlockType::HtmlBlock,
+                literal: false,
             })
             .chain(self.fields.iter().map(|field| Extra {
                 range: field.range.clone(),
                 block_type: field.block_type,
+                literal: field.literal,
             }))
             .collect();
         extras.sort_by_key(|extra| (extra.range.start, extra.range.end));
@@ -512,7 +518,8 @@ fn literal_fields(
         };
         if key == "caption" && !value.is_empty() {
             let start = range.start + text.len() - value.len();
-            layout.field(source, start..start + value.len(), BlockType::Paragraph);
+            // A code block's caption is parsed as MyST; a toctree's is not.
+            layout.field(source, start..start + value.len(), BlockType::Paragraph, opener.name == "toctree");
         }
         index += 1;
     }
@@ -527,7 +534,7 @@ fn literal_fields(
             }
             if let Some(title) = toctree_entry_title(trimmed) {
                 let start = range.start + text.len() - trimmed.len();
-                layout.field(source, start..start + title.len(), BlockType::Paragraph);
+                layout.field(source, start..start + title.len(), BlockType::Paragraph, true);
             }
             entry += 1;
         }
@@ -655,7 +662,7 @@ fn scan_glossary(source: &str, lines: &[Range<usize>], base_indent: usize, layou
 
 fn flush_glossary_block(block: &mut Option<(Range<usize>, BlockType)>, layout: &mut Layout) {
     if let Some((range, block_type)) = block.take() {
-        layout.fields.push(Field { range, block_type });
+        layout.fields.push(Field { range, block_type, literal: false });
     }
 }
 
@@ -840,6 +847,27 @@ mod tests {
             translate_all(source, bracket),
             "```{toctree}\n:caption: [Recipes]\n:maxdepth: 1\n\nadd-binary-cache.md\n[Automatic environments] <direnv>\nsharing-dependencies.md\n```\n"
         );
+    }
+
+    /// Roles of the blocks holding each translatable segment, in order.
+    fn roles(doc: &Document) -> Vec<BlockRole> {
+        doc.sections
+            .iter()
+            .flat_map(|section| &section.blocks)
+            .filter(|block| !block.segments.is_empty())
+            .map(|block| block.role.clone())
+            .collect()
+    }
+
+    #[test]
+    fn toctree_strings_are_literal_but_markup_captions_and_titles_are_not() {
+        let toctree = MystParser.parse("```{toctree}\n:caption: Recipes\n\nAutomatic environments <direnv>\n```\n");
+        assert_eq!(roles(&toctree), [BlockRole::Literal, BlockRole::Literal]);
+        let other = MystParser.parse(
+            ":::{note} A *title*\nBody.\n:::\n\n```{code-block} nix\n:caption: `hello.nix`\n{ }\n```\n",
+        );
+        assert_eq!(sources(&other), ["A *title*", "Body.", "`hello.nix`"]);
+        assert!(roles(&other).iter().all(|role| *role == BlockRole::None), "{:?}", roles(&other));
     }
 
     #[test]
