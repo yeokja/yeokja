@@ -10,6 +10,33 @@ use yeokja_translate::orchestrator::{audit_file, collect_files, evaluators_for, 
 /// Audit the inline markup of stored translations (see `inline::audit`),
 /// printing every finding; with `repair`, write the confirmed repairs to the
 /// state files. `translated_at` is kept: a repair is not a translation.
+/// `text`, a state file, with the translations of the segments in `fixes`
+/// replaced by their repairs and nothing else touched. Saving the parsed
+/// state instead would reorder every glossary snapshot (a hash map) in the
+/// file.
+fn replace_translations(
+    text: &str,
+    fixes: &std::collections::HashMap<String, (String, String)>,
+    state_path: &Path,
+) -> Result<String> {
+    let mut out = text.to_string();
+    for (id, (old, new)) in fixes {
+        let at = out
+            .find(&format!("\"id\": {}", serde_json::to_string(id)?))
+            .ok_or_else(|| anyhow::anyhow!("{}: segment {id} not found", state_path.display()))?;
+        let key = "\"translation\": ";
+        let value = at
+            + out[at..].find(key).ok_or_else(|| anyhow::anyhow!("{}: {id} has no translation", state_path.display()))?
+            + key.len();
+        let old_json = serde_json::to_string(old)?;
+        if !out[value..].starts_with(&old_json) {
+            anyhow::bail!("{}: the translation of {id} is not the audited one", state_path.display());
+        }
+        out.replace_range(value..value + old_json.len(), &serde_json::to_string(new)?);
+    }
+    Ok(out)
+}
+
 pub fn audit(path: &str, repair: bool) -> Result<()> {
     let ctx = ProjectContext::load()?;
     let parser_factory = super::parser_factory();
@@ -29,7 +56,7 @@ pub fn audit(path: &str, repair: bool) -> Result<()> {
                     println!("{} {} REPAIRED ({})", file_path.display(), finding.segment, defects.join(", "));
                     println!("  - {}", finding.translation);
                     println!("  + {markdown}");
-                    fixes.insert(finding.segment.clone(), markdown.clone());
+                    fixes.insert(finding.segment.clone(), (finding.translation.clone(), markdown.clone()));
                 }
                 Audit::Unrepairable { defects, reasons } => {
                     unrepairable += 1;
@@ -46,13 +73,8 @@ pub fn audit(path: &str, repair: bool) -> Result<()> {
             }
         }
         if repair && !fixes.is_empty() {
-            let mut state = yeokja_core::state::StateFile::load(&state_path)?;
-            for segment in &mut state.segments {
-                if let Some(markdown) = fixes.get(&segment.id.0) {
-                    segment.translation = Some(markdown.clone());
-                }
-            }
-            state.save(&state_path)?;
+            let text = std::fs::read_to_string(&state_path)?;
+            std::fs::write(&state_path, replace_translations(&text, &fixes, &state_path)?)?;
         }
     }
     println!(
