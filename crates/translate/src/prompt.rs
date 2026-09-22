@@ -30,6 +30,7 @@ pub fn build_prompt(request: &TranslateRequest) -> String {
             .replace("{target_lang}", &request.target_lang)
             .replace("{glossary}", glossary_section.trim_end())
             .replace("{feedback}", request.feedback.as_deref().unwrap_or(""))
+            .replace("{inline_tags}", if request.inline_tags { INLINE_TAG_RULES } else { "" })
             .replace("{context}", &request.block_context)
             .replace("{segments}", segments_section.trim_end());
     }
@@ -52,7 +53,7 @@ pub fn build_prompt(request: &TranslateRequest) -> String {
          written, untranslated, followed by the translated prose on the same line. Never \
          translate the marker itself, drop it, or move it to its own line.\n",
     );
-    prompt.push_str(closing_rule(request.markup));
+    prompt.push_str(if request.inline_tags { INLINE_TAG_RULES } else { closing_rule(request.markup) });
 
     // Korean drifts between registers unless the register is named: the same
     // model writes ~합니다 in one block and ~한다 in the next, and a document
@@ -87,6 +88,20 @@ pub fn build_prompt(request: &TranslateRequest) -> String {
 
     prompt
 }
+
+/// The rules for inline-tag text (see `inline`). Code stays in backticks so
+/// the model can read what a particle attaches to; everything else it moves
+/// as tags, and the markup is written back for it.
+pub const INLINE_TAG_RULES: &str = "The text marks inline formatting with tags. Paired tags wrap formatted \
+    text: <bN>…</bN> bold, <iN>…</iN> italic, <sN>…</sN> strikethrough, <aN>…</aN> the visible text \
+    of a link, <hN>…</hN> text inside an HTML element. Inline code is written in backticks as in \
+    Markdown (`x`): copy every code span exactly, never translate or change what is inside it. Empty \
+    tags stand for things copied unchanged: <xN/> other markup, <mN/> math. Keep every tag exactly \
+    once with its number and kind — never add, drop, rename or merge tags — translate the text inside \
+    paired tags, and place the tags where Korean word order puts the words they belong to. A Korean \
+    particle attaches directly after a closing tag, an empty tag or a code span (`x`를, </b2>에서): \
+    the markup is written back for you. &lt; &gt; &amp; stand for < > &. The context shows the same \
+    tags for reference; answer only the numbered sentences.\n";
 
 /// The rule about inline pairs that `markup` actually has.
 ///
@@ -268,6 +283,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         }
     }
 
@@ -465,5 +481,31 @@ mod tests {
     fn parse_response_for_rejects_an_empty_answer() {
         let segments = vec![(3, "It was called 6 times.".to_string())];
         assert!(parse_response_for("   \n  ", &segments).is_err());
+    }
+
+    /// Tag text brings its own rules; the markup's rules would talk about
+    /// marks the model never sees.
+    #[test]
+    fn inline_tag_requests_state_the_tag_rules() {
+        let mut req = make_request();
+        req.inline_tags = true;
+        let prompt = build_prompt(&req);
+        assert!(prompt.contains("<bN>…</bN> bold"));
+        assert!(prompt.contains("copy every code span exactly"));
+        assert!(!prompt.contains("*arity*는"), "the Markdown closing rule is replaced");
+        assert!(prompt.contains("[!NOTE]"), "the alert rule stays");
+
+        req.inline_tags = false;
+        assert!(!build_prompt(&req).contains("<bN>…</bN> bold"));
+    }
+
+    #[test]
+    fn a_custom_template_takes_the_tag_rules_at_its_placeholder() {
+        let mut req = make_request();
+        req.prompt_template = Some("RULES:{inline_tags}\n{segments}".to_string());
+        req.inline_tags = true;
+        assert!(build_prompt(&req).contains("RULES:The text marks inline formatting with tags."));
+        req.inline_tags = false;
+        assert!(build_prompt(&req).starts_with("RULES:\n"));
     }
 }

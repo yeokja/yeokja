@@ -20,7 +20,7 @@ use yeokja_core::state::StateFile;
 use yeokja_translate::evaluator::EvaluationContext;
 use yeokja_translate::factory::{create_evaluator_provider, create_provider};
 use yeokja_translate::orchestrator::{
-    collect_files, evaluate_translation, scan_file, standard_evaluators, CancelToken,
+    collect_files, evaluate_translation, evaluators_for, inline_tags_for, scan_file, CancelToken,
     Orchestrator, ParserFactory, ProgressEvent, TranslateOptions,
 };
 
@@ -362,7 +362,11 @@ async fn evaluate_segment(
         tracing::warn!(error = %e, "Evaluator provider unavailable; running mechanical checks only");
         None
     });
-    let evaluators = standard_evaluators(eval_provider, &state.config.project.target_lang);
+    let evaluators = evaluators_for(
+        eval_provider,
+        &state.config.project.target_lang,
+        inline_tags_for(&state.config, source_path),
+    );
 
     let glossary = state.glossary.read().await.terms().clone();
     let context = EvaluationContext {

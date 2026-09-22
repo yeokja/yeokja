@@ -48,6 +48,9 @@ pub struct TranslateRequest {
     /// sentences of one paragraph is not mistaken for a slipped batch (see
     /// `alignment::misaligned`). Indices left out are compared with all.
     pub paragraphs: HashMap<usize, String>,
+    /// The segments and context are inline-tag text (see `inline`), so the
+    /// prompt states the tag rules instead of the markup's own.
+    pub inline_tags: bool,
 }
 
 #[derive(Debug, Clone)]

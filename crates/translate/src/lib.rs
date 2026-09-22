@@ -19,4 +19,5 @@ pub mod evaluator_glossary;
 pub mod evaluator_style;
 pub mod evaluator_link;
 pub mod evaluator_format;
+pub mod inline;
 pub mod pipeline;

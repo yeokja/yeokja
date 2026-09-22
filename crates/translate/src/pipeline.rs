@@ -30,6 +30,14 @@ pub enum PipelineEvent {
     },
 }
 
+/// A request whose segments are inline-tag text (see `inline`): each
+/// segment's tags, by request index, and the document facts the serializer
+/// needs.
+pub struct InlineBatch {
+    pub tagged: HashMap<usize, crate::inline::markdown::Tagged>,
+    pub ctx: crate::inline::markdown::DocContext,
+}
+
 /// Callback invoked on each [`PipelineEvent`].
 pub type PipelineObserver<'a> = &'a (dyn Fn(PipelineEvent) + Send + Sync);
 
@@ -54,6 +62,35 @@ pub async fn translate_with_evaluation(
         target_lang,
         markup,
         max_retries,
+        None,
+        &|_| {},
+    )
+    .await
+}
+
+/// [`translate_with_evaluation`] for a request of inline-tag text.
+#[allow(clippy::too_many_arguments)]
+pub async fn translate_with_evaluation_inline(
+    provider: &dyn TranslationProvider,
+    evaluators: &[&dyn TranslationEvaluator],
+    request: TranslateRequest,
+    glossary: &HashMap<String, String>,
+    source_lang: &str,
+    target_lang: &str,
+    markup: Markup,
+    max_retries: u32,
+    inline: Option<&InlineBatch>,
+) -> Result<HashMap<usize, PipelineResult>, TranslateError> {
+    translate_with_evaluation_observed(
+        provider,
+        evaluators,
+        request,
+        glossary,
+        source_lang,
+        target_lang,
+        markup,
+        max_retries,
+        inline,
         &|_| {},
     )
     .await
@@ -71,9 +108,15 @@ pub async fn translate_with_evaluation_observed(
     target_lang: &str,
     markup: Markup,
     max_retries: u32,
+    inline: Option<&InlineBatch>,
     on_event: PipelineObserver<'_>,
 ) -> Result<HashMap<usize, PipelineResult>, TranslateError> {
-    let whole_batch = request.segments.clone();
+    // Alignment compares anchors in the sources, which tag text would hide.
+    let source_of = |idx: usize, text: &str| -> String {
+        inline.and_then(|batch| batch.tagged.get(&idx)).map_or_else(|| text.to_string(), |t| t.source.clone())
+    };
+    let whole_batch: Vec<(usize, String)> =
+        request.segments.iter().map(|(idx, text)| (*idx, source_of(*idx, text))).collect();
     let mut current_request = request;
     let mut results: HashMap<usize, PipelineResult> = HashMap::new();
     let mut attempts = 0u32;
@@ -82,8 +125,35 @@ pub async fn translate_with_evaluation_observed(
         attempts += 1;
         tracing::debug!(attempt = attempts, "Starting translation attempt");
         on_event(PipelineEvent::AttemptStarted { attempt: attempts });
-        let response = provider.translate(current_request.clone()).await?;
+        let mut response = provider.translate(current_request.clone()).await?;
         on_event(PipelineEvent::Translated { attempt: attempts });
+
+        // Tag text becomes Markdown before anything else reads it. A reply
+        // whose tags do not hold is dropped here and retried with the
+        // problems named; tag text is never stored as a translation.
+        let mut tag_problems: HashMap<usize, Vec<String>> = HashMap::new();
+        let mut unverified: Vec<usize> = Vec::new();
+        if let Some(batch) = inline {
+            let replies: Vec<(usize, String)> = response.translations.iter().map(|(i, t)| (*i, t.clone())).collect();
+            for (idx, reply) in replies {
+                let Some(tagged) = batch.tagged.get(&idx) else { continue };
+                match crate::inline::markdown::read(&reply, tagged) {
+                    Ok(tree) => {
+                        let rendered = crate::inline::markdown::render(&tree, tagged, &batch.ctx);
+                        tracing::debug!(idx, strategies = ?rendered.strategies, notes = ?tree.notes, "Rendered inline tags");
+                        if !rendered.verified {
+                            tracing::warn!(idx, markdown = %rendered.markdown, "Inline tags rendered unverified");
+                            unverified.push(idx);
+                        }
+                        response.translations.insert(idx, rendered.markdown);
+                    }
+                    Err(problems) => {
+                        tracing::debug!(idx, %reply, ?problems, "Inline tags did not hold");
+                        tag_problems.insert(idx, problems);
+                    }
+                }
+            }
+        }
 
         // A batch answer is filed under the numbers the model wrote. When the
         // numbering slips, every later segment receives a neighbour's
@@ -107,7 +177,7 @@ pub async fn translate_with_evaluation_observed(
             response
                 .translations
                 .iter()
-                .filter(|(idx, _)| requested.contains(idx))
+                .filter(|(idx, _)| requested.contains(idx) && !tag_problems.contains_key(idx))
                 .map(|(idx, text)| (*idx, text.clone())),
         );
         let misaligned: Vec<_> =
@@ -170,13 +240,26 @@ pub async fn translate_with_evaluation_observed(
             if !requested.contains(&idx) {
                 continue;
             }
-            let source = current_request
+            let request_text = current_request
                 .segments
                 .iter()
                 .find(|(i, _)| *i == idx)
                 .map(|(_, s)| s.as_str())
                 .unwrap_or("");
+            if let Some(problems) = tag_problems.get(&idx) {
+                for problem in problems {
+                    let message = format!("[{idx}] {problem}");
+                    feedback_parts.push(message.clone());
+                    attempt_issues.push(message);
+                }
+                retry_segments.push((idx, request_text.to_string()));
+                continue;
+            }
+            let source_text = source_of(idx, request_text);
+            let source = source_text.as_str();
             let translation = match markup {
+                // The serializer already chose the marks.
+                _ if inline.is_some() => translation.clone(),
                 Markup::Verso => {
                     crate::evaluator_format::restore_verso_code_whitespace(source, translation)
                 }
@@ -220,6 +303,16 @@ pub async fn translate_with_evaluation_observed(
                         combined_result.passed = false;
                     }
                 }
+            }
+
+            if unverified.contains(&idx) {
+                combined_result.issues.push(EvaluationIssue {
+                    severity: IssueSeverity::Warning,
+                    kind: IssueKind::FormatLost,
+                    message: "The serializer could not confirm this Markdown reads back as the tags \
+                              meant; check its emphasis."
+                        .to_string(),
+                });
             }
 
             if let Some(from) = misaligned_from.get(&idx) {
@@ -267,6 +360,11 @@ pub async fn translate_with_evaluation_observed(
         if all_passed || attempts > max_retries {
             if !all_passed {
                 tracing::warn!(attempts, "Max retries exceeded");
+            }
+            // Tag text is never stored, so these stay untranslated until the
+            // next run; say which and why.
+            for (idx, problems) in &tag_problems {
+                tracing::warn!(idx, ?problems, "Inline tags never held; the segment stays untranslated");
             }
             break;
         }
@@ -432,6 +530,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         };
 
         let results = translate_with_evaluation(
@@ -477,6 +576,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         };
 
         let result = translate_with_evaluation(
@@ -509,6 +609,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         }
     }
 
@@ -623,6 +724,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         };
 
         let results = translate_with_evaluation(
@@ -679,6 +781,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         };
 
         let results = translate_with_evaluation(
@@ -717,6 +820,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         };
         let results = translate_with_evaluation(
             &provider,
@@ -753,6 +857,7 @@ mod tests {
             feedback: None,
             prompt_template: None,
             paragraphs: HashMap::new(),
+            inline_tags: false,
         };
         let results = translate_with_evaluation(
             &provider,
@@ -768,5 +873,128 @@ mod tests {
         .unwrap();
         assert_eq!(results[&1].translation, "``erlc``의 출력입니다.");
         assert_eq!(results[&1].attempts, 1);
+    }
+
+    /// Records every request, so a test can see what a retry sent.
+    struct RecordingProvider {
+        responses: std::sync::Mutex<Vec<HashMap<usize, String>>>,
+        requests: std::sync::Mutex<Vec<TranslateRequest>>,
+    }
+
+    #[async_trait]
+    impl TranslationProvider for RecordingProvider {
+        async fn translate(&self, request: TranslateRequest) -> Result<TranslateResponse, TranslateError> {
+            self.requests.lock().unwrap().push(request);
+            let mut responses = self.responses.lock().unwrap();
+            let translations = if responses.is_empty() { HashMap::new() } else { responses.remove(0) };
+            Ok(TranslateResponse { translations, usage: None })
+        }
+    }
+
+    /// Captures what evaluators are shown.
+    struct Capture(std::sync::Mutex<Vec<(String, String)>>);
+
+    #[async_trait]
+    impl TranslationEvaluator for Capture {
+        async fn evaluate(&self, context: &EvaluationContext) -> Result<EvaluationResult, EvaluationError> {
+            self.0.lock().unwrap().push((context.source.clone(), context.translation.clone()));
+            Ok(EvaluationResult { passed: true, issues: Vec::new() })
+        }
+        fn triggers_retranslation(&self) -> bool {
+            true
+        }
+        fn name(&self) -> &'static str {
+            "Capture"
+        }
+    }
+
+    fn inline_request(sources: &[&str]) -> (TranslateRequest, InlineBatch) {
+        use crate::inline::markdown::{DocContext, Position, tagify};
+        let ctx = DocContext::default();
+        let mut counter = 0;
+        let mut tagged = HashMap::new();
+        let mut segments = Vec::new();
+        for (i, source) in sources.iter().enumerate() {
+            let t = tagify(source, &ctx, Position::Inline, &mut counter).unwrap();
+            segments.push((i + 1, t.text.clone()));
+            tagged.insert(i + 1, t);
+        }
+        let context = segments.iter().map(|(_, t)| t.as_str()).collect::<Vec<_>>().join(" ");
+        let request = TranslateRequest {
+            segments,
+            block_context: context,
+            glossary: HashMap::new(),
+            source_lang: "en".to_string(),
+            target_lang: "ko".to_string(),
+            markup: Markup::Markdown,
+            feedback: None,
+            prompt_template: None,
+            paragraphs: HashMap::new(),
+            inline_tags: true,
+        };
+        (request, InlineBatch { tagged, ctx })
+    }
+
+    #[tokio::test]
+    async fn inline_tag_replies_become_markdown_before_evaluation() {
+        let source = "It comes from the **outer product** of linear algebra.";
+        let (request, batch) = inline_request(&[source]);
+        let provider = RecordingProvider {
+            responses: std::sync::Mutex::new(vec![
+                [(1, "선형대수학의 <b1>외적(outer product)</b1>에서 유래합니다.".to_string())].into(),
+            ]),
+            requests: std::sync::Mutex::new(Vec::new()),
+        };
+        let capture = Capture(std::sync::Mutex::new(Vec::new()));
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![&capture];
+        let results = translate_with_evaluation_inline(
+            &provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3, Some(&batch),
+        )
+        .await
+        .unwrap();
+        assert_eq!(results[&1].translation, "선형대수학의 **외적**(outer product)에서 유래합니다.");
+        assert_eq!(results[&1].attempts, 1);
+        let seen = capture.0.lock().unwrap();
+        assert_eq!(seen[0].0, source, "evaluators see the source, not tag text");
+        assert_eq!(provider.requests.lock().unwrap()[0].segments[0].1, "It comes from the <b1>outer product</b1> of linear algebra.");
+    }
+
+    #[tokio::test]
+    async fn a_tag_problem_retries_only_that_segment_with_tag_feedback() {
+        let (request, batch) = inline_request(&["The **first** one.", "The *second* one."]);
+        let provider = RecordingProvider {
+            responses: std::sync::Mutex::new(vec![
+                [(1, "첫 번째입니다.".to_string()), (2, "<i2>두 번째</i2>입니다.".to_string())].into(),
+                [(1, "<b1>첫 번째</b1>입니다.".to_string())].into(),
+            ]),
+            requests: std::sync::Mutex::new(Vec::new()),
+        };
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![];
+        let results = translate_with_evaluation_inline(
+            &provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3, Some(&batch),
+        )
+        .await
+        .unwrap();
+        assert_eq!(results[&1].translation, "**첫 번째**입니다.");
+        assert_eq!(results[&2].translation, "*두 번째*입니다.");
+        let requests = provider.requests.lock().unwrap();
+        assert_eq!(requests[1].segments, vec![(1, "The <b1>first</b1> one.".to_string())]);
+        assert!(requests[1].feedback.as_deref().unwrap().contains("<b1>"), "{:?}", requests[1].feedback);
+    }
+
+    #[tokio::test]
+    async fn a_segment_whose_tags_never_hold_stays_untranslated() {
+        let (request, batch) = inline_request(&["The **first** one."]);
+        let provider = RecordingProvider {
+            responses: std::sync::Mutex::new(vec![[(1, "첫 번째입니다.".to_string())].into()]),
+            requests: std::sync::Mutex::new(Vec::new()),
+        };
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![];
+        let results = translate_with_evaluation_inline(
+            &provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 0, Some(&batch),
+        )
+        .await
+        .unwrap();
+        assert!(!results.contains_key(&1), "tag text is never stored as a translation");
     }
 }

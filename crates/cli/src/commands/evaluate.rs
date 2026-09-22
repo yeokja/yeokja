@@ -4,7 +4,7 @@ use yeokja_core::change::SegmentStatus;
 use yeokja_core::project::ProjectContext;
 use yeokja_translate::evaluator::{EvaluationContext, IssueSeverity};
 use yeokja_translate::factory::create_evaluator_provider;
-use yeokja_translate::orchestrator::{collect_files, scan_file, standard_evaluators};
+use yeokja_translate::orchestrator::{collect_files, evaluators_for, inline_tags_for, scan_file};
 
 pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
     let ctx = ProjectContext::load()?;
@@ -17,7 +17,10 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
     };
     let files = collect_files(Path::new(path), &ctx.config)?;
 
-    let evaluators = standard_evaluators(eval_provider, &ctx.config.project.target_lang);
+    // A file whose source uses inline tags gets the tag-mode format check: a
+    // split emphasis is no defect there.
+    let evaluators = evaluators_for(eval_provider.clone(), &ctx.config.project.target_lang, false);
+    let inline_evaluators = evaluators_for(eval_provider, &ctx.config.project.target_lang, true);
 
     let mut total_segments = 0usize;
     let mut total_issues = 0usize;
@@ -34,6 +37,8 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
 
         let (_, reconciled) = scan_file(file_path, &ctx.config, &ctx.glossary, &parser_factory)?;
         let markup = parser_factory(file_path, &ctx.config).markup();
+        let file_evaluators =
+            if inline_tags_for(&ctx.config, file_path) { &inline_evaluators } else { &evaluators };
 
         let mut file_issues = 0usize;
 
@@ -59,7 +64,7 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
                 markup,
             };
 
-            for evaluator in &evaluators {
+            for evaluator in file_evaluators {
                 match evaluator.evaluate(&eval_ctx).await {
                     Ok(result) => {
                         for issue in &result.issues {

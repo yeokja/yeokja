@@ -494,6 +494,34 @@ impl FormatEvaluator {
     }
 }
 
+/// The format check for inline-tag translations (see `inline`).
+///
+/// The tags and the serializer already vouch for the markup — emphasis,
+/// code, links, line starts — so only the prose parentheses are left to
+/// check. Running the full check would retry, with Markdown advice the model
+/// cannot act on, an emphasis Korean word order legitimately split in two.
+pub struct ParenthesisEvaluator;
+
+#[async_trait]
+impl TranslationEvaluator for ParenthesisEvaluator {
+    async fn evaluate(
+        &self,
+        context: &EvaluationContext,
+    ) -> Result<EvaluationResult, EvaluationError> {
+        let issues = parenthesis_issues(context);
+        let passed = !issues.iter().any(|i| i.severity == IssueSeverity::Error);
+        Ok(EvaluationResult { passed, issues })
+    }
+
+    fn triggers_retranslation(&self) -> bool {
+        true
+    }
+
+    fn name(&self) -> &'static str {
+        "Format"
+    }
+}
+
 /// Parentheses the translation doubles or leaves unpaired.
 ///
 /// They are read in the raw text, where the source's math is still there to
@@ -622,13 +650,13 @@ fn markdown_emphasis_pairs(text: &str) -> usize {
 /// pulldown-cmark is asking the renderer. Simulating it the way `pair_up`
 /// does for AsciiDoc would mean reproducing the delimiter stack, the rule of
 /// three, and the precedence of code spans and links.
-struct CommonMarkEmphasis {
-    formed: usize,
+pub(crate) struct CommonMarkEmphasis {
+    pub(crate) formed: usize,
     /// Char ranges of the runs left as text.
-    stray: Vec<std::ops::Range<usize>>,
+    pub(crate) stray: Vec<std::ops::Range<usize>>,
 }
 
-fn commonmark_emphasis(text: &str) -> CommonMarkEmphasis {
+pub(crate) fn commonmark_emphasis(text: &str) -> CommonMarkEmphasis {
     use pulldown_cmark::{Event, Options, Parser, Tag};
     let mut formed = 0;
     let mut literal = vec![false; text.len()];
@@ -933,7 +961,7 @@ fn unmatched_code<'a>(
 
 /// Whether `source` writes `content` as a word of its own — not inside a
 /// longer word — so a translation that marks it up as code adds nothing.
-fn written_as_text(source: &str, content: &str) -> bool {
+pub(crate) fn written_as_text(source: &str, content: &str) -> bool {
     let is_word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');
     !content.is_empty()
         && source.match_indices(content).any(|(at, _)| {
@@ -950,7 +978,7 @@ fn written_as_text(source: &str, content: &str) -> bool {
 /// sentence punctuation or a parenthesis the source let slip inside its end
 /// marks (``MyRing.``, ``PyObject_IsTrue())``). Nothing may be added: that is
 /// how PEP 818's ``({next(){}})`` gained a `)`.
-fn stands_for(written: &str, content: &str) -> bool {
+pub(crate) fn stands_for(written: &str, content: &str) -> bool {
     let plural = content.strip_suffix('s').is_some_and(|stem| {
         stem.chars().all(|c| c.is_ascii_alphabetic())
             && !stem.ends_with('s')
@@ -4085,5 +4113,19 @@ mod tests {
         assert_eq!(repair_asciidoc_boundaries("the `{...}`` shape", translation), translation);
         let fine = "``erlc``의 컴파일러";
         assert_eq!(repair_asciidoc_boundaries("The `erlc` compiler", fine), fine);
+    }
+
+    /// The tags and the serializer vouch for the markup, so tag mode checks
+    /// only the prose parentheses — and a split emphasis is no defect there.
+    #[tokio::test]
+    async fn the_inline_tag_format_check_looks_at_parentheses_only() {
+        let split = context_in(
+            Markup::Markdown,
+            "Set **`b` in `c.toml`**.",
+            "`c.toml`에서 **`b`**를 **설정**합니다.",
+        );
+        assert!(ParenthesisEvaluator.evaluate(&split).await.unwrap().passed);
+        let doubled = context_in(Markup::Markdown, "See it (in `x`).", "(( `x`에서)) 보십시오.");
+        assert!(!ParenthesisEvaluator.evaluate(&doubled).await.unwrap().passed);
     }
 }

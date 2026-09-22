@@ -8,11 +8,12 @@
 
 use crate::evaluator::TranslationEvaluator;
 use crate::evaluator_ending::EndingEvaluator;
-use crate::evaluator_format::FormatEvaluator;
+use crate::evaluator_format::{FormatEvaluator, ParenthesisEvaluator};
+use crate::inline::markdown::{DocContext, Position, Tagged};
 use crate::evaluator_glossary::GlossaryEvaluator;
 use crate::evaluator_link::LinkEvaluator;
 use crate::evaluator_style::StyleEvaluator;
-use crate::pipeline::translate_with_evaluation_observed;
+use crate::pipeline::{InlineBatch, translate_with_evaluation_observed};
 use crate::provider::{LlmProvider, TranslateRequest, TranslationProvider};
 use chrono::Utc;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -22,7 +23,7 @@ use tokio::sync::{Mutex, Semaphore, mpsc};
 use yeokja_core::config::ProjectConfig;
 use yeokja_core::glossary::Glossary;
 use yeokja_core::hash::content_hash;
-use yeokja_core::model::Document;
+use yeokja_core::model::{BlockType, Document};
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_core::reconcile::{ReconciledSegment, reconcile_with_status};
 use yeokja_core::select::apply_table_rules;
@@ -490,10 +491,29 @@ pub fn standard_evaluators(
     style_provider: Option<Arc<dyn LlmProvider>>,
     target_lang: &str,
 ) -> Vec<Box<dyn TranslationEvaluator>> {
+    evaluators_for(style_provider, target_lang, false)
+}
+
+/// Whether `file`'s source exchanges inline markup as tags (phase 1: the
+/// `markdown` parser only).
+pub fn inline_tags_for(config: &ProjectConfig, file: &Path) -> bool {
+    config.source_for(file).is_some_and(|source| source.inline_tags && source.parser == "markdown")
+}
+
+/// The evaluators for a request, inline-tag or not. With inline tags the
+/// markup is the serializer's, so the format check keeps only the prose
+/// parentheses (see `ParenthesisEvaluator`).
+pub fn evaluators_for(
+    style_provider: Option<Arc<dyn LlmProvider>>,
+    target_lang: &str,
+    inline_tags: bool,
+) -> Vec<Box<dyn TranslationEvaluator>> {
+    let format: Box<dyn TranslationEvaluator> =
+        if inline_tags { Box::new(ParenthesisEvaluator) } else { Box::new(FormatEvaluator) };
     let mut evaluators: Vec<Box<dyn TranslationEvaluator>> = vec![
         Box::new(GlossaryEvaluator),
         Box::new(LinkEvaluator),
-        Box::new(FormatEvaluator),
+        format,
         Box::new(EndingEvaluator),
     ];
     if let Some(provider) = style_provider {
@@ -533,10 +553,79 @@ pub async fn evaluate_translation(
 
 /// Group segments needing translation by their containing block.
 /// Returns `(block_raw_content, [(flat_segment_index, segment_state)])` pairs.
-fn group_by_block(
-    doc: &Document,
-    reconciled: &[ReconciledSegment],
-) -> Vec<(String, Vec<(usize, SegmentState)>)> {
+/// A request as tag text: its context, its numbered segments, and their tags.
+type TaggedRequest = (String, Vec<(usize, String)>, InlineBatch);
+
+/// What a file whose source uses inline tags needs to tag its requests: the
+/// document's reference labels, each segment's source and position.
+struct InlineFile {
+    ctx: DocContext,
+    sources: HashMap<String, String>,
+    positions: HashMap<String, Position>,
+}
+
+impl InlineFile {
+    fn new(doc: &Document) -> Self {
+        let mut sources = HashMap::new();
+        let mut positions = HashMap::new();
+        for block in doc.sections.iter().flat_map(|section| &section.blocks) {
+            let position = if block.block_type == BlockType::Table { Position::TableCell } else { Position::Inline };
+            for segment in &block.segments {
+                sources.insert(segment.id.0.clone(), segment.source.clone());
+                positions.insert(segment.id.0.clone(), position);
+            }
+        }
+        Self { ctx: DocContext::from_markdown(&doc.source), sources, positions }
+    }
+
+    /// The request's context and segments as tag text, numbered across the
+    /// whole request, or `None` when a segment to translate cannot be tagged
+    /// — then the request goes the legacy way. A context segment that cannot
+    /// be tagged is shown as its source text.
+    fn tag_request(
+        &self,
+        blocks: &[Vec<String>],
+        pending: &[(usize, SegmentState)],
+    ) -> Option<TaggedRequest> {
+        let wanted: HashSet<&str> = pending.iter().map(|(_, seg)| seg.id.0.as_str()).collect();
+        let mut counter = 0;
+        let mut tagged: HashMap<&str, Tagged> = HashMap::new();
+        let mut context_blocks = Vec::new();
+        for ids in blocks {
+            let mut parts = Vec::new();
+            for id in ids {
+                let source = self.sources.get(id)?;
+                let position = self.positions.get(id).copied().unwrap_or_default();
+                match crate::inline::markdown::tagify(source, &self.ctx, position, &mut counter) {
+                    Ok(t) => {
+                        parts.push(t.text.clone());
+                        tagged.insert(id, t);
+                    }
+                    Err(reason) if wanted.contains(id.as_str()) => {
+                        tracing::info!(segment = %id, reason = %reason.0, "Inline tags unavailable; the request goes the legacy way");
+                        return None;
+                    }
+                    Err(_) => parts.push(source.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")),
+                }
+            }
+            context_blocks.push(parts.join(" "));
+        }
+        let mut segments = Vec::new();
+        let mut by_index = HashMap::new();
+        for (index, (_, seg)) in pending.iter().enumerate() {
+            let t = tagged.remove(seg.id.0.as_str())?;
+            segments.push((index + 1, t.text.clone()));
+            by_index.insert(index + 1, t);
+        }
+        Some((context_blocks.join("\n\n---\n\n"), segments, InlineBatch { tagged: by_index, ctx: self.ctx.clone() }))
+    }
+}
+
+/// A request's worth of blocks: their joined context, the segments to
+/// translate, and each block's segment IDs (for tagging the context).
+type BlockGroup = (String, Vec<(usize, SegmentState)>, Vec<Vec<String>>);
+
+fn group_by_block(doc: &Document, reconciled: &[ReconciledSegment]) -> Vec<BlockGroup> {
     let needs_translation: HashSet<usize> = reconciled
         .iter()
         .enumerate()
@@ -570,7 +659,8 @@ fn group_by_block(
             }
 
             if !block_segments.is_empty() {
-                groups.push((block.raw_content.clone(), block_segments));
+                let ids = block.segments.iter().map(|segment| segment.id.0.clone()).collect();
+                groups.push((block.raw_content.clone(), block_segments, vec![ids]));
             }
         }
     }
@@ -585,10 +675,7 @@ fn group_by_block(
 /// while the numbered segments and evaluators remain exactly as granular as
 /// before. Very large blocks stay alone and the byte cap prevents an otherwise
 /// harmless run of tiny segments from producing an unwieldy prompt.
-fn batch_block_groups(
-    groups: Vec<(String, Vec<(usize, SegmentState)>)>,
-    segment_limit: usize,
-) -> Vec<(String, Vec<(usize, SegmentState)>)> {
+fn batch_block_groups(groups: Vec<BlockGroup>, segment_limit: usize) -> Vec<BlockGroup> {
     const CONTEXT_LIMIT: usize = 16 * 1024;
     let segment_limit = segment_limit.max(1);
     if segment_limit == 1 {
@@ -598,15 +685,20 @@ fn batch_block_groups(
     let mut batched = Vec::new();
     let mut context = String::new();
     let mut segments = Vec::new();
+    let mut blocks: Vec<Vec<String>> = Vec::new();
 
-    for (next_context, mut next_segments) in groups {
+    for (next_context, mut next_segments, mut next_blocks) in groups {
         let separator = if context.is_empty() { 0 } else { 7 }; // "\n\n---\n\n"
         let exceeds_segments =
             !segments.is_empty() && segments.len() + next_segments.len() > segment_limit;
         let exceeds_context =
             !segments.is_empty() && context.len() + separator + next_context.len() > CONTEXT_LIMIT;
         if exceeds_segments || exceeds_context {
-            batched.push((std::mem::take(&mut context), std::mem::take(&mut segments)));
+            batched.push((
+                std::mem::take(&mut context),
+                std::mem::take(&mut segments),
+                std::mem::take(&mut blocks),
+            ));
         }
 
         if !context.is_empty() {
@@ -614,10 +706,11 @@ fn batch_block_groups(
         }
         context.push_str(&next_context);
         segments.append(&mut next_segments);
+        blocks.append(&mut next_blocks);
     }
 
     if !segments.is_empty() {
-        batched.push((context, segments));
+        batched.push((context, segments, blocks));
     }
     batched
 }
@@ -786,6 +879,7 @@ impl FileTranslator {
             tracing::debug!(file = %file_path.display(), excluded, "Table rules excluded cells");
         }
         let doc = doc;
+        let inline = inline_tags_for(&self.config, file_path).then(|| Arc::new(InlineFile::new(&doc)));
         let state_path = StateFile::state_file_path(file_path, self.config.state_dir());
 
         let existing = if state_path.exists() {
@@ -823,7 +917,7 @@ impl FileTranslator {
             },
         );
 
-        let total_segments: usize = block_groups.iter().map(|(_, segs)| segs.len()).sum();
+        let total_segments: usize = block_groups.iter().map(|(_, segs, _)| segs.len()).sum();
         tracing::info!(
             file = %file_path.display(),
             blocks = block_groups.len(),
@@ -889,7 +983,8 @@ impl FileTranslator {
         // permit is the moment a worker picks the block up.
         let mut handles = Vec::new();
         let markup = parser.markup();
-        for (block_context, block_segments) in block_groups {
+        for (block_context, block_segments, block_ids) in block_groups {
+            let inline = inline.clone();
             let this = FileTranslator {
                 config: self.config.clone(),
                 glossary: self.glossary.clone(),
@@ -929,7 +1024,15 @@ impl FileTranslator {
                     },
                 );
                 match this
-                    .translate_block(block_id, &block_context, &block_segments, markup, &progress)
+                    .translate_block(
+                        block_id,
+                        &block_context,
+                        &block_segments,
+                        &block_ids,
+                        inline.as_deref(),
+                        markup,
+                        &progress,
+                    )
                     .await
                 {
                     Ok(updates) => {
@@ -967,19 +1070,30 @@ impl FileTranslator {
 
     /// Translate one block's pending segments, optionally running the
     /// evaluate-retry pipeline. Returns the resulting segment updates.
+    #[allow(clippy::too_many_arguments)]
     async fn translate_block(
         &self,
         block_id: u64,
         block_context: &str,
         block_segments: &[(usize, SegmentState)],
+        block_ids: &[Vec<String>],
+        inline: Option<&InlineFile>,
         markup: Markup,
         progress: &Option<ProgressSender>,
     ) -> Result<Vec<SegmentUpdate>, crate::provider::TranslateError> {
-        let request_segments: Vec<(usize, String)> = block_segments
-            .iter()
-            .enumerate()
-            .map(|(req_idx, (_, seg))| (req_idx + 1, seg.source.clone()))
-            .collect();
+        let tagged = inline.and_then(|file| file.tag_request(block_ids, block_segments));
+        let (block_context, request_segments, inline_batch) = match tagged {
+            Some((context, segments, batch)) => (context, segments, Some(batch)),
+            None => (
+                block_context.to_string(),
+                block_segments
+                    .iter()
+                    .enumerate()
+                    .map(|(req_idx, (_, seg))| (req_idx + 1, seg.source.clone()))
+                    .collect(),
+                None,
+            ),
+        };
 
         let paragraphs: HashMap<usize, String> = block_segments
             .iter()
@@ -1002,11 +1116,23 @@ impl FileTranslator {
             feedback: None,
             prompt_template: self.config.provider.prompt_template.clone(),
             paragraphs,
+            inline_tags: inline_batch.is_some(),
         };
 
-        let translations: Vec<(usize, String, Vec<String>)> = if self.options.auto_evaluate {
-            let evaluators =
-                standard_evaluators(self.eval_provider.clone(), &self.config.project.target_lang);
+        // Tag text has to become Markdown, so an inline-tag request always
+        // goes through the pipeline, with or without evaluators.
+        let translations: Vec<(usize, String, Vec<String>)> = if self.options.auto_evaluate
+            || inline_batch.is_some()
+        {
+            let evaluators = if self.options.auto_evaluate {
+                evaluators_for(
+                    self.eval_provider.clone(),
+                    &self.config.project.target_lang,
+                    inline_batch.is_some(),
+                )
+            } else {
+                Vec::new()
+            };
             let evaluator_refs: Vec<&dyn TranslationEvaluator> =
                 evaluators.iter().map(|e| e.as_ref()).collect();
 
@@ -1044,6 +1170,7 @@ impl FileTranslator {
                 &self.config.project.target_lang,
                 markup,
                 self.options.max_retries,
+                inline_batch.as_ref(),
                 &observer,
             )
             .await?
@@ -1639,5 +1766,91 @@ model = "test"
 
         assert_eq!(outcome.segments_translated, 0);
         assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+
+    /// Replies with a fixed translation per request and records the requests.
+    struct TagProvider {
+        reply: String,
+        requests: Arc<std::sync::Mutex<Vec<TranslateRequest>>>,
+    }
+
+    #[async_trait]
+    impl TranslationProvider for TagProvider {
+        async fn translate(
+            &self,
+            request: TranslateRequest,
+        ) -> Result<TranslateResponse, crate::provider::TranslateError> {
+            let translations = request.segments.iter().map(|(idx, _)| (*idx, self.reply.clone())).collect();
+            self.requests.lock().unwrap().push(request);
+            Ok(TranslateResponse { translations, usage: None })
+        }
+    }
+
+    fn inline_orchestrator(dir: &Path, reply: &str) -> (Orchestrator, Arc<std::sync::Mutex<Vec<TranslateRequest>>>) {
+        let config = test_config(&format!(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "{}"
+pattern = "**/*.md"
+parser = "markdown"
+output = "{{dir}}/{{stem}}.ko{{ext}}"
+inline_tags = true
+
+[provider]
+type = "openai_compatible"
+model = "test"
+"#,
+            dir.display()
+        ));
+        let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let orchestrator = Orchestrator {
+            config: Arc::new(config),
+            glossary: Arc::new(Glossary::empty()),
+            provider: Arc::new(TagProvider { reply: reply.to_string(), requests: requests.clone() }),
+            eval_provider: None,
+            parser_factory: Arc::new(|_, _| Box::new(OneBlockParser)),
+            options: TranslateOptions { auto_evaluate: false, style_evaluate: false, max_retries: 0, concurrency: 1 },
+            cancel: CancelToken::default(),
+        };
+        (orchestrator, requests)
+    }
+
+    fn stored_translation(dir: &Path, file: &str) -> Option<String> {
+        let state = StateFile::load(&StateFile::state_file_path(&dir.join(file), None)).unwrap();
+        state.segments[0].translation.clone()
+    }
+
+    #[tokio::test]
+    async fn an_inline_tag_source_sends_tags_and_stores_markdown() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("ch1.md"), "It comes from the **outer product** here.").unwrap();
+        let (orchestrator, requests) = inline_orchestrator(dir.path(), "여기의 <b1>외적(outer product)</b1>에서 옵니다.");
+        orchestrator.translate_path(dir.path(), None).await.unwrap();
+
+        let requests = requests.lock().unwrap();
+        assert!(requests[0].inline_tags);
+        assert_eq!(requests[0].segments[0].1, "It comes from the <b1>outer product</b1> here.");
+        assert_eq!(requests[0].block_context, "It comes from the <b1>outer product</b1> here.");
+        assert_eq!(
+            stored_translation(dir.path(), "ch1.md").as_deref(),
+            Some("여기의 **외적**(outer product)에서 옵니다.")
+        );
+    }
+
+    #[tokio::test]
+    async fn an_untaggable_segment_goes_the_legacy_way() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("ch1.md"), "_Applied to struct fields.").unwrap();
+        let (orchestrator, requests) = inline_orchestrator(dir.path(), "_구조체 필드에 적용합니다.");
+        orchestrator.translate_path(dir.path(), None).await.unwrap();
+
+        let requests = requests.lock().unwrap();
+        assert!(!requests[0].inline_tags);
+        assert_eq!(requests[0].segments[0].1, "_Applied to struct fields.");
+        assert_eq!(stored_translation(dir.path(), "ch1.md").as_deref(), Some("_구조체 필드에 적용합니다."));
     }
 }
