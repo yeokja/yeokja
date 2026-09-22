@@ -405,16 +405,15 @@ fn revive_references(reply: &str, dead: &[&Tag], tagged: &Tagged) -> Result<Stri
             dead.iter().map(|d| ascii_words(&format!("{} {}", d.label.as_deref().unwrap_or(""), d.close))).collect();
         let text_words: Vec<HashSet<String>> = candidates.iter().map(|(_, t)| ascii_words(t)).collect();
         let score = |c: usize, d: usize| text_words[c].intersection(&label_words[d]).count();
-        let mut best: Vec<(usize, Vec<usize>)> = Vec::new();
-        for perm in permutations(dead.len()) {
-            if perm.iter().enumerate().all(|(c, d)| score(c, *d) > 0) {
-                best.push((perm.iter().enumerate().map(|(c, d)| score(c, *d)).sum(), perm));
-            }
-        }
+        // The pairing that keeps the most words, when no other keeps as
+        // many: one label that kept `AST` settles the other one too.
+        let mut best: Vec<(usize, Vec<usize>)> = permutations(dead.len())
+            .into_iter()
+            .map(|perm| (perm.iter().enumerate().map(|(c, d)| score(c, *d)).sum(), perm))
+            .collect();
         best.sort_by_key(|b| std::cmp::Reverse(b.0));
         match best.as_slice() {
-            [only] => only.1.clone(),
-            [first, second, ..] if first.0 > second.0 => first.1.clone(),
+            [first, second, ..] if first.0 > 0 && first.0 > second.0 => first.1.clone(),
             _ => return Err(vec!["several reference links lost and their order is unclear".to_string()]),
         }
     };
@@ -511,6 +510,11 @@ mod tests {
                 REFS
             )),
             "[GPG]를 사용하여 [keybase.io에서 확인할 수 있는][available on keybase.io] [Rust 서명 키][Rust signing key]로 서명됩니다."
+        );
+        // One kept word settles both.
+        assert_eq!(
+            repaired(check("See [team repo] and [GPG].", "[지피지]와 [팀 repo]를 보십시오.", REFS)),
+            "[지피지][GPG]와 [팀 repo][team repo]를 보십시오."
         );
         // Nothing to tell them apart: left for a person.
         assert!(matches!(

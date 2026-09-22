@@ -52,7 +52,8 @@ micromark mdx)로 읽어 원문과 구조를 비교했다.
 4. 끊긴 참조 링크를 되살린다: 번역 글자 속의 대괄호 `[…]`·`[…][…]`(태그를 품어도 된다) 가운데
    원문에도 글자로 있는 것과 GFM 경고 표시 `[!…]`를 뺀 것을, 맞추지 못한 원문 참조 링크와
    개수가 같을 때 짝짓는다. 하나면 그대로, 여럿이면 번역 레이블에 남은 영어 낱말(두 글자 이상의
-   ASCII 낱말)이 원문 레이블과 겹치는 쪽으로 짝지어 한 가지로만 정해질 때만 쓴다(한국어 어순이
+   ASCII 낱말)이 원문 레이블과 가장 많이 겹치는 짝짓기가 하나뿐이고 겹침이 있을 때만 쓴다
+   (`[매크로 확장] … [AST 노드]`처럼 하나에 남은 `AST`가 나머지도 정한다. 한국어 어순이
    `[Rust signing key] … [available on keybase.io]`를 `[keybase.io에서 확인할 수 있는]
    [Rust 서명 키]`로 뒤집는다). 대괄호 바로 뒤의 `(레이블)`이 그 참조 레이블이면
    (`[beta로 백포트](backported to beta)`, 모델이 레이블을 목적지 자리에 쓴 것) 걷어 낸다.
@@ -97,3 +98,21 @@ Repaired는 세그먼트 전체를 다시 직렬화하므로 결함과 무관한
   Sound인 세그먼트를 바꾸지 않는지(저장된 번역을 그대로 태그화한 왕복과 같은 성질) 본다.
 - 수선 뒤: 같은 방언 렌더러 채점에서 결함 감소, 21개 Pages 프로젝트 `rebuild-translations.sh`
   통과, 수선한 프로젝트 빌드.
+
+## 4. 결과 (2026-09-22)
+
+- 감사: markdown 계열 11개 소스에서 고칠 수 있는 것 165건(rustc-dev-guide 130, rust-forge 26,
+  webassembly-component-docs 7, zero-to-nix 2), 못 고치는 것 11건. 고친 것을 모두 전·후로 읽어
+  잘못 고친 것이 없음을 확인하고 `--repair`로 썼다(state의 `translation` 값 165줄만 바뀜).
+- 방언 렌더러 전수 채점의 결함이 169건에서 20건으로 줄었다. 남은 것은 허용되는 코드 덜어 내기
+  8, linkify 1, learn-fpga의 원문 자체의 짝 없는 `*` 1, 못 고친 참조 10이다.
+- 못 고친 것: 끊긴 참조 여럿에 영어가 남지 않아 짝을 정할 수 없는 것 5(rust-forge
+  `editions/edition-releases.md` section:2/block:22/seg:0, rustc-dev-guide
+  `appendix/code-index.md` section:0/block:95/seg:0, `diagnostics.md` section:7/block:6/seg:0,
+  `unsafety-checking.md` section:3/block:1/seg:0, `overview.md` section:1/block:21/seg:0), 번역이
+  링크 글자를 아예 빠뜨린 것 5(rust-forge `editions/edition-releases.md` section:2/block:53/seg:0,
+  rustc-dev-guide `external-repos.md` section:1/block:41/seg:0, `mir/optimizations.md`
+  section:3/block:1/seg:4, `rustdoc-internals.md` section:5/block:1/seg:0,
+  webassembly-component-docs `language-support/building-a-simple-component/c.md`
+  section:0/block:1/seg:0), learn-fpga `FemtoRV/TUTORIALS/FPU.md` section:1/block:16/seg:3
+  1(원문도 짝 없는 `*`). 손으로 고치거나 다시 번역한다.
