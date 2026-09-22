@@ -23,12 +23,15 @@
   다른 프로젝트와 통일하려고 바꾸더라도, **이미 번역된 세그먼트는 재번역되지
   않는 한 원래 모델의 결과물로 남는다**는 점을 감안해 README 출처 표기 시점에
   실제 이력을 다시 확인해야 합니다 (AGENTS.md 참고).
-- mdBook처럼 `$` 수식이 없는 CommonMark 렌더러로 빌드하는 `markdown` 소스에는
-  `inline_tags = true`를 켭니다(인라인 태그 전송, 설계는
-  `docs/superpowers/specs/2026-09-22-inline-tag-transport-design.md`). 강조·링크는
-  태그로 주고받고 문법은 직렬화기가 쓰므로 조사 앞 강조·코드 스팬 변경·링크 손실 같은
-  결함이 구조적으로 생기지 않습니다. 다른 파서(myst, mdx 등)에는 아직 켤 수 없고,
-  커스텀 `prompt_template`을 쓰면 `{inline_tags}` 자리표시자가 필요합니다.
+- 인라인 태그 전송(`inline_tags = true`, 설계는
+  `docs/superpowers/specs/2026-09-22-inline-tag-transport-design.md`와 같은 날짜의 1b
+  문서)을 켭니다. 켤 수 있는 소스: mdBook처럼 `$` 수식이 없는 CommonMark 렌더러로
+  빌드하는 `markdown` 소스, `dollarmath`·`amsmath`를 켜지 않은 `myst` 소스, remark-math
+  없이 빌드하는 `mdx` 소스. 강조·링크·MyST 역할의 레이블은 태그로 주고받고 문법은
+  직렬화기가 쓰므로 조사 앞 강조·코드 스팬 변경·링크 손실 같은 결함이 구조적으로 생기지
+  않습니다. 그 밖의 파서에는 아직 켤 수 없고, 커스텀 `prompt_template`을 쓰면
+  `{inline_tags}` 자리표시자가 필요합니다(템플릿의 Markdown 강조 규칙 문장은 태그 모드에서
+  모델이 보지 않는 문법이므로 자리표시자로 바꿉니다).
 - `[derive]`로 upstream 오버레이와 `ko/` 오버레이를 구성합니다.
 - `[build.html]`(또는 pdf/epub)에 실제 빌드 명령을 정의합니다.
 
