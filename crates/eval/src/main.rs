@@ -63,6 +63,13 @@ enum Commands {
         /// Only items whose id contains this
         #[arg(long)]
         only: Option<String>,
+        /// Fuse: the candidate edits these runs' translations into its own
+        #[arg(long = "draft")]
+        drafts: Vec<PathBuf>,
+        /// With --draft: put each corrected-away translation in the first
+        /// draft and run only the items that have one
+        #[arg(long)]
+        contaminate: bool,
     },
     /// Mechanical checks per block of each run (writes <run>/gates.jsonl)
     Gate {
@@ -145,8 +152,9 @@ async fn main() -> anyhow::Result<()> {
         Commands::Extract { repo, out, seed, target, per_project_min, per_project_max } => {
             extract::run(&extract::Options { repo, out, seed, target, per_project_min, per_project_max })
         }
-        Commands::Run { candidate, set, out, concurrency, max_retries, repeat, subset, only } => {
-            run::run(run::Options { set, candidate, out, concurrency, max_retries, repeat, subset, only }).await
+        Commands::Run { candidate, set, out, concurrency, max_retries, repeat, subset, only, drafts, contaminate } => {
+            run::run(run::Options { set, drafts, contaminate, candidate, out, concurrency, max_retries, repeat, subset, only })
+                .await
         }
         Commands::Gate { runs, set } => gate::run(set, runs).await,
         Commands::Judge { baseline, candidates, judges, out, set, concurrency, seed, real } => {

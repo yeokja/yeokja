@@ -89,8 +89,55 @@ impl TranslationProvider for Recorder {
     }
 }
 
+/// Asks the editor for a translation with other translators' drafts in
+/// view: the drafts are anonymous, in a fixed shuffled order, and framed as
+/// fallible, so none is deferred to for being the one already in use.
+struct Fuser {
+    llm: Arc<dyn yeokja_translate::provider::LlmProvider>,
+    /// Draft number → segment index → the draft's translation.
+    drafts: Vec<BTreeMap<usize, String>>,
+}
+
+const FUSE_RULES: &str = "Draft translations of these sentences follow, written by different translators. They \
+are shown as plain markup, not in any tag format. They are drafts, not references: any of them may \
+mistranslate, drop or add meaning, lose links or markup, or read unnaturally, and a draft is not better \
+for appearing first. Do not assume any draft is correct and do not average them. Write the best \
+translation of each numbered sentence yourself: reuse a draft's wording where it is right, combine \
+drafts, or write something new. Your answer must follow every rule above, including the [N] format";
+
+#[async_trait]
+impl TranslationProvider for Fuser {
+    async fn translate(&self, request: TranslateRequest) -> Result<TranslateResponse, TranslateError> {
+        let mut prompt = yeokja_translate::prompt::build_prompt(&request);
+        prompt.push('\n');
+        prompt.push_str(FUSE_RULES);
+        prompt.push_str(if request.inline_tags { " and the tag format of the sentences.\n" } else { ".\n" });
+        for (n, draft) in self.drafts.iter().enumerate() {
+            prompt.push_str(&format!("\nDraft {}:\n", n + 1));
+            for (idx, _) in &request.segments {
+                if let Some(text) = draft.get(idx) {
+                    prompt.push_str(&format!("[{idx}] {text}\n"));
+                }
+            }
+        }
+        let response =
+            self.llm.complete(yeokja_translate::provider::CompletionRequest { prompt }).await?;
+        let translations = yeokja_translate::prompt::parse_response_for(&response.text, &request.segments)
+            .map_err(TranslateError::Parse)?;
+        Ok(TranslateResponse { translations, usage: response.usage })
+    }
+}
+
+const EDITOR_SYSTEM_PROMPT: &str = "You are a professional translator and editor. Translate accurately while \
+preserving the original formatting, technical terms, and structure. Output only the translation.";
+
 pub struct Options {
     pub set: PathBuf,
+    /// Runs whose final translations are the drafts (fusion when non-empty).
+    pub drafts: Vec<PathBuf>,
+    /// Replace the first draft with the corrected-away translation where the
+    /// set has one, and run only those items: does a bad draft leak through?
+    pub contaminate: bool,
     pub candidate: PathBuf,
     pub out: PathBuf,
     pub concurrency: usize,
@@ -224,6 +271,18 @@ pub async fn run(opts: Options) -> Result<()> {
         &std::fs::read_to_string(&opts.candidate).with_context(|| format!("read {}", opts.candidate.display()))?,
     )?;
     let provider = create_provider(&candidate.provider).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let editor = if opts.drafts.is_empty() {
+        None
+    } else {
+        Some(
+            yeokja_translate::factory::create_llm_provider(&candidate.provider, EDITOR_SYSTEM_PROMPT)
+                .map_err(|e| anyhow::anyhow!("{e}"))?,
+        )
+    };
+    let mut draft_rows: Vec<std::collections::HashMap<String, Output>> = Vec::new();
+    for run in &opts.drafts {
+        draft_rows.push(outputs(run)?.into_iter().filter(|o| o.repeat == 0).map(|o| (o.item.clone(), o)).collect());
+    }
     std::fs::create_dir_all(&opts.out)?;
 
     let mut items: Vec<(String, Item)> = Vec::new();
@@ -234,6 +293,9 @@ pub async fn run(opts: Options) -> Result<()> {
                 items.push((bucket.clone(), item));
             }
         }
+    }
+    if opts.contaminate {
+        items.retain(|(_, i)| i.blocks.iter().flat_map(|b| &b.segments).any(|s| s.known_bad.is_some()));
     }
     if let Some(n) = opts.subset {
         items = subset(items, n);
@@ -256,6 +318,8 @@ pub async fn run(opts: Options) -> Result<()> {
         "repeat": opts.repeat,
         "max_retries": opts.max_retries,
         "style_evaluate": false,
+        "drafts": opts.drafts.iter().map(|d| d.display().to_string()).collect::<Vec<_>>(),
+        "contaminate": opts.contaminate,
         "started_at": chrono::Utc::now().to_rfc3339(),
     })))?;
     if !set_commits.contains(head.as_str()) {
@@ -287,7 +351,31 @@ pub async fn run(opts: Options) -> Result<()> {
             if done.contains(&(item.id.clone(), repeat)) {
                 continue;
             }
-            let provider = provider.clone();
+            let provider: Arc<dyn TranslationProvider> = match &editor {
+                None => provider.clone(),
+                Some(llm) => {
+                    let mut drafts: Vec<BTreeMap<usize, String>> = draft_rows
+                        .iter()
+                        .map(|rows| {
+                            rows.get(&item.id)
+                                .map(|o| o.finals.iter().map(|(i, f)| (*i, f.translation.clone())).collect())
+                                .unwrap_or_default()
+                        })
+                        .collect();
+                    if opts.contaminate && let Some(first) = drafts.first_mut() {
+                        for seg in item.blocks.iter().flat_map(|b| &b.segments) {
+                            if let Some(bad) = &seg.known_bad {
+                                first.insert(seg.index, bad.clone());
+                            }
+                        }
+                    }
+                    // Anonymous and shuffled per item, the same way every run.
+                    if content_hash(&format!("drafts:{}", item.id)).is_multiple_of(2) {
+                        drafts.reverse();
+                    }
+                    Arc::new(Fuser { llm: llm.clone(), drafts })
+                }
+            };
             let semaphore = semaphore.clone();
             let writer = writer.clone();
             let label = candidate.label.clone();
