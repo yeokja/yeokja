@@ -1049,6 +1049,7 @@ impl Orchestrator {
         path: &Path,
         editor: Arc<dyn LlmProvider>,
         previous: &(dyn Fn(&Path) -> Option<PreviousTranslations> + Sync),
+        skip_after: Option<chrono::DateTime<Utc>>,
     ) -> Result<TranslateOutcome, OrchestratorError> {
         let files = collect_files(path, &self.config)?;
         let semaphore = Arc::new(Semaphore::new(self.options.concurrency.max(1)));
@@ -1058,7 +1059,7 @@ impl Orchestrator {
                 break;
             }
             let prev = previous(&file).unwrap_or_default();
-            match self.fuse_file(&file, editor.clone(), &prev, &semaphore).await {
+            match self.fuse_file(&file, editor.clone(), &prev, skip_after, &semaphore).await {
                 Ok(n) => {
                     outcome.files_processed += 1;
                     outcome.segments_translated += n;
@@ -1077,6 +1078,7 @@ impl Orchestrator {
         file_path: &Path,
         editor: Arc<dyn LlmProvider>,
         previous: &PreviousTranslations,
+        skip_after: Option<chrono::DateTime<Utc>>,
         semaphore: &Arc<Semaphore>,
     ) -> Result<usize, OrchestratorError> {
         let parser = (self.parser_factory)(file_path, &self.config);
@@ -1138,6 +1140,13 @@ impl Orchestrator {
                 })
                 .collect();
             if earlier.iter().all(|(i, text)| current.get(i) == Some(text)) {
+                continue;
+            }
+            // Translated since the fusion began: an interrupted run already
+            // fused this request.
+            if let Some(since) = skip_after
+                && block_segments.iter().all(|(_, seg)| seg.translated_at.is_some_and(|at| at >= since))
+            {
                 continue;
             }
             let key = format!("{}#{}", file_path.display(), block_segments[0].1.id.0);
@@ -1212,6 +1221,8 @@ impl Orchestrator {
             })
             .collect();
         let mut fused = 0;
+        let output_path = resolve_output_path(file_path, &self.config);
+        let source_hash = content_hash(&source);
         for handle in handles {
             match handle.await? {
                 Ok(updates) => {
@@ -1225,14 +1236,15 @@ impl Orchestrator {
                         seg.glossary_snapshot = update.glossary_snapshot;
                         seg.issues = update.issues;
                     }
+                    // Saved after every request, so an interrupted run
+                    // loses at most the requests in flight.
+                    let mut state = StateFile::new(source_hash);
+                    state.segments = segments.clone();
+                    state.save(&state_path)?;
                 }
                 Err(e) => tracing::error!(file = %file_path.display(), error = %e, "Fusion request failed; keeping its translations"),
             }
         }
-        let mut state = StateFile::new(content_hash(&source));
-        state.segments = segments.clone();
-        state.save(&state_path)?;
-        let output_path = resolve_output_path(file_path, &self.config);
         self.clone_parts().write_output(&*parser, &doc, &segments, file_path, &output_path)?;
         tracing::info!(file = %file_path.display(), changed = fused, "Fused");
         Ok(fused)
@@ -2025,13 +2037,29 @@ model = "test"
             Some(HashMap::from([(seg.id.0.clone(), (seg.source_hash, "KO:earlier".to_string()))]))
         };
         let outcome =
-            orchestrator.fuse_path(dir.path(), Arc::new(Editor(prompts.clone())), &previous).await.unwrap();
+            orchestrator.fuse_path(dir.path(), Arc::new(Editor(prompts.clone())), &previous, None).await.unwrap();
         assert_eq!(outcome.segments_translated, 1);
         let prompts = prompts.lock().unwrap();
         assert_eq!(prompts.len(), 1);
         assert!(prompts[0].contains("KO:Hello.") && prompts[0].contains("KO:earlier"));
         let state = StateFile::load(&StateFile::state_file_path(&dir.path().join("ch1.md"), None)).unwrap();
         assert_eq!(state.segments[0].translation.as_deref(), Some("FUSED"));
+    }
+
+    #[tokio::test]
+    async fn fuse_skips_requests_translated_since_it_began() {
+        let dir = tempfile::tempdir().unwrap();
+        let before = Utc::now();
+        let (orchestrator, seg) = translated(dir.path()).await;
+        let prompts = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let previous = |_: &Path| -> Option<PreviousTranslations> {
+            Some(HashMap::from([(seg.id.0.clone(), (seg.source_hash, "KO:earlier".to_string()))]))
+        };
+        orchestrator
+            .fuse_path(dir.path(), Arc::new(Editor(prompts.clone())), &previous, Some(before))
+            .await
+            .unwrap();
+        assert!(prompts.lock().unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -2043,7 +2071,7 @@ model = "test"
         let previous = |_: &Path| -> Option<PreviousTranslations> {
             Some(HashMap::from([(seg.id.0.clone(), (seg.source_hash, same.clone()))]))
         };
-        orchestrator.fuse_path(dir.path(), Arc::new(Editor(prompts.clone())), &previous).await.unwrap();
+        orchestrator.fuse_path(dir.path(), Arc::new(Editor(prompts.clone())), &previous, None).await.unwrap();
         assert!(prompts.lock().unwrap().is_empty());
     }
 

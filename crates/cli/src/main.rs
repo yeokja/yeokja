@@ -38,6 +38,10 @@ enum Commands {
         /// Git revision whose state holds the earlier translations
         #[arg(long)]
         previous: String,
+        /// Skip requests whose segments were all translated at or after this
+        /// RFC 3339 time: they were fused by an earlier, interrupted run
+        #[arg(long)]
+        skip_after: Option<String>,
     },
     /// Show translation status
     Status {
@@ -144,8 +148,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     match cli.command {
-        Commands::Fuse { path, previous } => {
-            commands::fuse::run(&path, &previous).await?;
+        Commands::Fuse { path, previous, skip_after } => {
+            commands::fuse::run(&path, &previous, skip_after.as_deref()).await?;
         }
         Commands::Translate { path, tui: use_tui } => {
             if use_tui {

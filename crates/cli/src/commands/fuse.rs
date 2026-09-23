@@ -29,7 +29,10 @@ fn previous_at(rev: &str, file: &Path, state_dir: Option<&Path>) -> Option<Previ
 /// Rewrite the translations under `path` with the editor (the project's
 /// provider), using the current and the `previous` revision's translations
 /// as drafts.
-pub async fn run(path: &str, previous: &str) -> Result<()> {
+pub async fn run(path: &str, previous: &str, skip_after: Option<&str>) -> Result<()> {
+    let skip_after = skip_after
+        .map(|t| chrono::DateTime::parse_from_rfc3339(t).map(|t| t.with_timezone(&chrono::Utc)))
+        .transpose()?;
     let ctx = ProjectContext::load()?;
     let options = TranslateOptions::from_config(&ctx.config);
     let editor = create_llm_provider(&ctx.config.provider, EDITOR_SYSTEM_PROMPT)?;
@@ -49,7 +52,7 @@ pub async fn run(path: &str, previous: &str) -> Result<()> {
         cancel: CancelToken::default(),
     };
     let lookup = |file: &Path| previous_at(previous, file, state_dir.as_deref());
-    let outcome = orchestrator.fuse_path(Path::new(path), editor, &lookup).await?;
+    let outcome = orchestrator.fuse_path(Path::new(path), editor, &lookup, skip_after).await?;
     tracing::info!(
         files = outcome.files_processed,
         changed = outcome.segments_translated,
