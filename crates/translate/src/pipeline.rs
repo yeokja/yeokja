@@ -33,9 +33,22 @@ pub enum PipelineEvent {
 /// A request whose segments are inline-tag text (see `inline`): each
 /// segment's tags, by request index, and the document facts the serializer
 /// needs.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineBatch {
     pub tagged: HashMap<usize, crate::inline::markdown::Tagged>,
     pub ctx: crate::inline::markdown::DocContext,
+}
+
+/// The mechanical repairs a raw-markup reply gets before evaluation: the
+/// marks a model commonly misplaces around translated text.
+pub fn repair_reply(markup: Markup, source: &str, translation: &str) -> String {
+    match markup {
+        Markup::Verso => crate::evaluator_format::restore_verso_code_whitespace(source, translation),
+        Markup::Rst => crate::evaluator_format::repair_rst_boundaries(source, translation),
+        Markup::Markdown => crate::evaluator_format::repair_markdown_emphasis(source, translation),
+        Markup::Asciidoc => crate::evaluator_format::repair_asciidoc_boundaries(source, translation),
+        _ => translation.to_string(),
+    }
 }
 
 /// Callback invoked on each [`PipelineEvent`].
@@ -260,19 +273,7 @@ pub async fn translate_with_evaluation_observed(
             let translation = match markup {
                 // The serializer already chose the marks.
                 _ if inline.is_some() => translation.clone(),
-                Markup::Verso => {
-                    crate::evaluator_format::restore_verso_code_whitespace(source, translation)
-                }
-                Markup::Rst => {
-                    crate::evaluator_format::repair_rst_boundaries(source, translation)
-                }
-                Markup::Markdown => {
-                    crate::evaluator_format::repair_markdown_emphasis(source, translation)
-                }
-                Markup::Asciidoc => {
-                    crate::evaluator_format::repair_asciidoc_boundaries(source, translation)
-                }
-                _ => translation.clone(),
+                _ => repair_reply(markup, source, translation),
             };
 
             let eval_ctx = EvaluationContext {

@@ -13,7 +13,7 @@ pub struct DocumentParseError(pub String);
 /// know which syntax the text will be read back as, and the two differ on
 /// rules that matter for a translation. A parser is the one thing that always
 /// knows, so it says.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Markup {
     Markdown,
     Asciidoc,

@@ -27,7 +27,7 @@ pub trait LlmProvider: Send + Sync {
 
 // --- Translation-specific types ---
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranslateRequest {
     /// Segments to translate, keyed by index (1-based, matching prompt format).
     pub segments: Vec<(usize, String)>,

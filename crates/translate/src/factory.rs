@@ -43,7 +43,7 @@ fn optional_model(config: &ProviderConfig) -> Option<String> {
 /// Build the shared low-level LLM provider described by the config.
 /// `system_prompt` is only used by CLI-backed providers (claude_code, pi, codex);
 /// HTTP providers receive their instructions inside each prompt.
-fn create_llm_provider(
+pub fn create_llm_provider(
     config: &ProviderConfig,
     system_prompt: &str,
 ) -> Result<Arc<dyn LlmProvider>, FactoryError> {

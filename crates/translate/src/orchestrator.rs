@@ -767,6 +767,154 @@ fn batch_block_groups(groups: Vec<BlockGroup>, segment_limit: usize) -> Vec<Bloc
     batched
 }
 
+/// The request `translate_block` sends for a group of pending segments, with
+/// its inline tags when the request goes as tag text.
+fn build_request(
+    config: &ProjectConfig,
+    glossary: &Glossary,
+    block_context: &str,
+    block_segments: &[(usize, SegmentState)],
+    block_ids: &[Vec<String>],
+    inline: Option<&InlineFile>,
+    markup: Markup,
+) -> (TranslateRequest, Option<InlineBatch>) {
+    let tagged = inline.and_then(|file| file.tag_request(block_ids, block_segments));
+    let (block_context, request_segments, inline_batch) = match tagged {
+        Some((context, segments, batch)) => (context, segments, Some(batch)),
+        None => (
+            block_context.to_string(),
+            block_segments
+                .iter()
+                .enumerate()
+                .map(|(req_idx, (_, seg))| (req_idx + 1, seg.source.clone()))
+                .collect(),
+            None,
+        ),
+    };
+
+    let paragraphs: HashMap<usize, String> = block_segments
+        .iter()
+        .enumerate()
+        .filter_map(|(req_idx, (_, seg))| {
+            let (section, block, _) = seg.id.position()?;
+            Some((req_idx + 1, format!("{section}/{block}")))
+        })
+        .collect();
+
+    let glossary_terms = glossary.terms().clone();
+
+    let request = TranslateRequest {
+        segments: request_segments,
+        block_context: block_context.to_string(),
+        glossary: glossary_terms.clone(),
+        source_lang: config.project.source_lang.clone(),
+        target_lang: config.project.target_lang.clone(),
+        markup,
+        feedback: None,
+        prompt_template: config.provider.prompt_template.clone(),
+        paragraphs,
+        inline_tags: inline_batch.is_some(),
+    };
+
+    (request, inline_batch)
+}
+
+/// One block of a [`PlannedRequest`]: its source and its segments, each with
+/// the index it is numbered by in the request.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PlannedBlock {
+    pub raw: String,
+    pub segments: Vec<PlannedSegment>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PlannedSegment {
+    pub id: String,
+    pub index: usize,
+    pub source: String,
+}
+
+/// A request exactly as a translation of `file` from scratch would send it.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PlannedRequest {
+    pub request: TranslateRequest,
+    pub inline: Option<InlineBatch>,
+    pub blocks: Vec<PlannedBlock>,
+}
+
+/// Every request a translation of `file` with no saved state would send, in
+/// order: the same grouping, batching and tagging as `translate_path`,
+/// without calling a provider or touching state.
+pub fn plan_requests(
+    file_path: &Path,
+    config: &ProjectConfig,
+    glossary: &Glossary,
+    parser_factory: &ParserFactory,
+) -> Result<Vec<PlannedRequest>, OrchestratorError> {
+    let parser = parser_factory(file_path, config);
+    let source = std::fs::read_to_string(file_path).map_err(|e| OrchestratorError::Io {
+        path: file_path.to_path_buf(),
+        source: e,
+    })?;
+    let mut doc = parser.parse_checked(&source).map_err(|error| OrchestratorError::Parse {
+        path: file_path.to_path_buf(),
+        message: error.to_string(),
+    })?;
+    apply_table_rules(&mut doc, &config.tables, file_path);
+    let doc = doc;
+    let inline = inline_tags_for(config, file_path).then(|| {
+        let parser = config.source_for(file_path).map(|source| source.parser.as_str()).unwrap_or_default();
+        InlineFile::new(&doc, Dialect::for_parser(parser))
+    });
+    let reconciled = reconcile_with_status(&doc, &StateFile::new(0), glossary);
+    let groups = batch_block_groups(
+        group_by_block(&doc, &reconciled),
+        config
+            .translation
+            .as_ref()
+            .map(|translation| translation.batch_segments)
+            .unwrap_or_else(yeokja_core::config::default_batch_segments),
+    );
+    let raw_of: HashMap<&str, &str> = doc
+        .sections
+        .iter()
+        .flat_map(|section| &section.blocks)
+        .flat_map(|block| block.segments.iter().map(move |seg| (seg.id.0.as_str(), block.raw_content.as_str())))
+        .collect();
+    let markup = parser.markup();
+    let mut planned = Vec::new();
+    for (block_context, block_segments, block_ids) in groups {
+        let (request, inline_batch) =
+            build_request(config, glossary, &block_context, &block_segments, &block_ids, inline.as_ref(), markup);
+        let index_of: HashMap<&str, usize> = block_segments
+            .iter()
+            .enumerate()
+            .map(|(req_idx, (_, seg))| (seg.id.0.as_str(), req_idx + 1))
+            .collect();
+        let source_of: HashMap<&str, &str> =
+            block_segments.iter().map(|(_, seg)| (seg.id.0.as_str(), seg.source.as_str())).collect();
+        let blocks = block_ids
+            .iter()
+            .filter_map(|ids| {
+                let segments: Vec<PlannedSegment> = ids
+                    .iter()
+                    .filter_map(|id| {
+                        Some(PlannedSegment {
+                            id: id.clone(),
+                            index: *index_of.get(id.as_str())?,
+                            source: source_of.get(id.as_str())?.to_string(),
+                        })
+                    })
+                    .collect();
+                let raw = raw_of.get(ids.first()?.as_str())?.to_string();
+                (!segments.is_empty()).then_some(PlannedBlock { raw, segments })
+            })
+            .collect();
+        planned.push(PlannedRequest { request, inline: inline_batch, blocks });
+    }
+    Ok(planned)
+}
+
 pub struct Orchestrator {
     pub config: Arc<ProjectConfig>,
     pub glossary: Arc<Glossary>,
@@ -1136,43 +1284,9 @@ impl FileTranslator {
         markup: Markup,
         progress: &Option<ProgressSender>,
     ) -> Result<Vec<SegmentUpdate>, crate::provider::TranslateError> {
-        let tagged = inline.and_then(|file| file.tag_request(block_ids, block_segments));
-        let (block_context, request_segments, inline_batch) = match tagged {
-            Some((context, segments, batch)) => (context, segments, Some(batch)),
-            None => (
-                block_context.to_string(),
-                block_segments
-                    .iter()
-                    .enumerate()
-                    .map(|(req_idx, (_, seg))| (req_idx + 1, seg.source.clone()))
-                    .collect(),
-                None,
-            ),
-        };
-
-        let paragraphs: HashMap<usize, String> = block_segments
-            .iter()
-            .enumerate()
-            .filter_map(|(req_idx, (_, seg))| {
-                let (section, block, _) = seg.id.position()?;
-                Some((req_idx + 1, format!("{section}/{block}")))
-            })
-            .collect();
-
-        let glossary_terms = self.glossary.terms().clone();
-
-        let request = TranslateRequest {
-            segments: request_segments,
-            block_context: block_context.to_string(),
-            glossary: glossary_terms.clone(),
-            source_lang: self.config.project.source_lang.clone(),
-            target_lang: self.config.project.target_lang.clone(),
-            markup,
-            feedback: None,
-            prompt_template: self.config.provider.prompt_template.clone(),
-            paragraphs,
-            inline_tags: inline_batch.is_some(),
-        };
+        let (request, inline_batch) =
+            build_request(&self.config, &self.glossary, block_context, block_segments, block_ids, inline, markup);
+        let glossary_terms = request.glossary.clone();
 
         // Tag text has to become Markdown, so an inline-tag request always
         // goes through the pipeline, with or without evaluators.

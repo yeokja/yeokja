@@ -50,3 +50,9 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `zero-to-nix` | CC BY-NC-SA 4.0 (비상업) |
 
 원문 라이선스 전문은 각 `projects/<name>/upstream/`의 라이선스 파일에 있습니다.
+
+## 번역 eval 세트
+
+`evals/`의 발췌 파일은 원문 라이선스별로 나뉘어 있으며, 파일마다 적용되는
+라이선스는 `evals/ko-translation/v1/MANIFEST.md`에 있습니다. eval 세트를 위해 직접
+작성한 텍스트와 도구·설정 파일은 yeokja 도구와 같은 `MIT OR Apache-2.0`입니다.

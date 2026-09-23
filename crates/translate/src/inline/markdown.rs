@@ -12,12 +12,20 @@
 use crate::evaluator_format::{commonmark_emphasis, stands_for, written_as_text};
 use pulldown_cmark::{BrokenLink, CowStr, Event, LinkType, Options, Parser, Tag as MdTag, TagEnd};
 use std::collections::{HashMap, HashSet};
+use serde::{Deserialize, Serialize};
 use std::ops::Range;
+
+/// A set written in a fixed order, so a serialized request is reproducible.
+fn sorted<S: serde::Serializer>(set: &HashSet<String>, serializer: S) -> Result<S::Ok, S::Error> {
+    let mut items: Vec<&String> = set.iter().collect();
+    items.sort();
+    serializer.collect_seq(items)
+}
 
 /// The Markdown a source is written in. They share CommonMark's inline
 /// rules — markdown-it (MyST) and micromark (MDX) implement the same
 /// delimiter algorithm as pulldown-cmark — and differ in what they add.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Dialect {
     /// mdBook: CommonMark with strikethrough, footnotes and MathJax.
     #[default]
@@ -41,10 +49,11 @@ impl Dialect {
 }
 
 /// Document-level facts a segment cannot show on its own.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DocContext {
     /// Reference definition labels, normalized: `[text][label]` and `[label]`
     /// are links only when the document defines the label.
+    #[serde(serialize_with = "sorted")]
     reference_labels: HashSet<String>,
     dialect: Dialect,
 }
@@ -67,7 +76,7 @@ impl DocContext {
 }
 
 /// Where a segment sits, for the escapes that depend on it.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Position {
     #[default]
     Inline,
@@ -79,7 +88,7 @@ pub enum Position {
     Plain,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TagKind {
     Italic,
     Bold,
@@ -118,7 +127,7 @@ impl TagKind {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Tag {
     pub n: usize,
     pub kind: TagKind,
@@ -141,7 +150,7 @@ pub struct Tag {
 }
 
 /// A MyST role, apart from what the model sees of it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RoleRef {
     pub name: String,
     /// A label role's target; empty for a role shown as written.
@@ -151,7 +160,7 @@ pub struct RoleRef {
     pub implicit: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Tagged {
     /// The segment's source string.
     pub source: String,
