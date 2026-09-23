@@ -338,4 +338,6 @@ cargo clippy --workspace -- -D warnings
 
 ## 라이선스
 
-TBD
+yeokja 도구 코드는 `MIT OR Apache-2.0`입니다. `projects/`의 번역물은 각 원문의
+라이선스를 따르므로 저장소 전체에 하나의 라이선스가 적용되지 않습니다. 경로별
+라이선스는 [`LICENSE.md`](LICENSE.md)를 참고하세요.
