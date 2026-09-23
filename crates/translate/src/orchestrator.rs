@@ -16,7 +16,7 @@ use crate::evaluator_style::StyleEvaluator;
 use crate::pipeline::{InlineBatch, translate_with_evaluation_observed};
 use crate::provider::{LlmProvider, TranslateRequest, TranslationProvider};
 use chrono::Utc;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::{Mutex, Semaphore, mpsc};
@@ -1034,6 +1034,211 @@ impl Orchestrator {
     }
 }
 
+/// Earlier translations of one source file: segment id → (the source hash
+/// it was made from, the translation).
+pub type PreviousTranslations = HashMap<String, (u64, String)>;
+
+impl Orchestrator {
+    /// Fuse every translated file under `path`: the editor rewrites each
+    /// request with the translation in the state and the one in `previous`
+    /// as drafts (see `fuse`). Requests whose drafts agree are left alone,
+    /// and a file with untranslated segments is skipped — translate it
+    /// first.
+    pub async fn fuse_path(
+        &self,
+        path: &Path,
+        editor: Arc<dyn LlmProvider>,
+        previous: &(dyn Fn(&Path) -> Option<PreviousTranslations> + Sync),
+    ) -> Result<TranslateOutcome, OrchestratorError> {
+        let files = collect_files(path, &self.config)?;
+        let semaphore = Arc::new(Semaphore::new(self.options.concurrency.max(1)));
+        let mut outcome = TranslateOutcome::default();
+        for file in files {
+            if self.cancel.is_cancelled() {
+                break;
+            }
+            let prev = previous(&file).unwrap_or_default();
+            match self.fuse_file(&file, editor.clone(), &prev, &semaphore).await {
+                Ok(n) => {
+                    outcome.files_processed += 1;
+                    outcome.segments_translated += n;
+                }
+                Err(e) => {
+                    tracing::error!(file = %file.display(), error = %e, "Failed to fuse file");
+                    outcome.files_failed += 1;
+                }
+            }
+        }
+        Ok(outcome)
+    }
+
+    async fn fuse_file(
+        &self,
+        file_path: &Path,
+        editor: Arc<dyn LlmProvider>,
+        previous: &PreviousTranslations,
+        semaphore: &Arc<Semaphore>,
+    ) -> Result<usize, OrchestratorError> {
+        let parser = (self.parser_factory)(file_path, &self.config);
+        let source = std::fs::read_to_string(file_path).map_err(|e| OrchestratorError::Io {
+            path: file_path.to_path_buf(),
+            source: e,
+        })?;
+        let mut doc = parser.parse_checked(&source).map_err(|error| OrchestratorError::Parse {
+            path: file_path.to_path_buf(),
+            message: error.to_string(),
+        })?;
+        apply_table_rules(&mut doc, &self.config.tables, file_path);
+        let doc = doc;
+        let state_path = StateFile::state_file_path(file_path, self.config.state_dir());
+        if !state_path.exists() {
+            return Ok(0);
+        }
+        let existing = StateFile::load(&state_path)?;
+        let reconciled = reconcile_with_status(&doc, &existing, &self.glossary);
+        if reconciled.iter().any(|rs| rs.status.needs_translation()) {
+            tracing::warn!(file = %file_path.display(), "Untranslated segments; translate the file before fusing");
+            return Ok(0);
+        }
+        let inline = inline_tags_for(&self.config, file_path).then(|| {
+            let parser = self.config.source_for(file_path).map(|source| source.parser.as_str()).unwrap_or_default();
+            Arc::new(InlineFile::new(&doc, Dialect::for_parser(parser)))
+        });
+        // Every segment, grouped and batched the way a fresh translation is.
+        let all: Vec<ReconciledSegment> = reconciled
+            .iter()
+            .map(|rs| ReconciledSegment {
+                state: rs.state.clone(),
+                status: yeokja_core::change::SegmentStatus::Pending,
+                context_hash: rs.context_hash,
+            })
+            .collect();
+        let groups = batch_block_groups(
+            group_by_block(&doc, &all),
+            self.config
+                .translation
+                .as_ref()
+                .map(|translation| translation.batch_segments)
+                .unwrap_or_else(yeokja_core::config::default_batch_segments),
+        );
+        let markup = parser.markup();
+        let mut handles = Vec::new();
+        for (block_context, block_segments, block_ids) in groups {
+            let current: BTreeMap<usize, String> = block_segments
+                .iter()
+                .enumerate()
+                .filter_map(|(i, (_, seg))| Some((i + 1, seg.translation.clone()?)))
+                .collect();
+            let earlier: BTreeMap<usize, String> = block_segments
+                .iter()
+                .enumerate()
+                .filter_map(|(i, (_, seg))| {
+                    let (hash, text) = previous.get(&seg.id.0)?;
+                    (*hash == seg.source_hash).then(|| (i + 1, text.clone()))
+                })
+                .collect();
+            if earlier.iter().all(|(i, text)| current.get(i) == Some(text)) {
+                continue;
+            }
+            let key = format!("{}#{}", file_path.display(), block_segments[0].1.id.0);
+            let drafts = crate::fuse::shuffle(vec![current, earlier], &key);
+            let (request, inline_batch) = build_request(
+                &self.config,
+                &self.glossary,
+                &block_context,
+                &block_segments,
+                &block_ids,
+                inline.as_deref(),
+                markup,
+            );
+            let fuser = crate::fuse::Fuser { llm: editor.clone(), drafts };
+            let semaphore = semaphore.clone();
+            let config = self.config.clone();
+            let glossary = self.glossary.clone();
+            let eval_provider = self.eval_provider.clone();
+            let options = self.options.clone();
+            handles.push(tokio::spawn(async move {
+                let _permit = semaphore.acquire().await.expect("semaphore closed");
+                let evaluators = if options.auto_evaluate {
+                    evaluators_for(eval_provider, &config.project.target_lang, inline_batch.is_some())
+                } else {
+                    Vec::new()
+                };
+                let evaluator_refs: Vec<&dyn TranslationEvaluator> = evaluators.iter().map(|e| e.as_ref()).collect();
+                let terms = request.glossary.clone();
+                let results = translate_with_evaluation_observed(
+                    &fuser,
+                    &evaluator_refs,
+                    request,
+                    &terms,
+                    &config.project.source_lang,
+                    &config.project.target_lang,
+                    markup,
+                    options.max_retries,
+                    inline_batch.as_ref(),
+                    &|_| {},
+                )
+                .await?;
+                let updates: Vec<SegmentUpdate> = block_segments
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(req_idx, (seg_idx, seg))| {
+                        let result = results.get(&(req_idx + 1))?;
+                        Some(SegmentUpdate {
+                            index: *seg_idx,
+                            translation: result.translation.clone(),
+                            glossary_snapshot: glossary.find_matching_terms(&seg.source),
+                            issues: result
+                                .evaluation
+                                .as_ref()
+                                .map(|e| e.issues.iter().map(|i| i.message.clone()).collect())
+                                .unwrap_or_default(),
+                        })
+                    })
+                    .collect();
+                Ok::<_, crate::provider::TranslateError>(updates)
+            }));
+        }
+        if handles.is_empty() {
+            tracing::info!(file = %file_path.display(), "Drafts agree; nothing to fuse");
+            return Ok(0);
+        }
+        let mut segments: Vec<SegmentState> = reconciled
+            .iter()
+            .map(|rs| {
+                let mut state = rs.state.clone();
+                state.context_hash = rs.context_hash;
+                state
+            })
+            .collect();
+        let mut fused = 0;
+        for handle in handles {
+            match handle.await? {
+                Ok(updates) => {
+                    for update in updates {
+                        let seg = &mut segments[update.index];
+                        if seg.translation.as_deref() != Some(update.translation.as_str()) {
+                            fused += 1;
+                        }
+                        seg.translation = Some(update.translation);
+                        seg.translated_at = Some(Utc::now());
+                        seg.glossary_snapshot = update.glossary_snapshot;
+                        seg.issues = update.issues;
+                    }
+                }
+                Err(e) => tracing::error!(file = %file_path.display(), error = %e, "Fusion request failed; keeping its translations"),
+            }
+        }
+        let mut state = StateFile::new(content_hash(&source));
+        state.segments = segments.clone();
+        state.save(&state_path)?;
+        let output_path = resolve_output_path(file_path, &self.config);
+        self.clone_parts().write_output(&*parser, &doc, &segments, file_path, &output_path)?;
+        tracing::info!(file = %file_path.display(), changed = fused, "Fused");
+        Ok(fused)
+    }
+}
+
 struct FileTranslator {
     config: Arc<ProjectConfig>,
     glossary: Arc<Glossary>,
@@ -1787,6 +1992,59 @@ model = "test"
             },
             cancel,
         }
+    }
+
+    /// Records each prompt and answers every sentence with "FUSED".
+    struct Editor(Arc<std::sync::Mutex<Vec<String>>>);
+
+    #[async_trait]
+    impl LlmProvider for Editor {
+        async fn complete(
+            &self,
+            request: crate::provider::CompletionRequest,
+        ) -> Result<crate::provider::CompletionResponse, crate::provider::TranslateError> {
+            self.0.lock().unwrap().push(request.prompt);
+            Ok(crate::provider::CompletionResponse { text: "[1] FUSED".into(), usage: None })
+        }
+    }
+
+    async fn translated(dir: &Path) -> (Orchestrator, SegmentState) {
+        std::fs::write(dir.join("ch1.md"), "Hello.").unwrap();
+        let orchestrator = test_orchestrator(dir, Arc::new(AtomicUsize::new(0)), CancelToken::default());
+        orchestrator.translate_path(dir, None).await.unwrap();
+        let state = StateFile::load(&StateFile::state_file_path(&dir.join("ch1.md"), None)).unwrap();
+        (orchestrator, state.segments[0].clone())
+    }
+
+    #[tokio::test]
+    async fn fuse_rewrites_with_both_translations_as_drafts() {
+        let dir = tempfile::tempdir().unwrap();
+        let (orchestrator, seg) = translated(dir.path()).await;
+        let prompts = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let previous = |_: &Path| -> Option<PreviousTranslations> {
+            Some(HashMap::from([(seg.id.0.clone(), (seg.source_hash, "KO:earlier".to_string()))]))
+        };
+        let outcome =
+            orchestrator.fuse_path(dir.path(), Arc::new(Editor(prompts.clone())), &previous).await.unwrap();
+        assert_eq!(outcome.segments_translated, 1);
+        let prompts = prompts.lock().unwrap();
+        assert_eq!(prompts.len(), 1);
+        assert!(prompts[0].contains("KO:Hello.") && prompts[0].contains("KO:earlier"));
+        let state = StateFile::load(&StateFile::state_file_path(&dir.path().join("ch1.md"), None)).unwrap();
+        assert_eq!(state.segments[0].translation.as_deref(), Some("FUSED"));
+    }
+
+    #[tokio::test]
+    async fn fuse_skips_requests_whose_drafts_agree() {
+        let dir = tempfile::tempdir().unwrap();
+        let (orchestrator, seg) = translated(dir.path()).await;
+        let prompts = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let same = seg.translation.clone().unwrap();
+        let previous = |_: &Path| -> Option<PreviousTranslations> {
+            Some(HashMap::from([(seg.id.0.clone(), (seg.source_hash, same.clone()))]))
+        };
+        orchestrator.fuse_path(dir.path(), Arc::new(Editor(prompts.clone())), &previous).await.unwrap();
+        assert!(prompts.lock().unwrap().is_empty());
     }
 
     #[tokio::test]

@@ -2,6 +2,7 @@ pub mod assemble;
 pub mod build;
 pub mod coverage;
 pub mod evaluate;
+pub mod fuse;
 pub mod orphans;
 pub mod glossary;
 pub mod inspect;

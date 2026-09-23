@@ -30,6 +30,15 @@ enum Commands {
         #[arg(long)]
         tui: bool,
     },
+    /// Rewrite translations with the editor, using the current translations
+    /// and those at an earlier git revision as anonymous drafts
+    Fuse {
+        /// Path to fuse
+        path: String,
+        /// Git revision whose state holds the earlier translations
+        #[arg(long)]
+        previous: String,
+    },
     /// Show translation status
     Status {
         /// Path to check
@@ -135,6 +144,9 @@ async fn main() -> anyhow::Result<()> {
     }
 
     match cli.command {
+        Commands::Fuse { path, previous } => {
+            commands::fuse::run(&path, &previous).await?;
+        }
         Commands::Translate { path, tui: use_tui } => {
             if use_tui {
                 translate_with_tui(&path).await?;

@@ -13,6 +13,7 @@ use yeokja_core::config::ProviderConfig;
 use yeokja_core::hash::content_hash;
 use yeokja_translate::evaluator::TranslationEvaluator;
 use yeokja_translate::factory::create_provider;
+use yeokja_translate::fuse::{EDITOR_SYSTEM_PROMPT, Fuser};
 use yeokja_translate::orchestrator::evaluators_for;
 use yeokja_translate::pipeline::translate_with_evaluation_inline;
 use yeokja_translate::provider::{
@@ -88,48 +89,6 @@ impl TranslationProvider for Recorder {
         result
     }
 }
-
-/// Asks the editor for a translation with other translators' drafts in
-/// view: the drafts are anonymous, in a fixed shuffled order, and framed as
-/// fallible, so none is deferred to for being the one already in use.
-struct Fuser {
-    llm: Arc<dyn yeokja_translate::provider::LlmProvider>,
-    /// Draft number → segment index → the draft's translation.
-    drafts: Vec<BTreeMap<usize, String>>,
-}
-
-const FUSE_RULES: &str = "Draft translations of these sentences follow, written by different translators. They \
-are shown as plain markup, not in any tag format. They are drafts, not references: any of them may \
-mistranslate, drop or add meaning, lose links or markup, or read unnaturally, and a draft is not better \
-for appearing first. Do not assume any draft is correct and do not average them. Write the best \
-translation of each numbered sentence yourself: reuse a draft's wording where it is right, combine \
-drafts, or write something new. Your answer must follow every rule above, including the [N] format";
-
-#[async_trait]
-impl TranslationProvider for Fuser {
-    async fn translate(&self, request: TranslateRequest) -> Result<TranslateResponse, TranslateError> {
-        let mut prompt = yeokja_translate::prompt::build_prompt(&request);
-        prompt.push('\n');
-        prompt.push_str(FUSE_RULES);
-        prompt.push_str(if request.inline_tags { " and the tag format of the sentences.\n" } else { ".\n" });
-        for (n, draft) in self.drafts.iter().enumerate() {
-            prompt.push_str(&format!("\nDraft {}:\n", n + 1));
-            for (idx, _) in &request.segments {
-                if let Some(text) = draft.get(idx) {
-                    prompt.push_str(&format!("[{idx}] {text}\n"));
-                }
-            }
-        }
-        let response =
-            self.llm.complete(yeokja_translate::provider::CompletionRequest { prompt }).await?;
-        let translations = yeokja_translate::prompt::parse_response_for(&response.text, &request.segments)
-            .map_err(TranslateError::Parse)?;
-        Ok(TranslateResponse { translations, usage: response.usage })
-    }
-}
-
-const EDITOR_SYSTEM_PROMPT: &str = "You are a professional translator and editor. Translate accurately while \
-preserving the original formatting, technical terms, and structure. Output only the translation.";
 
 pub struct Options {
     pub set: PathBuf,
