@@ -45,8 +45,10 @@ struct GeminiResponse {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct GeminiCandidate {
     content: Option<GeminiContent>,
+    finish_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -54,7 +56,13 @@ struct GeminiCandidate {
 struct GeminiUsageMetadata {
     prompt_token_count: Option<u64>,
     candidates_token_count: Option<u64>,
+    /// Thinking models spend these out of the same output budget.
+    thoughts_token_count: Option<u64>,
 }
+
+/// The output budget of one request. A batch of 32 segments with a thinking
+/// model's reasoning runs well past a few thousand tokens.
+const MAX_OUTPUT_TOKENS: u32 = 65536;
 
 impl GeminiProvider {
     pub fn new(api_key: String, model: String) -> Self {
@@ -81,7 +89,7 @@ impl LlmProvider for GeminiProvider {
                 parts: vec![GeminiPart { text: request.prompt }],
             }],
             generation_config: Some(GeminiGenerationConfig {
-                max_output_tokens: 4096,
+                max_output_tokens: MAX_OUTPUT_TOKENS,
             }),
         };
 
@@ -103,6 +111,15 @@ impl LlmProvider for GeminiProvider {
 
         let api_response: GeminiResponse = response.json().await?;
 
+        // A reply cut at the budget reads as a complete answer with the last
+        // segments missing or half-written; refuse it rather than keep it.
+        let finish = api_response.candidates.as_ref().and_then(|c| c.first()).and_then(|c| c.finish_reason.clone());
+        if finish.as_deref() == Some("MAX_TOKENS") {
+            return Err(TranslateError::Parse(format!(
+                "Gemini stopped at the output limit ({MAX_OUTPUT_TOKENS} tokens)"
+            )));
+        }
+
         let text = api_response
             .candidates
             .as_ref()
@@ -123,7 +140,7 @@ impl LlmProvider for GeminiProvider {
             text,
             usage: api_response.usage_metadata.map(|u| TokenUsage {
                 input_tokens: u.prompt_token_count.unwrap_or(0),
-                output_tokens: u.candidates_token_count.unwrap_or(0),
+                output_tokens: u.candidates_token_count.unwrap_or(0) + u.thoughts_token_count.unwrap_or(0),
             }),
         })
     }
