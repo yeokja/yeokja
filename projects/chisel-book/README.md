@@ -5,8 +5,8 @@
 `upstream/` 서브모듈에 두고, 번역 상태는 `state/`에 저장합니다. `ko/`는 상태에서
 재구성되는 파생 출력이므로 Git에 커밋하지 않습니다.
 
-번역 프로바이더는 Claude Code의 `claude-sonnet-5`이며, 용어·링크·LaTeX 형식의
-기계적 평가는 번역 중 자동으로 실행합니다. Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
+번역 프로바이더는 Claude Code의 `claude-opus-5-5`이며, 용어·링크·LaTeX 형식의
+기계적 평가는 번역 중 자동으로 실행합니다. Anthropic 사의 `claude-opus-5-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
 
 ```sh
 ../../target/debug/yeokja inspect upstream
