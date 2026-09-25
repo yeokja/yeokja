@@ -2,8 +2,7 @@
 
 [cp-algorithms](https://cp-algorithms.com)([cp-algorithms/cp-algorithms](https://github.com/cp-algorithms/cp-algorithms))를
 한국어로 옮긴 비공식 번역입니다. [yeokja](https://github.com/yeokja/yeokja)와 함께 Anthropic 사의
-`claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
-재시도 뒤에도 기계 검사를 통과하지 못한 세그먼트 4개는 Anthropic 사의 `claude-opus-5` 모델로 교정하였습니다.
+`claude-opus-5-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
 
 ## 범위
 
