@@ -2,7 +2,7 @@
 
 Jeff Erickson의 교재 [*Algorithms*](http://algorithms.wtf)(1st edition, 2019)를
 한국어로 옮긴 비공식 번역입니다. [yeokja](https://github.com/yeokja/yeokja)와 함께
-Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두
+Anthropic 사의 `claude-opus-5-5` 모델을 활용하여 번역되었으며 학습을 모두
 비허용한 상태로 작업하였습니다. 저자가 검토하거나 승인한 번역이 아닙니다.
 
 ## 원서와 영어 원고
