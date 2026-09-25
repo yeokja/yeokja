@@ -5,7 +5,7 @@
 예제 프로그램, 명령어, WIT 정의와 API 식별자는 원문을 보존합니다.
 
 - Provider: `claude_code`
-- Model: `claude-sonnet-5` (Anthropic 사의 `claude-sonnet-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다)
+- Model: `claude-opus-5-5` (Anthropic 사의 `claude-opus-5-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다)
 - 번역 상태: `state/` (출력 `ko/`는 상태에서 재구성)
 - 빌드: mdBook 0.5.3, mdbook-tabs 1.0.1
 - 배포 경로: `webassembly-component-docs/`
