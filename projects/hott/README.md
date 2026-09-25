@@ -9,7 +9,7 @@
 
 원문은 `upstream/` 서브모듈에 고정합니다. 서문, 본문 전체, 부록, 기호 설명,
 표지와 뒤표지의 19개 원고 및 별도로 추출한 찾아보기 용어를 [yeokja](https://github.com/yeokja/yeokja)의 `latex-extended` 파서로 처리합니다. 번역 provider는
-`codex`, 모델은 `gpt-6-astra`, 추론 강도는 `medium`입니다. OpenAI 사의 `gpt-6-astra` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
+`claude_code`, 모델은 `claude-opus-5-5`입니다. Anthropic 사의 `claude-opus-5-5` 모델을 활용하여 번역되었으며 학습을 모두 비허용한 상태로 작업하였습니다.
 `glossary.toml`은 수학 용어를 통일합니다. 번역은 합쇼체로 작성하며, 수식·라벨·
 참고문헌 키·원저자 이름을 보존합니다. 상태 파일 `state/`를 커밋하고, `ko/`는
 상태에서 재구성합니다. 레이아웃의 고정 문구와 한글 글꼴은 별도 패치로 적용합니다.
@@ -36,7 +36,7 @@ Nix devShell로 준비해 실행합니다.
 nix develop path:../../nix#hott -c ../../target/release/yeokja build pdf
 ```
 
-번역 시 Codex CLI의 ChatGPT 로그인이 필요합니다. 이미 번역된 state만으로
+번역 시 로그인된 Claude Code CLI가 필요합니다. 이미 번역된 state만으로
 출력을 재구성하고 PDF를 빌드할 때는 모델 호출이 필요하지 않습니다.
 
 ## PDF와 GitHub Pages
@@ -67,4 +67,4 @@ rebuild 잡이 같은 devShell(`nix/projects/hott.nix`)로 PDF를 빌드하고 `
 전체 기계적 검사에서 오류가 없음을 확인했습니다. 생성 후 수식 공백 한 곳과
 여분의 닫는 괄호 두 곳을 원문과 대조해 교정했습니다.
 한국어 PDF는 468쪽이며, 글자 누락·미해결 참조 검사와 표지·목차·본문·찾아보기의
-렌더링 검사를 거칩니다. 배포용 재구성은 Codex 실행을 차단한 상태에서도 동작합니다.
+렌더링 검사를 거칩니다. 배포용 재구성은 모델 호출을 차단한 상태에서도 동작합니다.
