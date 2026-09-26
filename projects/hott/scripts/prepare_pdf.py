@@ -39,7 +39,7 @@ def prepare(tree: Path) -> None:
     notice = r"""
 \noindent\textbf{비공식 한국어 번역}\par
 \noindent 원저작자: The Univalent Foundations Program.\\
-이 번역은 yeokja와 OpenAI 사의 gpt-6-astra 모델을 이용하여 작성했으며,\\
+이 번역은 yeokja와 Anthropic 사의 \texttt{claude-opus-5-5} 모델을 활용하여 작성했으며,\\
 학습을 모두 비허용한 상태로 작업하였습니다.\\
 원문과 번역은 CC BY-SA 3.0으로 배포합니다.\\
 원저작자가 이 번역을 검토하거나 보증하지 않습니다.\\
