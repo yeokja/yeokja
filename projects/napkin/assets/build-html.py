@@ -217,6 +217,26 @@ def replace_latex_diagrams(root: Path) -> int:
     return len(tasks)
 
 
+def link_pdf_only_appendices(root: Path) -> int:
+    """Point references to the hint/solution appendices at the published PDF.
+
+    Those appendices collect files written while compiling the PDF, so the
+    HTML driver leaves them out and a \\Cref to them would print raw labels.
+    """
+    count = 0
+    for tex_path in sorted((root / "tex").rglob("*.tex")):
+        text = tex_path.read_text(encoding="utf-8")
+        result, replaced = re.subn(
+            r"\\Cref\{app:hints,\s*app:sol\}",
+            lambda _: r"\href{https://yeokja.moreal.dev/napkin/Napkin-ko.pdf}{PDF판의 부록}",
+            text,
+        )
+        if replaced:
+            tex_path.write_text(result, encoding="utf-8")
+            count += replaced
+    return count
+
+
 def make_driver(root: Path) -> Path:
     source = (root / "Napkin.tex").read_text(encoding="utf-8")
     source = re.sub(
@@ -369,6 +389,7 @@ def main() -> None:
         asymptote_count = replace_asymptote(work)
         latex_diagram_count = replace_latex_diagrams(work)
         validate_pre_rendered_graphics(work)
+        link_pdf_only_appendices(work)
         driver = make_driver(work)
         site = work / "site"
         site.mkdir()
