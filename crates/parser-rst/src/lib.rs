@@ -126,13 +126,12 @@ fn mask_pep_source(source: &str) -> Result<String, String> {
             && let Some(next) = lines.peek()
         {
             let adornment = next.trim();
-            if let Some(marker) = adornment.chars().next() {
-                if adornment.len() >= 3
-                    && marker.is_ascii_punctuation()
-                    && adornment.chars().all(|character| character == marker)
-                {
-                    license_start = Some(offset);
-                }
+            if let Some(marker) = adornment.chars().next()
+                && adornment.len() >= 3
+                && marker.is_ascii_punctuation()
+                && adornment.chars().all(|character| character == marker)
+            {
+                license_start = Some(offset);
             }
         }
         offset += line.len();
@@ -1418,9 +1417,7 @@ fn indented_alpha_enumeration_edit(
     let span = block.span.clone()?;
     let mut lines = block.raw_content.lines();
     let first = lines.next()?.trim_start();
-    if alpha_enumerator(first).is_none() {
-        return None;
-    }
+    alpha_enumerator(first)?;
 
     let continuations: Vec<(String, String)> = lines
         .filter_map(|line| {
@@ -1540,10 +1537,10 @@ fn embedded_links(source: &str) -> Vec<(String, String, usize)> {
     links
 }
 
-fn heading_anchor_edits(
-    document: &Document,
-    translations: &TranslationMap,
-) -> (Vec<(Range<usize>, String)>, Vec<(String, String)>) {
+/// Source edits (range, replacement) and target-name aliases (from, to).
+type AnchorEdits = (Vec<(Range<usize>, String)>, Vec<(String, String)>);
+
+fn heading_anchor_edits(document: &Document, translations: &TranslationMap) -> AnchorEdits {
     let mut edits = Vec::new();
     let mut aliases = Vec::new();
     let namespace = document_target_namespace(&document.source);

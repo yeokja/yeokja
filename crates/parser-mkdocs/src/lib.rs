@@ -78,7 +78,7 @@ fn fill(shadow: &mut [u8], range: Range<usize>, with: u8) {
 /// A fence opener: its character and length.
 fn fence_open(line: &str) -> Option<(u8, usize)> {
     let t = line.trim_start();
-    for c in [b'`', b'~'] {
+    for &c in b"`~" {
         let n = t.bytes().take_while(|&b| b == c).count();
         if n >= 3 && !(c == b'`' && t[n..].contains('`')) {
             return Some((c, n));
