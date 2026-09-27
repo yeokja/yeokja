@@ -136,7 +136,7 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
             let eval_ctx = EvaluationContext {
                 source: rs.state.source.clone(),
                 translation: translation.clone(),
-                glossary: ctx.glossary.terms().clone(),
+                glossary: ctx.glossary.clone(),
                 source_lang: ctx.config.project.source_lang.clone(),
                 target_lang: ctx.config.project.target_lang.clone(),
                 markup,

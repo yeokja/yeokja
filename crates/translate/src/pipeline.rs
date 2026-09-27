@@ -4,6 +4,7 @@ use crate::evaluator::{
 };
 use crate::provider::{TranslateError, TranslateRequest, TranslationProvider};
 use std::collections::HashMap;
+use yeokja_core::glossary::Glossary;
 
 /// Result of a single segment through the pipeline.
 #[derive(Debug)]
@@ -60,7 +61,7 @@ pub async fn translate_with_evaluation(
     provider: &dyn TranslationProvider,
     evaluators: &[&dyn TranslationEvaluator],
     request: TranslateRequest,
-    glossary: &HashMap<String, String>,
+    glossary: &Glossary,
     source_lang: &str,
     target_lang: &str,
     markup: Markup,
@@ -87,7 +88,7 @@ pub async fn translate_with_evaluation_inline(
     provider: &dyn TranslationProvider,
     evaluators: &[&dyn TranslationEvaluator],
     request: TranslateRequest,
-    glossary: &HashMap<String, String>,
+    glossary: &Glossary,
     source_lang: &str,
     target_lang: &str,
     markup: Markup,
@@ -116,7 +117,7 @@ pub async fn translate_with_evaluation_observed(
     provider: &dyn TranslationProvider,
     evaluators: &[&dyn TranslationEvaluator],
     request: TranslateRequest,
-    glossary: &HashMap<String, String>,
+    glossary: &Glossary,
     source_lang: &str,
     target_lang: &str,
     markup: Markup,
@@ -543,7 +544,7 @@ mod tests {
             &provider,
             &evaluators,
             request,
-            &HashMap::new(),
+            &Glossary::empty(),
             "en",
             "ko",
             Markup::Markdown,
@@ -589,7 +590,7 @@ mod tests {
             &provider,
             &evaluators,
             request,
-            &HashMap::new(),
+            &Glossary::empty(),
             "en",
             "ko",
             Markup::Markdown,
@@ -634,7 +635,7 @@ mod tests {
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![&AlwaysPassEvaluator];
         let request = batch_request(&["Tier", "Quick Start", "1.5TB/s per chip over HBM."]);
 
-        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3)
+        let result = translate_with_evaluation(&provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::Markdown, 3)
             .await
             .unwrap();
 
@@ -663,7 +664,7 @@ mod tests {
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![&AlwaysPassEvaluator];
         let request = batch_request(&["Tier", "1.5TB/s per chip over HBM.", "Quick Start"]);
 
-        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3)
+        let result = translate_with_evaluation(&provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::Markdown, 3)
             .await
             .unwrap();
 
@@ -683,7 +684,7 @@ mod tests {
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![&RejectBad];
         let request = batch_request(&["`vector_stash()` writes.", "Then it ends."]);
 
-        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3)
+        let result = translate_with_evaluation(&provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::Markdown, 3)
             .await
             .unwrap();
 
@@ -702,7 +703,7 @@ mod tests {
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![&AlwaysPassEvaluator];
         let request = batch_request(&["Tier", "1.5TB/s per chip over HBM."]);
 
-        let result = translate_with_evaluation(&provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 0)
+        let result = translate_with_evaluation(&provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::Markdown, 0)
             .await
             .unwrap();
 
@@ -737,7 +738,7 @@ mod tests {
             &provider,
             &evaluators,
             request,
-            &HashMap::new(),
+            &Glossary::empty(),
             "en",
             "ko",
             Markup::Markdown,
@@ -794,7 +795,7 @@ mod tests {
             &provider,
             &evaluators,
             request,
-            &HashMap::new(),
+            &Glossary::empty(),
             "en",
             "ko",
             Markup::Markdown,
@@ -832,7 +833,7 @@ mod tests {
             &provider,
             &evaluators,
             request,
-            &HashMap::new(),
+            &Glossary::empty(),
             "en",
             "ko",
             Markup::Markdown,
@@ -869,7 +870,7 @@ mod tests {
             &provider,
             &evaluators,
             request,
-            &HashMap::new(),
+            &Glossary::empty(),
             "en",
             "ko",
             Markup::Asciidoc,
@@ -954,7 +955,7 @@ mod tests {
         let capture = Capture(std::sync::Mutex::new(Vec::new()));
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![&capture];
         let results = translate_with_evaluation_inline(
-            &provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3, Some(&batch),
+            &provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::Markdown, 3, Some(&batch),
         )
         .await
         .unwrap();
@@ -977,7 +978,7 @@ mod tests {
         };
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![];
         let results = translate_with_evaluation_inline(
-            &provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 3, Some(&batch),
+            &provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::Markdown, 3, Some(&batch),
         )
         .await
         .unwrap();
@@ -997,7 +998,7 @@ mod tests {
         };
         let evaluators: Vec<&dyn TranslationEvaluator> = vec![];
         let results = translate_with_evaluation_inline(
-            &provider, &evaluators, request, &HashMap::new(), "en", "ko", Markup::Markdown, 0, Some(&batch),
+            &provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::Markdown, 0, Some(&batch),
         )
         .await
         .unwrap();

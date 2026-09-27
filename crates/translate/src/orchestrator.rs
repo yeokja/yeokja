@@ -1174,12 +1174,11 @@ impl Orchestrator {
                     Vec::new()
                 };
                 let evaluator_refs: Vec<&dyn TranslationEvaluator> = evaluators.iter().map(|e| e.as_ref()).collect();
-                let terms = request.glossary.clone();
                 let results = translate_with_evaluation_observed(
                     &fuser,
                     &evaluator_refs,
                     request,
-                    &terms,
+                    &glossary,
                     &config.project.source_lang,
                     &config.project.target_lang,
                     markup,
@@ -1503,7 +1502,6 @@ impl FileTranslator {
     ) -> Result<Vec<SegmentUpdate>, crate::provider::TranslateError> {
         let (request, inline_batch) =
             build_request(&self.config, &self.glossary, block_context, block_segments, block_ids, inline, markup);
-        let glossary_terms = request.glossary.clone();
 
         // Tag text has to become Markdown, so an inline-tag request always
         // goes through the pipeline, with or without evaluators.
@@ -1551,7 +1549,7 @@ impl FileTranslator {
                 self.provider.as_ref(),
                 &evaluator_refs,
                 request,
-                &glossary_terms,
+                &self.glossary,
                 &self.config.project.source_lang,
                 &self.config.project.target_lang,
                 markup,

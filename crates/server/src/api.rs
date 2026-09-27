@@ -368,7 +368,7 @@ async fn evaluate_segment(
         inline_tags_for(&state.config, source_path),
     );
 
-    let glossary = state.glossary.read().await.terms().clone();
+    let glossary = state.glossary.read().await.clone();
     let context = EvaluationContext {
         source: segment.source.clone(),
         translation,

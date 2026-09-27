@@ -8,6 +8,11 @@ pub struct GlossaryEntry {
     pub translation: String,
     #[serde(default)]
     pub note: Option<String>,
+    /// Phrases in which the term is an ordinary word, not the glossary term:
+    /// `future` the async value against "in the future". An occurrence
+    /// inside one of these (compared without regard to case) is not a use.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub except: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,9 +21,11 @@ pub struct GlossaryFile {
     pub terms: HashMap<String, GlossaryEntry>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Glossary {
     terms: HashMap<String, String>,
+    /// Term → phrases in which it is not the glossary term.
+    except: HashMap<String, Vec<String>>,
 }
 
 /// Find terms from the given map that the text uses as prose.
@@ -30,6 +37,16 @@ pub struct Glossary {
 /// and fails again. Of the 229 segments theBeamBook's glossary check rejected,
 /// 204 were this.
 pub fn find_terms_in_text(terms: &HashMap<String, String>, text: &str) -> HashMap<String, String> {
+    find_terms_except(terms, &HashMap::new(), text)
+}
+
+/// [`find_terms_in_text`], passing over occurrences that stand inside one of
+/// the term's `except` phrases.
+fn find_terms_except(
+    terms: &HashMap<String, String>,
+    except: &HashMap<String, Vec<String>>,
+    text: &str,
+) -> HashMap<String, String> {
     let text_lower = text.to_lowercase();
     let chars: Vec<char> = text_lower.chars().collect();
     let verbatim = verbatim_spans(&chars);
@@ -45,6 +62,17 @@ pub fn find_terms_in_text(terms: &HashMap<String, String>, text: &str) -> HashMa
     let mut found = HashMap::new();
     for (term, translation) in ordered {
         let term_chars: Vec<char> = term.to_lowercase().chars().collect();
+        let ordinary: Vec<Range<usize>> = except
+            .get(term)
+            .into_iter()
+            .flatten()
+            .flat_map(|phrase| {
+                let phrase: Vec<char> = phrase.to_lowercase().chars().collect();
+                occurrences(&chars, &phrase)
+                    .map(|at| at..at + phrase.len())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
         let mut spans = Vec::new();
         for start in occurrences(&chars, &term_chars) {
             let end = start + term_chars.len();
@@ -53,7 +81,8 @@ pub fn find_terms_in_text(terms: &HashMap<String, String>, text: &str) -> HashMa
                 && !joined_into_a_name(&chars, start, end);
             let hidden = verbatim.iter().any(|s| s.start < end && start < s.end);
             let inside_longer = claimed.iter().any(|c| c.start <= start && end <= c.end);
-            if standalone && !hidden && !inside_longer {
+            let as_ordinary_word = ordinary.iter().any(|o| o.start <= start && end <= o.end);
+            if standalone && !hidden && !inside_longer && !as_ordinary_word {
                 spans.push(start..end);
             }
         }
@@ -251,14 +280,19 @@ impl Glossary {
     pub fn from_toml(content: &str) -> Result<Self, GlossaryError> {
         let file: GlossaryFile = toml::from_str(content)
             .map_err(|e| GlossaryError::Parse(e.to_string()))?;
-        let terms = file.terms.into_iter()
-            .map(|(k, v)| (k, v.translation))
-            .collect();
-        Ok(Self { terms })
+        let mut terms = HashMap::new();
+        let mut except = HashMap::new();
+        for (term, entry) in file.terms {
+            if !entry.except.is_empty() {
+                except.insert(term.clone(), entry.except);
+            }
+            terms.insert(term, entry.translation);
+        }
+        Ok(Self { terms, except })
     }
 
     pub fn empty() -> Self {
-        Self { terms: HashMap::new() }
+        Self::default()
     }
 
     pub fn terms(&self) -> &HashMap<String, String> {
@@ -268,7 +302,7 @@ impl Glossary {
     /// Find glossary terms the given text uses as prose.
     /// Uses char-based boundary checking to handle non-ASCII (Korean, CJK) text correctly.
     pub fn find_matching_terms(&self, text: &str) -> HashMap<String, String> {
-        find_terms_in_text(&self.terms, text)
+        find_terms_except(&self.terms, &self.except, text)
     }
 
     /// Check if a glossary snapshot is stale compared to current glossary.
@@ -286,6 +320,16 @@ impl Glossary {
 
 /// Add or update a term in a glossary TOML file, preserving existing entries
 /// (including their `note` fields). Creates the file if it does not exist.
+/// A glossary of plain term → translation pairs, with no `except` phrases.
+impl FromIterator<(String, String)> for Glossary {
+    fn from_iter<I: IntoIterator<Item = (String, String)>>(pairs: I) -> Self {
+        Self {
+            terms: pairs.into_iter().collect(),
+            except: HashMap::new(),
+        }
+    }
+}
+
 pub fn upsert_term_in_file(
     path: &Path,
     term: &str,
@@ -380,6 +424,25 @@ note = "Git 저장소"
 translation = "커밋"
 "#;
         Glossary::from_toml(toml).unwrap()
+    }
+
+    #[test]
+    fn except_phrases_are_not_uses_of_the_term() {
+        let g = Glossary::from_toml(
+            r#"
+[terms.future]
+translation = "퓨처"
+except = ["in the future", "near future"]
+"#,
+        )
+        .unwrap();
+        assert!(g.find_matching_terms("More languages will follow In The Future.").is_empty());
+        assert!(g.find_matching_terms("In the near future, registries will work.").is_empty());
+        assert_eq!(
+            g.find_matching_terms("Awaiting the future in the future.").get("future").unwrap(),
+            "퓨처"
+        );
+        assert!(!g.is_snapshot_stale(&HashMap::new(), "in the future"));
     }
 
     #[test]

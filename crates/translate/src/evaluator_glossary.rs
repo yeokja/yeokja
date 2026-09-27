@@ -1,6 +1,5 @@
 use crate::evaluator::*;
 use async_trait::async_trait;
-use yeokja_core::glossary::find_terms_in_text;
 
 pub struct GlossaryEvaluator;
 
@@ -19,7 +18,7 @@ impl TranslationEvaluator for GlossaryEvaluator {
         } else {
             context.source.clone()
         };
-        let matching_terms = find_terms_in_text(&context.glossary, &source);
+        let matching_terms = context.glossary.find_matching_terms(&source);
 
         // The source is read without regard to case, so the translation is too.
         // Demanding the glossary's spelling starts a retry that cannot converge:
@@ -107,6 +106,28 @@ mod tests {
             target_lang: "ko".to_string(),
             markup: Markup::Asciidoc,
         }
+    }
+
+    #[tokio::test]
+    async fn except_phrases_do_not_demand_the_term() {
+        let glossary = yeokja_core::glossary::Glossary::from_toml(
+            r#"
+[terms.future]
+translation = "퓨처"
+except = ["in the future"]
+"#,
+        )
+        .unwrap();
+        let ctx = EvaluationContext {
+            glossary,
+            ..make_context(
+                "More generators may be added in the future.",
+                "앞으로 생성기가 더 추가될 수 있습니다.",
+                vec![],
+            )
+        };
+        let result = GlossaryEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
     }
 
     #[tokio::test]

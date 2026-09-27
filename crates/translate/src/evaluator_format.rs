@@ -2438,7 +2438,6 @@ fn rst_reference_runs(text: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     fn make_context(source: &str, translation: &str) -> EvaluationContext {
         context_in(Markup::Asciidoc, source, translation)
@@ -2448,7 +2447,7 @@ mod tests {
         EvaluationContext {
             source: source.to_string(),
             translation: translation.to_string(),
-            glossary: HashMap::new(),
+            glossary: Default::default(),
             source_lang: "en".to_string(),
             target_lang: "ko".to_string(),
             markup,

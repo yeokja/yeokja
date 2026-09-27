@@ -388,13 +388,12 @@ fn extract_urls(text: &str, markup: Markup) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     fn make_context(source: &str, translation: &str) -> EvaluationContext {
         EvaluationContext {
             source: source.to_string(),
             translation: translation.to_string(),
-            glossary: HashMap::new(),
+            glossary: Default::default(),
             source_lang: "en".to_string(),
             target_lang: "ko".to_string(),
             markup: Markup::Asciidoc,
@@ -518,7 +517,7 @@ mod tests {
         EvaluationContext {
             source: source.to_string(),
             translation: translation.to_string(),
-            glossary: HashMap::new(),
+            glossary: Default::default(),
             source_lang: "en".to_string(),
             target_lang: "ko".to_string(),
             markup: Markup::Rst,

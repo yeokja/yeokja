@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 pub use yeokja_core::parser::Markup;
+use yeokja_core::glossary::Glossary;
 
 #[derive(Debug, Clone)]
 pub struct EvaluationContext {
     pub source: String,
     pub translation: String,
-    pub glossary: HashMap<String, String>,
+    pub glossary: Glossary,
     pub source_lang: String,
     pub target_lang: String,
     /// The markup the translation will be read back as. Two markups disagree

@@ -178,7 +178,15 @@ note = "Git 저장소"
 
 [terms.commit]
 translation = "커밋"
+
+[terms.future]
+translation = "퓨처"
+except = ["in the future", "near future"]
 ```
+
+`except`는 용어가 용어집의 뜻이 아닌 일반 단어로 쓰이는 구절입니다. 이 구절
+안에서 나온 용어는 평가기가 용어집 번역을 요구하지 않고, 용어집 스냅숏에도
+들어가지 않습니다(대소문자 무시).
 
 ### 번역
 

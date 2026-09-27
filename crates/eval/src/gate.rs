@@ -121,7 +121,7 @@ async fn check_block(
         let ctx = EvaluationContext {
             source: seg.source.clone(),
             translation: translation.clone(),
-            glossary: item.request.glossary.clone(),
+            glossary: item.request.glossary.clone().into_iter().collect(),
             source_lang: item.request.source_lang.clone(),
             target_lang: item.request.target_lang.clone(),
             markup: item.request.markup,

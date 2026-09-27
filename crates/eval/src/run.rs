@@ -147,7 +147,7 @@ async fn translate_item(
             recorder.as_ref(),
             &evaluator_refs,
             item.request.clone(),
-            &item.request.glossary,
+            &item.request.glossary.clone().into_iter().collect(),
             &item.request.source_lang,
             &item.request.target_lang,
             markup,
