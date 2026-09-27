@@ -63,7 +63,7 @@ pub fn assemble(root: &Path, config: &ProjectConfig) -> Result<AssembleReport, A
     let target = root.join(&derive.target);
     let tmp = tmp_path(&target);
     if tmp.exists() {
-        std::fs::remove_dir_all(&tmp).map_err(io_err(&tmp))?;
+        remove_tree(&tmp).map_err(io_err(&tmp))?;
     }
 
     let result = assemble_into(&root, &base, derive, &tmp);
@@ -74,7 +74,7 @@ pub fn assemble(root: &Path, config: &ProjectConfig) -> Result<AssembleReport, A
             Ok(report)
         }
         Err(e) => {
-            let _ = std::fs::remove_dir_all(&tmp);
+            let _ = remove_tree(&tmp);
             Err(e)
         }
     }
@@ -257,7 +257,7 @@ fn walk_files(root: &Path) -> Result<Vec<PathBuf>, AssembleError> {
 pub fn copy_dereferenced(src: &Path, dest: &Path) -> Result<(), AssembleError> {
     if dest.exists() {
         if dest.is_dir() && !dest.is_symlink() {
-            std::fs::remove_dir_all(dest).map_err(io_err(dest))?;
+            remove_tree(dest).map_err(io_err(dest))?;
         } else {
             std::fs::remove_file(dest).map_err(io_err(dest))?;
         }
@@ -281,29 +281,84 @@ pub fn copy_dereferenced(src: &Path, dest: &Path) -> Result<(), AssembleError> {
 
 /// Retire the previous tree and move the finished one into place. Two
 /// renames, so the window without a tree is as small as the filesystem
-/// allows; a leftover `.old` from a crash is removed on the next run.
+/// allows. Deleting the retired tree is cleanup, not part of the swap: the
+/// new tree is already in place, so a retired tree that will not go away is
+/// reported and left for the next run to sweep instead of failing the build.
+/// Each run retires under its own name, so such a leftover never stands in
+/// the way of a later swap.
 fn swap_into_place(tmp: &Path, target: &Path) -> Result<(), AssembleError> {
     if let Some(parent) = target.parent() {
         std::fs::create_dir_all(parent).map_err(io_err(parent))?;
     }
-    let old = target.with_file_name(format!(
-        ".{}.retired",
-        target
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "tree".to_string())
-    ));
+    let retired_prefix = format!(".{}.retired", tree_name(target));
+    sweep_retired(target, &retired_prefix);
+    let old = target.with_file_name(format!("{retired_prefix}.{}", std::process::id()));
     if old.exists() {
-        std::fs::remove_dir_all(&old).map_err(io_err(&old))?;
+        remove_tree(&old).map_err(io_err(&old))?;
     }
     if target.exists() {
         std::fs::rename(target, &old).map_err(io_err(target))?;
     }
     std::fs::rename(tmp, target).map_err(io_err(target))?;
-    if old.exists() {
-        std::fs::remove_dir_all(&old).map_err(io_err(&old))?;
+    if old.exists()
+        && let Err(e) = remove_tree(&old)
+    {
+        tracing::warn!(path = %old.display(), error = %e, "Could not remove retired tree; the next build sweeps it");
     }
     Ok(())
+}
+
+fn tree_name(target: &Path) -> String {
+    target
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "tree".to_string())
+}
+
+/// Best-effort removal of trees earlier runs retired but could not delete
+/// (`.tree.retired`, `.tree.retired.<pid>`).
+fn sweep_retired(target: &Path, prefix: &str) {
+    let Some(parent) = target.parent() else { return };
+    let Ok(entries) = std::fs::read_dir(parent) else { return };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if name == prefix || name.starts_with(&format!("{prefix}.")) {
+            let path = entry.path();
+            if let Err(e) = remove_tree(&path) {
+                tracing::warn!(path = %path.display(), error = %e, "Could not remove retired tree");
+            }
+        }
+    }
+}
+
+/// `remove_dir_all`, retried while it reports a directory as not empty.
+/// It unlinks entries while it is still reading the directory, and on APFS
+/// that stream can end before every entry was returned; a process still
+/// writing into a just-retired tree adds entries behind it the same way.
+/// Either way a fresh pass finds what the last one missed.
+fn remove_tree(path: &Path) -> std::io::Result<()> {
+    remove_tree_with(path, |p| std::fs::remove_dir_all(p))
+}
+
+const REMOVE_ATTEMPTS: usize = 5;
+
+fn remove_tree_with(
+    path: &Path,
+    mut remove: impl FnMut(&Path) -> std::io::Result<()>,
+) -> std::io::Result<()> {
+    let mut attempt = 1;
+    loop {
+        match remove(path) {
+            Err(e)
+                if e.kind() == std::io::ErrorKind::DirectoryNotEmpty
+                    && attempt < REMOVE_ATTEMPTS =>
+            {
+                attempt += 1;
+            }
+            result => return result,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -558,5 +613,66 @@ path = "assets"
             assemble(root, &config),
             Err(AssembleError::MissingOverlay(_))
         ));
+    }
+
+    #[test]
+    fn remove_tree_retries_while_directory_not_empty() {
+        let mut calls = 0;
+        let result = remove_tree_with(Path::new("x"), |_| {
+            calls += 1;
+            if calls < 3 {
+                Err(std::io::ErrorKind::DirectoryNotEmpty.into())
+            } else {
+                Ok(())
+            }
+        });
+        assert!(result.is_ok());
+        assert_eq!(calls, 3);
+    }
+
+    #[test]
+    fn remove_tree_gives_up_and_passes_other_errors_through() {
+        let mut calls = 0;
+        let result = remove_tree_with(Path::new("x"), |_| {
+            calls += 1;
+            Err(std::io::ErrorKind::DirectoryNotEmpty.into())
+        });
+        assert_eq!(result.unwrap_err().kind(), std::io::ErrorKind::DirectoryNotEmpty);
+        assert_eq!(calls, REMOVE_ATTEMPTS);
+
+        let mut calls = 0;
+        let result = remove_tree_with(Path::new("x"), |_| {
+            calls += 1;
+            Err(std::io::ErrorKind::PermissionDenied.into())
+        });
+        assert_eq!(result.unwrap_err().kind(), std::io::ErrorKind::PermissionDenied);
+        assert_eq!(calls, 1);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn undeletable_retired_tree_does_not_fail_the_swap() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(&root.join("upstream/a.txt"), "A");
+        // A tree a previous run retired but could not delete: a directory
+        // it cannot empty stands in for whatever kept it alive.
+        let stuck = root.join("build/.tree.retired/locked");
+        write(&stuck.join("f"), "x");
+        std::fs::set_permissions(&stuck, std::fs::Permissions::from_mode(0o555)).unwrap();
+
+        let config = project(
+            r#"
+[derive]
+base = "upstream"
+"#,
+        );
+        let first = assemble(root, &config);
+        let second = assemble(root, &config);
+        std::fs::set_permissions(&stuck, std::fs::Permissions::from_mode(0o755)).unwrap();
+        first.unwrap();
+        second.unwrap();
+        assert_eq!(read(&root.join("build/tree/a.txt")), "A");
     }
 }
