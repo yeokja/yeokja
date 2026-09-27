@@ -6,6 +6,7 @@ pub mod fuse;
 pub mod orphans;
 pub mod glossary;
 pub mod inspect;
+pub mod reconcile;
 pub mod serve;
 pub mod status;
 pub mod translate;

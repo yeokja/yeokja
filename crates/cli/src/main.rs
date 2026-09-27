@@ -97,6 +97,17 @@ enum Commands {
         #[arg(long)]
         delete: bool,
     },
+    /// Migrate saved state to a new parser's segment shape, without calling a
+    /// model. Run once right after a parser change, before `translate`; not
+    /// after pulling in updated source, since a ContextChanged there may be a
+    /// real context change rather than a reshape.
+    Reconcile {
+        /// Path to reconcile
+        path: String,
+        /// Print what would change without writing state
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Start server mode
     Serve,
 }
@@ -196,6 +207,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Orphans { delete } => {
             commands::orphans::run(delete)?;
+        }
+        Commands::Reconcile { path, dry_run } => {
+            commands::reconcile::run(&path, dry_run)?;
         }
         Commands::Serve => {
             commands::serve::run().await?;
