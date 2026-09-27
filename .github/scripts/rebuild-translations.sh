@@ -103,6 +103,16 @@ case "$project" in
     "$yeokja" translate upstream/source
     "$yeokja" status --check upstream/source
     ;;
+  fp-lean)
+    # anchorEqSteps가 예제 모듈과 원고의 같은 문장을 한 줄씩 비교하므로, 한쪽만
+    # 고친 번역은 Lean 빌드가 한참 돈 뒤에야 실패합니다. 재구성 전에 거릅니다.
+    python3 scripts/check_example_pairs.py
+    for s in $(find state -name '*.yeokja.json'); do
+      src="${s#state/}"; src="${src%.yeokja.json}"
+      "$yeokja" translate "$src"
+      "$yeokja" status --check "$src"
+    done
+    ;;
   *)
     for s in $(find state -name '*.yeokja.json'); do
       src="${s#state/}"; src="${src%.yeokja.json}"
