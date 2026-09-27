@@ -68,6 +68,15 @@ impl ParseState<'_> {
         self.push_span_block(block_type, span);
     }
 
+    /// Flush the current run and drop a still-pending verbatim style: a
+    /// block attribute line attaches only to the paragraph directly under
+    /// it, so a heading, list/callout item, admonition, or description item
+    /// taking that line instead consumes the style without honoring it.
+    fn begin_structural_block(&mut self) {
+        self.flush_current();
+        self.pending_verbatim = false;
+    }
+
     /// Emit a translatable block covering `span` (skipping blank spans).
     fn push_span_block(&mut self, block_type: BlockType, span: Range<usize>) {
         self.push_span_block_with_role(block_type, span, BlockRole::None);
@@ -535,24 +544,21 @@ impl DocumentParser for AsciidocParser {
             }
 
             if opaque_delimiter(trimmed) || fence_marker(trimmed).is_some() {
-                state.flush_current();
-                state.pending_verbatim = false;
+                state.begin_structural_block();
                 let delimiter = fence_marker(trimmed).unwrap_or(trimmed);
                 state.opaque = Some((delimiter.to_string(), line_start));
                 continue;
             }
 
             if table::is_delimiter(trimmed) {
-                state.flush_current();
-                state.pending_verbatim = false;
+                state.begin_structural_block();
                 state.table_index += 1;
                 state.table = Some(TableReader::open(trimmed, state.declared_columns.take()));
                 continue;
             }
 
             if container_delimiter(trimmed) {
-                state.flush_current();
-                state.pending_verbatim = false;
+                state.begin_structural_block();
                 if state.containers.last().map(String::as_str) == Some(trimmed) {
                     state.containers.pop();
                 } else {
@@ -562,7 +568,7 @@ impl DocumentParser for AsciidocParser {
             }
 
             if let Some((level, text_offset)) = parse_heading(content) {
-                state.flush_current();
+                state.begin_structural_block();
                 let is_doc_title = level == 1 && !state.seen_content;
                 state.start_section_if_needed(level);
                 let span = line_start + text_offset..content_end;
@@ -605,38 +611,34 @@ impl DocumentParser for AsciidocParser {
                 continue;
             }
 
-            // A `[source]`-style paragraph with no delimiter: the whole thing,
-            // up to the blank line that ends it, stays untouched as code.
-            if state.pending_verbatim {
-                state.pending_verbatim = false;
-                state.verbatim_paragraph = Some(line_start);
-                continue;
-            }
-
             // List continuation marker joins blocks to an item; treat as boundary.
             if trimmed == "+" {
                 state.flush_current();
                 continue;
             }
 
+            // These structural constructs take the attribute line's style
+            // (asciidoctor attaches it to whichever block follows) but don't
+            // support it, so it's simply dropped rather than turning the
+            // construct into a verbatim paragraph.
             if let Some(text_offset) =
                 parse_list_item(content).or_else(|| parse_callout_item(content))
             {
-                state.flush_current();
+                state.begin_structural_block();
                 state.current =
                     Some((BlockType::ListItem, line_start + text_offset..content_end));
                 continue;
             }
 
             if let Some(text_offset) = parse_admonition(content) {
-                state.flush_current();
+                state.begin_structural_block();
                 state.current =
                     Some((state.text_type(), line_start + text_offset..content_end));
                 continue;
             }
 
             if let Some((term_range, desc_offset)) = parse_description_item(content) {
-                state.flush_current();
+                state.begin_structural_block();
                 // Term and description translate as separate spans; the `::`
                 // delimiter between them stays verbatim.
                 state.current = Some((
@@ -648,6 +650,16 @@ impl DocumentParser for AsciidocParser {
                     state.current =
                         Some((BlockType::ListItem, line_start + offset..content_end));
                 }
+                continue;
+            }
+
+            // A `[source]`-style paragraph with no delimiter: the whole thing,
+            // up to the blank line that ends it, stays untouched as code.
+            // Placed after every other structural check so a heading, list
+            // item, admonition, or description item found above still wins.
+            if state.pending_verbatim {
+                state.pending_verbatim = false;
+                state.verbatim_paragraph = Some(line_start);
                 continue;
             }
 
@@ -845,6 +857,48 @@ mod tests {
     fn last_of_consecutive_attribute_lines_wins() {
         // `[[id]]` then `[source]`: the style attribute is the one that counts.
         let source = "[[id]]\n[source,erlang]\nid(I) -> I.\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["After."]);
+    }
+
+    #[test]
+    fn heading_right_after_attribute_consumes_the_style() {
+        // The style attaches to the heading (asciidoctor ignores it there,
+        // since headings aren't a style-able paragraph), and dropping it
+        // means the following paragraph translates normally.
+        let source = "[source]\n== Heading\n\ntext\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["Heading", "text"]);
+    }
+
+    #[test]
+    fn list_item_right_after_attribute_consumes_the_style() {
+        let source = "[source]\n* item\n\ntext\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["item", "text"]);
+    }
+
+    #[test]
+    fn a_title_line_after_the_attribute_keeps_the_paragraph_opaque() {
+        // `.Title` chains onto the same block the attribute line targets
+        // (like a second attribute line), so the style still applies to the
+        // code line below it.
+        let source = "[source]\n.Title\ncode line\n\nAfter.\n";
         let doc = AsciidocParser.parse(source);
         let sources: Vec<_> = doc
             .translatable_segments()
