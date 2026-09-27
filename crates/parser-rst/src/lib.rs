@@ -229,7 +229,7 @@ fn mask_mil_source(source: &str) -> Result<String, String> {
 /// keeps its body in the document's language — admonitions, `function::` and
 /// friends describe things in prose — so an unknown directive stays
 /// translatable and only its marker line is held back.
-const OPAQUE_DIRECTIVES: [&str; 17] = [
+const OPAQUE_DIRECTIVES: [&str; 20] = [
     "code",
     "code-block",
     "sourcecode",
@@ -247,6 +247,9 @@ const OPAQUE_DIRECTIVES: [&str; 17] = [
     "csv-table",
     "productionlist",
     "tabularcolumns",
+    "graphviz",
+    "graph",
+    "digraph",
 ];
 
 const INLINE_PROSE_DIRECTIVES: [&str; 4] = ["note", "seealso", "tip", "impl-detail"];
@@ -684,15 +687,21 @@ fn standalone_field_body_start(content: &str, has_body_prose: bool) -> Option<us
 }
 
 /// `.. name:: arguments` → the directive's name.
+///
+/// Follows docutils' directive-name grammar so that Sphinx domain directives
+/// (`py:function`, `c:function`) are recognized: the first character is
+/// alphanumeric, later characters are alphanumeric or `-_.+:`, and the name
+/// does not end in `:` (which would make it a hyperlink target or comment
+/// instead, e.g. `.. _target: http://x`).
 fn parse_directive(trimmed: &str) -> Option<&str> {
     let rest = trimmed.strip_prefix("..")?.strip_prefix(char::is_whitespace)?;
     let end = rest.find("::")?;
     let name = &rest[..end];
-    (!name.is_empty()
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '+')))
-    .then_some(name)
+    let mut chars = name.chars();
+    let first_ok = chars.next().is_some_and(|c| c.is_ascii_alphanumeric());
+    let rest_ok = chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '+' | ':'));
+    let last_ok = !name.ends_with(':');
+    (first_ok && rest_ok && last_ok).then_some(name)
 }
 
 fn parse_substitution_image_directive(trimmed: &str) -> Option<&str> {
@@ -2651,6 +2660,67 @@ mod tests {
         let segments = doc.translatable_segments();
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].source, "Run an interp-level gdb.");
+    }
+
+    #[test]
+    fn py_domain_function_directive_body_is_translatable_but_signature_is_not() {
+        let source = ".. py:function:: getexecutioncontext()\n\n   Return the currently active execution context.\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(
+            segments[0].source,
+            "Return the currently active execution context."
+        );
+    }
+
+    #[test]
+    fn c_domain_function_directive_body_is_translatable_but_signature_is_not() {
+        let source = ".. c:function:: int f(void)\n\n   Does things.\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].source, "Does things.");
+    }
+
+    #[test]
+    fn graphviz_directive_is_opaque() {
+        let source = ".. graphviz::\n\n    digraph G{\n    a -> b; // c\n    }\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
+    }
+
+    #[test]
+    fn digraph_directive_is_opaque() {
+        let source = ".. digraph:: t\n\n   a -> b\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
+    }
+
+    #[test]
+    fn hyperlink_target_line_is_still_not_a_directive() {
+        let source = ".. _target: http://x\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
+    }
+
+    #[test]
+    fn substitution_replace_line_is_still_not_a_directive() {
+        let source = ".. |sub| replace:: x\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
     }
 
     #[test]
