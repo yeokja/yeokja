@@ -3,6 +3,10 @@
 #
 # 툴체인(asciidoctor, ditaa용 jre 등)은 Nix devShell(nix/projects/thebeambook.nix)이
 # 제공합니다. `nix develop path:../../nix#thebeambook`로 들어온 셸에서 실행합니다.
+#
+# 부록의 include::opcodes_doc.asciidoc[]은 upstream의 `make html`에서도
+# 풀리지 않습니다. 그 파일은 erl과 genop.tab 네트워크 다운로드로 생성하는
+# 영문 목록이라 이 빌드에서도 만들지 않고 upstream과 같은 결과를 둡니다.
 set -e
 
 make html
