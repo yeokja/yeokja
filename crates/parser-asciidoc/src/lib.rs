@@ -45,6 +45,13 @@ struct ParseState<'a> {
     /// Column count from the most recent `[cols=...]` line, waiting for the
     /// table it belongs to.
     declared_columns: Option<usize>,
+    /// The most recent `[...]` line set a style (`source`, `listing`, ...)
+    /// that keeps its next paragraph verbatim if it isn't opened by a
+    /// delimiter instead.
+    pending_verbatim: bool,
+    /// Open undelimited verbatim paragraph (`[source]` with no `----`):
+    /// its starting offset, waiting for the blank line or EOF that closes it.
+    verbatim_paragraph: Option<usize>,
     /// Open container delimiters (`____`, `====`, `****`); content inside is
     /// parsed normally, `____` labels its content as BlockQuote.
     containers: Vec<String>,
@@ -105,6 +112,24 @@ impl ParseState<'_> {
             Some((_, span)) => span.end = range.end,
             None => self.current = Some((block_type, range)),
         }
+    }
+
+    /// Close the open undelimited verbatim paragraph (if any), covering the
+    /// source up to `end` (the end of the last line it swallowed).
+    fn close_verbatim_paragraph(&mut self, end: usize) {
+        let Some(start) = self.verbatim_paragraph.take() else {
+            return;
+        };
+        let raw = self.source[start..end].to_string();
+        self.push_block(Block {
+            block_type: BlockType::CodeBlock,
+            segments: Vec::new(),
+            raw_content: raw,
+            heading_level: None,
+            span: None,
+            translatable: BlockType::CodeBlock.is_translatable(),
+            role: BlockRole::None,
+        });
     }
 
     /// Type for plain text at this position: BlockQuote inside `____`.
@@ -177,6 +202,46 @@ fn setext_level(trimmed: &str, title: &str) -> Option<u8> {
         && title.chars().any(char::is_alphanumeric)
         && len.abs_diff(title.chars().count()) <= 1)
         .then_some(level)
+}
+
+/// Styles whose paragraph asciidoctor keeps verbatim even without a `----`
+/// delimiter: source-code styles, passthrough/literal styles, math, and the
+/// diagram styles this project's asciidoctor extensions accept as a
+/// paragraph shape.
+const VERBATIM_PARAGRAPH_STYLES: [&str; 12] = [
+    "source",
+    "listing",
+    "literal",
+    "pass",
+    "stem",
+    "latexmath",
+    "asciimath",
+    "ditaa",
+    "graphviz",
+    "plantuml",
+    "mermaid",
+    "svgbob",
+];
+
+/// Does the block attribute line `[...]` set a style that keeps its next
+/// paragraph verbatim (see [`VERBATIM_PARAGRAPH_STYLES`])?
+///
+/// The style is the first positional attribute: the token up to the first
+/// comma (or the closing `]`), itself cut short at a `#id`, `.role`, or
+/// `%option` shorthand glued onto it (`[source#ex1]`, `[source.role]`).
+fn verbatim_paragraph_style(attribute_line: &str) -> bool {
+    let Some(inner) = attribute_line
+        .strip_prefix('[')
+        .and_then(|s| s.strip_suffix(']'))
+    else {
+        return false;
+    };
+    let first = inner.split(',').next().unwrap_or("");
+    let style_end = first
+        .find(['#', '.', '%'])
+        .unwrap_or(first.len());
+    let style = first[..style_end].trim();
+    VERBATIM_PARAGRAPH_STYLES.contains(&style)
 }
 
 /// `____`, `====`, `****` open/close container blocks parsed normally inside.
@@ -339,6 +404,8 @@ impl DocumentParser for AsciidocParser {
             table: None,
             table_index: 0,
             declared_columns: None,
+            pending_verbatim: false,
+            verbatim_paragraph: None,
             containers: Vec::new(),
             in_doc_header: false,
             seen_content: false,
@@ -346,6 +413,7 @@ impl DocumentParser for AsciidocParser {
 
         let mut offset = 0usize;
         let mut last_line_start = 0usize;
+        let mut last_content_end = 0usize;
         for line in source.split_inclusive('\n') {
             let line_start = offset;
             let previous_line_start = std::mem::replace(&mut last_line_start, line_start);
@@ -353,6 +421,9 @@ impl DocumentParser for AsciidocParser {
             let content = line.strip_suffix('\n').unwrap_or(line);
             let content = content.strip_suffix('\r').unwrap_or(content);
             let content_end = line_start + content.len();
+            // End of the previous line's content — where an undelimited
+            // verbatim paragraph closes if this line turns out to be blank.
+            let previous_content_end = std::mem::replace(&mut last_content_end, content_end);
             let trimmed = content.trim();
 
             // Inside an opaque delimited block: only the matching closer matters.
@@ -412,10 +483,18 @@ impl DocumentParser for AsciidocParser {
             // Blank line ends the current paragraph/list item (and the header).
             if trimmed.is_empty() {
                 state.flush_current();
+                state.close_verbatim_paragraph(previous_content_end);
                 state.in_doc_header = false;
                 // Block attributes attach to the block that follows them
                 // directly, so a blank line drops them.
                 state.declared_columns = None;
+                state.pending_verbatim = false;
+                continue;
+            }
+
+            // Inside an undelimited verbatim paragraph (`[source]` with no
+            // `----`): every line up to the blank line above stays untouched.
+            if state.verbatim_paragraph.is_some() {
                 continue;
             }
 
@@ -457,6 +536,7 @@ impl DocumentParser for AsciidocParser {
 
             if opaque_delimiter(trimmed) || fence_marker(trimmed).is_some() {
                 state.flush_current();
+                state.pending_verbatim = false;
                 let delimiter = fence_marker(trimmed).unwrap_or(trimmed);
                 state.opaque = Some((delimiter.to_string(), line_start));
                 continue;
@@ -464,6 +544,7 @@ impl DocumentParser for AsciidocParser {
 
             if table::is_delimiter(trimmed) {
                 state.flush_current();
+                state.pending_verbatim = false;
                 state.table_index += 1;
                 state.table = Some(TableReader::open(trimmed, state.declared_columns.take()));
                 continue;
@@ -471,6 +552,7 @@ impl DocumentParser for AsciidocParser {
 
             if container_delimiter(trimmed) {
                 state.flush_current();
+                state.pending_verbatim = false;
                 if state.containers.last().map(String::as_str) == Some(trimmed) {
                     state.containers.pop();
                 } else {
@@ -516,7 +598,18 @@ impl DocumentParser for AsciidocParser {
                     // A `cols` here shapes the table below it; anything else
                     // supersedes a `cols` we were holding.
                     state.declared_columns = table::declared_columns(trimmed);
+                    // Consecutive attribute lines chain; the last one's style
+                    // (or lack of one) is what the next paragraph gets.
+                    state.pending_verbatim = verbatim_paragraph_style(trimmed);
                 }
+                continue;
+            }
+
+            // A `[source]`-style paragraph with no delimiter: the whole thing,
+            // up to the blank line that ends it, stays untouched as code.
+            if state.pending_verbatim {
+                state.pending_verbatim = false;
+                state.verbatim_paragraph = Some(line_start);
                 continue;
             }
 
@@ -578,6 +671,7 @@ impl DocumentParser for AsciidocParser {
         }
 
         state.flush_current();
+        state.close_verbatim_paragraph(last_content_end);
 
         let mut sections = state.sections;
         sections.retain(|s| !s.blocks.is_empty());
@@ -631,6 +725,153 @@ fn setext_underline_edits(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn translate_all(source: &str, pairs: &[(&str, &str)]) -> String {
+        let parser = AsciidocParser;
+        let doc = parser.parse(source);
+        let mut translations = TranslationMap::new();
+        for seg in doc.all_segments() {
+            if let Some((_, t)) = pairs.iter().find(|(s, _)| *s == seg.source) {
+                translations.insert(seg.id.clone(), t.to_string());
+            }
+        }
+        parser.reconstruct(&doc, &translations)
+    }
+
+    #[test]
+    fn styled_source_paragraph_without_delimiters_is_opaque() {
+        let source = "Before.\n\n[source, C]\nBeamInstr* next;\nPreFetch(2, next);\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["Before.", "After."]);
+        let output = translate_all(source, &[("Before.", "앞."), ("After.", "뒤.")]);
+        assert_eq!(
+            output,
+            "앞.\n\n[source, C]\nBeamInstr* next;\nPreFetch(2, next);\n\n뒤.\n"
+        );
+    }
+
+    #[test]
+    fn styled_erlang_source_paragraph_without_delimiters_is_opaque() {
+        let source = "[source,erlang]\nid(I) -> I.\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["After."]);
+    }
+
+    #[test]
+    fn listing_paragraph_without_delimiters_is_opaque() {
+        let source = "[listing]\nsome verbatim text\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["After."]);
+    }
+
+    #[test]
+    fn shorthand_style_attribute_paragraph_is_opaque() {
+        // `[source#ex]` — the style token is cut off at the `#` shorthand.
+        let source = "[source#ex]\nBeamInstr* next;\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["After."]);
+    }
+
+    #[test]
+    fn note_paragraph_is_still_translated() {
+        let source = "[NOTE]\nRemember this.\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["Remember this.", "After."]);
+    }
+
+    #[test]
+    fn anchor_paragraph_is_still_translated() {
+        let source = "[[my_anchor]]\nSome text here.\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["Some text here.", "After."]);
+    }
+
+    #[test]
+    fn blank_line_after_attribute_drops_the_pending_style() {
+        let source = "[source,erlang]\n\nid(I) -> I.\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["id(I) -> I.", "After."]);
+    }
+
+    #[test]
+    fn delimiter_after_style_attribute_still_opens_normally() {
+        // Existing behavior: `[source]` followed by `----` is unaffected.
+        let source = "[source]\n----\nid(I) -> I.\n----\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["After."]);
+    }
+
+    #[test]
+    fn last_of_consecutive_attribute_lines_wins() {
+        // `[[id]]` then `[source]`: the style attribute is the one that counts.
+        let source = "[[id]]\n[source,erlang]\nid(I) -> I.\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["After."]);
+    }
+
+    #[test]
+    fn styled_paragraph_closes_at_end_of_document() {
+        let source = "[source,erlang]\nid(I) -> I.";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert!(sources.is_empty());
+        let blocks: Vec<_> = doc
+            .sections
+            .iter()
+            .flat_map(|s| s.blocks.iter())
+            .map(|b| b.block_type)
+            .collect();
+        assert_eq!(blocks, vec![BlockType::CodeBlock]);
+    }
 
     #[test]
     fn parse_simple_paragraph() {
