@@ -8,6 +8,8 @@
 #   - 프로젝트 트리의 git 추적 파일 (state/ 제외 — 상태 변화는 ko/에 반영됨)
 #   - yeokja translate가 이미 재구성해 둔 ko/, ko-ui/ 의 내용
 #   - 빌드 타깃 이름
+#   - 빌드 툴체인: nix/projects/<project>.nix 와 공용 nix/flake.nix,
+#     nix/flake.lock, nix/lib/*.nix (CI는 이 devShell 안에서 빌드합니다)
 #
 # 이 스크립트는 프로젝트 밖을 참조하지 않는 `[derive] base = "upstream"` +
 # 오버레이(ko/, assets/ 등) 구성을 전제합니다. 그 구성을 벗어나는 프로젝트가
@@ -28,6 +30,9 @@ if [ ! -d "$project_dir" ]; then
   echo "error: no such project directory: $project_dir" >&2
   exit 1
 fi
+
+repo_root=$(git -C "$project_dir" rev-parse --show-toplevel)
+project_name=$(basename "$(cd "$project_dir" && pwd)")
 
 fingerprint_input() {
   echo "target:$target"
@@ -62,6 +67,19 @@ fingerprint_input() {
     echo "ko-ui:"
     find "$project_dir/ko-ui" -type f -exec sha256sum {} + | LC_ALL=C sort
   fi
+
+  # `nix develop path:../../nix#<project>`는 추적 여부와 관계없이 작업 트리의
+  # 파일을 읽으므로 git 인덱스가 아니라 내용을 해시합니다. 다른 프로젝트의
+  # devShell 파일은 이 프로젝트의 빌드에 영향을 주지 않으므로 넣지 않습니다.
+  echo "toolchain:"
+  (
+    cd "$repo_root"
+    for path in nix/flake.nix nix/flake.lock nix/lib/*.nix "nix/projects/$project_name.nix"; do
+      if [ -f "$path" ]; then
+        sha256sum "$path"
+      fi
+    done | LC_ALL=C sort
+  )
 
   if [ "$daily" = "--daily" ]; then
     echo "date:${YEOKJA_FINGERPRINT_DATE:-$(date -u +%F)}"

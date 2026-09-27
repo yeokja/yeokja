@@ -106,6 +106,29 @@ class BuildFingerprintTests(unittest.TestCase):
         run_git(["commit", "-q", "-m", "tweak config"], self.root)
         self.assertNotEqual(before, self.fingerprint())
 
+    def test_changing_the_project_devshell_changes_the_fingerprint(self) -> None:
+        devshell = self.root / "nix" / "projects" / "sample.nix"
+        self.write(devshell, "{ pkgs, ... }: pkgs.mkShell { }")
+        before = self.fingerprint()
+        self.write(devshell, "{ pkgs, ... }: pkgs.mkShell { packages = [ pkgs.jdk ]; }")
+        self.assertNotEqual(before, self.fingerprint())
+
+    def test_shared_nix_inputs_change_the_fingerprint(self) -> None:
+        for relative in ("nix/flake.nix", "nix/flake.lock", "nix/lib/python-venv.nix"):
+            with self.subTest(relative=relative):
+                path = self.root / relative
+                self.write(path, "original")
+                before = self.fingerprint()
+                self.write(path, "changed")
+                self.assertNotEqual(before, self.fingerprint())
+
+    def test_another_projects_devshell_leaves_the_fingerprint_unchanged(self) -> None:
+        other = self.root / "nix" / "projects" / "other.nix"
+        self.write(other, "{ pkgs, ... }: pkgs.mkShell { }")
+        before = self.fingerprint()
+        self.write(other, "{ pkgs, ... }: pkgs.mkShell { packages = [ pkgs.jdk ]; }")
+        self.assertEqual(before, self.fingerprint())
+
     def test_ui_translation_changes_invalidate_after_output_reconstruction(self) -> None:
         state = self.state_dir / "ui" / "index.md.yeokja.json"
         output = self.project / "ko-ui" / "index.md"
