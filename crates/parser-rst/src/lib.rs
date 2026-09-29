@@ -2398,9 +2398,6 @@ fn replace_bare_rst_reference(input: &str, reference: &str, replacement: &str) -
     output
 }
 
-/// The last line of the indented block starting under line `at`: lines more
-/// indented than `threshold` belong to it, and blank lines do not end it —
-/// only a dedent does.
 /// Whether a line indented past `column` follows line `at` within the body
 /// it opens — every line after it that is blank or indented past
 /// `marker_indent`.
@@ -2411,6 +2408,9 @@ fn deeper_line_in_body(lines: &[Line], at: usize, marker_indent: usize, column: 
         .any(|line| !line.is_blank() && line.indent() > column)
 }
 
+/// The last line of the indented block starting under line `at`: lines more
+/// indented than `threshold` belong to it, and blank lines do not end it —
+/// only a dedent does.
 fn consume_while_indented(lines: &[Line], at: usize, threshold: usize) -> usize {
     let mut last = at;
     let mut j = at + 1;
