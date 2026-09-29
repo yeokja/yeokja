@@ -209,7 +209,11 @@ fn multiline_blockquote_stays_multiline() {
     );
     let quoted: Vec<_> = output.lines().filter(|l| l.starts_with("> ")).collect();
     assert!(quoted.len() >= 2, "{output}");
-    assert!(output.contains("\nBefore") || output.starts_with("하나"));
+    let translated = "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열 열하나 열둘 열셋";
+    // Surrounding paragraphs stay single lines; the quote's lines rejoin to the translation.
+    assert_eq!(output.lines().filter(|l| *l == translated).count(), 2, "{output}");
+    let rejoined: Vec<_> = quoted.iter().map(|l| &l[2..]).collect();
+    assert_eq!(rejoined.join(" "), translated);
 }
 
 #[test]
@@ -234,4 +238,26 @@ fn paragraph_outside_blockquote_stays_one_line() {
     let source = "one two three four\nfive six seven.\n";
     let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
     assert_eq!(output, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열\n");
+}
+
+#[test]
+fn quoted_list_item_stays_multiline() {
+    let source = "> - item one two\n>   three four\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    assert!(output.lines().filter(|l| l.starts_with('>')).count() >= 2, "{output}");
+}
+
+#[test]
+fn nested_quote_prefix_is_copied() {
+    let source = "> > one two three four\n> > five six seven.\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    let lines: Vec<_> = output.lines().collect();
+    assert!(lines.len() >= 2 && lines.iter().all(|l| l.starts_with("> >")), "{output}");
+}
+
+#[test]
+fn lazy_continuation_is_left_unwrapped() {
+    let source = "> one two three four\nfive six seven.\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    assert_eq!(output.lines().count(), 1, "{output}");
 }

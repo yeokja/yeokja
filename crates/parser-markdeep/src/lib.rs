@@ -177,7 +177,10 @@ impl DocumentParser for MarkdeepParser {
                 .sections
                 .iter()
                 .flat_map(|s| &s.blocks)
-                .any(|b| b.block_type == BlockType::BlockQuote && b.span.as_ref() == Some(span));
+                .any(|b| matches!(
+                        b.block_type,
+                        BlockType::BlockQuote | BlockType::Paragraph | BlockType::ListItem
+                    ) && b.span.as_ref() == Some(span));
             if quote && let Some(wrapped) = wrap_quote(&document.source[span.clone()], text) {
                 *text = wrapped;
             }
@@ -192,6 +195,10 @@ fn wrap_quote(source: &str, translated: &str) -> Option<String> {
     let (_, rest) = source.split_once('\n')?;
     let prefix_len = |line: &str| line.len() - line.trim_start_matches(['>', ' ']).len();
     let prefix = &rest[..prefix_len(rest)];
+    // A lazy continuation line carries no `>`; nothing to keep alive.
+    if !prefix.contains('>') {
+        return None;
+    }
     let first = source.lines().next().unwrap_or_default();
     let width = std::iter::once(first)
         .chain(rest.lines().map(|l| &l[prefix_len(l)..]))
