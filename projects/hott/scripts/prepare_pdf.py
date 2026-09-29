@@ -13,8 +13,6 @@ def write_local(path: Path, text: str) -> None:
 def prepare(tree: Path) -> None:
     path = tree / "symbols.tex"
     text = path.read_text(encoding="utf-8")
-    text = text.replace(r"\addcontentsline{toc}{part}{Index of symbols}",
-                        r"\addcontentsline{toc}{part}{기호 찾아보기}")
     text = re.sub(r"\\markboth\{\}\{\\textsc\{[^}]*\}\}",
                   lambda _: r"\markboth{}{\textsc{기호 찾아보기}}", text)
     write_local(path, text)
@@ -24,12 +22,6 @@ def prepare(tree: Path) -> None:
         # argument. Make its empty subscript explicit before a Korean particle.
         text = path.read_text(encoding="utf-8")
         text = re.sub(r"\\LEM(?=[가-힣])", lambda _: r"\LEM{}", text)
-        write_local(path, text)
-    path = tree / "introduction.tex"
-    if path.exists():
-        text = path.read_text(encoding="utf-8").replace(
-            r"\addcontentsline{toc}{chapter}{Introduction}",
-            r"\addcontentsline{toc}{chapter}{서론}")
         write_local(path, text)
     path = tree / "front.tex"
     text = path.read_text(encoding="utf-8")

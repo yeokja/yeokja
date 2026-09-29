@@ -24,7 +24,6 @@ class PreparePdfTests(unittest.TestCase):
             result = subprocess.run([sys.executable, str(SCRIPT), str(tree)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('\\chapter*{기호 색인}', (tree / 'symbols.tex').read_text())
-            self.assertIn('\\addcontentsline{toc}{part}{기호 찾아보기}', (tree / 'symbols.tex').read_text())
             self.assertIn('비공식 한국어 번역', (tree / 'front.tex').read_text())
             self.assertEqual((base / 'symbols.tex').read_text(), symbols)
             self.assertEqual((base / 'front.tex').read_text(), front)
