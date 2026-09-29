@@ -189,3 +189,49 @@ fn translated_image_caption_and_following_prose_keep_the_destination() {
         "![번역문](assets/a(b).png) 번역문\n"
     );
 }
+
+fn translate_all(source: &str, text: &str) -> String {
+    let doc = MarkdeepParser.parse(source);
+    let translations = doc
+        .translatable_segments()
+        .iter()
+        .map(|s| (s.id.clone(), text.to_owned()))
+        .collect::<TranslationMap>();
+    MarkdeepParser.reconstruct(&doc, &translations)
+}
+
+#[test]
+fn multiline_blockquote_stays_multiline() {
+    let source = "Before.\n\n> one two three four\n> five six seven.\n\nAfter.\n";
+    let output = translate_all(
+        source,
+        "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열 열하나 열둘 열셋",
+    );
+    let quoted: Vec<_> = output.lines().filter(|l| l.starts_with("> ")).collect();
+    assert!(quoted.len() >= 2, "{output}");
+    assert!(output.contains("\nBefore") || output.starts_with("하나"));
+}
+
+#[test]
+fn short_blockquote_translation_gets_an_empty_quote_line() {
+    let source = "> one two three four\n> five six seven.\n";
+    let output = translate_all(source, "`x`");
+    assert_eq!(output, "> `x`\n>\n");
+}
+
+#[test]
+fn blockquote_is_not_split_inside_code_spans() {
+    let source = "> one two three four\n> five six seven.\n";
+    let output = translate_all(source, "가 `a b c d e f g h` 나");
+    assert!(output.lines().filter(|l| l.starts_with('>')).count() >= 2);
+    for line in output.lines() {
+        assert_eq!(line.matches('`').count() % 2, 0, "{output}");
+    }
+}
+
+#[test]
+fn paragraph_outside_blockquote_stays_one_line() {
+    let source = "one two three four\nfive six seven.\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    assert_eq!(output, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열\n");
+}

@@ -5,7 +5,9 @@ use yeokja_core::hash::content_hash;
 use yeokja_core::model::{BlockType, Document, Segment, SegmentId};
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_markdown_dialect::{Extra, parse_with};
-use yeokja_parser_utils::{resolve_reference_links, splice_reconstruct};
+use yeokja_parser_utils::{
+    apply_splices, collect_splices, display_width, resolve_reference_links, split_at_safe_space,
+};
 
 pub struct MarkdeepParser;
 
@@ -166,8 +168,57 @@ impl DocumentParser for MarkdeepParser {
     }
 
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
-        splice_reconstruct(document, &resolve_reference_links(document, translations))
+        let translations = resolve_reference_links(document, translations);
+        let mut splices = collect_splices(document, &translations);
+        // Markdeep renders a blockquote only from two or more `>` lines, so a
+        // multi-line quote must not collapse into one line.
+        for (span, text) in &mut splices {
+            let quote = document
+                .sections
+                .iter()
+                .flat_map(|s| &s.blocks)
+                .any(|b| b.block_type == BlockType::BlockQuote && b.span.as_ref() == Some(span));
+            if quote && let Some(wrapped) = wrap_quote(&document.source[span.clone()], text) {
+                *text = wrapped;
+            }
+        }
+        apply_splices(&document.source, splices)
     }
+}
+
+/// Break a translated blockquote over as many `>` lines as its source had,
+/// at the source's line width. `None` for a quote written on one line.
+fn wrap_quote(source: &str, translated: &str) -> Option<String> {
+    let (_, rest) = source.split_once('\n')?;
+    let prefix_len = |line: &str| line.len() - line.trim_start_matches(['>', ' ']).len();
+    let prefix = &rest[..prefix_len(rest)];
+    let first = source.lines().next().unwrap_or_default();
+    let width = std::iter::once(first)
+        .chain(rest.lines().map(|l| &l[prefix_len(l)..]))
+        .map(display_width)
+        .max()
+        .unwrap_or(0);
+    // A space is a safe break only where the translation is plain text.
+    let mut texts = Vec::new();
+    for (event, range) in pulldown_cmark::Parser::new(translated).into_offset_iter() {
+        if matches!(event, pulldown_cmark::Event::Text(_)) {
+            texts.push(range);
+        }
+    }
+    let safe = |at: usize| texts.iter().any(|r| r.start <= at && at < r.end);
+    let mut lines = Vec::new();
+    let mut pos = 0;
+    while display_width(&translated[pos..]) > width
+        && let Some(at) = split_at_safe_space(&translated[pos..], width, |at| safe(pos + at))
+    {
+        lines.push(&translated[pos..pos + at]);
+        pos += at + 1;
+    }
+    lines.push(&translated[pos..]);
+    if lines.len() == 1 {
+        return Some(format!("{}\n{}", lines[0], prefix.trim_end()));
+    }
+    Some(lines.join(&format!("\n{prefix}")))
 }
 
 /// Isolate caption prose from Markdeep labels, nested brackets, and image URLs.
