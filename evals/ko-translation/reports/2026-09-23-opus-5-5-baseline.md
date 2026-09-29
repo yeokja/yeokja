@@ -13,12 +13,14 @@
 | opus-5-5 | 99.9% (1052/1053) | 98.1% (1033/1053) | 100.0% (225/225) | 0 | 0/82 | 92 | 111194 | 20분 |
 | fused-opus-5-5 | 99.9% (1052/1053) | 99.7% (1050/1053) | 100.0% (225/225) | 0 | 0/82 | 87 | 110783 | 20분 |
 | sonnet-5-5 | 99.9% (1052/1053) | 96.7% (1018/1053) | 100.0% (225/225) | 0 | 0/82 | 102 | 96500 | 18분 |
+| gpt-6.1-sol | 99.9% (1052/1053) | 99.1% (1044/1053) | 100.0% (225/225) | 0 | 0/82 | 90 | 52995 | 34분 |
 
 실패한 검사(최종, 블록 수):
 
 | 후보 | present | evaluators | audit | alignment | alert-markers | truncation |
 |---|---|---|---|---|---|---|
 | fused-opus-5-5 | 0 | 1 | 0 | 0 | 0 | 0 |
+| gpt-6.1-sol | 0 | 1 | 0 | 0 | 0 | 0 |
 | opus-5-5 | 0 | 1 | 0 | 0 | 0 | 0 |
 | sonnet-5-5 | 0 | 1 | 0 | 0 | 0 | 0 |
 
@@ -28,31 +30,31 @@
 
 ### 종합
 
-| 채점자 | fused-opus-5-5 | sonnet-5-5 |
-|---|---|---|
-| gemini-flash | 70% [58–80] (47승 20패 158무) | 31% [24–39] (46승 103패 76무) |
-| gpt-6-astra | 67% [56–76] (53승 26패 146무) | — |
+| 채점자 | fused-opus-5-5 | sonnet-5-5 | gpt-6.1-sol |
+|---|---|---|---|
+| gemini-flash | 70% [58–80] (47승 20패 158무) | 31% [24–39] (46승 103패 76무) | 60% [52–68] (91승 60패 74무) |
+| gpt-6-astra | 67% [56–76] (53승 26패 146무) | — | — |
 
 ### 정확성
 
-| 채점자 | fused-opus-5-5 | sonnet-5-5 |
-|---|---|---|
-| gemini-flash | 84% [62–94] (16승 3패 206무) | 25% [15–39] (12승 36패 177무) |
-| gpt-6-astra | 74% [55–87] (20승 7패 198무) | — |
+| 채점자 | fused-opus-5-5 | sonnet-5-5 | gpt-6.1-sol |
+|---|---|---|---|
+| gemini-flash | 84% [62–94] (16승 3패 206무) | 25% [15–39] (12승 36패 177무) | 59% [42–74] (19승 13패 193무) |
+| gpt-6-astra | 74% [55–87] (20승 7패 198무) | — | — |
 
 ### 자연스러움
 
-| 채점자 | fused-opus-5-5 | sonnet-5-5 |
-|---|---|---|
-| gemini-flash | 72% [59–82] (41승 16패 168무) | 30% [23–39] (42승 96패 87무) |
-| gpt-6-astra | 60% [48–71] (39승 26패 160무) | — |
+| 채점자 | fused-opus-5-5 | sonnet-5-5 | gpt-6.1-sol |
+|---|---|---|---|
+| gemini-flash | 72% [59–82] (41승 16패 168무) | 30% [23–39] (42승 96패 87무) | 62% [54–69] (92승 57패 76무) |
+| gpt-6-astra | 60% [48–71] (39승 26패 160무) | — | — |
 
 ### 번역투(적을수록 승)
 
-| 채점자 | fused-opus-5-5 | sonnet-5-5 |
-|---|---|---|
-| gemini-flash | 71% [57–82] (32승 13패 180무) | 28% [21–36] (34승 89패 102무) |
-| gpt-6-astra | 52% [38–66] (23승 21패 181무) | — |
+| 채점자 | fused-opus-5-5 | sonnet-5-5 | gpt-6.1-sol |
+|---|---|---|---|
+| gemini-flash | 71% [57–82] (32승 13패 180무) | 28% [21–36] (34승 89패 102무) | 60% [51–67] (81승 55패 89무) |
+| gpt-6-astra | 52% [38–66] (23승 21패 181무) | — | — |
 
 ## 3-1. 채점자 간 일치율 (종합)
 
@@ -62,55 +64,55 @@
 
 ### gemini-flash
 
-| 프로젝트 (파서) | fused-opus-5-5 | sonnet-5-5 |
-|---|---|---|
-| chisel-book (latex) | 0승 0패 4무 | 1승 1패 2무 |
-| cp-algorithms (mkdocs) | 3승 2패 10무 | 4승 4패 7무 |
-| cpython-devguide (rst) | 1승 0패 5무 | 2승 3패 1무 |
-| fp-lean (verso) | 1승 0패 1무 | 0승 2패 0무 |
-| furiosa-opt (markdown) | 0승 0패 8무 | 1승 1패 6무 |
-| hott (latex-extended) | 1승 1패 10무 | 2승 4패 6무 |
-| learn-fpga (markdown) | 0승 0패 7무 | 0승 5패 2무 |
-| mil (mil) | 2승 0패 4무 | 2승 2패 2무 |
-| nix-dev (myst) | 4승 0패 8무 | 3승 6패 3무 |
-| peps (pep) | 1승 1패 10무 | 2승 4패 6무 |
-| putting-the-you-in-cpu (mdx) | 4승 1패 7무 | 5승 4패 3무 |
-| raytracing (markdeep) | 1승 1패 6무 | 2승 5패 1무 |
-| rust-forge (markdown) | 1승 1패 12무 | 3승 6패 5무 |
-| rustc-dev-guide (markdown) | 4승 4패 12무 | 4승 10패 6무 |
-| synthetic (latex) | 5승 0패 7무 | 1승 4패 7무 |
-| synthetic (markdown) | 10승 5패 26무 | 7승 23패 11무 |
-| synthetic (rst) | 5승 1패 5무 | 1승 6패 4무 |
-| thebeambook (asciidoc) | 0승 0패 2무 | 1승 1패 0무 |
-| tpil (verso) | 0승 1패 1무 | 0승 2패 0무 |
-| webassembly-component-docs (markdown) | 0승 2패 7무 | 2승 5패 2무 |
-| zero-to-nix (mdx) | 4승 0패 6무 | 3승 5패 2무 |
+| 프로젝트 (파서) | fused-opus-5-5 | sonnet-5-5 | gpt-6.1-sol |
+|---|---|---|---|
+| chisel-book (latex) | 0승 0패 4무 | 1승 1패 2무 | 2승 2패 0무 |
+| cp-algorithms (mkdocs) | 3승 2패 10무 | 4승 4패 7무 | 4승 1패 10무 |
+| cpython-devguide (rst) | 1승 0패 5무 | 2승 3패 1무 | 4승 0패 2무 |
+| fp-lean (verso) | 1승 0패 1무 | 0승 2패 0무 | 0승 1패 1무 |
+| furiosa-opt (markdown) | 0승 0패 8무 | 1승 1패 6무 | 4승 4패 0무 |
+| hott (latex-extended) | 1승 1패 10무 | 2승 4패 6무 | 3승 4패 5무 |
+| learn-fpga (markdown) | 0승 0패 7무 | 0승 5패 2무 | 1승 4패 2무 |
+| mil (mil) | 2승 0패 4무 | 2승 2패 2무 | 3승 0패 3무 |
+| nix-dev (myst) | 4승 0패 8무 | 3승 6패 3무 | 5승 3패 4무 |
+| peps (pep) | 1승 1패 10무 | 2승 4패 6무 | 5승 3패 4무 |
+| putting-the-you-in-cpu (mdx) | 4승 1패 7무 | 5승 4패 3무 | 6승 3패 3무 |
+| raytracing (markdeep) | 1승 1패 6무 | 2승 5패 1무 | 4승 2패 2무 |
+| rust-forge (markdown) | 1승 1패 12무 | 3승 6패 5무 | 8승 3패 3무 |
+| rustc-dev-guide (markdown) | 4승 4패 12무 | 4승 10패 6무 | 6승 6패 8무 |
+| synthetic (latex) | 5승 0패 7무 | 1승 4패 7무 | 4승 2패 6무 |
+| synthetic (markdown) | 10승 5패 26무 | 7승 23패 11무 | 17승 11패 13무 |
+| synthetic (rst) | 5승 1패 5무 | 1승 6패 4무 | 4승 4패 3무 |
+| thebeambook (asciidoc) | 0승 0패 2무 | 1승 1패 0무 | 1승 1패 0무 |
+| tpil (verso) | 0승 1패 1무 | 0승 2패 0무 | 1승 1패 0무 |
+| webassembly-component-docs (markdown) | 0승 2패 7무 | 2승 5패 2무 | 4승 3패 2무 |
+| zero-to-nix (mdx) | 4승 0패 6무 | 3승 5패 2무 | 5승 2패 3무 |
 
 ### gpt-6-astra
 
-| 프로젝트 (파서) | fused-opus-5-5 | sonnet-5-5 |
-|---|---|---|
-| chisel-book (latex) | 1승 0패 3무 | — |
-| cp-algorithms (mkdocs) | 3승 1패 11무 | — |
-| cpython-devguide (rst) | 0승 0패 6무 | — |
-| fp-lean (verso) | 0승 1패 1무 | — |
-| furiosa-opt (markdown) | 1승 0패 7무 | — |
-| hott (latex-extended) | 1승 1패 10무 | — |
-| learn-fpga (markdown) | 0승 0패 7무 | — |
-| mil (mil) | 3승 0패 3무 | — |
-| nix-dev (myst) | 3승 0패 9무 | — |
-| peps (pep) | 3승 1패 8무 | — |
-| putting-the-you-in-cpu (mdx) | 5승 3패 4무 | — |
-| raytracing (markdeep) | 1승 1패 6무 | — |
-| rust-forge (markdown) | 2승 4패 8무 | — |
-| rustc-dev-guide (markdown) | 3승 4패 13무 | — |
-| synthetic (latex) | 5승 0패 7무 | — |
-| synthetic (markdown) | 13승 6패 22무 | — |
-| synthetic (rst) | 6승 1패 4무 | — |
-| thebeambook (asciidoc) | 1승 0패 1무 | — |
-| tpil (verso) | 0승 0패 2무 | — |
-| webassembly-component-docs (markdown) | 0승 2패 7무 | — |
-| zero-to-nix (mdx) | 2승 1패 7무 | — |
+| 프로젝트 (파서) | fused-opus-5-5 | sonnet-5-5 | gpt-6.1-sol |
+|---|---|---|---|
+| chisel-book (latex) | 1승 0패 3무 | — | — |
+| cp-algorithms (mkdocs) | 3승 1패 11무 | — | — |
+| cpython-devguide (rst) | 0승 0패 6무 | — | — |
+| fp-lean (verso) | 0승 1패 1무 | — | — |
+| furiosa-opt (markdown) | 1승 0패 7무 | — | — |
+| hott (latex-extended) | 1승 1패 10무 | — | — |
+| learn-fpga (markdown) | 0승 0패 7무 | — | — |
+| mil (mil) | 3승 0패 3무 | — | — |
+| nix-dev (myst) | 3승 0패 9무 | — | — |
+| peps (pep) | 3승 1패 8무 | — | — |
+| putting-the-you-in-cpu (mdx) | 5승 3패 4무 | — | — |
+| raytracing (markdeep) | 1승 1패 6무 | — | — |
+| rust-forge (markdown) | 2승 4패 8무 | — | — |
+| rustc-dev-guide (markdown) | 3승 4패 13무 | — | — |
+| synthetic (latex) | 5승 0패 7무 | — | — |
+| synthetic (markdown) | 13승 6패 22무 | — | — |
+| synthetic (rst) | 6승 1패 4무 | — | — |
+| thebeambook (asciidoc) | 1승 0패 1무 | — | — |
+| tpil (verso) | 0승 0패 2무 | — | — |
+| webassembly-component-docs (markdown) | 0승 2패 7무 | — | — |
+| zero-to-nix (mdx) | 2승 1패 7무 | — | — |
 
 ## 5. 판정 기준 적용
 
@@ -123,4 +125,8 @@
 - **sonnet-5-5**: 기준선을 대체할 근거가 부족함
   - 관문: 최종 99.9% (기준선 99.9%), 첫 시도 96.7% (기준선 98.1%) → 미달
   - 채점자 종합 승률 하한 > 50%: gemini-flash: 미달
+  - 사람 종합 승률 > 50%: 판정 없음
+- **gpt-6.1-sol**: LLM 채점자 기준으로 우세 (사람 검증 없음)
+  - 관문: 최종 99.9% (기준선 99.9%), 첫 시도 99.1% (기준선 98.1%) → 통과
+  - 채점자 종합 승률 하한 > 50%: gemini-flash: 통과
   - 사람 종합 승률 > 50%: 판정 없음
