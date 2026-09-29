@@ -205,14 +205,18 @@ fn wrap_quote(source: &str, translated: &str) -> Option<String> {
         .map(display_width)
         .max()
         .unwrap_or(0);
-    // A space is a safe break only where the translation is plain text.
+    // A space is a safe break only where the translation is plain text and
+    // the next line would not open a list item or heading inside the quote.
     let mut texts = Vec::new();
     for (event, range) in pulldown_cmark::Parser::new(translated).into_offset_iter() {
         if matches!(event, pulldown_cmark::Event::Text(_)) {
             texts.push(range);
         }
     }
-    let safe = |at: usize| texts.iter().any(|r| r.start <= at && at < r.end);
+    let safe = |at: usize| {
+        texts.iter().any(|r| r.start <= at && at < r.end)
+            && !starts_with_block_marker(&translated[at + 1..])
+    };
     let mut lines = Vec::new();
     let mut pos = 0;
     while display_width(&translated[pos..]) > width
@@ -226,6 +230,16 @@ fn wrap_quote(source: &str, translated: &str) -> Option<String> {
         return Some(format!("{}\n{}", lines[0], prefix.trim_end()));
     }
     Some(lines.join(&format!("\n{prefix}")))
+}
+
+/// Would `line` open a block at the start of a line — a list item (`- `,
+/// `+ `, `* `, `1. `, `1) `), a heading (`#`), or a nested quote (`>`)?
+fn starts_with_block_marker(line: &str) -> bool {
+    let digits = line.len() - line.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+    let after_digits = &line[digits..];
+    line.starts_with(['#', '>'])
+        || (["- ", "+ ", "* "].iter().any(|m| line.starts_with(m)))
+        || (digits > 0 && (after_digits.starts_with(". ") || after_digits.starts_with(") ")))
 }
 
 /// Isolate caption prose from Markdeep labels, nested brackets, and image URLs.

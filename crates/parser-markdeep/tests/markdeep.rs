@@ -261,3 +261,23 @@ fn lazy_continuation_is_left_unwrapped() {
     let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
     assert_eq!(output.lines().count(), 1, "{output}");
 }
+
+#[test]
+fn quoted_lines_never_start_with_a_block_marker() {
+    // A break before `-`, `1.`, `#`, ... would turn the rest of the quote
+    // into a list item or heading inside it.
+    let source = "> one two three four\n> five six seven.\n";
+    let translated = "하나 - 둘 셋 1. 넷 # 다섯 + 여섯 * 일곱 > 여덟 2) 아홉 - 열";
+    let output = translate_all(source, translated);
+    let quoted: Vec<_> = output.lines().map(|l| l.strip_prefix("> ").unwrap_or(l)).collect();
+    assert!(quoted.len() >= 2, "{output}");
+    let marker = |line: &str| {
+        let digits = line.len() - line.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+        ["- ", "+ ", "* ", "#", ">"].iter().any(|m| line.starts_with(m))
+            || (digits > 0 && [". ", ") "].iter().any(|m| line[digits..].starts_with(m)))
+    };
+    for line in &quoted {
+        assert!(!marker(line), "line {line:?} starts with a block marker:\n{output}");
+    }
+    assert_eq!(quoted.join(" "), translated);
+}
