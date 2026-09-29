@@ -122,3 +122,40 @@ fn dry_run_does_not_write_and_real_run_leaves_only_the_new_segment_pending() {
     assert!(stdout.contains("Glossary stale:   0"), "stdout was:\n{stdout}");
     assert!(stdout.contains("Context changed:  0"), "stdout was:\n{stdout}");
 }
+
+#[test]
+fn an_already_matching_state_file_is_not_rewritten_but_a_changed_one_is() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fs::create_dir_all(root.join("src")).unwrap();
+    fs::write(root.join("yeokja.toml"), YEOKJA_TOML).unwrap();
+    let doc_path = root.join("src/doc.md");
+    fs::write(&doc_path, "Hello world.\n").unwrap();
+    let state_path = root.join("src/doc.md.yeokja.json");
+    fs::write(&state_path, EMPTY_STATE).unwrap();
+    let root_arg = root.to_str().unwrap();
+    assert!(yeokja_cmd().args(["-C", root_arg, "reconcile", "src"]).status().unwrap().success());
+
+    // Hand-write a glossary_snapshot in reverse-alphabetical key order; a
+    // HashMap round trip would almost surely reorder it, so any rewrite shows.
+    let seeded = fs::read_to_string(&state_path).unwrap();
+    assert!(seeded.contains("\"glossary_snapshot\": {}"), "seeded:\n{seeded}");
+    let keys = ["h", "g", "f", "e", "d", "c", "b", "a"];
+    let entries: Vec<String> = keys.iter().map(|k| format!("      \"{k}\": \"{k}{k}\"")).collect();
+    let snapshot = format!("\"glossary_snapshot\": {{\n{}\n    }}", entries.join(",\n"));
+    let seeded = seeded.replace("\"glossary_snapshot\": {}", &snapshot);
+    fs::write(&state_path, &seeded).unwrap();
+
+    assert!(yeokja_cmd().args(["-C", root_arg, "reconcile", "src"]).status().unwrap().success());
+    assert_eq!(
+        fs::read_to_string(&state_path).unwrap(),
+        seeded,
+        "an unchanged state must not be rewritten"
+    );
+
+    fs::write(&doc_path, "Hello world.\n\nA new paragraph.\n").unwrap();
+    assert!(yeokja_cmd().args(["-C", root_arg, "reconcile", "src"]).status().unwrap().success());
+    let after = fs::read_to_string(&state_path).unwrap();
+    assert_ne!(after, seeded);
+    assert!(after.contains("A new paragraph."));
+}

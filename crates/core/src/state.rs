@@ -13,7 +13,7 @@ pub struct StateFile {
     pub segments: Vec<SegmentState>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SegmentState {
     pub id: SegmentId,
     pub source: String,

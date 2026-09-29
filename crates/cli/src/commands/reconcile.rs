@@ -65,8 +65,11 @@ pub fn run(path: &str, dry_run: bool) -> Result<()> {
         total_context_accepted += report.context_accepted;
         total_glossary_stale += report.glossary_stale;
 
-        if !dry_run {
-            let mut new_state = StateFile::new(content_hash(&document.source));
+        // Skip the write when nothing changed: `glossary_snapshot` is a
+        // HashMap, so a needless save would reorder keys and dirty the file.
+        let new_source_hash = content_hash(&document.source);
+        if !dry_run && (report.segments != existing.segments || new_source_hash != existing.source_hash) {
+            let mut new_state = StateFile::new(new_source_hash);
             new_state.segments = report.segments;
             new_state.save(&state_path)?;
         }
