@@ -627,6 +627,17 @@ fn parse_enumerated_item(content: &str) -> Option<usize> {
         .then_some(found.text_offset)
 }
 
+/// Was this enumerator a list marker before docutils' letter and Roman
+/// forms were read: digits or `#` in any form, or one letter closed by `)`?
+fn is_legacy_enumerator(content: &str, found: &Enumerator) -> bool {
+    if matches!(found.kind, EnumKind::Arabic | EnumKind::Auto) {
+        return true;
+    }
+    let token = content.trim_start().trim_start_matches('(');
+    found.format != EnumFormat::Period
+        && token.chars().take_while(char::is_ascii_alphanumeric).count() == 1
+}
+
 /// The sequence an enumerator counts in; `#` is docutils' auto-enumerator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EnumKind {
@@ -1548,12 +1559,13 @@ impl DocumentParser for RstParser {
                 && let Some(found) = enumerator_after(line.content, previous_enumerator.as_ref())
             {
                 // docutils reads an enumerator line with an adornment below
-                // as a title; it has long been kept a list item here (its
-                // underline is redrawn in `adornment_edits`), and staying so
-                // keeps its segment IDs.
+                // as a title; the markers this parser has always known kept
+                // it a list item (its underline is redrawn in
+                // `adornment_edits`), and staying so keeps its segment IDs.
+                // Newly read markers (`A.`, `iv.`) take the title reading.
                 let next = lines.get(i + 1).map(|next| next.content);
-                let over_adornment =
-                    next.is_some_and(|next| adornment_char(next.trim()).is_some());
+                let over_adornment = is_legacy_enumerator(line.content, &found)
+                    && next.is_some_and(|next| adornment_char(next.trim()).is_some());
                 (over_adornment
                     || reads_as_block_start(line.content, next, previous_enumerator.as_ref()))
                 .then(|| {
@@ -3251,6 +3263,22 @@ mod tests {
             output,
             "6. METH_FASTCALL은 비공개입니다\n-------------------------------\n"
         );
+    }
+
+    #[test]
+    fn a_letter_or_roman_enumerator_over_an_underline_is_a_title() {
+        for source in ["A. Title\n========\n", "I. Title\n========\n", "iv. Title\n=========\n"] {
+            let doc = RstParser.parse(source);
+            let block = &doc.sections[0].blocks[0];
+            assert_eq!(block.block_type, BlockType::Heading, "{source:?}");
+            assert_eq!(block.raw_content, source.lines().next().unwrap(), "{source:?}");
+            assert!(matches!(block.role, BlockRole::AdornedTitle { .. }), "{source:?}");
+        }
+        // Forms the parser always took as markers keep their list reading.
+        for source in ["6. Title\n========\n", "a) Title\n========\n", "#. Title\n========\n"] {
+            let doc = RstParser.parse(source);
+            assert_eq!(doc.sections[0].blocks[0].block_type, BlockType::ListItem, "{source:?}");
+        }
     }
 
     #[test]
