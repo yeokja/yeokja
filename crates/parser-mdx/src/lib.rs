@@ -618,6 +618,26 @@ mod tests {
     }
 
     #[test]
+    fn hard_breaks_inside_emphasis_survive() {
+        let source = "> *A: Knock, knock!  \n> B: Who's there?  \n> A: **MOO!***\n";
+        let doc = MdxParser.parse(source);
+        let sources: Vec<_> = doc.translatable_segments().iter().map(|s| s.source.clone()).collect();
+        assert_eq!(sources, ["*A: Knock, knock!", "B: Who's there?", "A: **MOO!***"]);
+        let output = translate_all(source, |s| s.replace("Knock, knock!", "똑똑!"));
+        assert_eq!(output, "> *A: 똑똑!  \n> B: Who's there?  \n> A: **MOO!***\n");
+    }
+
+    #[test]
+    fn backslash_hard_breaks_inside_emphasis_survive() {
+        let source = "> *A: Knock, knock!\\\n> B: Who's there?\\\n> A: **MOO!***\n";
+        let doc = MdxParser.parse(source);
+        let sources: Vec<_> = doc.translatable_segments().iter().map(|s| s.source.clone()).collect();
+        assert_eq!(sources, ["*A: Knock, knock!", "B: Who's there?", "A: **MOO!***"]);
+        let output = translate_all(source, |s| s.replace("Knock, knock!", "똑똑!"));
+        assert_eq!(output, "> *A: 똑똑!\\\n> B: Who's there?\\\n> A: **MOO!***\n");
+    }
+
+    #[test]
     fn jsx_block_children_are_translated() {
         let source = "<Admonition warning open title=\"Heads up\" id=\"heads-up\">\nFirst line.\nSecond line.\n\nAnother para.\n</Admonition>\n\nTail.\n";
         let doc = MdxParser.parse(source);

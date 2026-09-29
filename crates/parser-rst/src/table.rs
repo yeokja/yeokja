@@ -12,7 +12,7 @@
 //! the caller keeps the table verbatim, exactly as before cell translation
 //! existed.
 
-use crate::{display_width, is_wide};
+use yeokja_parser_utils::{display_width, is_wide};
 
 pub struct Table {
     pub kind: Kind,

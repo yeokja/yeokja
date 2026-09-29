@@ -20,8 +20,8 @@ use std::ops::Range;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_utils::{
-    apply_splices, collect_splices, join_segments_with_translations, make_segments,
-    normalize_inline_text,
+    apply_splices, collect_splices, display_width, join_segments_with_translations,
+    make_segments, normalize_inline_text, split_at_safe_space,
 };
 
 pub struct RstParser;
@@ -229,7 +229,7 @@ fn mask_mil_source(source: &str) -> Result<String, String> {
 /// keeps its body in the document's language — admonitions, `function::` and
 /// friends describe things in prose — so an unknown directive stays
 /// translatable and only its marker line is held back.
-const OPAQUE_DIRECTIVES: [&str; 17] = [
+const OPAQUE_DIRECTIVES: [&str; 20] = [
     "code",
     "code-block",
     "sourcecode",
@@ -247,6 +247,9 @@ const OPAQUE_DIRECTIVES: [&str; 17] = [
     "csv-table",
     "productionlist",
     "tabularcolumns",
+    "graphviz",
+    "graph",
+    "digraph",
 ];
 
 const INLINE_PROSE_DIRECTIVES: [&str; 4] = ["note", "seealso", "tip", "impl-detail"];
@@ -291,6 +294,11 @@ struct Run {
     /// under a single-line run can claim it as a title.
     start_line: usize,
     last_line: usize,
+    /// The run opens a body whose indentation its second line sets (a
+    /// footnote or citation), and a line indented past `text_col` follows in
+    /// that body: a translation joined onto one line would hand the body's
+    /// indentation to that deeper line.
+    keeps_continuation: bool,
 }
 
 struct ParseState<'a> {
@@ -308,6 +316,21 @@ struct ParseState<'a> {
     /// Tables whose geometry parsed, in document order. Reconstruction counts
     /// its anchors the same way, so the index in a cell's role finds them.
     table_idx: usize,
+    /// The last list enumerator at each open indentation, shallowest first.
+    /// docutils reads an ambiguous `i.` as the letter after `h.` only while
+    /// that list goes on, so any other line at or left of a marker's column
+    /// forgets it.
+    enumerators: Vec<(usize, Enumerator)>,
+    /// Inside a `glossary` directive: every line above the definitions'
+    /// indentation is a term of its own.
+    glossary: Option<Glossary>,
+}
+
+#[derive(Clone, Copy)]
+struct Glossary {
+    directive_indent: usize,
+    /// Column of the terms, set by the first body line that is not an option.
+    term_indent: Option<usize>,
 }
 
 impl ParseState<'_> {
@@ -329,7 +352,14 @@ impl ParseState<'_> {
             self.pending_literal = Some(run.text_col);
             span.end = span.start + before.trim_end().len();
         }
-        self.push_span_block(run.block_type, span, BlockRole::None);
+        let role = if run.keeps_continuation && run.last_line > run.start_line {
+            BlockRole::ContinuationColumn {
+                column: run.text_col,
+            }
+        } else {
+            BlockRole::None
+        };
+        self.push_span_block(run.block_type, span, role);
     }
 
     /// Emit a translatable block covering `span`, unless it carries no word —
@@ -574,6 +604,17 @@ fn adornment_covers(adornment: &str, title: &str) -> bool {
     len >= 4 || len >= title.trim().chars().count()
 }
 
+/// The adornment character of a line that can underline a one-line title:
+/// docutils also takes a single punctuation character there (`R` over `-`),
+/// though never as an overline or a transition.
+fn underline_char(trimmed: &str) -> Option<char> {
+    adornment_char(trimmed).or_else(|| {
+        let mut chars = trimmed.chars();
+        let first = chars.next()?;
+        (chars.next().is_none() && ADORNMENT_CHARS.contains(first)).then_some(first)
+    })
+}
+
 /// `- item`, `* item`, `+ item` → byte offset of the item text.
 fn parse_bullet_item(content: &str) -> Option<usize> {
     let indent = content.len() - content.trim_start().len();
@@ -590,44 +631,389 @@ fn parse_bullet_item(content: &str) -> Option<usize> {
     Some(indent + first.len_utf8() + ws)
 }
 
-/// `1. item`, `#. item`, `a) item`, `(3) item` → byte offset of the item text.
+/// `1. item`, `#. item`, `a) item`, `(iv) item` → byte offset of the item
+/// text, without docutils' second-line check (see `reads_as_block_start`).
 fn parse_enumerated_item(content: &str) -> Option<usize> {
+    let found = enumerator(content)?;
+    (found.ordinal.is_some() && found.text_offset < content.trim_end().len())
+        .then_some(found.text_offset)
+}
+
+/// Was this enumerator a list marker before docutils' letter and Roman
+/// forms were read: digits or `#` in any form, or one letter closed by `)`?
+fn is_legacy_enumerator(content: &str, found: &Enumerator) -> bool {
+    if matches!(found.kind, EnumKind::Arabic | EnumKind::Auto) {
+        return true;
+    }
+    let token = content.trim_start().trim_start_matches('(');
+    found.format != EnumFormat::Period
+        && token.chars().take_while(char::is_ascii_alphanumeric).count() == 1
+}
+
+/// The sequence an enumerator counts in; `#` is docutils' auto-enumerator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EnumKind {
+    Arabic,
+    Auto,
+    LowerAlpha,
+    UpperAlpha,
+    LowerRoman,
+    UpperRoman,
+}
+
+/// How an enumerator is punctuated: `1.`, `1)`, or `(1)`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EnumFormat {
+    Period,
+    RParen,
+    Parens,
+}
+
+/// A list enumerator at the start of a line, read the way docutils does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Enumerator {
+    kind: EnumKind,
+    format: EnumFormat,
+    /// `None` for text that looks like an enumerator but counts nothing
+    /// (`iiii.`); docutils reads such a line as text.
+    ordinal: Option<u32>,
+    /// Byte offset in the line where the item text starts, after all the
+    /// spaces that follow the marker (the line's length when none follows).
+    text_offset: usize,
+}
+
+/// The enumerator a line opens with, with no list in progress.
+fn enumerator(content: &str) -> Option<Enumerator> {
+    enumerator_after(content, None)
+}
+
+/// The enumerator a line opens with. `previous` is the item before it in
+/// the same list: docutils tries that list's sequence first, so `i.` after
+/// `h.` is the ninth letter while `i.` alone is the Roman one.
+fn enumerator_after(content: &str, previous: Option<&Enumerator>) -> Option<Enumerator> {
     let indent = content.len() - content.trim_start().len();
     let rest = &content[indent..];
-
     let (open_paren, body) = match rest.strip_prefix('(') {
         Some(body) => (true, body),
         None => (false, rest),
     };
-    let marker_len = if body.starts_with(|c: char| c.is_ascii_digit()) {
-        body.chars().take_while(|c| c.is_ascii_digit()).count()
-    } else if body.starts_with('#') {
-        1
-    } else if body.starts_with(|c: char| c.is_ascii_alphabetic()) {
-        // A single letter; two or more would be a word.
+    let token_len = if body.starts_with('#') {
         1
     } else {
-        return None;
+        body.chars().take_while(char::is_ascii_alphanumeric).count()
     };
-    let after_marker = &body[marker_len..];
-    let suffix = after_marker.chars().next()?;
-    let valid_suffix = if open_paren { suffix == ')' } else { matches!(suffix, '.' | ')') };
-    if !valid_suffix {
+    if token_len == 0 {
         return None;
     }
-    // A single letter with a period reads as an initial ("J. Smith") more
-    // often than as a list; docutils shares the ambiguity and authors avoid
-    // it, so only digits and `#` take the period form here.
-    if suffix == '.' && !body.starts_with(|c: char| c.is_ascii_digit()) && !body.starts_with('#') {
+    let token = &body[..token_len];
+    let after_token = &body[token_len..];
+    let format = match (open_paren, after_token.chars().next()?) {
+        (true, ')') => EnumFormat::Parens,
+        (false, ')') => EnumFormat::RParen,
+        (false, '.') => EnumFormat::Period,
+        _ => return None,
+    };
+    let after = &after_token[1..];
+    if !(after.is_empty() || after.starts_with([' ', '\t'])) {
         return None;
     }
-    let after = &after_marker[1..];
-    let ws = after.len() - after.trim_start().len();
-    if ws == 0 || after.trim().is_empty() {
+    let spaces = after.len() - after.trim_start().len();
+    let text_offset = indent + usize::from(open_paren) + token_len + 1 + spaces;
+
+    if token == "#" {
+        return Some(Enumerator { kind: EnumKind::Auto, format, ordinal: Some(1), text_offset });
+    }
+    let candidates: Vec<EnumKind> = [
+        EnumKind::Arabic,
+        EnumKind::LowerAlpha,
+        EnumKind::UpperAlpha,
+        EnumKind::LowerRoman,
+        EnumKind::UpperRoman,
+    ]
+    .into_iter()
+    .filter(|kind| sequence_matches(*kind, token))
+    .collect();
+    let expected = previous.and_then(|previous| {
+        let kind = previous.kind;
+        let continues = kind != EnumKind::Auto
+            && previous.format == format
+            && candidates.contains(&kind)
+            && previous.ordinal.is_some_and(|ordinal| {
+                ordinal_of(kind, token) == Some(ordinal + 1)
+            });
+        continues.then_some(kind)
+    });
+    let kind = match expected {
+        Some(kind) => kind,
+        None if token == "i" => EnumKind::LowerRoman,
+        None if token == "I" => EnumKind::UpperRoman,
+        None => *candidates.first()?,
+    };
+    Some(Enumerator { kind, format, ordinal: ordinal_of(kind, token), text_offset })
+}
+
+fn sequence_matches(kind: EnumKind, token: &str) -> bool {
+    match kind {
+        EnumKind::Arabic => token.bytes().all(|b| b.is_ascii_digit()),
+        EnumKind::Auto => token == "#",
+        EnumKind::LowerAlpha => token.len() == 1 && token.bytes().all(|b| b.is_ascii_lowercase()),
+        EnumKind::UpperAlpha => token.len() == 1 && token.bytes().all(|b| b.is_ascii_uppercase()),
+        EnumKind::LowerRoman => token.bytes().all(|b| b"ivxlcdm".contains(&b)),
+        EnumKind::UpperRoman => token.bytes().all(|b| b"IVXLCDM".contains(&b)),
+    }
+}
+
+fn ordinal_of(kind: EnumKind, token: &str) -> Option<u32> {
+    match kind {
+        EnumKind::Arabic => token.parse().ok(),
+        EnumKind::Auto => Some(1),
+        EnumKind::LowerAlpha | EnumKind::UpperAlpha => {
+            Some(u32::from(token.as_bytes()[0].to_ascii_lowercase() - b'a') + 1)
+        }
+        EnumKind::LowerRoman | EnumKind::UpperRoman => from_roman(token),
+    }
+}
+
+/// A Roman numeral in its canonical spelling, as docutils' `roman` module
+/// accepts it (1 to 4999); `iiii` or `ic` counts nothing.
+fn from_roman(token: &str) -> Option<u32> {
+    let upper = token.to_ascii_uppercase();
+    let mut value = 0;
+    let mut chars = upper.chars().peekable();
+    while let Some(c) = chars.next() {
+        let digit = roman_digit(c)?;
+        match chars.peek().and_then(|next| roman_digit(*next)) {
+            Some(next) if next > digit => {
+                value += next - digit;
+                chars.next();
+            }
+            _ => value += digit,
+        }
+    }
+    (to_roman(value)? == upper).then_some(value)
+}
+
+fn roman_digit(c: char) -> Option<u32> {
+    Some(match c {
+        'I' => 1,
+        'V' => 5,
+        'X' => 10,
+        'L' => 50,
+        'C' => 100,
+        'D' => 500,
+        'M' => 1000,
+        _ => return None,
+    })
+}
+
+fn to_roman(mut value: u32) -> Option<String> {
+    if !(1..5000).contains(&value) {
         return None;
     }
-    let paren = if open_paren { 1 } else { 0 };
-    Some(indent + paren + marker_len + 1 + ws)
+    const TABLE: [(u32, &str); 13] = [
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
+    ];
+    let mut out = String::new();
+    for (step, numeral) in TABLE {
+        while value >= step {
+            out.push_str(numeral);
+            value -= step;
+        }
+    }
+    Some(out)
+}
+
+/// The markers docutils accepts for the item after `found`: the next
+/// enumerator in its sequence and the auto-enumerator, each in the same
+/// punctuation and followed by a space.
+fn next_enumerators(found: &Enumerator) -> Vec<String> {
+    let (prefix, suffix) = match found.format {
+        EnumFormat::Period => ("", "."),
+        EnumFormat::RParen => ("", ")"),
+        EnumFormat::Parens => ("(", ")"),
+    };
+    let mut markers = vec![format!("{prefix}#{suffix} ")];
+    let Some(next) = found.ordinal.map(|ordinal| ordinal + 1) else {
+        return markers;
+    };
+    let token = match found.kind {
+        EnumKind::Auto => None,
+        EnumKind::Arabic => Some(next.to_string()),
+        EnumKind::LowerAlpha => (next <= 26).then(|| char::from(b'a' + next as u8 - 1).to_string()),
+        EnumKind::UpperAlpha => (next <= 26).then(|| char::from(b'A' + next as u8 - 1).to_string()),
+        EnumKind::LowerRoman => to_roman(next).map(|roman| roman.to_ascii_lowercase()),
+        EnumKind::UpperRoman => to_roman(next),
+    };
+    if let Some(token) = token {
+        markers.push(format!("{prefix}{token}{suffix} "));
+    }
+    markers
+}
+
+/// Would docutils open a list, field list, option list, line block, or
+/// doctest block at `first_line`? Both lines carry their indentation.
+///
+/// An enumerator opens a list only when the line after it is missing, blank,
+/// indented past it (or back out of the enclosing block), or starts the next
+/// item — otherwise ("A. Einstein was ...") docutils reads a paragraph. An
+/// option marker with no description on its own line needs an indented
+/// description below it. `previous` is the item before an enumerator in the
+/// same list, which settles whether `i.` is a letter or a Roman numeral.
+pub(crate) fn reads_as_block_start(
+    first_line: &str,
+    next_line: Option<&str>,
+    previous: Option<&Enumerator>,
+) -> bool {
+    let indent = first_line.len() - first_line.trim_start().len();
+    let rest = first_line[indent..].trim_end();
+    if rest.is_empty() {
+        return false;
+    }
+    let next_indented = next_line.is_some_and(|next| {
+        !next.trim().is_empty() && next.len() - next.trim_start().len() > indent
+    });
+
+    let mut chars = rest.chars();
+    let first = chars.next().unwrap();
+    let after_first = chars.as_str();
+    if matches!(first, '-' | '+' | '*' | '•' | '‣' | '⁃')
+        && (after_first.is_empty() || after_first.starts_with(' '))
+    {
+        return true;
+    }
+    if let Some(found) = enumerator_after(first_line, previous) {
+        if found.ordinal.is_none() {
+            return false;
+        }
+        let Some(next) = next_line else { return true };
+        let next_indent = next.len() - next.trim_start().len();
+        if next.trim().is_empty() || next_indent != indent {
+            return true;
+        }
+        let next_rest = &next[indent..];
+        return next_enumerators(&found)
+            .iter()
+            .any(|marker| next_rest.starts_with(marker.as_str()));
+    }
+    if docutils_field_marker(rest) {
+        return true;
+    }
+    if let Some(description) = option_marker_description(rest) {
+        return !description.trim().is_empty() || next_indented;
+    }
+    ["|", ">>>"].iter().any(|marker| {
+        rest.strip_prefix(marker)
+            .is_some_and(|after| after.is_empty() || after.starts_with(' '))
+    })
+}
+
+/// docutils' field marker: `:name:` followed by a space or the line's end,
+/// where the name neither starts with a space or `:` nor ends with a space,
+/// and holds a `:` only when no space or backtick follows it.
+fn docutils_field_marker(rest: &str) -> bool {
+    let Some(body) = rest.strip_prefix(':') else { return false };
+    if body.starts_with([':', ' ']) || body.is_empty() {
+        return false;
+    }
+    let bytes = body.as_bytes();
+    let mut at = 0;
+    while at < bytes.len() {
+        match bytes[at] {
+            b'\\' => at += 2,
+            b':' => {
+                let after = &body[at + 1..];
+                if after.is_empty() || after.starts_with(' ') {
+                    return bytes[at - 1] != b' ';
+                }
+                if after.starts_with('`') {
+                    return false;
+                }
+                at += 1;
+            }
+            _ => at += 1,
+        }
+    }
+    false
+}
+
+/// docutils' option marker (`-a`, `-o FILE`, `--long=VALUE`, `/V`, joined by
+/// `, `) followed by two spaces or the line's end → the text after it.
+fn option_marker_description(rest: &str) -> Option<&str> {
+    fn optname_len(s: &str) -> usize {
+        let bytes = s.as_bytes();
+        if !bytes.first().is_some_and(u8::is_ascii_alphanumeric) {
+            return 0;
+        }
+        1 + bytes[1..]
+            .iter()
+            .take_while(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-'))
+            .count()
+    }
+    fn optarg_len(s: &str) -> Option<usize> {
+        if let Some(inner) = s.strip_prefix('<') {
+            let close = inner.find(['<', '>'])?;
+            return (inner.as_bytes()[close] == b'>' && close > 0).then_some(close + 2);
+        }
+        s.starts_with(|c: char| c.is_ascii_alphabetic()).then(|| optname_len(s))
+    }
+    // Every length one option can take, longest first, like the regex's
+    // backtracking.
+    fn option_lengths(s: &str) -> Vec<usize> {
+        let long = s
+            .strip_prefix("--")
+            .or_else(|| s.strip_prefix('/'))
+            .map(|name| (s.len() - name.len(), optname_len(name)));
+        let (head, arg_separators): (usize, &[&str]) = if let Some((prefix, name)) = long {
+            if name == 0 {
+                return Vec::new();
+            }
+            (prefix + name, &[" ", "="])
+        } else if s.starts_with(['-', '+'])
+            && s.as_bytes().get(1).is_some_and(u8::is_ascii_alphanumeric)
+        {
+            (2, &[" ", ""])
+        } else {
+            return Vec::new();
+        };
+        let mut lengths = Vec::new();
+        for separator in arg_separators {
+            if let Some(arg) = s[head..].strip_prefix(separator)
+                && let Some(arg_len) = optarg_len(arg)
+            {
+                lengths.push(head + separator.len() + arg_len);
+            }
+        }
+        lengths.push(head);
+        lengths
+    }
+    fn group_end(s: &str) -> Option<usize> {
+        for len in option_lengths(s) {
+            let after = &s[len..];
+            if let Some(more) = after.strip_prefix(", ")
+                && let Some(end) = group_end(more)
+            {
+                return Some(len + 2 + end);
+            }
+            if after.starts_with("  ") || after.is_empty() || after == " " {
+                return Some(len);
+            }
+        }
+        None
+    }
+    let end = group_end(rest)?;
+    Some(&rest[end..])
 }
 
 /// `:name: value` field marker → whether this line opens a field. The marker's
@@ -684,15 +1070,21 @@ fn standalone_field_body_start(content: &str, has_body_prose: bool) -> Option<us
 }
 
 /// `.. name:: arguments` → the directive's name.
+///
+/// Follows docutils' directive-name grammar so that Sphinx domain directives
+/// (`py:function`, `c:function`) are recognized: the first character is
+/// alphanumeric, later characters are alphanumeric or `-_.+:`, and the name
+/// does not end in `:` (which would make it a hyperlink target or comment
+/// instead, e.g. `.. _target: http://x`).
 fn parse_directive(trimmed: &str) -> Option<&str> {
     let rest = trimmed.strip_prefix("..")?.strip_prefix(char::is_whitespace)?;
     let end = rest.find("::")?;
     let name = &rest[..end];
-    (!name.is_empty()
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '+')))
-    .then_some(name)
+    let mut chars = name.chars();
+    let first_ok = chars.next().is_some_and(|c| c.is_ascii_alphanumeric());
+    let rest_ok = chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '+' | ':'));
+    let last_ok = !name.ends_with(':');
+    (first_ok && rest_ok && last_ok).then_some(name)
 }
 
 fn parse_substitution_image_directive(trimmed: &str) -> Option<&str> {
@@ -814,30 +1206,6 @@ fn is_simple_table_border(trimmed: &str) -> bool {
         && trimmed.split_whitespace().all(|run| run.chars().all(|c| c == '='))
 }
 
-/// Display width the way docutils counts it for title adornments: East Asian
-/// Wide and Fullwidth characters occupy two columns.
-fn display_width(text: &str) -> usize {
-    text.chars().map(|c| if is_wide(c) { 2 } else { 1 }).sum()
-}
-
-/// Unicode East Asian Width W or F, over the ranges that occur in practice.
-fn is_wide(c: char) -> bool {
-    matches!(c as u32,
-        0x1100..=0x115F           // Hangul Jamo
-        | 0x2E80..=0x303E         // CJK Radicals .. CJK Symbols and Punctuation
-        | 0x3041..=0x33FF         // Hiragana .. CJK Compatibility
-        | 0x3400..=0x4DBF         // CJK Extension A
-        | 0x4E00..=0x9FFF         // CJK Unified Ideographs
-        | 0xA000..=0xA4CF         // Yi
-        | 0xAC00..=0xD7A3         // Hangul Syllables
-        | 0xF900..=0xFAFF         // CJK Compatibility Ideographs
-        | 0xFE30..=0xFE4F         // CJK Compatibility Forms
-        | 0xFF00..=0xFF60         // Fullwidth Forms
-        | 0xFFE0..=0xFFE6
-        | 0x20000..=0x2FFFD
-        | 0x30000..=0x3FFFD)
-}
-
 impl DocumentParser for RstParser {
     fn markup(&self) -> Markup {
         Markup::Rst
@@ -867,6 +1235,8 @@ impl DocumentParser for RstParser {
             styles: Vec::new(),
             pending_literal: None,
             table_idx: 0,
+            enumerators: Vec::new(),
+            glossary: None,
         };
 
         let mut i = 0;
@@ -879,6 +1249,15 @@ impl DocumentParser for RstParser {
                 i += 1;
                 continue;
             }
+
+            // The list item before this line at its column, if the list is
+            // still open; this line closes every list at or right of it.
+            let previous_enumerator = state
+                .enumerators
+                .iter()
+                .find(|(indent, _)| *indent == line.indent())
+                .map(|(_, found)| *found);
+            state.enumerators.retain(|(indent, _)| *indent < line.indent());
 
             // A literal block announced by `::` claims everything indented
             // past the announcing paragraph, before any other reading: inside
@@ -895,6 +1274,34 @@ impl DocumentParser for RstParser {
                     continue;
                 }
                 state.pending_literal = None;
+            }
+
+            // In a glossary, each line left of the definitions is one term;
+            // Sphinx reads a group of such lines as several terms of the
+            // same definition. Options before the first term and comments
+            // keep their ordinary reading.
+            if let Some(glossary) = state.glossary {
+                if line.indent() <= glossary.directive_indent {
+                    state.glossary = None;
+                } else if !(glossary.term_indent.is_none() && is_field_marker(trimmed))
+                    && !trimmed.starts_with("..")
+                {
+                    let term_indent = glossary.term_indent.unwrap_or(line.indent());
+                    state.glossary = Some(Glossary {
+                        term_indent: Some(term_indent),
+                        ..glossary
+                    });
+                    if line.indent() <= term_indent {
+                        state.flush_run();
+                        state.push_span_block(
+                            BlockType::Heading,
+                            line.start + line.indent()..line.end(),
+                            BlockRole::None,
+                        );
+                        i += 1;
+                        continue;
+                    }
+                }
             }
 
             // `::` alone is the literal-block paragraph, or the continuation
@@ -916,12 +1323,14 @@ impl DocumentParser for RstParser {
             }
 
             // An adornment line under a single-line run is that run's
-            // underline; the pair is a section title.
+            // underline; the pair is a section title. A single character
+            // underlines only at the title's own column.
             if let Some(run) = &state.run
                 && run.start_line == run.last_line
                 && run.last_line + 1 == i
                 && run.block_type == BlockType::Paragraph
-                && let Some(marker) = adornment_char(trimmed)
+                && let Some(marker) = underline_char(trimmed)
+                && (trimmed.len() > 1 || line.indent() == run.text_col)
                 && adornment_covers(trimmed, &source[run.span.clone()])
             {
                 let run = state.run.take().unwrap();
@@ -984,6 +1393,12 @@ impl DocumentParser for RstParser {
                         let end = consume_while_indented(&lines, i, line.indent());
                         state.push_csv_table(line.start..lines[end].end());
                         i = end + 1;
+                    } else if name.eq_ignore_ascii_case("glossary") {
+                        state.glossary = Some(Glossary {
+                            directive_indent: line.indent(),
+                            term_indent: None,
+                        });
+                        i += 1;
                     } else if OPAQUE_DIRECTIVES.contains(&name.to_ascii_lowercase().as_str()) {
                         let end = consume_while_indented(&lines, i, line.indent());
                         state.push_opaque_block(
@@ -1024,6 +1439,9 @@ impl DocumentParser for RstParser {
                         text_col: continuation.unwrap_or(text_offset),
                         start_line: i,
                         last_line: i,
+                        keeps_continuation: continuation.is_some_and(|column| {
+                            deeper_line_in_body(&lines, i, line.indent(), column)
+                        }),
                     });
                     if continuation.is_none() {
                         state.flush_run();
@@ -1100,10 +1518,19 @@ impl DocumentParser for RstParser {
                 {
                     end += 1;
                 }
+                // Like a footnote's, the body's indentation is its second
+                // line's.
+                let column = lines[i + 1..=end].first().map(Line::indent);
+                let role = match column {
+                    Some(column) if deeper_line_in_body(&lines, end, line.indent(), column) => {
+                        BlockRole::ContinuationColumn { column }
+                    }
+                    _ => BlockRole::None,
+                };
                 state.push_span_block(
                     BlockType::Paragraph,
                     line.start + body_start..lines[end].end(),
-                    BlockRole::None,
+                    role,
                 );
                 i = end + 1;
                 continue;
@@ -1124,10 +1551,31 @@ impl DocumentParser for RstParser {
                 .run
                 .as_ref()
                 .is_some_and(|run| run.text_col == line.indent());
-            if !continues_run
-                && let Some(text_offset) =
-                    parse_bullet_item(line.content).or_else(|| parse_enumerated_item(line.content))
+            let list_item = if continues_run {
+                None
+            } else if let Some(text_offset) = parse_bullet_item(line.content) {
+                Some(text_offset)
+            } else if let Some(text_offset) = parse_enumerated_item(line.content)
+                && let Some(found) = enumerator_after(line.content, previous_enumerator.as_ref())
             {
+                // docutils reads an enumerator line with an adornment below
+                // as a title; the markers this parser has always known kept
+                // it a list item (its underline is redrawn in
+                // `adornment_edits`), and staying so keeps its segment IDs.
+                // Newly read markers (`A.`, `iv.`) take the title reading.
+                let next = lines.get(i + 1).map(|next| next.content);
+                let over_adornment = is_legacy_enumerator(line.content, &found)
+                    && next.is_some_and(|next| adornment_char(next.trim()).is_some());
+                (over_adornment
+                    || reads_as_block_start(line.content, next, previous_enumerator.as_ref()))
+                .then(|| {
+                    state.enumerators.push((line.indent(), found));
+                    text_offset
+                })
+            } else {
+                None
+            };
+            if let Some(text_offset) = list_item {
                 state.flush_run();
                 state.run = Some(Run {
                     block_type: BlockType::ListItem,
@@ -1135,6 +1583,7 @@ impl DocumentParser for RstParser {
                     text_col: text_offset,
                     start_line: i,
                     last_line: i,
+                    keeps_continuation: false,
                 });
                 i += 1;
                 continue;
@@ -1158,6 +1607,7 @@ impl DocumentParser for RstParser {
                         text_col: col,
                         start_line: i,
                         last_line: i,
+                        keeps_continuation: false,
                     });
                 }
             }
@@ -1334,13 +1784,6 @@ fn reconstruct_rst(document: &Document, translations: &TranslationMap) -> String
                 prose_translations.remove(&segment.id);
             }
         }
-        if let Some(edit) = indented_alpha_enumeration_edit(block, &prose_translations) {
-            for segment in &block.segments {
-                prose_translations.remove(&segment.id);
-            }
-            splices.push(edit);
-            continue;
-        }
         if block
             .raw_content
             .lines()
@@ -1351,13 +1794,126 @@ fn reconstruct_rst(document: &Document, translations: &TranslationMap) -> String
             }
         }
     }
-    splices.extend(collect_splices(document, &prose_translations));
+    splices.extend(keep_block_readings(
+        document,
+        collect_splices(document, &prose_translations),
+    ));
     splices.extend(list_table_edits);
     splices.extend(adornment_edits(document, translations));
     splices.extend(table_edits(document, translations));
     let mut output = apply_splices(&document.source, splices);
     rewrite_heading_references_in_text(&mut output, &heading_aliases);
     repair_korean_reference_boundaries(&output)
+}
+
+/// Keep docutils reading each translated paragraph the way it read the
+/// source, though the translation joins the paragraph onto one line.
+///
+/// A body whose indentation its second line sets keeps a second line at
+/// that column. A first line that reads as a list item, field or other block
+/// start only in the translation gets a leading `\`, which docutils drops
+/// from the rendered text.
+fn keep_block_readings(
+    document: &Document,
+    splices: Vec<(Range<usize>, String)>,
+) -> Vec<(Range<usize>, String)> {
+    let prose: std::collections::HashMap<(usize, usize), &Block> = document
+        .sections
+        .iter()
+        .flat_map(|section| &section.blocks)
+        .filter(|block| matches!(block.block_type, BlockType::Paragraph | BlockType::ListItem))
+        .filter(|block| {
+            matches!(
+                block.role,
+                BlockRole::None | BlockRole::ContinuationColumn { .. }
+            )
+        })
+        .filter_map(|block| {
+            Some((
+                (block.span.as_ref()?.start, block.span.as_ref()?.end),
+                block,
+            ))
+        })
+        .collect();
+    splices
+        .into_iter()
+        .map(|(range, mut text)| {
+            let Some(block) = prose.get(&(range.start, range.end)) else {
+                return (range, text);
+            };
+            if let BlockRole::ContinuationColumn { column } = block.role {
+                text = break_at_continuation(&document.source, &range, &text, column);
+            }
+            if first_line_reads_as_block_start_only_in(&document.source, &range, &text) {
+                text.insert(0, '\\');
+            }
+            (range, text)
+        })
+        .collect()
+}
+
+/// Break a one-line translation where the source's first line ended, and
+/// start its second line at `column`. Only a space outside inline markup
+/// (backtick spans, `|substitutions|`) qualifies; without one the
+/// translation stays on one line.
+fn break_at_continuation(source: &str, span: &Range<usize>, text: &str, column: usize) -> String {
+    if text.contains('\n') {
+        return text.to_string();
+    }
+    let raw = &source[span.clone()];
+    let first_line = raw.split('\n').next().unwrap_or(raw).trim_end();
+    let literals = backtick_spans(text);
+    let outside_literals = |at: usize| !literals.iter().any(|span| span.contains(&at));
+    let bars: Vec<usize> = text
+        .match_indices('|')
+        .map(|(at, _)| at)
+        .filter(|&at| outside_literals(at))
+        .collect();
+    let in_substitution = |at: usize| {
+        bars.chunks(2)
+            .any(|pair| pair.len() == 2 && pair[0] < at && at < pair[1])
+    };
+    let Some(at) = split_at_safe_space(text, display_width(first_line), |at| {
+        outside_literals(at) && !in_substitution(at)
+    }) else {
+        return text.to_string();
+    };
+    format!("{}\n{}{}", &text[..at], " ".repeat(column), &text[at + 1..])
+}
+
+/// Whether the translation's first line reads as a block start (a list item,
+/// a field, …) where the source's did not. A paragraph's first line counts at
+/// the column of the line continuing it, the way docutils dedents a list item
+/// or footnote body; a one-line source is followed by the line under it, a
+/// one-line translation by nothing.
+fn first_line_reads_as_block_start_only_in(source: &str, span: &Range<usize>, text: &str) -> bool {
+    let line_start = source[..span.start].rfind('\n').map_or(0, |at| at + 1);
+    let span_column = span.start - line_start;
+    let indent_of = |line: &str| line.len() - line.trim_start().len();
+    let reads = |first: &str, next: Option<&str>, indent: usize| {
+        reads_as_block_start(&format!("{}{first}", " ".repeat(indent)), next, None)
+    };
+    let raw = &source[span.clone()];
+    let source_reads = match raw.split_once('\n') {
+        Some((first, rest)) => {
+            let next = rest.split('\n').next().unwrap_or_default();
+            reads(first, Some(next), indent_of(next))
+        }
+        None => {
+            let next = source[span.end..]
+                .split_once('\n')
+                .and_then(|(_, after)| after.split('\n').next());
+            reads(raw, next, span_column)
+        }
+    };
+    let translated_reads = match text.split_once('\n') {
+        Some((first, rest)) => {
+            let next = rest.split('\n').next().unwrap_or_default();
+            reads(first, Some(next), indent_of(next))
+        }
+        None => reads(text, None, span_column),
+    };
+    translated_reads && !source_reads
 }
 
 /// Keep an RST reference recognizable when a Korean particle follows it.
@@ -1401,54 +1957,6 @@ fn repair_korean_reference_boundaries(text: &str) -> String {
         }
     }
     repaired
-}
-
-fn indented_alpha_enumeration_edit(
-    block: &Block,
-    translations: &TranslationMap,
-) -> Option<(Range<usize>, String)> {
-    if !block
-        .segments
-        .iter()
-        .any(|segment| translations.contains_key(&segment.id))
-    {
-        return None;
-    }
-    let span = block.span.clone()?;
-    let mut lines = block.raw_content.lines();
-    let first = lines.next()?.trim_start();
-    alpha_enumerator(first)?;
-
-    let continuations: Vec<(String, String)> = lines
-        .filter_map(|line| {
-            let trimmed = line.trim_start();
-            let marker = alpha_enumerator(trimmed)?;
-            let indent = &line[..line.len() - trimmed.len()];
-            Some((format!(" {marker}"), format!("\n{indent}{marker}")))
-        })
-        .collect();
-    if continuations.is_empty() {
-        return None;
-    }
-
-    let mut rebuilt = join_segments_with_translations(&block.segments, translations);
-    for (needle, replacement) in continuations {
-        rebuilt = rebuilt.replacen(&needle, &replacement, 1);
-    }
-    Some((span, rebuilt))
-}
-
-fn alpha_enumerator(text: &str) -> Option<&str> {
-    let bytes = text.as_bytes();
-    if bytes.len() >= 3
-        && bytes[0].is_ascii_alphabetic()
-        && bytes[1] == b'.'
-        && bytes[2].is_ascii_whitespace()
-    {
-        Some(&text[..3])
-    } else {
-        None
-    }
 }
 
 /// An embedded RST link also defines a reusable target named by its visible
@@ -1888,6 +2396,16 @@ fn replace_bare_rst_reference(input: &str, reference: &str, replacement: &str) -
     }
     output.push_str(&input[offset..]);
     output
+}
+
+/// Whether a line indented past `column` follows line `at` within the body
+/// it opens — every line after it that is blank or indented past
+/// `marker_indent`.
+fn deeper_line_in_body(lines: &[Line], at: usize, marker_indent: usize, column: usize) -> bool {
+    lines[at + 1..]
+        .iter()
+        .take_while(|line| line.is_blank() || line.indent() > marker_indent)
+        .any(|line| !line.is_blank() && line.indent() > column)
 }
 
 /// The last line of the indented block starting under line `at`: lines more
@@ -2654,6 +3172,67 @@ mod tests {
     }
 
     #[test]
+    fn py_domain_function_directive_body_is_translatable_but_signature_is_not() {
+        let source = ".. py:function:: getexecutioncontext()\n\n   Return the currently active execution context.\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(
+            segments[0].source,
+            "Return the currently active execution context."
+        );
+    }
+
+    #[test]
+    fn c_domain_function_directive_body_is_translatable_but_signature_is_not() {
+        let source = ".. c:function:: int f(void)\n\n   Does things.\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].source, "Does things.");
+    }
+
+    #[test]
+    fn graphviz_directive_is_opaque() {
+        let source = ".. graphviz::\n\n    digraph G{\n    a -> b; // c\n    }\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
+    }
+
+    #[test]
+    fn digraph_directive_is_opaque() {
+        let source = ".. digraph:: t\n\n   a -> b\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
+    }
+
+    #[test]
+    fn hyperlink_target_line_is_still_not_a_directive() {
+        let source = ".. _target: http://x\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
+    }
+
+    #[test]
+    fn substitution_replace_line_is_still_not_a_directive() {
+        let source = ".. |sub| replace:: x\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 0);
+        let output = translate_all(&RstParser, source, &[]);
+        assert_eq!(output, source);
+    }
+
+    #[test]
     fn toctree_is_opaque() {
         let source = "Head.\n\n.. toctree::\n  :maxdepth: 1\n\n  introduction\n  architecture\n\nTail.\n";
         let doc = RstParser.parse(source);
@@ -2812,6 +3391,22 @@ mod tests {
     }
 
     #[test]
+    fn a_letter_or_roman_enumerator_over_an_underline_is_a_title() {
+        for source in ["A. Title\n========\n", "I. Title\n========\n", "iv. Title\n=========\n"] {
+            let doc = RstParser.parse(source);
+            let block = &doc.sections[0].blocks[0];
+            assert_eq!(block.block_type, BlockType::Heading, "{source:?}");
+            assert_eq!(block.raw_content, source.lines().next().unwrap(), "{source:?}");
+            assert!(matches!(block.role, BlockRole::AdornedTitle { .. }), "{source:?}");
+        }
+        // Forms the parser always took as markers keep their list reading.
+        for source in ["6. Title\n========\n", "a) Title\n========\n", "#. Title\n========\n"] {
+            let doc = RstParser.parse(source);
+            assert_eq!(doc.sections[0].blocks[0].block_type, BlockType::ListItem, "{source:?}");
+        }
+    }
+
+    #[test]
     fn enumerated_title_with_inline_literal_expands_its_underline() {
         let source = "1. Add an operator for ``Union[type1, type2]``?\n--------------------------------------------------\n";
         let output = translate_all(
@@ -2828,18 +3423,212 @@ mod tests {
         assert!(underline.len() > 50, "{title}\n{underline}");
     }
 
-    #[test]
-    fn alpha_enumerator_rejects_short_and_non_ascii_text() {
-        assert_eq!(alpha_enumerator("a."), None);
-        assert_eq!(alpha_enumerator("안."), None);
-        assert_eq!(alpha_enumerator("a. item"), Some("a. "));
+    fn sources(source: &str) -> Vec<String> {
+        RstParser
+            .parse(source)
+            .translatable_segments()
+            .iter()
+            .map(|segment| segment.source.clone())
+            .collect()
+    }
+
+    /// Translate every segment to `<source>!` so a test can see where each
+    /// translation lands and which bytes stay verbatim around it.
+    fn mark_all(source: &str) -> String {
+        let doc = RstParser.parse(source);
+        let mut translations = TranslationMap::new();
+        for segment in doc.translatable_segments() {
+            translations.insert(segment.id.clone(), format!("{}!", segment.source));
+        }
+        RstParser.reconstruct(&doc, &translations)
     }
 
     #[test]
-    fn an_initial_is_not_a_list_marker() {
-        assert_eq!(parse_enumerated_item("J. Smith wrote this"), None);
+    fn an_initial_followed_by_its_paragraph_is_not_a_list_marker() {
+        // The sentence splitter still cuts after `J.`; the point is that the
+        // two lines stay one paragraph with the initial inside it.
+        let doc = RstParser.parse("J. Smith wrote this\nand more.\n");
+        let blocks = &doc.sections[0].blocks;
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].block_type, BlockType::Paragraph);
+        assert_eq!(blocks[0].raw_content, "J. Smith wrote this\nand more.");
         assert!(parse_enumerated_item("1. A real item").is_some());
         assert!(parse_enumerated_item("a) Also real").is_some());
+    }
+
+    #[test]
+    fn a_one_line_initial_before_a_blank_line_is_a_list_item_as_in_docutils() {
+        let doc = RstParser.parse("J. Smith wrote this.\n\nNext.\n");
+        let segments = doc.translatable_segments();
+        assert_eq!(segments[0].source, "Smith wrote this.");
+        assert_eq!(segments[0].block_type, BlockType::ListItem);
+        assert_eq!(segments[1].source, "Next.");
+    }
+
+    #[test]
+    fn alpha_and_roman_enumerators_keep_their_markers_and_spacing() {
+        let source = "    a. Let x.\n    b. For each:\n\n        i.   Set a\n        ii.  Set b\n        iii. Set c.\n";
+        assert_eq!(
+            sources(source),
+            vec!["Let x.", "For each:", "Set a", "Set b", "Set c."]
+        );
+        assert_eq!(
+            mark_all(source),
+            "    a. Let x.!\n    b. For each:!\n\n        i.   Set a!\n        ii.  Set b!\n        iii. Set c.!\n"
+        );
+    }
+
+    #[test]
+    fn a_marker_followed_by_two_spaces_keeps_its_body_column() {
+        let source = "    a.  Use a model\n\n        Instead of this.\n";
+        assert_eq!(sources(source), vec!["Use a model", "Instead of this."]);
+        assert_eq!(
+            mark_all(source),
+            "    a.  Use a model!\n\n        Instead of this.!\n"
+        );
+    }
+
+    #[test]
+    fn an_enumerator_whose_next_line_continues_unindented_is_a_paragraph() {
+        let doc = RstParser.parse("a. It should enable\nto re-enable.\n");
+        let blocks = &doc.sections[0].blocks;
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].block_type, BlockType::Paragraph);
+        assert_eq!(
+            normalize_inline_text(&blocks[0].raw_content),
+            "a. It should enable to re-enable."
+        );
+    }
+
+    #[test]
+    fn i_after_h_is_alphabetic_and_alone_is_roman() {
+        let doc = RstParser.parse("h. x\ni. y\n");
+        let segments = doc.translatable_segments();
+        assert_eq!(
+            segments.iter().map(|s| s.source.as_str()).collect::<Vec<_>>(),
+            vec!["x", "y"]
+        );
+        assert!(segments.iter().all(|s| s.block_type == BlockType::ListItem));
+
+        let previous = enumerator("h. x").unwrap();
+        assert_eq!(previous.kind, EnumKind::LowerAlpha);
+        let after_h = enumerator_after("i. y", Some(&previous)).unwrap();
+        assert_eq!(after_h.kind, EnumKind::LowerAlpha);
+        assert_eq!(after_h.ordinal, Some(9));
+        let alone = enumerator("i. x").unwrap();
+        assert_eq!(alone.kind, EnumKind::LowerRoman);
+        assert_eq!(alone.ordinal, Some(1));
+
+        let doc = RstParser.parse("i. x\n\n");
+        let segments = doc.translatable_segments();
+        assert_eq!(segments[0].source, "x");
+        assert_eq!(segments[0].block_type, BlockType::ListItem);
+    }
+
+    #[test]
+    fn enumerator_reads_every_docutils_form() {
+        let paren = enumerator("(iv) text").unwrap();
+        assert_eq!((paren.kind, paren.format, paren.ordinal), (EnumKind::LowerRoman, EnumFormat::Parens, Some(4)));
+        assert_eq!(paren.text_offset, 5);
+        let rparen = enumerator("  B) text").unwrap();
+        assert_eq!((rparen.kind, rparen.format, rparen.ordinal), (EnumKind::UpperAlpha, EnumFormat::RParen, Some(2)));
+        assert_eq!(rparen.text_offset, 5);
+        let auto = enumerator("#. text").unwrap();
+        assert_eq!((auto.kind, auto.ordinal), (EnumKind::Auto, Some(1)));
+        let arabic = enumerator("12.   text").unwrap();
+        assert_eq!((arabic.kind, arabic.ordinal, arabic.text_offset), (EnumKind::Arabic, Some(12), 6));
+        assert_eq!(enumerator("iiii. text").unwrap().ordinal, None);
+        assert!(enumerator("ab. text").is_none());
+        assert!(enumerator("1.text").is_none());
+        assert!(enumerator("(1. text").is_none());
+        assert!(enumerator("1.").is_some());
+    }
+
+    #[test]
+    fn block_start_follows_docutils_markers() {
+        for line in [
+            "- item", "+ item", "* item", "• item", "‣ item", "⁃ item", "-",
+            "1. item", "(a) item", "iv) item", "#. item", "A.",
+            ":field: body", ":field name:", "-x  option", "-o FILE  desc", "/V  desc",
+            "+x  desc", "-x, --long  desc",
+            "| line", "|", ">>> 1 + 1", ">>>",
+        ] {
+            assert!(reads_as_block_start(line, None, None), "{line:?}");
+        }
+        for line in [
+            "-item", "(2009 was", "1.5 times", "ab. word", "iiii. no",
+            ":ref:`x` is", "-x option", "--long=VALUE", "|x|", ">>>x", "plain text",
+        ] {
+            assert!(!reads_as_block_start(line, None, None), "{line:?}");
+        }
+    }
+
+    #[test]
+    fn block_start_applies_the_second_line_check_to_enumerators_only() {
+        assert!(!reads_as_block_start("a. It should", Some("go on."), None));
+        assert!(reads_as_block_start("a. It should", Some(""), None));
+        assert!(reads_as_block_start("a. It should", Some("   go on."), None));
+        assert!(reads_as_block_start("a. first", Some("b. second"), None));
+        assert!(reads_as_block_start("a. first", Some("#. second"), None));
+        assert!(!reads_as_block_start("a. first", Some("c. third"), None));
+        assert!(!reads_as_block_start("a. first", Some("b) second"), None));
+        assert!(reads_as_block_start("  (1) first", Some("  (2) second"), None));
+        assert!(reads_as_block_start("  1. first", Some("next at a shallower block"), None));
+        assert!(reads_as_block_start("* bullet", Some("goes on"), None));
+        assert!(reads_as_block_start(":field: x", Some("goes on"), None));
+        assert!(reads_as_block_start("-x option", Some("   desc"), None));
+        assert!(reads_as_block_start("--long=VALUE", Some("   desc"), None));
+        assert!(!reads_as_block_start("--long=VALUE", Some("desc"), None));
+        assert!(reads_as_block_start("iv. x", Some("v. y"), None));
+        assert!(reads_as_block_start("I. x", Some("II. y"), None));
+        assert!(!reads_as_block_start("z. x", Some("aa. y"), None));
+    }
+
+    #[test]
+    fn a_one_character_underline_under_a_one_line_title_makes_a_section() {
+        let source = "Intro.\n\nR\n-\n\nR is a language.\n";
+        let doc = RstParser.parse(source);
+        assert_eq!(doc.sections.len(), 2);
+        let title = &doc.sections[1].blocks[0];
+        assert_eq!(title.block_type, BlockType::Heading);
+        assert_eq!(title.segments[0].source, "R");
+        assert_eq!(RstParser.reconstruct(&doc, &TranslationMap::new()), source);
+    }
+
+    #[test]
+    fn a_one_character_line_is_not_an_overline_or_transition() {
+        assert_eq!(adornment_char("-"), None);
+        assert_eq!(underline_char("-"), Some('-'));
+        assert_eq!(underline_char(".."), None);
+        assert_eq!(underline_char("-a"), None);
+    }
+
+    #[test]
+    fn each_line_of_a_glossary_term_group_is_its_own_term() {
+        let source = ".. glossary::\n\n    license expression\n    SPDX expression\n        A string.\n";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(
+            segments.iter().map(|s| s.source.as_str()).collect::<Vec<_>>(),
+            vec!["license expression", "SPDX expression", "A string."]
+        );
+        assert_eq!(segments[0].block_type, BlockType::Heading);
+        assert_eq!(segments[1].block_type, BlockType::Heading);
+        assert_eq!(segments[2].block_type, BlockType::Paragraph);
+        assert_eq!(
+            mark_all(source),
+            ".. glossary::\n\n    license expression!\n    SPDX expression!\n        A string.!\n"
+        );
+    }
+
+    #[test]
+    fn glossary_options_stay_verbatim_and_terms_end_with_the_directive() {
+        let source = ".. glossary::\n   :sorted:\n\n   term\n      Definition.\n\n   other\n      More.\n\nAfter the glossary\nit goes on.\n";
+        assert_eq!(
+            sources(source),
+            vec!["term", "Definition.", "other", "More.", "After the glossary it goes on."]
+        );
+        assert_eq!(RstParser.reconstruct(&RstParser.parse(source), &TranslationMap::new()), source);
     }
 
     #[test]
@@ -3881,5 +4670,131 @@ mod tests {
     fn titles_split_sections() {
         let doc = RstParser.parse("One\n===\n\nA.\n\nTwo\n===\n\nB.\n");
         assert_eq!(doc.sections.len(), 2);
+    }
+
+    /// Translate whole blocks: each block whose segments join to a source
+    /// text gets that translation as one segment.
+    fn translate_blocks(source: &str, pairs: &[(&str, &str)]) -> String {
+        let mut doc = RstParser.parse(source);
+        let mut translations = TranslationMap::new();
+        for block in doc
+            .sections
+            .iter_mut()
+            .flat_map(|section| &mut section.blocks)
+        {
+            let joined = block
+                .segments
+                .iter()
+                .map(|segment| segment.source.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            if let Some((_, translation)) = pairs.iter().find(|(source, _)| *source == joined) {
+                block.segments.truncate(1);
+                translations.insert(block.segments[0].id.clone(), translation.to_string());
+            }
+        }
+        RstParser.reconstruct(&doc, &translations)
+    }
+
+    #[test]
+    fn joined_list_item_that_would_read_as_a_list_is_escaped() {
+        let output = translate_blocks(
+            "* (2009) Dino offers his opinion:\n  https://x/y\n",
+            &[(
+                "(2009) Dino offers his opinion: https://x/y",
+                "(2009) Dino의 의견: https://x/y",
+            )],
+        );
+        assert_eq!(output, "* \\(2009) Dino의 의견: https://x/y\n");
+    }
+
+    #[test]
+    fn joined_footnote_that_would_read_as_a_list_is_escaped() {
+        let output = translate_blocks(
+            ".. [4] 1976. R. H. Lathwell. APL\n   the eighth\n",
+            &[(
+                "1976. R. H. Lathwell. APL the eighth",
+                "1976. R. H. Lathwell. APL 여덟 번째",
+            )],
+        );
+        assert_eq!(output, ".. [4] \\1976. R. H. Lathwell. APL 여덟 번째\n");
+    }
+
+    #[test]
+    fn a_source_that_already_reads_as_a_list_is_not_escaped() {
+        let output = translate_blocks("* 1. foo\n", &[("1. foo", "1. 푸")]);
+        assert_eq!(output, "* 1. 푸\n");
+    }
+
+    #[test]
+    fn a_translation_that_opens_with_a_marker_is_escaped() {
+        let output = translate_blocks(
+            "Compare (1) with (2).\n",
+            &[("Compare (1) with (2).", "(1) 호출하기와 (2)를 비교한다.")],
+        );
+        assert_eq!(output, "\\(1) 호출하기와 (2)를 비교한다.\n");
+    }
+
+    #[test]
+    fn footnote_keeps_its_continuation_column_above_a_deeper_quote() {
+        let output = translate_blocks(
+            ".. [1] Appealing to authority\n       follows:\n\n          I have seen\n          traffic.\n",
+            &[(
+                "Appealing to authority follows:",
+                "권위에 호소하는 인용은 다음과 같습니다:",
+            )],
+        );
+        assert_eq!(
+            output,
+            ".. [1] 권위에 호소하는 인용은\n       다음과 같습니다:\n\n          I have seen\n          traffic.\n"
+        );
+    }
+
+    #[test]
+    fn field_body_keeps_its_continuation_column_above_a_deeper_quote() {
+        let output = translate_blocks(
+            ":Abstract: Appealing to authority\n   follows:\n\n      I have seen.\n",
+            &[(
+                "Appealing to authority follows:",
+                "권위에 호소하는 인용은 다음과 같습니다:",
+            )],
+        );
+        assert_eq!(
+            output,
+            ":Abstract: 권위에 호소하는 인용은\n   다음과 같습니다:\n\n      I have seen.\n"
+        );
+    }
+
+    #[test]
+    fn continuation_break_skips_spaces_inside_inline_literals() {
+        let output = translate_blocks(
+            ".. [1] Appealing to authority\n       follows:\n\n          quote\n",
+            &[("Appealing to authority follows:", "``a b c d``")],
+        );
+        assert_eq!(output, ".. [1] ``a b c d``\n\n          quote\n");
+    }
+
+    #[test]
+    fn continuation_break_never_leaves_punctuation_alone() {
+        let output = translate_blocks(
+            ".. [1] Appealing x\n       follows:\n\n          quote\n",
+            &[("Appealing x follows:", "가나다 라마 ---")],
+        );
+        assert_eq!(
+            output,
+            ".. [1] 가나다\n       라마 ---\n\n          quote\n"
+        );
+    }
+
+    #[test]
+    fn a_joined_footnote_without_a_deeper_line_stays_one_line() {
+        let output = translate_blocks(
+            ".. [1] Appealing to authority\n       follows:\n",
+            &[(
+                "Appealing to authority follows:",
+                "권위에 호소하는 인용은 다음과 같습니다:",
+            )],
+        );
+        assert_eq!(output, ".. [1] 권위에 호소하는 인용은 다음과 같습니다:\n");
     }
 }

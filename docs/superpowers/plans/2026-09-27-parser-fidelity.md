@@ -43,9 +43,10 @@ Sphinx venv).
 
 **Interfaces:**
 - Produces: `pub fn reconcile_accepting_context(document: &Document, existing: &StateFile, glossary: &Glossary) -> ReconcileReport`
-  (`struct ReconcileReport { segments: Vec<SegmentState>, kept: usize, added: Vec<String>, dropped: Vec<String>, context_accepted: usize, untouched_stale: usize }`,
+  (`struct ReconcileReport { segments: Vec<SegmentState>, kept: usize, added: Vec<String>, dropped: Vec<String>, context_accepted: usize, glossary_stale: usize }`,
   `added`/`dropped`는 원문 텍스트). 규칙: `reconcile` 결과에서 상태가 `ContextChanged`인
-  세그먼트만 `context_hash`를 현재 값으로 바꾼다. `Stale`·`GlossaryStale`은 그대로 두고 센다.
+  세그먼트만 `context_hash`를 현재 값으로 바꾼다. `GlossaryStale`은 그대로 두고 센다. ID로 짝짓지
+  않으므로 원문이 바뀐 세그먼트는 `added`와 `dropped`에 나온다. state가 없는 파일은 건너뛴다.
 - CLI: `Reconcile { path: String, #[arg(long)] dry_run: bool }`. `collect_files`/`scan_file`
   (`yeokja_translate::orchestrator`)로 파일을 모으고, `--dry-run`이 아니면
   `StateFile::save`로 저장한다. 출력은 파일별 한 줄 요약과 `added`/`dropped` 원문 목록.

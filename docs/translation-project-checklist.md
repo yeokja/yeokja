@@ -83,3 +83,21 @@
   같은 방법으로 지우고 다시 번역합니다.
 - 빌드 산출물(HTML/PDF/EPUB)의 링크·앵커·경고를 프로젝트별 검증 스크립트나
   빌드 도구의 엄격 모드(예: `--fail-on-warning`)로 확인합니다.
+
+## 7. 파서를 바꾼 뒤
+
+파서가 바뀌면 원문은 그대로여도 세그먼트 모양이 바뀌어 기존 state의 대부분이
+`ContextChanged`로 보입니다. `translate`로 바로 밀어붙이면 이웃 수백 세그먼트가
+이유 없이 재번역되므로, 대신 `yeokja reconcile`로 state를 새 모양에 옮깁니다.
+
+- `yeokja reconcile <path> --dry-run`으로 파일별 kept/added/dropped/context_hash
+  갱신 수를 먼저 확인합니다. 계획에 적을 영향 수치는 이 출력으로 확정합니다.
+- 수치가 예상과 맞으면 `yeokja reconcile <path>`로 실제로 state를 옮깁니다.
+  원문이 같은 세그먼트는 번역을 그대로 가져가고 `context_hash`만 갱신되며,
+  원문 문자열이 새로 생긴 세그먼트(파서가 문장을 다르게 나눈 경우 포함)는
+  added로, 짝이 없는 옛 세그먼트는 dropped로 나오고 새 세그먼트는 Pending으로
+  남습니다. state 파일이 아직 없는 원문은 건너뜁니다.
+- 그 뒤에는 새 세그먼트만 `translate`합니다.
+- 원문 서브모듈을 올린 뒤에는 `reconcile`을 쓰지 않습니다 — 그때의
+  `ContextChanged`는 실제 문맥 변화일 수 있어, 파서 이관과 같은 방식으로
+  일괄 수용하면 진짜 재번역이 필요한 변화를 놓칩니다.

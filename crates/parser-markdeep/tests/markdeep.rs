@@ -189,3 +189,95 @@ fn translated_image_caption_and_following_prose_keep_the_destination() {
         "![번역문](assets/a(b).png) 번역문\n"
     );
 }
+
+fn translate_all(source: &str, text: &str) -> String {
+    let doc = MarkdeepParser.parse(source);
+    let translations = doc
+        .translatable_segments()
+        .iter()
+        .map(|s| (s.id.clone(), text.to_owned()))
+        .collect::<TranslationMap>();
+    MarkdeepParser.reconstruct(&doc, &translations)
+}
+
+#[test]
+fn multiline_blockquote_stays_multiline() {
+    let source = "Before.\n\n> one two three four\n> five six seven.\n\nAfter.\n";
+    let output = translate_all(
+        source,
+        "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열 열하나 열둘 열셋",
+    );
+    let quoted: Vec<_> = output.lines().filter(|l| l.starts_with("> ")).collect();
+    assert!(quoted.len() >= 2, "{output}");
+    let translated = "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열 열하나 열둘 열셋";
+    // Surrounding paragraphs stay single lines; the quote's lines rejoin to the translation.
+    assert_eq!(output.lines().filter(|l| *l == translated).count(), 2, "{output}");
+    let rejoined: Vec<_> = quoted.iter().map(|l| &l[2..]).collect();
+    assert_eq!(rejoined.join(" "), translated);
+}
+
+#[test]
+fn short_blockquote_translation_gets_an_empty_quote_line() {
+    let source = "> one two three four\n> five six seven.\n";
+    let output = translate_all(source, "`x`");
+    assert_eq!(output, "> `x`\n>\n");
+}
+
+#[test]
+fn blockquote_is_not_split_inside_code_spans() {
+    let source = "> one two three four\n> five six seven.\n";
+    let output = translate_all(source, "가 `a b c d e f g h` 나");
+    assert!(output.lines().filter(|l| l.starts_with('>')).count() >= 2);
+    for line in output.lines() {
+        assert_eq!(line.matches('`').count() % 2, 0, "{output}");
+    }
+}
+
+#[test]
+fn paragraph_outside_blockquote_stays_one_line() {
+    let source = "one two three four\nfive six seven.\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    assert_eq!(output, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열\n");
+}
+
+#[test]
+fn quoted_list_item_stays_multiline() {
+    let source = "> - item one two\n>   three four\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    assert!(output.lines().filter(|l| l.starts_with('>')).count() >= 2, "{output}");
+}
+
+#[test]
+fn nested_quote_prefix_is_copied() {
+    let source = "> > one two three four\n> > five six seven.\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    let lines: Vec<_> = output.lines().collect();
+    assert!(lines.len() >= 2 && lines.iter().all(|l| l.starts_with("> >")), "{output}");
+}
+
+#[test]
+fn lazy_continuation_is_left_unwrapped() {
+    let source = "> one two three four\nfive six seven.\n";
+    let output = translate_all(source, "하나 둘 셋 넷 다섯 여섯 일곱 여덟 아홉 열");
+    assert_eq!(output.lines().count(), 1, "{output}");
+}
+
+#[test]
+fn quoted_lines_never_start_with_a_block_marker() {
+    // A break before `-`, `1.`, `#`, ... would turn the rest of the quote
+    // into a list item or heading inside it.
+    let source = "> one two three four\n> five six seven.\n";
+    let translated = "하나 - 둘 셋 1. 넷 # 다섯 + 여섯 * 일곱 > 여덟 2) 아홉 - 열";
+    let output = translate_all(source, translated);
+    let quoted: Vec<_> = output.lines().map(|l| l.strip_prefix("> ").unwrap_or(l)).collect();
+    assert!(quoted.len() >= 2, "{output}");
+    let marker = |line: &str| {
+        let digits = line.len() - line.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+        ["- ", "+ ", "* ", "#", ">"].iter().any(|m| line.starts_with(m))
+            || (digits > 0 && [". ", ") "].iter().any(|m| line[digits..].starts_with(m)))
+    };
+    for line in &quoted {
+        assert!(!marker(line), "line {line:?} starts with a block marker:\n{output}");
+    }
+    assert_eq!(quoted.join(" "), translated);
+}

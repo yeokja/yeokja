@@ -1,8 +1,10 @@
 mod reflinks;
 mod sentence;
+mod width;
 
 pub use reflinks::{definition_labels, resolve_reference_links};
 pub use sentence::split_sentences;
+pub use width::{display_width, is_wide, split_at_safe_space};
 
 use yeokja_core::hash::content_hash;
 use yeokja_core::model::*;

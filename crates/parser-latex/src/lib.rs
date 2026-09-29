@@ -76,6 +76,11 @@ const TITLE_COMMANDS: &[(&str, u8)] = &[
     ("subtitle", 2),
 ];
 
+/// Commands whose visible text is a later mandatory argument, given as
+/// `(name, zero-based argument index)`. `\addcontentsline{toc}{chapter}{TEXT}`
+/// writes TEXT into the table of contents and PDF bookmarks.
+const TOC_TEXT_COMMANDS: &[(&str, usize)] = &[("addcontentsline", 2)];
+
 const TEXT_ARGUMENT_COMMANDS: &[&str] = &["caption", "pitch", "prototype", "todo", "missingfigure"];
 
 /// Commands whose arguments are ordinary visible text even when the command
@@ -460,6 +465,33 @@ fn parse_line(builder: &mut Builder<'_>, line: &str, base: usize) {
             return;
         }
 
+        if let Some((_, index)) = TOC_TEXT_COMMANDS.iter().find(|(name, _)| *name == command) {
+            builder.flush();
+            let mut at = command_end;
+            let mut inner = None;
+            for n in 0..=*index {
+                let Some(arg) = mandatory_argument(trimmed, at) else {
+                    inner = None;
+                    break;
+                };
+                at = arg.end + 1;
+                if n == *index {
+                    inner = Some(arg);
+                }
+            }
+            if let Some(inner) = inner {
+                // A lone macro such as `\bibname` is already localized.
+                let text = trimmed[inner.clone()].trim();
+                let lone_macro = leading_command(text).is_some_and(|(_, end)| end == text.len());
+                if !lone_macro {
+                    let span =
+                        (base + trimmed_start + inner.start)..(base + trimmed_start + inner.end);
+                    builder.push_span(span, BlockType::Heading, None);
+                }
+            }
+            return;
+        }
+
         if TEXT_ARGUMENT_COMMANDS.contains(&command) {
             builder.flush();
             if let Some(inner) = mandatory_argument(trimmed, command_end) {
@@ -731,8 +763,7 @@ fn is_comment_only(text: &str) -> bool {
 fn is_layout_command(command: &str) -> bool {
     matches!(
         command,
-        "addcontentsline"
-            | "appendix"
+        "appendix"
             | "author"
             | "backmatter"
             | "bibliography"
@@ -1374,6 +1405,40 @@ mod tests {
             .map(|segment| segment.source.as_str())
             .collect();
         assert!(sources.contains(&"$R$ is not Noetherian, but useful.}"));
+    }
+
+    #[test]
+    fn addcontentsline_translates_the_toc_text() {
+        let source = "\\chapter*{Preface}\n\\addcontentsline{toc}{chapter}{Preface}\n";
+        let document = LatexParser.parse(source);
+        let segments = document.translatable_segments();
+        assert_eq!(segments.len(), 2);
+        assert!(segments.iter().all(|s| s.source == "Preface"));
+        assert!(segments.iter().all(|s| s.block_type == BlockType::Heading));
+        let mut map = TranslationMap::new();
+        for s in &segments {
+            map.insert(s.id.clone(), "서문".to_string());
+        }
+        assert_eq!(
+            LatexParser.reconstruct(&document, &map),
+            "\\chapter*{서문}\n\\addcontentsline{toc}{chapter}{서문}\n"
+        );
+    }
+
+    #[test]
+    fn addcontentsline_skips_lone_macros_and_comments() {
+        for source in [
+            "\\addcontentsline{toc}{section}{\\ExercisesName}\n",
+            "\\addcontentsline{toc}{chapter}{\\bibname}\n",
+            "%\\addcontentsline{toc}{chapter}{Preface}\n",
+        ] {
+            let document = LatexParser.parse(source);
+            assert!(document.translatable_segments().is_empty(), "{source}");
+            assert_eq!(
+                LatexParser.reconstruct(&document, &TranslationMap::new()),
+                source
+            );
+        }
     }
 
     #[test]
