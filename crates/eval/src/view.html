@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>번역 eval 보기</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e2e1dc;
+  --accent: #2f5bd3; --win: #1f7a45; --win-bg: #e5f4ea; --loss: #b3261e; --loss-bg: #fbe9e7;
+  --tie: #6b6b66; --tie-bg: #efeeea; --code-bg: #f1f0ec; --src-bg: #f4f6fb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615; --panel: #1f1f1d; --text: #e8e7e3; --muted: #9a9993; --line: #33322f;
+    --accent: #8aa6ff; --win: #6fd39a; --win-bg: #173323; --loss: #ff8f86; --loss-bg: #3a1c19;
+    --tie: #a9a8a2; --tie-bg: #2a2a27; --code-bg: #2a2a27; --src-bg: #1c2230;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif; }
+header { position: sticky; top: 0; z-index: 2; background: var(--panel); border-bottom: 1px solid var(--line);
+  padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+h1 { font-size: 16px; margin: 0; font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+label { font-size: 13px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; }
+select, input[type=search] { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--bg); color: var(--text); }
+input[type=search] { min-width: 200px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer;
+  user-select: none; background: var(--bg); color: var(--muted); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+main { max-width: 1400px; margin: 0 auto; padding: 16px; }
+.count { font-size: 13px; color: var(--muted); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+.meta { padding: 8px 12px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.meta b { color: var(--text); font-weight: 600; word-break: break-all; }
+.tag { background: var(--tie-bg); border-radius: 4px; padding: 0 5px; }
+.source { padding: 10px 12px; background: var(--src-bg); white-space: pre-wrap; word-break: break-word; }
+.gloss { padding: 4px 12px 8px; font-size: 12px; color: var(--muted); background: var(--src-bg); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.cell { padding: 10px 12px; border-top: 1px solid var(--line); border-right: 1px solid var(--line); min-width: 0; }
+.cell h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cell .text { white-space: pre-wrap; word-break: break-word; }
+.cell.ref h3 { color: var(--win); }
+.cell.bad h3 { color: var(--loss); }
+.badge { font-size: 11px; font-weight: 500; border-radius: 4px; padding: 0 5px; }
+.badge.fail { background: var(--loss-bg); color: var(--loss); }
+.badge.retry { background: var(--tie-bg); color: var(--tie); }
+details { margin-top: 6px; font-size: 13px; }
+details summary { cursor: pointer; color: var(--muted); }
+.issues { font-size: 12px; color: var(--loss); margin: 4px 0 0; padding-left: 18px; }
+.judgments { border-top: 1px solid var(--line); padding: 8px 12px; font-size: 13px; }
+.judgment { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.judgment:last-child { border-bottom: 0; }
+.jhead { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.v { font-size: 11px; border-radius: 4px; padding: 0 6px; }
+.v.candidate { background: var(--win-bg); color: var(--win); }
+.v.baseline { background: var(--loss-bg); color: var(--loss); }
+.v.tie { background: var(--tie-bg); color: var(--tie); }
+.reason { color: var(--muted); margin: 2px 0 0; }
+.pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 16px 0 32px; }
+button { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--text); cursor: pointer; }
+button:disabled { opacity: .4; cursor: default; }
+mark { background: #ffe58a; color: #1d1d1b; }
+@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } input[type=search] { min-width: 0; flex: 1; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>번역 eval 보기</h1>
+  <div class="row">
+    <input type="search" id="q" placeholder="원문·번역·id 검색">
+    <label>프로젝트 <select id="project"></select></label>
+    <label>종류 <select id="kind"><option value="">전체</option><option>real</option><option>hard</option><option>synthetic</option></select></label>
+    <label><input type="checkbox" id="sampled"> 판정 표본만</label>
+    <label><input type="checkbox" id="failed"> 관문 실패 있음</label>
+  </div>
+  <div class="row">
+    <label>판정 <select id="pair"></select></label>
+    <label>결과 <select id="outcome">
+      <option value="">전체</option><option value="candidate">후보 승</option>
+      <option value="baseline">기준선 승</option><option value="tie">무승부</option></select></label>
+    <label>기준 <select id="criterion">
+      <option value="overall">종합</option><option value="accuracy">정확성</option>
+      <option value="fluency">자연스러움</option><option value="translationese">번역투</option></select></label>
+  </div>
+  <div class="row" id="chips"></div>
+</header>
+<main>
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+  <div class="pager"><button id="prev">이전</button><span class="count" id="pageno"></span><button id="next">다음</button></div>
+</main>
+<script>
+const DATA = /*DATA*/null;
+const PER_PAGE = 30;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const CRIT = { overall: "종합", accuracy: "정확성", fluency: "자연스러움", translationese: "번역투" };
+const WORD = { candidate: "후보 승", baseline: "기준선 승", tie: "무승부" };
+
+const shown = new Set(DATA.candidates);
+let page = 0;
+
+function stored(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
+function store(key, value) { try { localStorage.setItem(key, value); } catch {} }
+try { const s = JSON.parse(stored("eval-view-hidden", "[]")); s.forEach(c => shown.delete(c)); } catch {}
+
+function fillSelect(el, values, all) {
+  el.innerHTML = `<option value="">${all}</option>` + values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+}
+fillSelect($("project"), [...new Set(DATA.blocks.map(b => b.project))].sort(), "전체");
+const pairKeys = new Set();
+DATA.blocks.forEach(b => b.judgments.forEach(j => pairKeys.add(`${j.judge}|${j.baseline}|${j.candidate}`)));
+$("pair").innerHTML = `<option value="">전체</option>` + [...pairKeys].sort().map(k => {
+  const [j, base, cand] = k.split("|");
+  return `<option value="${esc(k)}">${esc(cand)} vs ${esc(base)} (${esc(j)})</option>`;
+}).join("");
+
+function renderChips() {
+  $("chips").innerHTML = DATA.candidates.map(c =>
+    `<span class="chip ${shown.has(c) ? "on" : ""}" data-c="${esc(c)}">${esc(c)}</span>`).join("");
+}
+$("chips").addEventListener("click", e => {
+  const c = e.target.dataset?.c; if (!c) return;
+  shown.has(c) ? shown.delete(c) : shown.add(c);
+  store("eval-view-hidden", JSON.stringify(DATA.candidates.filter(x => !shown.has(x))));
+  renderChips(); render();
+});
+
+function filtered() {
+  const q = $("q").value.trim().toLowerCase();
+  const project = $("project").value, kind = $("kind").value;
+  const pair = $("pair").value, outcome = $("outcome").value, crit = $("criterion").value;
+  return DATA.blocks.filter(b => {
+    if (project && b.project !== project) return false;
+    if (kind && b.kind !== kind) return false;
+    if ($("sampled").checked && !b.sampled) return false;
+    if ($("failed").checked && !Object.values(b.translations).some(t => t.pass === false)) return false;
+    if (pair) {
+      const j = b.judgments.find(j => `${j.judge}|${j.baseline}|${j.candidate}` === pair);
+      if (!j) return false;
+      if (outcome && j.verdicts[crit] !== outcome) return false;
+    }
+    if (q) {
+      const hay = [b.item, b.block, b.source, ...Object.values(b.translations).map(t => t.text)].join("\n").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function hl(text) {
+  const q = $("q").value.trim();
+  const safe = esc(text);
+  if (!q) return safe;
+  const re = new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+  return safe.replace(re, m => `<mark>${m}</mark>`);
+}
+
+function cell(label, t) {
+  const badges = [];
+  if (t.pass === false) badges.push(`<span class="badge fail">관문 실패</span>`);
+  if (t.attempts > 1) badges.push(`<span class="badge retry">시도 ${t.attempts}회</span>`);
+  let extra = "";
+  if (t.issues.length) extra += `<ul class="issues">${t.issues.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
+  if (t.first) extra += `<details><summary>첫 시도</summary><div class="text">${hl(t.first)}</div></details>`;
+  return `<div class="cell"><h3>${esc(label)} ${badges.join("")}</h3><div class="text">${hl(t.text)}</div>${extra}</div>`;
+}
+
+function card(b) {
+  const pair = $("pair").value;
+  const tags = [b.kind, b.parser, ...b.strata, ...(b.sampled ? ["판정 표본"] : [])].map(t => `<span class="tag">${esc(t)}</span>`).join(" ");
+  const cells = [];
+  if (b.reference) cells.push(`<div class="cell ref"><h3>사람이 고친 번역</h3><div class="text">${hl(b.reference)}</div></div>`);
+  if (b.known_bad) cells.push(`<div class="cell bad"><h3>잘못된 기존 번역</h3><div class="text">${hl(b.known_bad)}</div></div>`);
+  for (const c of DATA.candidates) if (shown.has(c) && b.translations[c]) cells.push(cell(c, b.translations[c]));
+  const js = b.judgments.filter(j => !pair || `${j.judge}|${j.baseline}|${j.candidate}` === pair)
+    .filter(j => shown.has(j.candidate) || shown.has(j.baseline));
+  const judgments = js.length ? `<div class="judgments">${js.map(j => `
+    <div class="judgment"><div class="jhead"><b>${esc(j.candidate)}</b> vs ${esc(j.baseline)}
+      <span class="count">${esc(j.judge_model)}</span>
+      ${Object.keys(CRIT).map(k => `<span class="v ${j.verdicts[k]}">${CRIT[k]}: ${WORD[j.verdicts[k]] ?? esc(j.verdicts[k])}</span>`).join("")}
+    </div>${j.reasons.map(r => `<p class="reason">${esc(r)}</p>`).join("")}</div>`).join("")}</div>` : "";
+  return `<article class="card">
+    <div class="meta"><b>${esc(b.item)}</b><span>${esc(b.block)}</span>${tags}
+      ${b.probes.length ? `<span>시험: ${esc(b.probes.join(", "))}</span>` : ""}</div>
+    <div class="source">${hl(b.source)}</div>
+    ${b.glossary.length ? `<div class="gloss">용어집: ${esc(b.glossary.join(" · "))}</div>` : ""}
+    <div class="grid">${cells.join("")}</div>${judgments}</article>`;
+}
+
+function render() {
+  const list = filtered();
+  const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+  page = Math.min(page, pages - 1);
+  $("count").textContent = `블록 ${list.length}개 / 전체 ${DATA.blocks.length}개`;
+  $("list").innerHTML = list.slice(page * PER_PAGE, (page + 1) * PER_PAGE).map(card).join("");
+  $("pageno").textContent = `${page + 1} / ${pages}`;
+  $("prev").disabled = page === 0;
+  $("next").disabled = page >= pages - 1;
+}
+for (const id of ["q", "project", "kind", "sampled", "failed", "pair", "outcome", "criterion"]) {
+  $(id).addEventListener("input", () => { page = 0; render(); });
+}
+$("prev").onclick = () => { page--; render(); scrollTo(0, 0); };
+$("next").onclick = () => { page++; render(); scrollTo(0, 0); };
+renderChips(); render();
+</script>
+</body>
+</html>

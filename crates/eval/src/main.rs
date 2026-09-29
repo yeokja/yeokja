@@ -8,6 +8,7 @@ mod judge;
 mod manifest;
 mod report;
 mod run;
+mod view;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -133,6 +134,19 @@ enum Commands {
         #[arg(long, default_value = "evals/ko-translation/v1")]
         set: PathBuf,
     },
+    /// Write a local HTML page of every run's translations side by side
+    View {
+        /// Run directories (default: every directory under runs/)
+        runs: Vec<PathBuf>,
+        /// Judgment directories (default: every directory under judgments/)
+        #[arg(long = "judgments")]
+        judgments: Vec<PathBuf>,
+        /// Page file (git-ignored)
+        #[arg(long, default_value = "evals/ko-translation/view.html")]
+        out: PathBuf,
+        #[arg(long, default_value = "evals/ko-translation/v1")]
+        set: PathBuf,
+    },
     /// Turn the page's verdicts (JSON by pair id) into human.jsonl
     ImportHuman {
         /// Judgment directory (holds blind-map.jsonl)
@@ -163,6 +177,7 @@ async fn main() -> anyhow::Result<()> {
         Commands::HumanPairs { baseline, candidates, out, count, seed, set } => {
             human::pairs(&set, &baseline, &candidates, &out, count, seed)
         }
+        Commands::View { runs, judgments, out, set } => view::run(view::Options { set, runs, judgments, out }),
         Commands::ImportHuman { out, verdicts } => human::import(&out, &verdicts),
         Commands::Report { baseline, candidates, judgments, out, set } => {
             report::run(report::Options { set, baseline, candidates, judgments, out })
