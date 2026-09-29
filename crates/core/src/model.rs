@@ -99,6 +99,13 @@ pub enum BlockRole {
         /// itself, and on columns the first row left unnamed.
         header: Option<String>,
     },
+    /// The first paragraph of a body whose indentation its second line sets
+    /// (an RST footnote or field), where a more deeply indented line follows
+    /// in the same body. Joining the paragraph onto one line would let that
+    /// deeper line set the indentation instead, so the translation keeps a
+    /// second line starting at `column`. Reconstruction only; never part of a
+    /// segment's identity.
+    ContinuationColumn { column: usize },
 }
 
 #[derive(Debug, Clone)]

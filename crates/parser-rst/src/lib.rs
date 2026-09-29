@@ -20,8 +20,8 @@ use std::ops::Range;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_utils::{
-    apply_splices, collect_splices, join_segments_with_translations, make_segments,
-    normalize_inline_text,
+    apply_splices, collect_splices, display_width, join_segments_with_translations,
+    make_segments, normalize_inline_text, split_at_safe_space,
 };
 
 pub struct RstParser;
@@ -294,6 +294,11 @@ struct Run {
     /// under a single-line run can claim it as a title.
     start_line: usize,
     last_line: usize,
+    /// The run opens a body whose indentation its second line sets (a
+    /// footnote or citation), and a line indented past `text_col` follows in
+    /// that body: a translation joined onto one line would hand the body's
+    /// indentation to that deeper line.
+    keeps_continuation: bool,
 }
 
 struct ParseState<'a> {
@@ -347,7 +352,14 @@ impl ParseState<'_> {
             self.pending_literal = Some(run.text_col);
             span.end = span.start + before.trim_end().len();
         }
-        self.push_span_block(run.block_type, span, BlockRole::None);
+        let role = if run.keeps_continuation && run.last_line > run.start_line {
+            BlockRole::ContinuationColumn {
+                column: run.text_col,
+            }
+        } else {
+            BlockRole::None
+        };
+        self.push_span_block(run.block_type, span, role);
     }
 
     /// Emit a translatable block covering `span`, unless it carries no word —
@@ -1194,30 +1206,6 @@ fn is_simple_table_border(trimmed: &str) -> bool {
         && trimmed.split_whitespace().all(|run| run.chars().all(|c| c == '='))
 }
 
-/// Display width the way docutils counts it for title adornments: East Asian
-/// Wide and Fullwidth characters occupy two columns.
-fn display_width(text: &str) -> usize {
-    text.chars().map(|c| if is_wide(c) { 2 } else { 1 }).sum()
-}
-
-/// Unicode East Asian Width W or F, over the ranges that occur in practice.
-fn is_wide(c: char) -> bool {
-    matches!(c as u32,
-        0x1100..=0x115F           // Hangul Jamo
-        | 0x2E80..=0x303E         // CJK Radicals .. CJK Symbols and Punctuation
-        | 0x3041..=0x33FF         // Hiragana .. CJK Compatibility
-        | 0x3400..=0x4DBF         // CJK Extension A
-        | 0x4E00..=0x9FFF         // CJK Unified Ideographs
-        | 0xA000..=0xA4CF         // Yi
-        | 0xAC00..=0xD7A3         // Hangul Syllables
-        | 0xF900..=0xFAFF         // CJK Compatibility Ideographs
-        | 0xFE30..=0xFE4F         // CJK Compatibility Forms
-        | 0xFF00..=0xFF60         // Fullwidth Forms
-        | 0xFFE0..=0xFFE6
-        | 0x20000..=0x2FFFD
-        | 0x30000..=0x3FFFD)
-}
-
 impl DocumentParser for RstParser {
     fn markup(&self) -> Markup {
         Markup::Rst
@@ -1451,6 +1439,9 @@ impl DocumentParser for RstParser {
                         text_col: continuation.unwrap_or(text_offset),
                         start_line: i,
                         last_line: i,
+                        keeps_continuation: continuation.is_some_and(|column| {
+                            deeper_line_in_body(&lines, i, line.indent(), column)
+                        }),
                     });
                     if continuation.is_none() {
                         state.flush_run();
@@ -1527,10 +1518,19 @@ impl DocumentParser for RstParser {
                 {
                     end += 1;
                 }
+                // Like a footnote's, the body's indentation is its second
+                // line's.
+                let column = lines[i + 1..=end].first().map(Line::indent);
+                let role = match column {
+                    Some(column) if deeper_line_in_body(&lines, end, line.indent(), column) => {
+                        BlockRole::ContinuationColumn { column }
+                    }
+                    _ => BlockRole::None,
+                };
                 state.push_span_block(
                     BlockType::Paragraph,
                     line.start + body_start..lines[end].end(),
-                    BlockRole::None,
+                    role,
                 );
                 i = end + 1;
                 continue;
@@ -1583,6 +1583,7 @@ impl DocumentParser for RstParser {
                     text_col: text_offset,
                     start_line: i,
                     last_line: i,
+                    keeps_continuation: false,
                 });
                 i += 1;
                 continue;
@@ -1606,6 +1607,7 @@ impl DocumentParser for RstParser {
                         text_col: col,
                         start_line: i,
                         last_line: i,
+                        keeps_continuation: false,
                     });
                 }
             }
@@ -1792,13 +1794,126 @@ fn reconstruct_rst(document: &Document, translations: &TranslationMap) -> String
             }
         }
     }
-    splices.extend(collect_splices(document, &prose_translations));
+    splices.extend(keep_block_readings(
+        document,
+        collect_splices(document, &prose_translations),
+    ));
     splices.extend(list_table_edits);
     splices.extend(adornment_edits(document, translations));
     splices.extend(table_edits(document, translations));
     let mut output = apply_splices(&document.source, splices);
     rewrite_heading_references_in_text(&mut output, &heading_aliases);
     repair_korean_reference_boundaries(&output)
+}
+
+/// Keep docutils reading each translated paragraph the way it read the
+/// source, though the translation joins the paragraph onto one line.
+///
+/// A body whose indentation its second line sets keeps a second line at
+/// that column. A first line that reads as a list item, field or other block
+/// start only in the translation gets a leading `\`, which docutils drops
+/// from the rendered text.
+fn keep_block_readings(
+    document: &Document,
+    splices: Vec<(Range<usize>, String)>,
+) -> Vec<(Range<usize>, String)> {
+    let prose: std::collections::HashMap<(usize, usize), &Block> = document
+        .sections
+        .iter()
+        .flat_map(|section| &section.blocks)
+        .filter(|block| matches!(block.block_type, BlockType::Paragraph | BlockType::ListItem))
+        .filter(|block| {
+            matches!(
+                block.role,
+                BlockRole::None | BlockRole::ContinuationColumn { .. }
+            )
+        })
+        .filter_map(|block| {
+            Some((
+                (block.span.as_ref()?.start, block.span.as_ref()?.end),
+                block,
+            ))
+        })
+        .collect();
+    splices
+        .into_iter()
+        .map(|(range, mut text)| {
+            let Some(block) = prose.get(&(range.start, range.end)) else {
+                return (range, text);
+            };
+            if let BlockRole::ContinuationColumn { column } = block.role {
+                text = break_at_continuation(&document.source, &range, &text, column);
+            }
+            if first_line_reads_as_block_start_only_in(&document.source, &range, &text) {
+                text.insert(0, '\\');
+            }
+            (range, text)
+        })
+        .collect()
+}
+
+/// Break a one-line translation where the source's first line ended, and
+/// start its second line at `column`. Only a space outside inline markup
+/// (backtick spans, `|substitutions|`) qualifies; without one the
+/// translation stays on one line.
+fn break_at_continuation(source: &str, span: &Range<usize>, text: &str, column: usize) -> String {
+    if text.contains('\n') {
+        return text.to_string();
+    }
+    let raw = &source[span.clone()];
+    let first_line = raw.split('\n').next().unwrap_or(raw).trim_end();
+    let literals = backtick_spans(text);
+    let outside_literals = |at: usize| !literals.iter().any(|span| span.contains(&at));
+    let bars: Vec<usize> = text
+        .match_indices('|')
+        .map(|(at, _)| at)
+        .filter(|&at| outside_literals(at))
+        .collect();
+    let in_substitution = |at: usize| {
+        bars.chunks(2)
+            .any(|pair| pair.len() == 2 && pair[0] < at && at < pair[1])
+    };
+    let Some(at) = split_at_safe_space(text, display_width(first_line), |at| {
+        outside_literals(at) && !in_substitution(at)
+    }) else {
+        return text.to_string();
+    };
+    format!("{}\n{}{}", &text[..at], " ".repeat(column), &text[at + 1..])
+}
+
+/// Whether the translation's first line reads as a block start (a list item,
+/// a field, …) where the source's did not. A paragraph's first line counts at
+/// the column of the line continuing it, the way docutils dedents a list item
+/// or footnote body; a one-line source is followed by the line under it, a
+/// one-line translation by nothing.
+fn first_line_reads_as_block_start_only_in(source: &str, span: &Range<usize>, text: &str) -> bool {
+    let line_start = source[..span.start].rfind('\n').map_or(0, |at| at + 1);
+    let span_column = span.start - line_start;
+    let indent_of = |line: &str| line.len() - line.trim_start().len();
+    let reads = |first: &str, next: Option<&str>, indent: usize| {
+        reads_as_block_start(&format!("{}{first}", " ".repeat(indent)), next, None)
+    };
+    let raw = &source[span.clone()];
+    let source_reads = match raw.split_once('\n') {
+        Some((first, rest)) => {
+            let next = rest.split('\n').next().unwrap_or_default();
+            reads(first, Some(next), indent_of(next))
+        }
+        None => {
+            let next = source[span.end..]
+                .split_once('\n')
+                .and_then(|(_, after)| after.split('\n').next());
+            reads(raw, next, span_column)
+        }
+    };
+    let translated_reads = match text.split_once('\n') {
+        Some((first, rest)) => {
+            let next = rest.split('\n').next().unwrap_or_default();
+            reads(first, Some(next), indent_of(next))
+        }
+        None => reads(text, None, span_column),
+    };
+    translated_reads && !source_reads
 }
 
 /// Keep an RST reference recognizable when a Korean particle follows it.
@@ -2286,6 +2401,16 @@ fn replace_bare_rst_reference(input: &str, reference: &str, replacement: &str) -
 /// The last line of the indented block starting under line `at`: lines more
 /// indented than `threshold` belong to it, and blank lines do not end it —
 /// only a dedent does.
+/// Whether a line indented past `column` follows line `at` within the body
+/// it opens — every line after it that is blank or indented past
+/// `marker_indent`.
+fn deeper_line_in_body(lines: &[Line], at: usize, marker_indent: usize, column: usize) -> bool {
+    lines[at + 1..]
+        .iter()
+        .take_while(|line| line.is_blank() || line.indent() > marker_indent)
+        .any(|line| !line.is_blank() && line.indent() > column)
+}
+
 fn consume_while_indented(lines: &[Line], at: usize, threshold: usize) -> usize {
     let mut last = at;
     let mut j = at + 1;
@@ -4545,5 +4670,131 @@ mod tests {
     fn titles_split_sections() {
         let doc = RstParser.parse("One\n===\n\nA.\n\nTwo\n===\n\nB.\n");
         assert_eq!(doc.sections.len(), 2);
+    }
+
+    /// Translate whole blocks: each block whose segments join to a source
+    /// text gets that translation as one segment.
+    fn translate_blocks(source: &str, pairs: &[(&str, &str)]) -> String {
+        let mut doc = RstParser.parse(source);
+        let mut translations = TranslationMap::new();
+        for block in doc
+            .sections
+            .iter_mut()
+            .flat_map(|section| &mut section.blocks)
+        {
+            let joined = block
+                .segments
+                .iter()
+                .map(|segment| segment.source.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            if let Some((_, translation)) = pairs.iter().find(|(source, _)| *source == joined) {
+                block.segments.truncate(1);
+                translations.insert(block.segments[0].id.clone(), translation.to_string());
+            }
+        }
+        RstParser.reconstruct(&doc, &translations)
+    }
+
+    #[test]
+    fn joined_list_item_that_would_read_as_a_list_is_escaped() {
+        let output = translate_blocks(
+            "* (2009) Dino offers his opinion:\n  https://x/y\n",
+            &[(
+                "(2009) Dino offers his opinion: https://x/y",
+                "(2009) Dino의 의견: https://x/y",
+            )],
+        );
+        assert_eq!(output, "* \\(2009) Dino의 의견: https://x/y\n");
+    }
+
+    #[test]
+    fn joined_footnote_that_would_read_as_a_list_is_escaped() {
+        let output = translate_blocks(
+            ".. [4] 1976. R. H. Lathwell. APL\n   the eighth\n",
+            &[(
+                "1976. R. H. Lathwell. APL the eighth",
+                "1976. R. H. Lathwell. APL 여덟 번째",
+            )],
+        );
+        assert_eq!(output, ".. [4] \\1976. R. H. Lathwell. APL 여덟 번째\n");
+    }
+
+    #[test]
+    fn a_source_that_already_reads_as_a_list_is_not_escaped() {
+        let output = translate_blocks("* 1. foo\n", &[("1. foo", "1. 푸")]);
+        assert_eq!(output, "* 1. 푸\n");
+    }
+
+    #[test]
+    fn a_translation_that_opens_with_a_marker_is_escaped() {
+        let output = translate_blocks(
+            "Compare (1) with (2).\n",
+            &[("Compare (1) with (2).", "(1) 호출하기와 (2)를 비교한다.")],
+        );
+        assert_eq!(output, "\\(1) 호출하기와 (2)를 비교한다.\n");
+    }
+
+    #[test]
+    fn footnote_keeps_its_continuation_column_above_a_deeper_quote() {
+        let output = translate_blocks(
+            ".. [1] Appealing to authority\n       follows:\n\n          I have seen\n          traffic.\n",
+            &[(
+                "Appealing to authority follows:",
+                "권위에 호소하는 인용은 다음과 같습니다:",
+            )],
+        );
+        assert_eq!(
+            output,
+            ".. [1] 권위에 호소하는 인용은\n       다음과 같습니다:\n\n          I have seen\n          traffic.\n"
+        );
+    }
+
+    #[test]
+    fn field_body_keeps_its_continuation_column_above_a_deeper_quote() {
+        let output = translate_blocks(
+            ":Abstract: Appealing to authority\n   follows:\n\n      I have seen.\n",
+            &[(
+                "Appealing to authority follows:",
+                "권위에 호소하는 인용은 다음과 같습니다:",
+            )],
+        );
+        assert_eq!(
+            output,
+            ":Abstract: 권위에 호소하는 인용은\n   다음과 같습니다:\n\n      I have seen.\n"
+        );
+    }
+
+    #[test]
+    fn continuation_break_skips_spaces_inside_inline_literals() {
+        let output = translate_blocks(
+            ".. [1] Appealing to authority\n       follows:\n\n          quote\n",
+            &[("Appealing to authority follows:", "``a b c d``")],
+        );
+        assert_eq!(output, ".. [1] ``a b c d``\n\n          quote\n");
+    }
+
+    #[test]
+    fn continuation_break_never_leaves_punctuation_alone() {
+        let output = translate_blocks(
+            ".. [1] Appealing x\n       follows:\n\n          quote\n",
+            &[("Appealing x follows:", "가나다 라마 ---")],
+        );
+        assert_eq!(
+            output,
+            ".. [1] 가나다\n       라마 ---\n\n          quote\n"
+        );
+    }
+
+    #[test]
+    fn a_joined_footnote_without_a_deeper_line_stays_one_line() {
+        let output = translate_blocks(
+            ".. [1] Appealing to authority\n       follows:\n",
+            &[(
+                "Appealing to authority follows:",
+                "권위에 호소하는 인용은 다음과 같습니다:",
+            )],
+        );
+        assert_eq!(output, ".. [1] 권위에 호소하는 인용은 다음과 같습니다:\n");
     }
 }
