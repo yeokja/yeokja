@@ -232,24 +232,31 @@ const VERBATIM_PARAGRAPH_STYLES: [&str; 12] = [
     "svgbob",
 ];
 
-/// Does the block attribute line `[...]` set a style that keeps its next
-/// paragraph verbatim (see [`VERBATIM_PARAGRAPH_STYLES`])?
+/// The style a block attribute line `[...]` sets, if any.
 ///
 /// The style is the first positional attribute: the token up to the first
 /// comma (or the closing `]`), itself cut short at a `#id`, `.role`, or
 /// `%option` shorthand glued onto it (`[source#ex1]`, `[source.role]`).
-fn verbatim_paragraph_style(attribute_line: &str) -> bool {
-    let Some(inner) = attribute_line
+/// An anchor (`[[id]]`), a shorthand-only line (`[#id]`, `[.role]`), or a
+/// line whose first attribute is named (`[role=x]`) sets none.
+fn block_style(attribute_line: &str) -> Option<&str> {
+    let inner = attribute_line
         .strip_prefix('[')
-        .and_then(|s| s.strip_suffix(']'))
-    else {
-        return false;
-    };
+        .and_then(|s| s.strip_suffix(']'))?;
+    if inner.starts_with('[') {
+        return None;
+    }
     let first = inner.split(',').next().unwrap_or("");
     let style_end = first
         .find(['#', '.', '%'])
         .unwrap_or(first.len());
     let style = first[..style_end].trim();
+    (!style.is_empty() && !style.contains('=')).then_some(style)
+}
+
+/// Does `style` keep its next paragraph verbatim (see
+/// [`VERBATIM_PARAGRAPH_STYLES`])?
+fn verbatim_paragraph_style(style: &str) -> bool {
     VERBATIM_PARAGRAPH_STYLES.contains(&style)
 }
 
@@ -604,9 +611,12 @@ impl DocumentParser for AsciidocParser {
                     // A `cols` here shapes the table below it; anything else
                     // supersedes a `cols` we were holding.
                     state.declared_columns = table::declared_columns(trimmed);
-                    // Consecutive attribute lines chain; the last one's style
-                    // (or lack of one) is what the next paragraph gets.
-                    state.pending_verbatim = verbatim_paragraph_style(trimmed);
+                    // Consecutive attribute lines chain; the last style set is
+                    // what the next paragraph gets. A line setting no style
+                    // (an anchor, `[#id]`, `[role=x]`) leaves it as it was.
+                    if let Some(style) = block_style(trimmed) {
+                        state.pending_verbatim = verbatim_paragraph_style(style);
+                    }
                 }
                 continue;
             }
@@ -653,6 +663,19 @@ impl DocumentParser for AsciidocParser {
                 continue;
             }
 
+            if state.current.is_none()
+                && let Some(text_offset) = parse_block_title(content)
+            {
+                // Block title (`.Installation`) — translatable single line.
+                // Like an attribute line it attaches to the block below, so
+                // a pending verbatim style survives it: the next line decides
+                // between a delimited block and a verbatim paragraph.
+                state.current =
+                    Some((BlockType::Paragraph, line_start + text_offset..content_end));
+                state.flush_current();
+                continue;
+            }
+
             // A `[source]`-style paragraph with no delimiter: the whole thing,
             // up to the blank line that ends it, stays untouched as code.
             // Placed after every other structural check so a heading, list
@@ -660,16 +683,6 @@ impl DocumentParser for AsciidocParser {
             if state.pending_verbatim {
                 state.pending_verbatim = false;
                 state.verbatim_paragraph = Some(line_start);
-                continue;
-            }
-
-            if state.current.is_none()
-                && let Some(text_offset) = parse_block_title(content)
-            {
-                // Block title (`.Installation`) — translatable single line.
-                state.current =
-                    Some((BlockType::Paragraph, line_start + text_offset..content_end));
-                state.flush_current();
                 continue;
             }
 
@@ -895,9 +908,9 @@ mod tests {
 
     #[test]
     fn a_title_line_after_the_attribute_keeps_the_paragraph_opaque() {
-        // `.Title` chains onto the same block the attribute line targets
-        // (like a second attribute line), so the style still applies to the
-        // code line below it.
+        // `.Title` attaches to the same block the attribute line targets
+        // (like a second attribute line): the title itself translates, and
+        // the style still applies to the code line below it.
         let source = "[source]\n.Title\ncode line\n\nAfter.\n";
         let doc = AsciidocParser.parse(source);
         let sources: Vec<_> = doc
@@ -905,7 +918,71 @@ mod tests {
             .iter()
             .map(|s| s.source.clone())
             .collect();
+        assert_eq!(sources, ["Title", "After."]);
+        let output = translate_all(source, &[("Title", "제목"), ("After.", "뒤.")]);
+        assert_eq!(output, "[source]\n.제목\ncode line\n\n뒤.\n");
+    }
+
+    #[test]
+    fn a_title_line_between_the_attribute_and_a_delimited_listing() {
+        // The line after the title decides: a `----` delimiter opens a
+        // delimited listing, blank lines inside it included.
+        let source = "[source,erlang]\n.The title\n----\nfoo() ->\n\n  bar.\n----\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["The title", "After."]);
+        let code: Vec<_> = doc
+            .sections
+            .iter()
+            .flat_map(|s| s.blocks.iter())
+            .filter(|b| b.block_type == BlockType::CodeBlock)
+            .map(|b| b.raw_content.clone())
+            .collect();
+        assert_eq!(code, ["----\nfoo() ->\n\n  bar.\n----"]);
+        assert_eq!(translate_all(source, &[]), source);
+        let output = translate_all(source, &[("The title", "제목"), ("After.", "뒤.")]);
+        assert_eq!(
+            output,
+            "[source,erlang]\n.제목\n----\nfoo() ->\n\n  bar.\n----\n\n뒤.\n"
+        );
+    }
+
+    #[test]
+    fn an_anchor_line_after_the_attribute_keeps_the_paragraph_opaque() {
+        // `[[anchor]]` sets no style, so the `[source]` above still applies.
+        let source = "[source]\n[[anchor]]\ncode\n\nAfter.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
         assert_eq!(sources, ["After."]);
+        for source in ["[source]\n[#id]\ncode\n\nAfter.\n", "[source]\n[role=x]\ncode\n\nAfter.\n"] {
+            let doc = AsciidocParser.parse(source);
+            let sources: Vec<_> = doc
+                .translatable_segments()
+                .iter()
+                .map(|s| s.source.clone())
+                .collect();
+            assert_eq!(sources, ["After."], "source: {source:?}");
+        }
+    }
+
+    #[test]
+    fn a_later_style_line_overrides_the_verbatim_style() {
+        let source = "[source]\n[NOTE]\nRead this.\n";
+        let doc = AsciidocParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(sources, ["Read this."]);
     }
 
     #[test]
