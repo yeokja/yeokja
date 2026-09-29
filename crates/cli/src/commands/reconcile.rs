@@ -11,8 +11,9 @@ use yeokja_translate::orchestrator::{collect_files, scan_file};
 /// keeps its translation under the new segment id, `ContextChanged` is folded
 /// in (its `context_hash` moves to the current value so `translate` will not
 /// redo it), and segments with no counterpart are added (Pending) or dropped.
-/// `Stale` and `GlossaryStale` segments are left untouched — a parser reshape
-/// does not explain either.
+/// `GlossaryStale` segments are left untouched — a parser reshape does not
+/// change the glossary. A file with no state yet is skipped: there is no
+/// translation to migrate, and `translate` will create its state.
 ///
 /// No model is called. Use this once, right after a parser change; do not use
 /// it after pulling in updated source (a bumped submodule), since a
@@ -27,24 +28,29 @@ pub fn run(path: &str, dry_run: bool) -> Result<()> {
     let mut total_added = 0usize;
     let mut total_dropped = 0usize;
     let mut total_context_accepted = 0usize;
-    let mut total_untouched_stale = 0usize;
+    let mut total_glossary_stale = 0usize;
+    let mut skipped = 0usize;
 
     for file_path in &files {
-        let (document, _) = scan_file(file_path, &ctx.config, &ctx.glossary, &parser_factory)?;
-
         let state_path = StateFile::state_file_path(file_path, ctx.config.state_dir());
-        let existing = if state_path.exists() { StateFile::load(&state_path)? } else { StateFile::new(0) };
+        if !state_path.exists() {
+            println!("{}: skipped (no state)", file_path.display());
+            skipped += 1;
+            continue;
+        }
+        let existing = StateFile::load(&state_path)?;
+        let (document, _) = scan_file(file_path, &ctx.config, &ctx.glossary, &parser_factory)?;
 
         let report = reconcile_accepting_context(&document, &existing, &ctx.glossary);
 
         println!(
-            "{}: kept {}, added {}, dropped {}, context_hash 갱신 {}, stale 유지 {}",
+            "{}: kept {}, added {}, dropped {}, context_hash 갱신 {}, glossary stale 유지 {}",
             file_path.display(),
             report.kept,
             report.added.len(),
             report.dropped.len(),
             report.context_accepted,
-            report.untouched_stale,
+            report.glossary_stale,
         );
         for source in &report.added {
             println!("  + {source}");
@@ -57,7 +63,7 @@ pub fn run(path: &str, dry_run: bool) -> Result<()> {
         total_added += report.added.len();
         total_dropped += report.dropped.len();
         total_context_accepted += report.context_accepted;
-        total_untouched_stale += report.untouched_stale;
+        total_glossary_stale += report.glossary_stale;
 
         if !dry_run {
             let mut new_state = StateFile::new(content_hash(&document.source));
@@ -67,13 +73,14 @@ pub fn run(path: &str, dry_run: bool) -> Result<()> {
     }
 
     println!(
-        "\n{} file(s): kept {}, added {}, dropped {}, context_hash 갱신 {}, stale 유지 {}{}",
+        "\n{} file(s): kept {}, added {}, dropped {}, context_hash 갱신 {}, glossary stale 유지 {}, skipped {} (no state){}",
         files.len(),
         total_kept,
         total_added,
         total_dropped,
         total_context_accepted,
-        total_untouched_stale,
+        total_glossary_stale,
+        skipped,
         if dry_run { " (dry run, state not written)" } else { "" },
     );
 

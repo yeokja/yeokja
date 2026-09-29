@@ -26,6 +26,34 @@ type = "claude_code"
 model = "dummy"
 "#;
 
+const EMPTY_STATE: &str = r#"{"version": 1, "source_hash": 0, "segments": []}"#;
+
+#[test]
+fn a_file_without_state_is_skipped_and_gets_no_state_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    fs::create_dir_all(root.join("src")).unwrap();
+    fs::write(root.join("yeokja.toml"), YEOKJA_TOML).unwrap();
+    fs::write(root.join("src/tracked.md"), "Hello world.\n").unwrap();
+    fs::write(root.join("src/tracked.md.yeokja.json"), EMPTY_STATE).unwrap();
+    fs::write(root.join("src/untracked.md"), "Never translated.\n").unwrap();
+
+    let run = yeokja_cmd().args(["-C", root.to_str().unwrap(), "reconcile", "src"]).output().unwrap();
+    assert!(run.status.success());
+    let stdout = String::from_utf8_lossy(&run.stdout);
+
+    assert!(
+        !root.join("src/untracked.md.yeokja.json").exists(),
+        "reconcile must not create state for a file that had none"
+    );
+    assert!(stdout.contains("untracked.md: skipped (no state)"), "stdout was:\n{stdout}");
+    assert!(!stdout.contains("Never translated."), "stdout was:\n{stdout}");
+
+    let tracked: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(root.join("src/tracked.md.yeokja.json")).unwrap()).unwrap();
+    assert_eq!(tracked["segments"].as_array().unwrap().len(), 1);
+}
+
 #[test]
 fn dry_run_does_not_write_and_real_run_leaves_only_the_new_segment_pending() {
     let dir = tempfile::tempdir().unwrap();
@@ -36,13 +64,15 @@ fn dry_run_does_not_write_and_real_run_leaves_only_the_new_segment_pending() {
     let doc_path = root.join("src/doc.md");
     fs::write(&doc_path, "Hello world.\n\nSecond paragraph.\n").unwrap();
 
-    // Seed state through the real parser so hashes line up, then mark both
-    // segments translated to simulate a project translated before a parser
-    // change.
+    // Seed state through the real parser so hashes line up: reconcile only
+    // touches files that already have state, so start from an empty one.
+    // Then mark both segments translated to simulate a project translated
+    // before a parser change.
+    let state_path = root.join("src/doc.md.yeokja.json");
+    fs::write(&state_path, EMPTY_STATE).unwrap();
     let seed = yeokja_cmd().args(["-C", root.to_str().unwrap(), "reconcile", "src"]).status().unwrap();
     assert!(seed.success());
 
-    let state_path = root.join("src/doc.md.yeokja.json");
     let mut state: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&state_path).unwrap()).unwrap();
     for seg in state["segments"].as_array_mut().unwrap() {

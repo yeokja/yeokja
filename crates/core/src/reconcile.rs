@@ -10,8 +10,8 @@ use std::collections::HashMap;
 /// into the saved state instead of leaving it for `translate` to redo.
 pub struct ReconcileReport {
     pub segments: Vec<SegmentState>,
-    /// Segments carried over from the existing state (by hash or, for a
-    /// same-position text edit, by id), whether or not their status changed.
+    /// Segments carried over from the existing state because their source
+    /// text (hash) matched, whether or not their status changed.
     pub kept: usize,
     /// Source text of segments with no counterpart in the existing state.
     pub added: Vec<String>,
@@ -20,9 +20,9 @@ pub struct ReconcileReport {
     /// Kept segments whose only difference was `ContextChanged`; their
     /// `context_hash` was updated to the current value.
     pub context_accepted: usize,
-    /// Kept segments left `Stale` or `GlossaryStale` — untouched, since a
-    /// parser reshape does not explain either.
-    pub untouched_stale: usize,
+    /// Kept segments left `GlossaryStale` — untouched, since a parser
+    /// reshape does not change the glossary.
+    pub glossary_stale: usize,
 }
 
 pub struct ReconcileResult {
@@ -136,13 +136,14 @@ pub fn reconcile(document: &Document, existing: &StateFile) -> ReconcileResult {
 }
 
 /// Reconcile a document against existing state for a parser migration: same
-/// rule as [`reconcile`] (hash-match, nearest position wins ties) plus an id
-/// fallback for a segment whose source text changed at the same position, so
-/// that edit is left `Stale` instead of being treated as a dropped+added pair.
+/// rule as [`reconcile`] (hash-match, nearest position wins ties). There is no
+/// id fallback — a parser reshape can change a segment's text or shift ids
+/// onto an unrelated segment, so a source text with no hash match goes in as
+/// Pending (listed in `added`) and every unmatched old segment is `dropped`.
 ///
 /// Only `ContextChanged` segments get their `context_hash` moved to the
-/// current value here — `Stale` and `GlossaryStale` are left untouched, since
-/// a parser reshape does not explain either and they predate this migration.
+/// current value here — `GlossaryStale` is left untouched, since a parser
+/// reshape does not change the glossary.
 pub fn reconcile_accepting_context(
     document: &Document,
     existing: &StateFile,
@@ -161,17 +162,12 @@ pub fn reconcile_accepting_context(
         .collect();
 
     let mut existing_by_hash: HashMap<u64, Vec<&SegmentState>> = HashMap::new();
-    let mut existing_by_id: HashMap<&str, &SegmentState> = HashMap::new();
     for seg in &existing.segments {
         existing_by_hash.entry(seg.source_hash).or_default().push(seg);
-        existing_by_id.insert(seg.id.0.as_str(), seg);
     }
 
     let mut matched_existing: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-    // Pass 1: hash match every segment first (same rule as `reconcile`), so a
-    // parser reshape's id churn never steals a hash match that a later
-    // segment in this same pass would also need.
     let mut by_hash_match: Vec<Option<&SegmentState>> = Vec::with_capacity(new_with_context.len());
     for (new_seg, _) in &new_with_context {
         let matched = existing_by_hash.get(&new_seg.source_hash).and_then(|candidates| {
@@ -195,23 +191,11 @@ pub fn reconcile_accepting_context(
     let mut kept = 0usize;
     let mut added = Vec::new();
     let mut context_accepted = 0usize;
-    let mut untouched_stale = 0usize;
+    let mut glossary_stale = 0usize;
 
     for ((new_seg, ctx_hash), by_hash) in new_with_context.iter().zip(by_hash_match.iter()) {
-        // Pass 2, inline: no hash match means the source text at this position
-        // may simply have changed since the last translation. Fall back to
-        // matching by id so that edit stays Stale instead of looking like a
-        // drop+add.
-        let old = by_hash.or_else(|| {
-            existing_by_id
-                .get(new_seg.id.0.as_str())
-                .filter(|c| !matched_existing.contains(&c.id.0))
-                .copied()
-        });
-
-        match old {
+        match by_hash {
             Some(old) => {
-                matched_existing.insert(old.id.0.clone());
                 kept += 1;
                 let status = compute_status(old, new_seg.source_hash, *ctx_hash, glossary);
                 let (source_hash, context_hash_val) = match status {
@@ -219,11 +203,12 @@ pub fn reconcile_accepting_context(
                         context_accepted += 1;
                         (new_seg.source_hash, *ctx_hash)
                     }
-                    SegmentStatus::Stale | SegmentStatus::GlossaryStale => {
-                        untouched_stale += 1;
+                    SegmentStatus::GlossaryStale => {
+                        glossary_stale += 1;
                         (old.source_hash, old.context_hash)
                     }
-                    SegmentStatus::Translated | SegmentStatus::Pending => {
+                    // Stale cannot occur: the hashes matched.
+                    SegmentStatus::Stale | SegmentStatus::Translated | SegmentStatus::Pending => {
                         (old.source_hash, old.context_hash)
                     }
                 };
@@ -267,7 +252,7 @@ pub fn reconcile_accepting_context(
         added,
         dropped,
         context_accepted,
-        untouched_stale,
+        glossary_stale,
     }
 }
 
@@ -433,15 +418,15 @@ mod tests {
         assert_eq!(report.kept, 2);
         assert_eq!(report.added, vec!["D.".to_string()]);
         assert_eq!(report.dropped, vec!["B.".to_string()]);
-        assert_eq!(report.untouched_stale, 0);
+        assert_eq!(report.glossary_stale, 0);
     }
 
     #[test]
-    fn accepting_context_leaves_a_changed_source_segment_stale() {
-        // Same shape (one segment, same position/id) but the source text itself
-        // changed. This is unrelated to a parser reshape, so reconcile must not
-        // treat it as "new" — it must stay Stale: translation and the old
-        // source_hash are kept untouched.
+    fn accepting_context_adds_a_changed_source_and_drops_the_old_one() {
+        // Same position/id, but the source text differs. A parser reshape can
+        // change a segment's text (or shift ids onto an unrelated segment), so
+        // reconcile must not pair them by id: the new text goes in as Pending
+        // and shows up in `added`, the old one in `dropped`.
         let state = make_state_with_context(vec![("Old text.", "옛 번역.", 999)]);
         let doc = make_document(vec![make_segment(0, 0, 0, "New text.")]);
         let glossary = Glossary::empty();
@@ -451,14 +436,14 @@ mod tests {
         assert_eq!(report.segments.len(), 1);
         let seg = &report.segments[0];
         assert_eq!(seg.source, "New text.");
-        assert_eq!(seg.translation.as_deref(), Some("옛 번역."));
-        assert_eq!(seg.source_hash, content_hash("Old text."), "old source_hash is kept so Stale is detected on next scan");
-        assert_eq!(seg.context_hash, 999, "context_hash is left untouched for Stale segments");
+        assert!(seg.translation.is_none(), "the old translation must not be carried over by id");
+        assert_eq!(seg.source_hash, content_hash("New text."));
+        assert!(seg.translated_at.is_none());
 
-        assert_eq!(report.kept, 1);
-        assert_eq!(report.untouched_stale, 1);
+        assert_eq!(report.kept, 0);
+        assert_eq!(report.glossary_stale, 0);
         assert_eq!(report.context_accepted, 0);
-        assert!(report.added.is_empty());
-        assert!(report.dropped.is_empty());
+        assert_eq!(report.added, vec!["New text.".to_string()]);
+        assert_eq!(report.dropped, vec!["Old text.".to_string()]);
     }
 }
