@@ -50,6 +50,9 @@ struct ParseState<'a> {
     block_idx: usize,
     stack: Vec<Frame>,
     run: Option<Range<usize>>,
+    /// End of an inline container whose run a hard break cut short; the next
+    /// run opened inside the same block is extended to it.
+    resume_end: Option<usize>,
     html_opaque: Vec<Range<usize>>,
 }
 
@@ -145,6 +148,9 @@ impl ParseState<'_> {
             Some(run) => run.end = run.end.max(range.end),
             None => {
                 let mut range = range;
+                if let Some(end) = self.resume_end.take() {
+                    range.end = range.end.max(end);
+                }
                 if starts_after_escape(self.source.as_bytes(), range.start) {
                     range.start -= 1;
                 }
@@ -284,6 +290,7 @@ fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: 
         block_idx: 0,
         stack: Vec::new(),
         run: None,
+        resume_end: None,
         html_opaque: if translate_html { html::opaque_ranges(parsed, options) } else { Vec::new() },
     };
 
@@ -295,32 +302,39 @@ fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: 
             Event::Start(tag) => match tag {
                 Tag::Heading { level, .. } => {
                     state.flush_run();
+                    state.resume_end = None;
                     state.maybe_start_section(level);
                     state.stack.push(Frame::Heading(heading_level_num(level)));
                 }
                 Tag::Paragraph => {
                     state.flush_run();
+                    state.resume_end = None;
                     state.stack.push(Frame::Paragraph);
                 }
                 Tag::Item => {
                     state.flush_run();
+                    state.resume_end = None;
                     state.stack.push(Frame::Item);
                 }
                 Tag::BlockQuote(_) => {
                     state.flush_run();
+                    state.resume_end = None;
                     state.stack.push(Frame::BlockQuote);
                 }
                 Tag::TableCell => {
                     state.flush_run();
+                    state.resume_end = None;
                     state.stack.push(Frame::TableCell);
                 }
                 Tag::CodeBlock(_) | Tag::MetadataBlock(_) | Tag::HtmlBlock => {
                     state.flush_run();
+                    state.resume_end = None;
                     state.stack.push(Frame::Opaque);
                 }
                 Tag::List(_) | Tag::Table(_) | Tag::TableHead | Tag::TableRow
                 | Tag::FootnoteDefinition(_) => {
                     state.flush_run();
+                    state.resume_end = None;
                 }
                 // Inline containers: their full range (including markers) is
                 // part of the surrounding run.
@@ -337,6 +351,7 @@ fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: 
                 | TagEnd::BlockQuote(_)
                 | TagEnd::TableCell => {
                     state.flush_run();
+                    state.resume_end = None;
                     state.stack.pop();
                 }
                 TagEnd::CodeBlock => {
@@ -374,6 +389,12 @@ fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: 
             // A hard break (trailing spaces or backslash) is semantic: end the
             // run so the break bytes stay outside spans and survive splicing.
             Event::HardBreak => {
+                // Inside an inline container the run already reaches the
+                // container's end; cut it at the break and remember that end.
+                if let Some(run) = state.run.as_mut().filter(|r| r.end > range.start) {
+                    state.resume_end = Some(run.end);
+                    run.end = range.start;
+                }
                 state.flush_run();
             }
             Event::Rule => {
