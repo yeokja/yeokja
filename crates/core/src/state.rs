@@ -6,6 +6,10 @@ use std::path::Path;
 
 const CURRENT_VERSION: u32 = 1;
 
+fn sorted<S: serde::Serializer>(map: &HashMap<String, String>, serializer: S) -> Result<S::Ok, S::Error> {
+    map.iter().collect::<std::collections::BTreeMap<_, _>>().serialize(serializer)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StateFile {
     pub version: u32,
@@ -20,7 +24,10 @@ pub struct SegmentState {
     pub source_hash: u64,
     pub context_hash: u64,
     pub translation: Option<String>,
-    #[serde(default)]
+    /// Written in key order: a `HashMap` iterates in a different order in
+    /// every process, so each save would otherwise reorder every snapshot
+    /// and bury real changes in the diff.
+    #[serde(default, serialize_with = "sorted")]
     pub glossary_snapshot: HashMap<String, String>,
     pub translated_at: Option<DateTime<Utc>>,
     #[serde(default)]
@@ -175,5 +182,32 @@ mod tests {
         state.save(&path).unwrap();
         assert!(path.exists());
         assert!(!tmp_path.exists());
+    }
+
+    #[test]
+    fn glossary_snapshot_is_written_in_key_order() {
+        let mut state = StateFile::new(0);
+        let mut segment = state_with_snapshot();
+        segment.glossary_snapshot = [("zeta", "제타"), ("alpha", "알파"), ("mu", "뮤")]
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        state.segments.push(segment);
+        let json = serde_json::to_string_pretty(&state).unwrap();
+        let (a, m, z) = (json.find("alpha").unwrap(), json.find("\"mu\"").unwrap(), json.find("zeta").unwrap());
+        assert!(a < m && m < z);
+    }
+
+    fn state_with_snapshot() -> SegmentState {
+        SegmentState {
+            id: SegmentId::new(0, 0, 0),
+            source: "a".to_string(),
+            source_hash: 1,
+            context_hash: 2,
+            translation: None,
+            glossary_snapshot: HashMap::new(),
+            translated_at: None,
+            issues: vec![],
+        }
     }
 }

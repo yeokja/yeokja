@@ -138,7 +138,8 @@ fn is_word_char(c: char) -> bool {
 }
 
 /// Whether the word at `start..end` is part of a longer name that stays as
-/// written: a handle or reference (`@reviewer`, `#t-release`), a flag
+/// written: a handle or reference (`@reviewer`, `#t-release`), a TeX control
+/// word (`\code`), a flag
 /// (`--edition=2021`), a file name (`package.nix`), or a path or identifier
 /// joined by slashes or hyphens (`compiler/rustc_hir/src/hir.rs`,
 /// `trait-system-refactor-initiative#102`).
@@ -151,11 +152,16 @@ fn joined_into_a_name(chars: &[char], start: usize, end: usize) -> bool {
     let before = start.checked_sub(1).map(|at| chars[at]);
     let after = chars.get(end).copied();
     let alnum_at = |at: usize| chars.get(at).is_some_and(|c| c.is_ascii_alphanumeric());
-    if matches!(before, Some('@' | '#'))
+    // `\code{...}`, `\emph`: a word right after a backslash is a TeX
+    // control word, a command's name rather than prose.
+    if matches!(before, Some('@' | '#' | '\\'))
         || (before == Some('-') && start >= 2 && chars[start - 2] == '-')
         || (after == Some('=') && alnum_at(end + 1))
         || (before == Some('.') && start >= 2 && alnum_at(start - 2))
         || (after == Some('.') && alnum_at(end + 1))
+        // `camera::ray_color()`, `std::vec`: a path through `::`.
+        || (after == Some(':') && chars.get(end + 1) == Some(&':'))
+        || (before == Some(':') && start >= 2 && chars[start - 2] == ':')
     {
         return true;
     }
@@ -1027,5 +1033,20 @@ translation = "개요"
         let g = Glossary::load_project(dir.path(), &settings).unwrap();
         assert_eq!(g.terms().get("commit").map(String::as_str), Some("커밋"));
         assert_eq!(g.whole_match("References"), Some(("References", "참고 문헌")));
+    }
+
+    #[test]
+    fn tex_control_words_are_not_terms() {
+        let g = Glossary::from_toml("[terms.code]\ntranslation = \"코드\"\n").unwrap();
+        assert!(g.find_matching_terms("Install \\code{sbt} first.").is_empty());
+        assert!(g.find_matching_terms("The code is short.").contains_key("code"));
+    }
+
+    #[test]
+    fn path_segments_joined_by_double_colons_are_not_terms() {
+        let g = Glossary::from_toml("[terms.camera]\ntranslation = \"카메라\"\n").unwrap();
+        assert!(g.find_matching_terms("camera::ray_color() with depth limiting").is_empty());
+        assert!(g.find_matching_terms("see render::camera for details").is_empty());
+        assert!(g.find_matching_terms("Move the camera: then render.").contains_key("camera"));
     }
 }
