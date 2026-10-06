@@ -36,6 +36,10 @@ pub struct Occurrence {
     pub file: usize,
     pub source: String,
     pub translation: Option<String>,
+    /// A word or phrase the LaTeX parser lifted out of `\emph{...}` and the
+    /// like to translate on its own (a block without a source span). It recurs
+    /// like a heading but is not one: "not", "must", "if".
+    pub fragment: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -59,9 +63,18 @@ pub fn collect_corpus(config: &ProjectConfig, glossary: &Glossary, factory: &Par
             }
         };
         let index = corpus.files.len();
-        for (segment, rs) in doc.translatable_segments().into_iter().zip(&reconciled) {
+        let latex = factory(&file, config).markup() == yeokja_core::parser::Markup::Latex;
+        // `reconciled` follows `Document::translatable_segments`: every
+        // segment of every translatable block, in order.
+        let segments = doc
+            .sections
+            .iter()
+            .flat_map(|section| &section.blocks)
+            .filter(|block| block.translatable)
+            .flat_map(|block| block.segments.iter().map(move |segment| (segment, latex && block.span.is_none())));
+        for ((segment, fragment), rs) in segments.zip(&reconciled) {
             let translation = rs.state.translation.clone().filter(|_| rs.state.source_hash == segment.source_hash);
-            corpus.segments.push(Occurrence { file: index, source: segment.source.clone(), translation });
+            corpus.segments.push(Occurrence { file: index, source: segment.source.clone(), translation, fragment });
         }
         corpus.files.push(file);
     }
@@ -431,12 +444,19 @@ fn mine_whole(corpus: &Corpus, known: &Known, limit: usize) -> Vec<WholeCandidat
         variants: HashMap<String, HashMap<String, usize>>,
     }
     let mut stats: HashMap<String, Stat> = HashMap::new();
-    for occurrence in &corpus.segments {
+    for occurrence in corpus.segments.iter().filter(|o| !o.fragment) {
         let source = occurrence.source.trim();
         if source.split_whitespace().count() > WHOLE_MAX_WORDS || source.chars().count() > 80 {
             continue;
         }
         if prose_chunks(source).is_empty() {
+            continue;
+        }
+        // A heading or label starts with a capital and does not trail off
+        // into the next line: "and", "commutes." and "Thus," are pieces of a
+        // sentence cut by a formula or code, translated to fit around it.
+        let opening = source.trim_start_matches(|c: char| !c.is_alphanumeric()).chars().next();
+        if !opening.is_some_and(char::is_uppercase) || source.ends_with(',') {
             continue;
         }
         let key = normalize_whole(source);
@@ -569,7 +589,9 @@ command the translations keep as written (\"the new interval class\", \"lamberti
 - Where part of a term is fixed already (shown as \"fixed already\"), render that part the same way.\n\
 Entries marked SEGMENT are a whole heading or label that recurs on its own; their current \
 translations are listed with counts. Give the complete translation of the segment, without a \
-trailing colon.\n"
+trailing colon. Reply [N] - for a SEGMENT that is a piece of a sentence cut off by a formula, \
+code or a list (\"Then\", \"For example\") rather than a heading or label: its translation has \
+to fit what follows it.\n"
     );
     // A segment entry is enforced verbatim, so it has to be in the register
     // the translations are held to (see `prompt::build_prompt`).
@@ -995,6 +1017,7 @@ mod tests {
                     file: *file,
                     source: source.to_string(),
                     translation: translation.map(String::from),
+                    fragment: false,
                 })
                 .collect(),
         }
@@ -1061,11 +1084,20 @@ mod tests {
             (1, "Propose using:", Some("제안 방법:")),
             (2, "Propose using:", Some("제안 방법")),
             (0, "``x``", Some("``x``")),
+            (0, "and", Some("그리고")),
+            (1, "and", Some("과")),
+            (2, "and", Some("그리고")),
+            (0, "Thus,", Some("따라서,")),
+            (1, "Thus,", Some("따라서")),
+            (2, "Thus,", Some("따라서,")),
         ];
         let mined = mine(&corpus(&rows), &Known::default(), 99, 100);
         assert_eq!(mined.whole.len(), 1);
         assert_eq!(mined.whole[0].text, "Abstract");
         assert_eq!(mined.whole[0].variants, vec![("초록".to_string(), 2), ("개요".to_string(), 1)]);
+        let mut fragments = corpus(&rows);
+        fragments.segments.iter_mut().for_each(|o| o.fragment = true);
+        assert!(mine(&fragments, &Known::default(), 99, 100).whole.is_empty());
         let known = Known { terms: HashSet::new(), whole: ["abstract".to_string()].into() };
         assert!(mine(&corpus(&rows), &known, 99, 100).whole.is_empty());
     }
