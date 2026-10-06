@@ -9,16 +9,7 @@ impl TranslationEvaluator for GlossaryEvaluator {
         &self,
         context: &EvaluationContext,
     ) -> Result<EvaluationResult, EvaluationError> {
-        let mut issues = Vec::new();
-
-        let source = if context.markup == Markup::Verso {
-            without_verso_role_headers(&context.source)
-        } else if context.markup == Markup::Latex {
-            crate::evaluator_format::without_latex_reference_arguments(&context.source)
-        } else {
-            context.source.clone()
-        };
-        let matching_terms = context.glossary.find_matching_terms(&source);
+        let source = glossary_source(context.markup, &context.source);
 
         // The source is read without regard to case, so the translation is too.
         // Demanding the glossary's spelling starts a retry that cannot converge:
@@ -26,21 +17,26 @@ impl TranslationEvaluator for GlossaryEvaluator {
         // own prose, and a translator that keeps the author's spelling gives the
         // same answer however many times it is asked. Case is a house-style
         // question, and this evaluator is the wrong place to have it — it costs
-        // a whole block's retranslation per disagreement.
-        let translation = context.translation.to_lowercase();
-
-        for (term, expected_translation) in &matching_terms {
-            if !translation.contains(&expected_translation.to_lowercase()) {
-                issues.push(EvaluationIssue {
-                    severity: IssueSeverity::Error,
-                    kind: IssueKind::GlossaryMismatch,
-                    message: format!(
+        // a whole block's retranslation per disagreement. `unmet_terms` holds
+        // that rule, and the stricter one for whole-segment entries.
+        let whole = context.glossary.whole_match(&source).map(|(text, _)| text.to_string());
+        let issues: Vec<EvaluationIssue> = context
+            .glossary
+            .unmet_terms(&source, &context.translation)
+            .into_iter()
+            .map(|(term, expected)| EvaluationIssue {
+                severity: IssueSeverity::Error,
+                kind: IssueKind::GlossaryMismatch,
+                message: if whole.as_deref() == Some(term.as_str()) {
+                    format!("Segment '{term}' should be translated as exactly '{expected}'")
+                } else {
+                    format!(
                         "Term '{}' should be translated as '{}' but was not found in translation",
-                        term, expected_translation
-                    ),
-                });
-            }
-        }
+                        term, expected
+                    )
+                },
+            })
+            .collect();
 
         Ok(EvaluationResult {
             passed: issues.is_empty(),
@@ -54,6 +50,17 @@ impl TranslationEvaluator for GlossaryEvaluator {
 
     fn name(&self) -> &'static str {
         "Glossary"
+    }
+}
+
+/// The source as glossary checks read it: without the parts of the markup
+/// that are names rather than prose (Verso role headers, LaTeX reference
+/// arguments). Snapshot adoption reads it the same way as this evaluator.
+pub fn glossary_source(markup: Markup, source: &str) -> String {
+    match markup {
+        Markup::Verso => without_verso_role_headers(source),
+        Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
+        _ => source.to_string(),
     }
 }
 
@@ -211,5 +218,28 @@ except = ["in the future"]
         assert!(GlossaryEvaluator.evaluate(&ctx).await.unwrap().passed);
         ctx.source.push_str(" The universe contains this path.");
         assert!(!GlossaryEvaluator.evaluate(&ctx).await.unwrap().passed);
+    }
+
+    #[tokio::test]
+    async fn whole_segment_entries_need_the_exact_rendering() {
+        let glossary = yeokja_core::glossary::Glossary::from_toml(
+            r#"
+[whole."Example:"]
+translation = "예"
+"#,
+        )
+        .unwrap();
+        let context = |translation: &str| EvaluationContext {
+            source: "Example:".to_string(),
+            translation: translation.to_string(),
+            glossary: glossary.clone(),
+            source_lang: "en".to_string(),
+            target_lang: "ko".to_string(),
+            markup: Markup::Markdown,
+        };
+        assert!(GlossaryEvaluator.evaluate(&context("예:")).await.unwrap().passed);
+        let result = GlossaryEvaluator.evaluate(&context("예시는 다음과 같습니다:")).await.unwrap();
+        assert!(!result.passed);
+        assert!(result.issues[0].message.contains("exactly '예'"));
     }
 }

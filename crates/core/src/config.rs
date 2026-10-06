@@ -138,6 +138,10 @@ pub struct ProjectSettings {
     pub target_lang: String,
     #[serde(default = "default_glossary_path")]
     pub glossary: String,
+    /// The generated term base (see `glossary::TermsFile`), read beneath
+    /// `glossary`. Absent file means no term base.
+    #[serde(default = "default_terms_path")]
+    pub terms: String,
     /// Directory collecting `.yeokja.json` state files, mirroring each source's
     /// project-relative path. Absent keeps the sidecar-next-to-source layout.
     /// Lets the source tree (e.g. a git submodule) stay pristine.
@@ -147,6 +151,10 @@ pub struct ProjectSettings {
 
 fn default_glossary_path() -> String {
     "glossary.toml".to_string()
+}
+
+fn default_terms_path() -> String {
+    "terms.toml".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

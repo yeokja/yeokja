@@ -80,11 +80,8 @@ impl AppState {
 
     /// Reload the glossary from disk into the shared state.
     pub async fn reload_glossary(&self) -> Result<(), yeokja_core::glossary::GlossaryError> {
-        let glossary = if self.glossary_path.exists() {
-            Glossary::load(&self.glossary_path)?
-        } else {
-            Glossary::empty()
-        };
+        // The term base sits beneath the curated glossary; reload both.
+        let glossary = Glossary::load_project(std::path::Path::new("."), &self.config.project)?;
         *self.glossary.write().await = glossary;
         Ok(())
     }

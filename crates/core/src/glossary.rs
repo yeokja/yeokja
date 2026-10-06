@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ops::Range;
 use std::path::Path;
 
@@ -19,6 +19,12 @@ pub struct GlossaryEntry {
 pub struct GlossaryFile {
     #[serde(default)]
     pub terms: HashMap<String, GlossaryEntry>,
+    /// Entries that apply only where a whole segment is the term: a heading
+    /// or label such as "Abstract" or "Propose using:". As an ordinary term
+    /// "abstract" would demand the heading's rendering inside "abstract base
+    /// class" too. See [`normalize_whole`] for how segments are compared.
+    #[serde(default)]
+    pub whole: HashMap<String, GlossaryEntry>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -26,6 +32,26 @@ pub struct Glossary {
     terms: HashMap<String, String>,
     /// Term → phrases in which it is not the glossary term.
     except: HashMap<String, Vec<String>>,
+    /// [`normalize_whole`] key → (entry as written, translation).
+    whole: HashMap<String, (String, String)>,
+}
+
+/// A segment as whole-segment entries compare it: without surrounding
+/// whitespace, emphasis marks around it, and a trailing colon or period, and
+/// without regard to case. `**Propose using:**`, `Propose using:` and
+/// `propose using` are the same label.
+pub fn normalize_whole(text: &str) -> String {
+    let mut text = text.trim();
+    loop {
+        let before = text;
+        text = text
+            .trim_matches(|c: char| c == '*' || c == '_' || c.is_whitespace())
+            .trim_end_matches([':', '.', '：']);
+        if text == before {
+            break;
+        }
+    }
+    text.to_lowercase()
 }
 
 /// Find terms from the given map that the text uses as prose.
@@ -280,6 +306,10 @@ impl Glossary {
     pub fn from_toml(content: &str) -> Result<Self, GlossaryError> {
         let file: GlossaryFile = toml::from_str(content)
             .map_err(|e| GlossaryError::Parse(e.to_string()))?;
+        Ok(Self::from_file(file))
+    }
+
+    fn from_file(file: GlossaryFile) -> Self {
         let mut terms = HashMap::new();
         let mut except = HashMap::new();
         for (term, entry) in file.terms {
@@ -288,7 +318,92 @@ impl Glossary {
             }
             terms.insert(term, entry.translation);
         }
-        Ok(Self { terms, except })
+        let whole = file
+            .whole
+            .into_iter()
+            .map(|(text, entry)| (normalize_whole(&text), (text, entry.translation)))
+            .collect();
+        Self { terms, except, whole }
+    }
+
+    /// The project's glossary: the curated `glossary` file with the generated
+    /// `terms` file (see [`TermsFile`]) beneath it. Either may be absent. A
+    /// term in both takes the curated translation.
+    pub fn load_project(
+        dir: &Path,
+        settings: &crate::config::ProjectSettings,
+    ) -> Result<Self, GlossaryError> {
+        let curated_path = dir.join(&settings.glossary);
+        let curated = if curated_path.exists() {
+            let content = std::fs::read_to_string(&curated_path)?;
+            toml::from_str(&content).map_err(|e| GlossaryError::Parse(e.to_string()))?
+        } else {
+            GlossaryFile { terms: HashMap::new(), whole: HashMap::new() }
+        };
+        let terms_path = dir.join(&settings.terms);
+        let generated = if terms_path.exists() { TermsFile::load(&terms_path)? } else { TermsFile::default() };
+        Ok(Self::merged(curated, generated))
+    }
+
+    /// `curated` over `generated`: an entry in both keeps the curated one.
+    /// Terms and whole-segment entries are compared without regard to case,
+    /// the way they are matched.
+    pub fn merged(mut curated: GlossaryFile, generated: TermsFile) -> Self {
+        let curated_terms: std::collections::HashSet<String> =
+            curated.terms.keys().map(|k| k.to_lowercase()).collect();
+        let curated_whole: std::collections::HashSet<String> =
+            curated.whole.keys().map(|k| normalize_whole(k)).collect();
+        for (term, entry) in generated.terms {
+            if !curated_terms.contains(&term.to_lowercase()) {
+                curated.terms.insert(term, entry);
+            }
+        }
+        for (text, entry) in generated.whole {
+            if !curated_whole.contains(&normalize_whole(&text)) {
+                curated.whole.insert(text, entry);
+            }
+        }
+        Self::from_file(curated)
+    }
+
+    /// Lowercased keys of every term, and [`normalize_whole`] keys of every
+    /// whole-segment entry: what a term search should not propose again.
+    pub fn known_keys(&self) -> (std::collections::HashSet<String>, std::collections::HashSet<String>) {
+        (self.terms.keys().map(|k| k.to_lowercase()).collect(), self.whole.keys().cloned().collect())
+    }
+
+    /// The whole-segment entry `source` is, as (entry as written, translation).
+    pub fn whole_match(&self, source: &str) -> Option<(&str, &str)> {
+        if self.whole.is_empty() {
+            return None;
+        }
+        self.whole
+            .get(&normalize_whole(source))
+            .map(|(text, translation)| (text.as_str(), translation.as_str()))
+    }
+
+    /// The entries `source` uses that `translation` does not render, as
+    /// (term, expected translation), sorted. A term is met when the
+    /// translation contains its rendering (without regard to case); a
+    /// whole-segment entry only when the translation, normalized the same
+    /// way, is its rendering. The glossary evaluator and snapshot adoption
+    /// share this judgement.
+    pub fn unmet_terms(&self, source: &str, translation: &str) -> Vec<(String, String)> {
+        let whole = self.whole_match(source).map(|(text, _)| text.to_string());
+        let lowered = translation.to_lowercase();
+        let mut unmet: Vec<(String, String)> = self
+            .find_matching_terms(source)
+            .into_iter()
+            .filter(|(term, expected)| {
+                if whole.as_deref() == Some(term.as_str()) {
+                    normalize_whole(translation) != expected.to_lowercase()
+                } else {
+                    !lowered.contains(&expected.to_lowercase())
+                }
+            })
+            .collect();
+        unmet.sort();
+        unmet
     }
 
     pub fn empty() -> Self {
@@ -301,8 +416,14 @@ impl Glossary {
 
     /// Find glossary terms the given text uses as prose.
     /// Uses char-based boundary checking to handle non-ASCII (Korean, CJK) text correctly.
+    /// A segment that is a whole-segment entry also matches that entry, under
+    /// the entry's own spelling; it replaces an ordinary term spelled the same.
     pub fn find_matching_terms(&self, text: &str) -> HashMap<String, String> {
-        find_terms_except(&self.terms, &self.except, text)
+        let mut found = find_terms_except(&self.terms, &self.except, text);
+        if let Some((entry, translation)) = self.whole_match(text) {
+            found.insert(entry.to_string(), translation.to_string());
+        }
+        found
     }
 
     /// Check if a glossary snapshot is stale compared to current glossary.
@@ -318,6 +439,58 @@ impl Glossary {
     }
 }
 
+/// The generated term base (`terms.toml`): terms and whole-segment entries
+/// decided once for the whole project by `yeokja terms build`, and the
+/// candidates decided against, so they are not asked about again. Kept
+/// sorted so a rerun's diff shows only what changed.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TermsFile {
+    #[serde(default)]
+    pub terms: BTreeMap<String, GlossaryEntry>,
+    #[serde(default)]
+    pub whole: BTreeMap<String, GlossaryEntry>,
+    #[serde(default)]
+    pub rejected: Rejected,
+}
+
+/// Candidates decided against: lowercased terms and [`normalize_whole`] keys.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Rejected {
+    #[serde(default)]
+    pub terms: BTreeSet<String>,
+    #[serde(default)]
+    pub whole: BTreeSet<String>,
+}
+
+const TERMS_FILE_HEADER: &str = "\
+# Project term base. `yeokja terms build` adds to it; edit freely.
+# glossary.toml wins where both have an entry. [whole] entries apply only
+# where a whole segment (a heading, a label) is the entry.
+
+";
+
+impl TermsFile {
+    pub fn load(path: &Path) -> Result<Self, GlossaryError> {
+        let content = std::fs::read_to_string(path)?;
+        toml::from_str(&content).map_err(|e| GlossaryError::Parse(e.to_string()))
+    }
+
+    pub fn save(&self, path: &Path) -> Result<(), GlossaryError> {
+        let body = toml::to_string_pretty(self).map_err(|e| GlossaryError::Serialize(e.to_string()))?;
+        std::fs::write(path, format!("{TERMS_FILE_HEADER}{body}"))?;
+        Ok(())
+    }
+
+    /// Lowercased terms and whole keys this file has decided, either way.
+    pub fn decided_keys(&self) -> (BTreeSet<String>, BTreeSet<String>) {
+        let mut terms: BTreeSet<String> = self.terms.keys().map(|k| k.to_lowercase()).collect();
+        terms.extend(self.rejected.terms.iter().cloned());
+        let mut whole: BTreeSet<String> = self.whole.keys().map(|k| normalize_whole(k)).collect();
+        whole.extend(self.rejected.whole.iter().cloned());
+        (terms, whole)
+    }
+}
+
 /// Add or update a term in a glossary TOML file, preserving existing entries
 /// (including their `note` fields). Creates the file if it does not exist.
 /// A glossary of plain term → translation pairs, with no `except` phrases.
@@ -326,6 +499,7 @@ impl FromIterator<(String, String)> for Glossary {
         Self {
             terms: pairs.into_iter().collect(),
             except: HashMap::new(),
+            whole: HashMap::new(),
         }
     }
 }
@@ -745,5 +919,113 @@ translation = "인터페이스"
         assert!(!remove_term_in_file(&path, "commit").unwrap());
         let g = Glossary::load(&path).unwrap();
         assert!(g.terms().is_empty());
+    }
+
+    fn whole_glossary() -> Glossary {
+        Glossary::from_toml(
+            r#"
+[terms.abstract]
+translation = "추상"
+[terms.sponsor]
+translation = "스폰서"
+[whole.Abstract]
+translation = "초록"
+[whole."Propose using:"]
+translation = "제안 방법"
+"#,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn normalize_whole_ignores_emphasis_colon_and_case() {
+        assert_eq!(normalize_whole("**Propose using:**"), "propose using");
+        assert_eq!(normalize_whole("  Abstract. "), "abstract");
+        assert_eq!(normalize_whole("_Example_::"), "example");
+    }
+
+    #[test]
+    fn whole_entry_matches_only_the_whole_segment() {
+        let g = whole_glossary();
+        let found = g.find_matching_terms("Abstract");
+        assert_eq!(found.get("Abstract").map(String::as_str), Some("초록"));
+        // Spelled differently from the term, so the term matches as well.
+        assert_eq!(found.get("abstract").map(String::as_str), Some("추상"));
+        let prose = g.find_matching_terms("An abstract base class is abstract.");
+        assert!(!prose.contains_key("Abstract"));
+        assert_eq!(g.whole_match("**Propose using:**"), Some(("Propose using:", "제안 방법")));
+        assert_eq!(g.whole_match("Propose using it"), None);
+    }
+
+    #[test]
+    fn unmet_terms_demands_containment_for_terms_and_equality_for_whole() {
+        let g = whole_glossary();
+        assert!(g.unmet_terms("Find a sponsor.", "스폰서를 찾으십시오.").is_empty());
+        assert_eq!(
+            g.unmet_terms("Find a sponsor.", "후원자를 찾으십시오."),
+            vec![("sponsor".to_string(), "스폰서".to_string())]
+        );
+        assert!(g.unmet_terms("**Propose using:**", "**제안 방법:**").is_empty());
+        assert_eq!(
+            g.unmet_terms("Propose using:", "제안 방법은 다음과 같습니다:"),
+            vec![("Propose using:".to_string(), "제안 방법".to_string())]
+        );
+    }
+
+    #[test]
+    fn curated_glossary_wins_over_generated_terms() {
+        let curated: GlossaryFile = toml::from_str(
+            r#"
+[terms.Sponsor]
+translation = "후원자"
+[whole.abstract]
+translation = "개요"
+"#,
+        )
+        .unwrap();
+        let mut generated = TermsFile::default();
+        let entry = |t: &str| GlossaryEntry { translation: t.to_string(), note: None, except: vec![] };
+        generated.terms.insert("sponsor".into(), entry("스폰서"));
+        generated.terms.insert("query".into(), entry("쿼리"));
+        generated.whole.insert("Abstract:".into(), entry("초록"));
+        let g = Glossary::merged(curated, generated);
+        assert_eq!(g.find_matching_terms("a sponsor").get("Sponsor").map(String::as_str), Some("후원자"));
+        assert!(!g.find_matching_terms("a sponsor").contains_key("sponsor"));
+        assert_eq!(g.find_matching_terms("a query").get("query").map(String::as_str), Some("쿼리"));
+        assert_eq!(g.whole_match("Abstract"), Some(("abstract", "개요")));
+    }
+
+    #[test]
+    fn terms_file_round_trips_sorted() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("terms.toml");
+        let mut file = TermsFile::default();
+        let entry = |t: &str| GlossaryEntry { translation: t.to_string(), note: None, except: vec![] };
+        file.terms.insert("zeta".into(), entry("제타"));
+        file.terms.insert("alpha".into(), entry("알파"));
+        file.whole.insert("Abstract".into(), entry("초록"));
+        file.rejected.terms.insert("make sure".into());
+        file.rejected.whole.insert("none".into());
+        file.save(&path).unwrap();
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.starts_with("# Project term base."));
+        assert!(text.find("[terms.alpha]").unwrap() < text.find("[terms.zeta]").unwrap());
+        let back = TermsFile::load(&path).unwrap();
+        assert_eq!(back.terms["alpha"].translation, "알파");
+        let (terms, whole) = back.decided_keys();
+        assert!(terms.contains("zeta") && terms.contains("make sure"));
+        assert!(whole.contains("abstract") && whole.contains("none"));
+    }
+
+    #[test]
+    fn load_project_reads_both_files() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("glossary.toml"), "[terms.commit]\ntranslation = \"커밋\"\n").unwrap();
+        std::fs::write(dir.path().join("terms.toml"), "[whole.References]\ntranslation = \"참고 문헌\"\n").unwrap();
+        let settings: crate::config::ProjectSettings =
+            toml::from_str("source_lang = \"en\"\ntarget_lang = \"ko\"\n").unwrap();
+        let g = Glossary::load_project(dir.path(), &settings).unwrap();
+        assert_eq!(g.terms().get("commit").map(String::as_str), Some("커밋"));
+        assert_eq!(g.whole_match("References"), Some(("References", "참고 문헌")));
     }
 }

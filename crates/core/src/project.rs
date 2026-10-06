@@ -25,12 +25,7 @@ impl ProjectContext {
         }
         let config = ProjectConfig::load(config_path)?;
 
-        let glossary_path = Path::new(&config.project.glossary);
-        let glossary = if glossary_path.exists() {
-            Glossary::load(glossary_path)?
-        } else {
-            Glossary::empty()
-        };
+        let glossary = Glossary::load_project(Path::new("."), &config.project)?;
 
         Ok(Self { config, glossary })
     }
