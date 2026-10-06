@@ -9,6 +9,7 @@ pub mod inspect;
 pub mod reconcile;
 pub mod serve;
 pub mod status;
+pub mod terms;
 pub mod translate;
 
 use yeokja_translate::orchestrator::ParserFactory;

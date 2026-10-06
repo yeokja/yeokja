@@ -43,3 +43,12 @@ pub fn remove(term: &str) -> Result<()> {
     }
     Ok(())
 }
+
+/// Accept, without a model, the translations under `path` that already
+/// render every glossary entry they use (see `yeokja_translate::terms::adopt_path`).
+pub fn adopt(path: &str) -> Result<()> {
+    let ctx = ProjectContext::load()?;
+    let report = yeokja_translate::terms::adopt_path(Path::new(path), &ctx.config, &ctx.glossary, &super::parser_factory())?;
+    super::terms::print_adopt_report(&report);
+    Ok(())
+}

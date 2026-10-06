@@ -69,6 +69,11 @@ enum Commands {
         #[command(subcommand)]
         action: GlossaryAction,
     },
+    /// Manage the project term base (terms.toml)
+    Terms {
+        #[command(subcommand)]
+        action: TermsAction,
+    },
     /// Evaluate existing translations
     Evaluate {
         /// Path to evaluate
@@ -128,6 +133,30 @@ enum GlossaryAction {
         /// Term in source language
         term: String,
     },
+    /// Accept, without a model, translations that already render every
+    /// glossary entry they use, so only the others are translated again
+    Adopt {
+        /// Path whose state to update
+        #[arg(default_value = ".")]
+        path: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum TermsAction {
+    /// Find recurring terms and segments across the project, decide their
+    /// translations with the model, and record them in the term base
+    Build {
+        /// List the candidates without calling the model
+        #[arg(long)]
+        dry_run: bool,
+        /// Fewest occurrences for a term candidate
+        #[arg(long, default_value_t = 4)]
+        min_count: usize,
+        /// Most term candidates to consider in this run
+        #[arg(long, default_value_t = 2000)]
+        limit: usize,
+    },
 }
 
 #[tokio::main]
@@ -185,6 +214,12 @@ async fn main() -> anyhow::Result<()> {
             }
             GlossaryAction::Remove { term } => {
                 commands::glossary::remove(&term)?;
+            }
+            GlossaryAction::Adopt { path } => commands::glossary::adopt(&path)?,
+        },
+        Commands::Terms { action } => match action {
+            TermsAction::Build { dry_run, min_count, limit } => {
+                commands::terms::build(dry_run, min_count, limit).await?;
             }
         },
         Commands::Evaluate {

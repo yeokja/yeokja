@@ -38,6 +38,15 @@
 ## 3. 용어집과 평가
 
 - `glossary.toml`로 도메인 용어를 통일합니다.
+- 첫 번역을 마친 뒤 `yeokja terms build`로 프로젝트 용어 기준(`terms.toml`)을
+  만듭니다. 반복되는 용어와 제목·레이블의 번역어를 모델이 한 번 정하고, 이미 그
+  번역어를 쓰는 번역은 그대로 받아들입니다. 먼저 `--dry-run`으로 후보를 보고,
+  실행 뒤 출력되는 남은 세그먼트 수와 `terms.toml`을 검토합니다. 잘못 정해진
+  번역어는 고치거나 지우고, 형용사 용법처럼 예외가 필요한 곳은 `except`를 둡니다.
+  그다음 `yeokja glossary adopt`로 다시 받아들이고, 남은 세그먼트만
+  `yeokja translate`로 다시 번역합니다. `glossary.toml`을 손으로 고친 뒤에도
+  `glossary adopt`를 먼저 돌립니다. 설계는
+  `docs/superpowers/specs/2026-10-06-project-term-base-design.md`를 따릅니다.
 - `[evaluation]`에서 `auto_evaluate`를 켜고, 필요하면 `style_evaluate`,
   `max_retries`를 조정합니다.
 
