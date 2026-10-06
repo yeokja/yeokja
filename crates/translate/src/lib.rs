@@ -22,3 +22,4 @@ pub mod evaluator_format;
 pub mod inline;
 pub mod pipeline;
 pub mod fuse;
+pub mod terms;
