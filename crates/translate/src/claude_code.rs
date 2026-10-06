@@ -61,29 +61,34 @@ impl LlmProvider for ClaudeCodeProvider {
     async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse, TranslateError> {
         tracing::debug!(model = ?self.model, prompt_len = request.prompt.len(), "Calling claude CLI");
 
+        // The prompt goes in through a file, not a pipe. Fed through a pipe,
+        // the CLI sometimes stops reading before the end: the write fails
+        // with "Broken pipe", or the model answers a cut-off prompt without
+        // any [N] lines. The same requests succeed every time from a file.
+        let prompt_file = tempfile::NamedTempFile::new().and_then(|mut file| {
+            use std::io::Write;
+            file.write_all(request.prompt.as_bytes())?;
+            file.flush()?;
+            Ok(file)
+        });
+        let stdin = prompt_file.as_ref().map_err(|e| e.kind()).and_then(|file| file.reopen().map_err(|e| e.kind()));
+        let stdin = stdin.map_err(|kind| TranslateError::Api {
+            status: 0,
+            message: format!("Failed to write the prompt for claude CLI: {kind}"),
+        })?;
+
         let mut cmd = Command::new("claude");
         cmd.args(self.cli_args())
-            .stdin(Stdio::piped())
+            .stdin(Stdio::from(stdin))
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        let mut child = cmd.spawn().map_err(|e| {
+        let child = cmd.spawn().map_err(|e| {
             TranslateError::Api {
                 status: 0,
                 message: format!("Failed to execute claude CLI: {e}"),
             }
         })?;
-
-        if let Some(mut stdin) = child.stdin.take() {
-            use tokio::io::AsyncWriteExt;
-            stdin.write_all(request.prompt.as_bytes()).await.map_err(|e| {
-                TranslateError::Api {
-                    status: 0,
-                    message: format!("Failed to write to claude stdin: {e}"),
-                }
-            })?;
-            drop(stdin);
-        }
 
         let output = child.wait_with_output().await.map_err(|e| {
             TranslateError::Api {
