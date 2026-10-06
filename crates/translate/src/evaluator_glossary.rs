@@ -56,12 +56,30 @@ impl TranslationEvaluator for GlossaryEvaluator {
 /// The source as glossary checks read it: without the parts of the markup
 /// that are names rather than prose (Verso role headers, LaTeX reference
 /// arguments). Snapshot adoption reads it the same way as this evaluator.
+///
+/// A Markdown segment that is nothing but one link to another site names
+/// that site's page — `[UVa OJ - Continued Fractions](https://…)` in a
+/// problem list — and its words are a title to copy, not prose to render
+/// with the glossary.
 pub fn glossary_source(markup: Markup, source: &str) -> String {
     match markup {
         Markup::Verso => without_verso_role_headers(source),
         Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
+        Markup::Markdown | Markup::MkDocs if is_external_link_only(source) => String::new(),
         _ => source.to_string(),
     }
+}
+
+/// Whether `source` is exactly `[label](http…)`.
+fn is_external_link_only(source: &str) -> bool {
+    let source = source.trim();
+    let Some(rest) = source.strip_prefix('[') else { return false };
+    let Some(close) = rest.rfind("](") else { return false };
+    let (label, target) = (&rest[..close], &rest[close + 2..]);
+    let Some(target) = target.strip_suffix(')') else { return false };
+    !label.contains("](")
+        && (target.starts_with("http://") || target.starts_with("https://"))
+        && !target.contains(char::is_whitespace)
 }
 
 /// Remove opaque `{role arguments}` headers while leaving visible labels and
@@ -241,5 +259,24 @@ translation = "예"
         let result = GlossaryEvaluator.evaluate(&context("예시는 다음과 같습니다:")).await.unwrap();
         assert!(!result.passed);
         assert!(result.issues[0].message.contains("exactly '예'"));
+    }
+
+    #[tokio::test]
+    async fn a_segment_that_is_only_an_external_link_is_a_title() {
+        let glossary = yeokja_core::glossary::Glossary::from_toml("[terms.\"continued fractions\"]\ntranslation = \"연분수\"\n").unwrap();
+        let context = |source: &str, translation: &str| EvaluationContext {
+            source: source.to_string(),
+            translation: translation.to_string(),
+            glossary: glossary.clone(),
+            source_lang: "en".to_string(),
+            target_lang: "ko".to_string(),
+            markup: Markup::MkDocs,
+        };
+        let title = "[UVa OJ - Continued Fractions](https://onlinejudge.org/x)";
+        assert!(GlossaryEvaluator.evaluate(&context(title, title)).await.unwrap().passed);
+        let prose = "See [continued fractions](https://example.org) here.";
+        assert!(!GlossaryEvaluator.evaluate(&context(prose, "여기를 보십시오.")).await.unwrap().passed);
+        let local = "[Continued fractions](continued-fractions.md)";
+        assert!(!GlossaryEvaluator.evaluate(&context(local, local)).await.unwrap().passed);
     }
 }
