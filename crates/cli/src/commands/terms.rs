@@ -9,6 +9,9 @@ use yeokja_translate::terms::{
 
 /// Print what adoption did and which entries still leave segments to translate.
 pub fn print_adopt_report(report: &AdoptReport) {
+    if report.restored > 0 {
+        println!("Restored {} earlier translation(s) that already meet the glossary.", report.restored);
+    }
     println!(
         "Accepted {} existing translation(s) in {} file(s); {} segment(s) still need translating for the glossary.",
         report.adopted, report.files_written, report.stale
@@ -68,7 +71,7 @@ pub async fn build(dry_run: bool, min_count: usize, limit: usize) -> Result<()> 
     );
 
     let glossary = Glossary::load_project(Path::new("."), &ctx.config.project)?;
-    let report = adopt_path(Path::new("."), &ctx.config, &glossary, &factory)?;
+    let report = adopt_path(Path::new("."), &ctx.config, &glossary, &factory, None)?;
     print_adopt_report(&report);
     if outcome.failed_batches > 0 {
         anyhow::bail!("{} batch(es) failed; run again to ask about them", outcome.failed_batches);

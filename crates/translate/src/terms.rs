@@ -554,11 +554,23 @@ explanation, no parentheses, no alternatives.\n\
 sense or in a different technical sense (\"translation\" of addresses and of languages), or a fixed \
 rendering would force unnatural sentences. A rendering is enforced in every sentence that contains \
 the term, so when in doubt, reply -.\n\
+- Reply [N] - as well when an example uses the word as a name in code — a class, type, function or \
+command the translations keep as written (\"the new interval class\", \"lambertian scatter()\").\n\
 - Where part of a term is fixed already (shown as \"fixed already\"), render that part the same way.\n\
 Entries marked SEGMENT are a whole heading or label that recurs on its own; their current \
 translations are listed with counts. Give the complete translation of the segment, without a \
-trailing colon.\n\n"
+trailing colon.\n"
     );
+    // A segment entry is enforced verbatim, so it has to be in the register
+    // the translations are held to (see `prompt::build_prompt`).
+    if target_lang.starts_with("ko") {
+        prompt.push_str(
+            "Write segment translations in formal written Korean (합쇼체): statements end in \
+             ~합니다/~입니다, questions in ~니까?, never in the polite ~요 register (~까요?, ~해요) \
+             or the plain ~다 register. Headings that are noun phrases stay noun phrases.\n",
+        );
+    }
+    prompt.push('\n');
     for (i, item) in items.iter().enumerate() {
         match item {
             DecideItem::Term(term, fixed) => {
@@ -720,6 +732,21 @@ pub async fn decide(
     }
     outcome.picked = picked_terms.len();
 
+    // A term that is also a recurring segment ("System specificity" as a
+    // heading and in prose) is decided once, as the segment: deciding it
+    // twice gave the heading one rendering and the prose another.
+    let whole_keys: HashSet<&str> = candidates.whole.iter().map(|w| w.key.as_str()).collect();
+    let mut aliases: HashMap<String, Vec<TermCandidate>> = HashMap::new();
+    picked_terms.retain(|term| {
+        let key = normalize_whole(&term.term);
+        if whole_keys.contains(key.as_str()) {
+            aliases.entry(key).or_default().push(term.clone());
+            false
+        } else {
+            true
+        }
+    });
+
     // Alphabetical order keeps related terms in one request.
     picked_terms.sort_by_key(|term| term.term.to_lowercase());
     let (single, compound): (Vec<TermCandidate>, Vec<TermCandidate>) =
@@ -728,6 +755,24 @@ pub async fn decide(
     let mut first: Vec<DecideItem> = candidates.whole.into_iter().map(DecideItem::Whole).collect();
     first.extend(single.into_iter().map(|term| DecideItem::Term(term, Vec::new())));
     decide_wave(&llm, corpus, first, file, options, &mut outcome).await;
+    for (key, terms) in aliases {
+        let decided = file.whole.iter().find(|(text, _)| normalize_whole(text) == key).map(|(_, e)| e.translation.clone());
+        for term in terms {
+            for form in std::iter::once(&term.term).chain(&term.forms) {
+                match &decided {
+                    Some(rendering) => {
+                        let entry = GlossaryEntry { translation: rendering.clone(), note: None, except: vec![] };
+                        file.terms.insert(form.clone(), entry);
+                    }
+                    None if file.rejected.whole.contains(&key) => {
+                        file.rejected.terms.insert(form.to_lowercase());
+                    }
+                    // Undecided this run: asked again next run.
+                    None => {}
+                }
+            }
+        }
+    }
 
     let mut fixed: HashMap<String, String> = base.terms().clone();
     fixed.extend(file.terms.iter().map(|(term, entry)| (term.clone(), entry.translation.clone())));
@@ -822,9 +867,42 @@ pub fn adopt_state(state: &mut StateFile, glossary: &Glossary, markup: yeokja_co
     (adopted, left)
 }
 
+/// Bring back the translations `earlier` held where they are as good for the
+/// glossary as the current ones: same segment, same source text, and every
+/// entry rendered. Undoes translating again for a match the glossary should
+/// never have made (a fixed matcher bug), and keeps the earlier wording and
+/// its `translated_at`. Returns how many were restored.
+pub fn restore_earlier(
+    state: &mut StateFile,
+    earlier: &StateFile,
+    glossary: &Glossary,
+    markup: yeokja_core::parser::Markup,
+) -> usize {
+    let by_id: HashMap<&str, &yeokja_core::state::SegmentState> =
+        earlier.segments.iter().map(|segment| (segment.id.0.as_str(), segment)).collect();
+    let mut restored = 0;
+    for segment in &mut state.segments {
+        let Some(old) = by_id.get(segment.id.0.as_str()) else { continue };
+        let Some(old_translation) = &old.translation else { continue };
+        if old.source_hash != segment.source_hash || segment.translation.as_ref() == Some(old_translation) {
+            continue;
+        }
+        if glossary.unmet_terms(&glossary_source(markup, &segment.source), old_translation).is_empty() {
+            segment.translation = Some(old_translation.clone());
+            segment.translated_at = old.translated_at;
+            segment.issues = old.issues.clone();
+            segment.glossary_snapshot = glossary.find_matching_terms(&segment.source);
+            restored += 1;
+        }
+    }
+    restored
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AdoptReport {
     pub adopted: usize,
+    /// Earlier translations brought back (see [`restore_earlier`]).
+    pub restored: usize,
     pub files_written: usize,
     /// Segments still glossary-stale.
     pub stale: usize,
@@ -832,8 +910,18 @@ pub struct AdoptReport {
     pub stale_by_term: BTreeMap<String, usize>,
 }
 
-/// [`adopt_state`] over every file under `path` that has saved state.
-pub fn adopt_path(path: &Path, config: &ProjectConfig, glossary: &Glossary, factory: &ParserFactory) -> Result<AdoptReport, OrchestratorError> {
+/// A file's earlier state, looked up by its state path.
+pub type EarlierState<'a> = &'a dyn Fn(&Path) -> Option<StateFile>;
+
+/// [`adopt_state`] over every file under `path` that has saved state, after
+/// [`restore_earlier`] where `earlier` gives a file's earlier state.
+pub fn adopt_path(
+    path: &Path,
+    config: &ProjectConfig,
+    glossary: &Glossary,
+    factory: &ParserFactory,
+    earlier: Option<EarlierState<'_>>,
+) -> Result<AdoptReport, OrchestratorError> {
     let mut report = AdoptReport::default();
     for file in collect_files(path, config)? {
         let state_path = StateFile::state_file_path(&file, config.state_dir());
@@ -842,11 +930,15 @@ pub fn adopt_path(path: &Path, config: &ProjectConfig, glossary: &Glossary, fact
         }
         let mut state = StateFile::load(&state_path)?;
         let markup = factory(&file, config).markup();
+        let restored = earlier
+            .and_then(|earlier| earlier(&state_path))
+            .map_or(0, |old| restore_earlier(&mut state, &old, glossary, markup));
         let (adopted, left) = adopt_state(&mut state, glossary, markup);
-        if adopted > 0 {
+        if adopted + restored > 0 {
             state.save(&state_path)?;
             report.files_written += 1;
             report.adopted += adopted;
+            report.restored += restored;
         }
         report.stale += left.len();
         for term in left.into_iter().flatten() {
@@ -1031,6 +1123,34 @@ mod tests {
         assert!(prompts[2].contains("fixed already: sponsor → 스폰서"));
     }
 
+    #[tokio::test]
+    async fn a_term_that_is_also_a_segment_takes_the_segment_rendering() {
+        let corpus = corpus(&[(0, "System specificity matters.", Some("시스템 특정성이 중요합니다."))]);
+        let candidates = Candidates {
+            terms: vec![TermCandidate { term: "System specificity".into(), forms: vec![], count: 4, files: 1, examples: vec![0] }],
+            whole: vec![WholeCandidate {
+                text: "System specificity".into(),
+                key: "system specificity".into(),
+                count: 3,
+                variants: vec![("시스템 특정성".into(), 2), ("시스템 종속성".into(), 1)],
+            }],
+        };
+        struct Reply;
+        #[async_trait]
+        impl LlmProvider for Reply {
+            async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse, TranslateError> {
+                let text = if request.prompt.contains("Reply with the numbers") { "1" } else { "[1] 시스템 특정성" };
+                assert!(!request.prompt.contains("[2]"), "the term is not asked about separately");
+                Ok(CompletionResponse { text: text.to_string(), usage: None })
+            }
+        }
+        let mut file = TermsFile::default();
+        let options = DecideOptions { source_lang: "en".into(), target_lang: "ko".into(), concurrency: 1 };
+        decide(Arc::new(Reply), &corpus, candidates, &mut file, &Glossary::empty(), &options).await;
+        assert_eq!(file.whole["System specificity"].translation, "시스템 특정성");
+        assert_eq!(file.terms["System specificity"].translation, "시스템 특정성");
+    }
+
     fn segment(source: &str, translation: &str) -> SegmentState {
         SegmentState {
             id: SegmentId::new(0, 0, 0),
@@ -1042,6 +1162,20 @@ mod tests {
             translated_at: None,
             issues: vec![],
         }
+    }
+
+    #[test]
+    fn restore_earlier_brings_back_translations_that_meet_the_glossary() {
+        let glossary = Glossary::from_toml("[terms.sponsor]\ntranslation = \"스폰서\"\n").unwrap();
+        let mut earlier = StateFile::new(0);
+        earlier.segments = vec![segment("Use camera::run().", "camera::run()을 사용하십시오."), segment("Find a sponsor.", "후원자를 찾으십시오.")];
+        earlier.segments[1].id = SegmentId::new(0, 0, 1);
+        let mut state = earlier.clone();
+        state.segments[0].translation = Some("카메라의 camera::run()을 사용하십시오.".into());
+        state.segments[1].translation = Some("스폰서를 찾으십시오.".into());
+        assert_eq!(restore_earlier(&mut state, &earlier, &glossary, Markup::Markdown), 1);
+        assert_eq!(state.segments[0].translation.as_deref(), Some("camera::run()을 사용하십시오."));
+        assert_eq!(state.segments[1].translation.as_deref(), Some("스폰서를 찾으십시오."));
     }
 
     #[test]

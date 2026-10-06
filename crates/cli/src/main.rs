@@ -139,6 +139,10 @@ enum GlossaryAction {
         /// Path whose state to update
         #[arg(default_value = ".")]
         path: String,
+        /// Git revision whose translations to bring back where they meet the
+        /// glossary too (undoes translating again for a wrong match)
+        #[arg(long)]
+        prefer: Option<String>,
     },
 }
 
@@ -215,7 +219,7 @@ async fn main() -> anyhow::Result<()> {
             GlossaryAction::Remove { term } => {
                 commands::glossary::remove(&term)?;
             }
-            GlossaryAction::Adopt { path } => commands::glossary::adopt(&path)?,
+            GlossaryAction::Adopt { path, prefer } => commands::glossary::adopt(&path, prefer.as_deref())?,
         },
         Commands::Terms { action } => match action {
             TermsAction::Build { dry_run, min_count, limit } => {

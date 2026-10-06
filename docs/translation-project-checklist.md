@@ -43,7 +43,8 @@
   번역어를 쓰는 번역은 그대로 받아들입니다. 먼저 `--dry-run`으로 후보를 보고,
   실행 뒤 출력되는 남은 세그먼트 수와 `terms.toml`을 검토합니다. 잘못 정해진
   번역어는 고치거나 지우고, 형용사 용법처럼 예외가 필요한 곳은 `except`를 둡니다.
-  그다음 `yeokja glossary adopt`로 다시 받아들이고, 남은 세그먼트만
+  그다음 `yeokja glossary adopt --prefer HEAD`로 다시 받아들이고(용어를 빼거나
+  예외를 둔 덕에 이전 번역으로 충분해진 세그먼트는 이전 번역이 되살아납니다), 남은 세그먼트만
   `yeokja translate`로 다시 번역합니다. `glossary.toml`을 손으로 고친 뒤에도
   `glossary adopt`를 먼저 돌립니다. 설계는
   `docs/superpowers/specs/2026-10-06-project-term-base-design.md`를 따릅니다.
