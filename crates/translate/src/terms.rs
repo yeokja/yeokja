@@ -279,9 +279,13 @@ pub fn mine(corpus: &Corpus, known: &Known, min_count: usize, limit: usize) -> C
 
     // Pass 1: counts only, so the bookkeeping below is for survivors only.
     let mut counts: HashMap<String, usize> = HashMap::new();
+    let mut capitalized: HashMap<String, usize> = HashMap::new();
     for chunks in &chunked {
         for chunk in chunks {
-            for (key, _) in ngrams(chunk, &stopwords) {
+            for (key, surface) in ngrams(chunk, &stopwords) {
+                if surface.chars().next().is_some_and(char::is_uppercase) {
+                    *capitalized.entry(key.clone()).or_default() += 1;
+                }
                 *counts.entry(key).or_default() += 1;
             }
         }
@@ -289,8 +293,14 @@ pub fn mine(corpus: &Corpus, known: &Known, min_count: usize, limit: usize) -> C
     // An English plural counts towards its singular: "processes" is the
     // term "process". Only the last word inflects ("page tables").
     let mut fold: HashMap<String, String> = HashMap::new();
+    // A name is not a plural: "Windows" is not more than one "window". A
+    // plural nearly always capitalized whose singular nearly never is stays
+    // a word of its own.
+    let share = |key: &str| capitalized.get(key).copied().unwrap_or(0) as f64 / counts[key].max(1) as f64;
     for key in counts.keys() {
-        if let Some(singular) = singular_of(key, &counts) {
+        if let Some(singular) = singular_of(key, &counts)
+            && !(share(key) >= 0.9 && share(&singular) <= 0.1)
+        {
             fold.insert(key.clone(), singular);
         }
     }
@@ -1018,6 +1028,16 @@ mod tests {
         assert_eq!(find("page table").unwrap().forms, vec!["page tables".to_string()]);
         assert_eq!(find("policy").unwrap().forms, vec!["policies".to_string()]);
         assert!(find("processes").is_none() && find("page").is_none());
+    }
+
+    #[test]
+    fn mine_does_not_fold_a_capitalized_name_into_a_common_noun() {
+        let mut rows = vec![(0, "Open the window.", None), (0, "A window closes.", None), (0, "Each window moves.", None)];
+        rows.extend(vec![(1, "It runs on Windows.", None), (1, "Windows is old.", None), (1, "Install Windows first.", None)]);
+        let mined = mine(&corpus(&rows), &Known::default(), 3, 100);
+        let find = |t: &str| mined.terms.iter().find(|c| c.term == t);
+        assert!(find("window").unwrap().forms.is_empty());
+        assert!(find("Windows").is_some());
     }
 
     #[test]
