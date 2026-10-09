@@ -764,19 +764,20 @@ pub async fn decide(
     }
     outcome.picked = picked_terms.len();
 
-    // A term that is also a recurring segment ("System specificity" as a
-    // heading and in prose) is decided once, as the segment: deciding it
-    // twice gave the heading one rendering and the prose another.
+    // A term that is also a recurring segment is a heading or label: the
+    // segment entry governs it there. As a term it would also govern prose,
+    // with the heading's rendering — "Abstract → 초록" demanded inside
+    // "abstract base class" across the PEPs — so it is not fixed as a term.
     let whole_keys: HashSet<&str> = candidates.whole.iter().map(|w| w.key.as_str()).collect();
-    let mut aliases: HashMap<String, Vec<TermCandidate>> = HashMap::new();
     picked_terms.retain(|term| {
-        let key = normalize_whole(&term.term);
-        if whole_keys.contains(key.as_str()) {
-            aliases.entry(key).or_default().push(term.clone());
-            false
-        } else {
-            true
+        if !whole_keys.contains(normalize_whole(&term.term).as_str()) {
+            return true;
         }
+        for form in std::iter::once(&term.term).chain(&term.forms) {
+            file.rejected.terms.insert(form.to_lowercase());
+        }
+        outcome.rejected += 1;
+        false
     });
 
     // Alphabetical order keeps related terms in one request.
@@ -787,25 +788,6 @@ pub async fn decide(
     let mut first: Vec<DecideItem> = candidates.whole.into_iter().map(DecideItem::Whole).collect();
     first.extend(single.into_iter().map(|term| DecideItem::Term(term, Vec::new())));
     decide_wave(&llm, corpus, first, file, options, &mut outcome).await;
-    for (key, terms) in aliases {
-        let decided = file.whole.iter().find(|(text, _)| normalize_whole(text) == key).map(|(_, e)| e.translation.clone());
-        for term in terms {
-            for form in std::iter::once(&term.term).chain(&term.forms) {
-                match &decided {
-                    Some(rendering) => {
-                        let entry = GlossaryEntry { translation: rendering.clone(), note: None, except: vec![] };
-                        file.terms.insert(form.clone(), entry);
-                    }
-                    None if file.rejected.whole.contains(&key) => {
-                        file.rejected.terms.insert(form.to_lowercase());
-                    }
-                    // Undecided this run: asked again next run.
-                    None => {}
-                }
-            }
-        }
-    }
-
     let mut fixed: HashMap<String, String> = base.terms().clone();
     fixed.extend(file.terms.iter().map(|(term, entry)| (term.clone(), entry.translation.clone())));
     let fixed: Glossary = fixed.into_iter().collect();
@@ -1176,7 +1158,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_term_that_is_also_a_segment_takes_the_segment_rendering() {
+    async fn a_term_that_is_also_a_segment_is_left_to_the_segment() {
         let corpus = corpus(&[(0, "System specificity matters.", Some("시스템 특정성이 중요합니다."))]);
         let candidates = Candidates {
             terms: vec![TermCandidate { term: "System specificity".into(), forms: vec![], count: 4, files: 1, examples: vec![0] }],
@@ -1200,7 +1182,8 @@ mod tests {
         let options = DecideOptions { source_lang: "en".into(), target_lang: "ko".into(), concurrency: 1 };
         decide(Arc::new(Reply), &corpus, candidates, &mut file, &Glossary::empty(), &options).await;
         assert_eq!(file.whole["System specificity"].translation, "시스템 특정성");
-        assert_eq!(file.terms["System specificity"].translation, "시스템 특정성");
+        assert!(!file.terms.contains_key("System specificity"));
+        assert!(file.rejected.terms.contains("system specificity"));
     }
 
     fn segment(source: &str, translation: &str) -> SegmentState {
