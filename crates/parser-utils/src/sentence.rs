@@ -10,6 +10,26 @@
 /// cannot swallow the rest of a paragraph. The closer may be longer than the
 /// opener because reST literal content can itself end in a backtick
 /// (``` ``:func:`filter``` ```).
+/// Whether the `.` at `dot` closes a one-letter initial between a
+/// capitalized word and the next capitalized word: `Phillip J. Eby`.
+fn is_middle_initial(chars: &[char], dot: usize) -> bool {
+    let Some(&letter) = dot.checked_sub(1).and_then(|at| chars.get(at)) else { return false };
+    if !letter.is_ascii_uppercase() || dot < 3 || chars[dot - 2] != ' ' {
+        return false;
+    }
+    let before: String = chars[..dot - 2].iter().rev().take_while(|c| !c.is_whitespace()).collect();
+    // `before` is reversed: its last char is the word's first. A name is
+    // title case ("Phillip"), not an acronym ("Mac OS X. Windows").
+    let word: Vec<char> = before.chars().rev().collect();
+    let previous_is_name = word.len() >= 2
+        && word[0].is_uppercase()
+        && word[1..].iter().all(|c| c.is_lowercase());
+    let next_is_name = chars.get(dot + 1).is_some_and(|c| c.is_whitespace())
+        && chars.get(dot + 2).is_some_and(|c| c.is_uppercase())
+        && chars.get(dot + 3).is_some_and(|c| c.is_lowercase());
+    previous_is_name && next_is_name
+}
+
 pub fn split_sentences(text: &str) -> Vec<String> {
     if text.trim().is_empty() {
         return Vec::new();
@@ -18,7 +38,7 @@ pub fn split_sentences(text: &str) -> Vec<String> {
     let abbreviations = [
         "e.g.", "i.e.", "etc.", "vs.", "dr.", "mr.", "mrs.", "ms.", "prof.",
         "inc.", "ltd.", "jr.", "sr.", "st.", "ave.", "dept.", "est.", "approx.",
-        "fig.", "vol.", "no.",
+        "fig.", "vol.", "no.", "a.k.a.", "cf.", "al.",
     ];
 
     let mut sentences = Vec::new();
@@ -71,7 +91,11 @@ pub fn split_sentences(text: &str) -> Vec<String> {
             let continues_token = i + 1 < len && !chars[i + 1].is_whitespace();
             let inside_url = continues_token && token_is_url(&chars, i);
 
-            if !is_abbreviation && !inside_url {
+            // A middle initial between two names ("Phillip J. Eby") is not
+            // the end of a sentence.
+            let is_initial = chars[i] == '.' && is_middle_initial(&chars, i);
+
+            if !is_abbreviation && !inside_url && !is_initial {
                 // Check if followed by whitespace + uppercase, or end of string
                 let next_non_ws = (i + 1..len).find(|&j| !chars[j].is_whitespace());
                 let at_end = i + 1 >= len || chars[i + 1..].iter().all(|c| c.is_whitespace());
@@ -318,6 +342,20 @@ mod tests {
     fn multiple_punctuation() {
         let result = split_sentences("What? Really! Yes.");
         assert_eq!(result, vec!["What?", "Really!", "Yes."]);
+    }
+
+    #[test]
+    fn aka_cf_et_al_and_middle_initials_do_not_end_sentences() {
+        assert_eq!(
+            split_sentences("The PEP champion (a.k.a. Author) should do it. Done."),
+            vec!["The PEP champion (a.k.a. Author) should do it.", "Done."]
+        );
+        assert_eq!(split_sentences("Thanks to Phillip J. Eby for this. Next."), vec!["Thanks to Phillip J. Eby for this.", "Next."]);
+        assert_eq!(split_sentences("See Smith et al. For details, read on."), vec!["See Smith et al. For details, read on."]);
+        assert_eq!(split_sentences("Linux or Mac OS X. Windows is beta."), vec!["Linux or Mac OS X.", "Windows is beta."]);
+        assert_eq!(split_sentences("Thanks to Phillip J.\nEby for this."), vec!["Thanks to Phillip J.\nEby for this."]);
+        // A capital letter that ends a sentence still ends it.
+        assert_eq!(split_sentences("We call it type A. Next we start."), vec!["We call it type A.", "Next we start."]);
     }
 
     #[test]
