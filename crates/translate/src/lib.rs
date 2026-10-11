@@ -23,3 +23,4 @@ pub mod inline;
 pub mod pipeline;
 pub mod fuse;
 pub mod terms;
+pub mod rst_links;

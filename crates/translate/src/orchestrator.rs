@@ -1324,7 +1324,8 @@ impl FileTranslator {
             // translations are all done, so a parser that has since learned to
             // read a construct would leave the old rendering in place forever.
             // `write_output` leaves the file alone when the text is unchanged.
-            let segments: Vec<SegmentState> = reconciled.into_iter().map(|rs| rs.state).collect();
+            let mut segments: Vec<SegmentState> = reconciled.into_iter().map(|rs| rs.state).collect();
+            self.repair_rst_links(parser.markup(), &source, &mut segments, &state_path, file_path)?;
             self.write_output(&*parser, &doc, &segments, file_path, &output_path)?;
             return Ok(0);
         }
@@ -1481,7 +1482,8 @@ impl FileTranslator {
         drop(tx);
         let translated_count = state_writer.await?;
 
-        let final_segments = writer_segments.lock().await.clone();
+        let mut final_segments = writer_segments.lock().await.clone();
+        self.repair_rst_links(parser.markup(), &source, &mut final_segments, &state_path, file_path)?;
         self.write_output(&*parser, &doc, &final_segments, file_path, &output_path)?;
 
         Ok(translated_count)
@@ -1593,6 +1595,38 @@ impl FileTranslator {
         Ok(updates)
     }
 
+    /// Make translated links that would collide as RST target names
+    /// anonymous, and save the state when any was (see `rst_links`).
+    fn repair_rst_links(
+        &self,
+        markup: Markup,
+        source: &str,
+        segments: &mut [SegmentState],
+        state_path: &Path,
+        file_path: &Path,
+    ) -> Result<(), OrchestratorError> {
+        if markup != Markup::Rst {
+            return Ok(());
+        }
+        let mut translations: Vec<Option<String>> = segments.iter().map(|s| s.translation.clone()).collect();
+        let changed = crate::rst_links::repair_duplicate_names(source, &mut translations);
+        if changed.is_empty() {
+            return Ok(());
+        }
+        for index in changed {
+            tracing::warn!(
+                file = %file_path.display(),
+                segment = %segments[index].id,
+                "A translated link would duplicate an RST target name; made it anonymous"
+            );
+            segments[index].translation = translations[index].take();
+        }
+        let mut state = StateFile::new(content_hash(source));
+        state.segments = segments.to_vec();
+        state.save(state_path)?;
+        Ok(())
+    }
+
     fn write_output(
         &self,
         parser: &dyn DocumentParser,
@@ -1610,6 +1644,13 @@ impl FileTranslator {
 
         let mut output_text = parser.reconstruct(doc, &translations);
         if parser.markup() == Markup::Rst {
+            for name in crate::rst_links::lost_targets(&doc.source, &output_text) {
+                tracing::warn!(
+                    file = %file_path.display(),
+                    reference = %name,
+                    "The translation references an RST target it no longer defines"
+                );
+            }
             // `.. include::` line offsets count lines of the included file,
             // whose translation is laid out differently from its source.
             output_text = crate::include_lines::follow_rst_includes(
