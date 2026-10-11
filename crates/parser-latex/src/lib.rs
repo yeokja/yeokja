@@ -336,6 +336,23 @@ fn reconstruct_latex(document: &Document, translations: &TranslationMap, extende
             splices.push((span.clone(), restore_comments(translated, &comments)));
         }
     }
+    // Where the paragraph splices land in the reconstructed text: arguments
+    // there were translated with their paragraph and are left as written.
+    let mut ordered: Vec<(usize, usize, usize)> =
+        splices.iter().map(|(span, text)| (span.start, span.end, text.len())).collect();
+    ordered.sort();
+    let mut translated_regions = Vec::new();
+    let mut shift: isize = 0;
+    let mut last_end = 0;
+    for (start, end, len) in ordered {
+        if start < last_end {
+            continue;
+        }
+        let at = (start as isize + shift) as usize;
+        translated_regions.push(at..at + len);
+        shift += len as isize - (end - start) as isize;
+        last_end = end;
+    }
     let reconstructed = apply_splices(&document.source, splices);
     let replacements: HashMap<_, _> = document
         .sections
@@ -349,7 +366,7 @@ fn reconstruct_latex(document: &Document, translations: &TranslationMap, extende
                 .map(|translation| (segment.source.as_str(), translation.as_str()))
         })
         .collect();
-    let refined = replace_visible_text_arguments(&reconstructed, &replacements, extended);
+    let refined = replace_visible_text_arguments(&reconstructed, &replacements, extended, &translated_regions);
     disambiguate_korean_after_control_words(&refined)
 }
 
@@ -900,7 +917,14 @@ fn opaque_argument_command(command: &str) -> bool {
 /// been applied, so they can safely refine text nested inside a translated
 /// paragraph without creating overlapping source edits.
 fn append_visible_text_arguments(document: &mut Document, extended: bool) {
-    let arguments = visible_text_arguments(&document.source, extended);
+    let covered: Vec<std::ops::Range<usize>> = document
+        .sections
+        .iter()
+        .flat_map(|section| &section.blocks)
+        .filter(|block| block.translatable)
+        .filter_map(|block| block.span.clone())
+        .collect();
+    let arguments = visible_text_arguments(&document.source, extended, &covered);
     let table_cells = table_cell_spans(&document.source);
     if arguments.is_empty() && table_cells.is_empty() {
         return;
@@ -956,10 +980,77 @@ fn append_visible_text_arguments(document: &mut Document, extended: bool) {
     document.sections.push(Section { blocks });
 }
 
-fn visible_text_arguments(source: &str, extended: bool) -> Vec<String> {
+/// Byte ranges of inline and display math in `text`: `$…$`, `$$…$$`,
+/// `\(…\)` and `\[…\]`. A paragraph translation copies math byte for byte,
+/// so a `\text{…}` there is still English and its own translation applies.
+fn math_ranges(text: &str) -> Vec<std::ops::Range<usize>> {
+    let bytes = text.as_bytes();
+    let mut ranges = Vec::new();
+    let mut at = 0usize;
+    while at < bytes.len() {
+        if bytes[at] == b'$' && !is_escaped(bytes, at) {
+            let double = bytes.get(at + 1) == Some(&b'$');
+            let open = if double { 2 } else { 1 };
+            let close = if double { "$$" } else { "$" };
+            let mut search = at + open;
+            let end = loop {
+                match text[search..].find(close) {
+                    Some(offset) if is_escaped(bytes, search + offset) => search += offset + 1,
+                    Some(offset) => break Some(search + offset + close.len()),
+                    None => break None,
+                }
+            };
+            match end {
+                Some(end) => {
+                    ranges.push(at..end);
+                    at = end;
+                }
+                None => break,
+            }
+            continue;
+        }
+        if bytes[at] == b'\\' && matches!(bytes.get(at + 1), Some(b'(' | b'[')) {
+            let close = if bytes[at + 1] == b'(' { "\\)" } else { "\\]" };
+            if let Some(offset) = text[at + 2..].find(close) {
+                let end = at + 2 + offset + 2;
+                ranges.push(at..end);
+                at = end;
+                continue;
+            }
+        }
+        at += text[at..].chars().next().map_or(1, char::len_utf8);
+    }
+    ranges
+}
+
+/// Each visible-text argument once, first occurrence first, keeping only
+/// those that occur at least once outside `covered` — byte ranges of blocks
+/// translated as a whole. An argument inside a translated paragraph is
+/// translated with the paragraph, in context; on its own it would be a word
+/// without a sentence ("algos", "ciphers", "Right"), and writing it back
+/// over the paragraph's choice broke sentences.
+fn visible_text_arguments(source: &str, extended: bool, covered: &[std::ops::Range<usize>]) -> Vec<String> {
+    let math = math_ranges(source);
+    let mut outside = HashSet::new();
+    for (normalized, at) in visible_text_argument_occurrences(source, extended) {
+        let in_math = math.iter().any(|range| range.start <= at && at < range.end);
+        if in_math || !covered.iter().any(|span| span.start <= at && at < span.end) {
+            outside.insert(normalized);
+        }
+    }
+    let mut seen = HashSet::new();
+    visible_text_argument_occurrences(source, extended)
+        .into_iter()
+        .filter(|(normalized, _)| outside.contains(normalized) && seen.insert(normalized.clone()))
+        .map(|(normalized, _)| normalized)
+        .collect()
+}
+
+/// Every visible-text argument with an English fragment, normalized, with
+/// the byte offset of its command.
+fn visible_text_argument_occurrences(source: &str, extended: bool) -> Vec<(String, usize)> {
     let bytes = source.as_bytes();
     let mut arguments = Vec::new();
-    let mut seen = HashSet::new();
     let mut at = 0usize;
 
     while at < bytes.len() {
@@ -986,8 +1077,8 @@ fn visible_text_arguments(source: &str, extended: bool) -> Vec<String> {
             && let Some(argument) = visible_argument(&source[at..], command, command_end, extended)
         {
             let normalized = normalize_latex_text(&source[at + argument.start..at + argument.end]);
-            if has_english_fragment(&normalized) && seen.insert(normalized.clone()) {
-                arguments.push(normalized);
+            if has_english_fragment(&normalized) {
+                arguments.push((normalized, at));
             }
             at += argument.end + 1;
             continue;
@@ -1138,10 +1229,12 @@ fn replace_visible_text_arguments(
     source: &str,
     replacements: &HashMap<&str, &str>,
     extended: bool,
+    translated: &[std::ops::Range<usize>],
 ) -> String {
     if replacements.is_empty() {
         return source.to_string();
     }
+    let math = math_ranges(source);
 
     let bytes = source.as_bytes();
     let mut splices = Vec::new();
@@ -1159,7 +1252,12 @@ fn replace_visible_text_arguments(
         {
             let span = (at + argument.start)..(at + argument.end);
             let normalized = normalize_latex_text(&source[span.clone()]);
-            if let Some(replacement) = replacements.get(normalized.as_str()) {
+            // By where the command starts: a `$x$` nested in `\text{…}`
+            // ends the scanned math range early.
+            let in_math = math.iter().any(|range| range.start <= at && at < range.end);
+            let in_translation = !in_math
+                && translated.iter().any(|region| region.start <= span.start && span.end <= region.end);
+            if !in_translation && let Some(replacement) = replacements.get(normalized.as_str()) {
                 splices.push((span, (*replacement).to_string()));
                 at += argument.end + 1;
                 continue;
@@ -1276,10 +1374,10 @@ mod tests {
         let source = "\\chapter{Groups}\nA \\emph{group} $G$ has an identity.\n";
         let document = LatexParser.parse(source);
         let segments = document.translatable_segments();
-        assert_eq!(segments.len(), 3);
+        // `group` is translated with its paragraph; it is not offered alone.
+        assert_eq!(segments.len(), 2);
         assert_eq!(segments[0].source, "Groups");
         assert_eq!(segments[1].source, "A \\emph{group} $G$ has an identity.");
-        assert_eq!(segments[2].source, "group");
 
         let map = translated(
             &document,
@@ -1349,6 +1447,37 @@ mod tests {
     }
 
     #[test]
+    fn text_inside_inline_math_with_nested_dollars_is_still_refined() {
+        let source = "Since $y = \\text{not } (\\text{not $x$})$, done.\n";
+        let document = LatexParser.parse(source);
+        let sources: Vec<_> = document.translatable_segments().into_iter().map(|s| s.source.clone()).collect();
+        assert!(sources.iter().any(|s| s == "not $x$"), "{sources:?}");
+        let map = translated(
+            &document,
+            &[
+                (sources[0].as_str(), "$y = \\text{not } (\\text{not $x$})$이므로 끝입니다."),
+                ("not $x$", "$x$의 부정"),
+            ],
+        );
+        assert!(LatexParser.reconstruct(&document, &map).contains("\\text{$x$의 부정}"));
+    }
+
+    #[test]
+    fn a_word_the_paragraph_translation_kept_in_english_stays_so() {
+        // jeffe-algorithms 00-intro: "not from \\textit{algos}, pain". Offered
+        // alone, "algos" became "알고리즘" and was written over the paragraph.
+        let source = "It does not come from \\textit{algos}, meaning pain.\n";
+        let document = LatexParser.parse(source);
+        let sources: Vec<_> = document.translatable_segments().into_iter().map(|s| s.source.clone()).collect();
+        assert_eq!(sources, ["It does not come from \\textit{algos}, meaning pain."]);
+        let map = translated(&document, &[(sources[0].as_str(), "“고통”을 뜻하는 \\textit{algos}에서 온 것이 아닙니다.")]);
+        assert_eq!(
+            LatexParser.reconstruct(&document, &map),
+            "“고통”을 뜻하는 \\textit{algos}에서 온 것이 아닙니다.\n"
+        );
+    }
+
+    #[test]
     fn auxiliary_text_translation_refines_an_outer_paragraph() {
         let source = "Use $f(x)=\\text{otherwise}$ now.\n";
         let document = LatexParser.parse(source);
@@ -1372,16 +1501,19 @@ mod tests {
     fn translates_visible_link_labels_but_not_destinations() {
         let source = "\\hyperref[part:algebra]{Abstract Algebra} and \\href{https://example.com}{project page}.\n";
         let document = LatexParser.parse(source);
+        // The labels belong to the paragraph and are translated with it.
+        let sources: Vec<_> = document.translatable_segments().into_iter().map(|s| s.source.clone()).collect();
+        assert_eq!(sources.len(), 1, "{sources:?}");
         let map = translated(
             &document,
-            &[
-                ("Abstract Algebra", "추상대수학"),
-                ("project page", "프로젝트 페이지"),
-            ],
+            &[(
+                sources[0].as_str(),
+                "\\hyperref[part:algebra]{추상대수학}과 \\href{https://example.com}{프로젝트 페이지}.",
+            )],
         );
         assert_eq!(
             LatexParser.reconstruct(&document, &map),
-            "\\hyperref[part:algebra]{추상대수학} and \\href{https://example.com}{프로젝트 페이지}.\n"
+            "\\hyperref[part:algebra]{추상대수학}과 \\href{https://example.com}{프로젝트 페이지}.\n"
         );
     }
 
@@ -1542,8 +1674,8 @@ mod tests {
             &[
                 ("by induction", "귀납법에 의해"),
                 (
-                    "For every $x$, a path exists.",
-                    "모든 $x$에 대해 경로가 존재합니다.",
+                    "\\parbox{\\textwidth-2cm}{For every $x$, a path exists.}",
+                    "\\parbox{\\textwidth-2cm}{모든 $x$에 대해 경로가 존재합니다.}",
                 ),
                 ("Path induction:", "경로 귀납법:"),
             ],
