@@ -162,6 +162,10 @@ fn joined_into_a_name(chars: &[char], start: usize, end: usize) -> bool {
         // `camera::ray_color()`, `std::vec`: a path through `::`.
         || (after == Some(':') && chars.get(end + 1) == Some(&':'))
         || (before == Some(':') && start >= 2 && chars[start - 2] == ':')
+        // `sec:identity-types`, `part:groups`, `axiom:funext`: a
+        // cross-reference label, on either side of its colon.
+        || (before == Some(':') && start >= 2 && alnum_at(start - 2))
+        || (after == Some(':') && alnum_at(end + 1))
     {
         return true;
     }
@@ -190,6 +194,7 @@ fn joined_into_a_name(chars: &[char], start: usize, end: usize) -> bool {
     let token = &chars[from..to];
     token.first() == Some(&'/')
         || token.iter().any(|c| matches!(c, '_' | '#'))
+        || token.windows(3).any(|w| w[0].is_ascii_alphanumeric() && w[1] == ':' && w[2].is_ascii_alphanumeric())
         || token
             .windows(2)
             .any(|pair| pair[0] == '.' && pair[1].is_ascii_alphanumeric())
@@ -402,7 +407,7 @@ impl Glossary {
             .into_iter()
             .filter(|(term, expected)| {
                 if whole.as_deref() == Some(term.as_str()) {
-                    normalize_whole(translation) != expected.to_lowercase()
+                    normalize_whole(translation) != normalize_whole(expected)
                 } else {
                     !lowered.contains(&expected.to_lowercase())
                 }
@@ -979,6 +984,13 @@ translation = "제안 방법"
     }
 
     #[test]
+    fn whole_entries_whose_rendering_ends_in_punctuation_are_met() {
+        let g = Glossary::from_toml("[whole.\"Undocumented.\"]\ntranslation = \"문서화되어 있지 않습니다.\"\n").unwrap();
+        assert!(g.unmet_terms("Undocumented.", "문서화되어 있지 않습니다.").is_empty());
+        assert!(!g.unmet_terms("Undocumented.", "문서화되지 않았습니다.").is_empty());
+    }
+
+    #[test]
     fn curated_glossary_wins_over_generated_terms() {
         let curated: GlossaryFile = toml::from_str(
             r#"
@@ -1048,5 +1060,15 @@ translation = "개요"
         assert!(g.find_matching_terms("camera::ray_color() with depth limiting").is_empty());
         assert!(g.find_matching_terms("see render::camera for details").is_empty());
         assert!(g.find_matching_terms("Move the camera: then render.").contains_key("camera"));
+    }
+
+    #[test]
+    fn cross_reference_labels_are_not_terms() {
+        let g = Glossary::from_toml("[terms.types]\ntranslation = \"타입\"\n[terms.groups]\ntranslation = \"군\"\n").unwrap();
+        assert!(g.find_matching_terms("empty type, \\pg{sec:coproduct-types}").is_empty());
+        assert!(g.find_matching_terms("part:groups").is_empty());
+        assert!(g.find_matching_terms("\\pg{groups:intro}").is_empty());
+        assert!(g.find_matching_terms("Note: groups act on sets.").contains_key("groups"));
+        assert!(g.find_matching_terms("product-types are types").contains_key("types"));
     }
 }
