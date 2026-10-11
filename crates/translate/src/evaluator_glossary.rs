@@ -65,9 +65,16 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
     match markup {
         Markup::Verso => without_verso_role_headers(source),
         Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
-        Markup::Markdown | Markup::MkDocs if is_external_link_only(source) => String::new(),
+        Markup::Markdown | Markup::MkDocs if is_external_link_only(source) || is_image_only(source) => String::new(),
         _ => source.to_string(),
     }
+}
+
+/// Whether `source` is exactly one image, `![alt](path)`: its alt text
+/// describes a picture and is left as the source has it.
+fn is_image_only(source: &str) -> bool {
+    let source = source.trim();
+    source.starts_with("![") && source.ends_with(')') && source.matches("](").count() == 1 && !source[2..].contains("![")
 }
 
 /// Whether `source` is exactly `[label](http…)`.
@@ -276,6 +283,8 @@ translation = "예"
         assert!(GlossaryEvaluator.evaluate(&context(title, title)).await.unwrap().passed);
         let prose = "See [continued fractions](https://example.org) here.";
         assert!(!GlossaryEvaluator.evaluate(&context(prose, "여기를 보십시오.")).await.unwrap().passed);
+        let image = "![continued fractions on a line](img/cf.png)";
+        assert!(GlossaryEvaluator.evaluate(&context(image, image)).await.unwrap().passed);
         let local = "[Continued fractions](continued-fractions.md)";
         assert!(!GlossaryEvaluator.evaluate(&context(local, local)).await.unwrap().passed);
     }

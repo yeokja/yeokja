@@ -858,27 +858,54 @@ async fn decide_wave(
 
 // --- Adoption ---
 
+/// Whether a stored issue is the glossary evaluator's (see `evaluator_glossary`).
+fn is_glossary_issue(issue: &str) -> bool {
+    (issue.starts_with("Term '") || issue.starts_with("Segment '")) && issue.contains("' should be translated as ")
+}
+
+/// What [`adopt_state`] did to one state file.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Adopted {
+    /// Snapshots brought up to date.
+    pub adopted: usize,
+    /// Translations whose stored glossary issues no longer hold and were dropped.
+    pub cleared: usize,
+    /// For each segment left glossary-stale, the entries it does not render.
+    pub left: Vec<Vec<String>>,
+}
+
 /// Accept the translations in `state` that already render every glossary
 /// entry their source uses: their snapshot is brought up to date, so they
-/// are not translated again. Returns how many were accepted and, for each
-/// segment left glossary-stale, the entries it does not render.
-pub fn adopt_state(state: &mut StateFile, glossary: &Glossary, markup: yeokja_core::parser::Markup) -> (usize, Vec<Vec<String>>) {
-    let mut adopted = 0;
-    let mut left = Vec::new();
+/// are not translated again. A translation that meets the glossary also loses
+/// any glossary issue stored with it — a translation kept after its retries
+/// ran out records why, and the record goes stale once the glossary or its
+/// matching changes.
+pub fn adopt_state(state: &mut StateFile, glossary: &Glossary, markup: yeokja_core::parser::Markup) -> Adopted {
+    let mut out = Adopted::default();
     for segment in &mut state.segments {
         let Some(translation) = &segment.translation else { continue };
-        if !glossary.is_snapshot_stale(&segment.glossary_snapshot, &segment.source) {
+        let stale = glossary.is_snapshot_stale(&segment.glossary_snapshot, &segment.source);
+        let flagged = segment.issues.iter().any(|issue| is_glossary_issue(issue));
+        if !stale && !flagged {
             continue;
         }
         let unmet = glossary.unmet_terms(&glossary_source(markup, &segment.source), translation);
-        if unmet.is_empty() {
+        if !unmet.is_empty() {
+            if stale {
+                out.left.push(unmet.into_iter().map(|(term, _)| term).collect());
+            }
+            continue;
+        }
+        if stale {
             segment.glossary_snapshot = glossary.find_matching_terms(&segment.source);
-            adopted += 1;
-        } else {
-            left.push(unmet.into_iter().map(|(term, _)| term).collect());
+            out.adopted += 1;
+        }
+        if flagged {
+            segment.issues.retain(|issue| !is_glossary_issue(issue));
+            out.cleared += 1;
         }
     }
-    (adopted, left)
+    out
 }
 
 /// Bring back the translations `earlier` held where they are as good for the
@@ -917,6 +944,8 @@ pub struct AdoptReport {
     pub adopted: usize,
     /// Earlier translations brought back (see [`restore_earlier`]).
     pub restored: usize,
+    /// Translations whose stale glossary issues were dropped.
+    pub cleared: usize,
     pub files_written: usize,
     /// Segments still glossary-stale.
     pub stale: usize,
@@ -947,12 +976,13 @@ pub fn adopt_path(
         let restored = earlier
             .and_then(|earlier| earlier(&state_path))
             .map_or(0, |old| restore_earlier(&mut state, &old, glossary, markup));
-        let (adopted, left) = adopt_state(&mut state, glossary, markup);
-        if adopted + restored > 0 {
+        let Adopted { adopted, cleared, left } = adopt_state(&mut state, glossary, markup);
+        if adopted + restored + cleared > 0 {
             state.save(&state_path)?;
             report.files_written += 1;
             report.adopted += adopted;
             report.restored += restored;
+            report.cleared += cleared;
         }
         report.stale += left.len();
         for term in left.into_iter().flatten() {
@@ -1214,6 +1244,26 @@ mod tests {
     }
 
     #[test]
+    fn adopt_drops_glossary_issues_that_no_longer_hold() {
+        let glossary = Glossary::from_toml("[terms.sponsor]\ntranslation = \"스폰서\"\n").unwrap();
+        let mut state = StateFile::new(0);
+        let mut met = segment("Find a sponsor.", "스폰서를 찾으십시오.");
+        met.glossary_snapshot = glossary.find_matching_terms("Find a sponsor.");
+        met.issues = vec![
+            "Term 'sponsor' should be translated as '스폰서' but was not found in translation".into(),
+            "Unclosed emphasis".into(),
+        ];
+        let mut unmet = segment("Find a sponsor.", "후원자를 찾으십시오.");
+        unmet.glossary_snapshot = glossary.find_matching_terms("Find a sponsor.");
+        unmet.issues = vec!["Term 'sponsor' should be translated as '스폰서' but was not found in translation".into()];
+        state.segments = vec![met, unmet];
+        let adopted = adopt_state(&mut state, &glossary, Markup::Markdown);
+        assert_eq!((adopted.adopted, adopted.cleared), (0, 1));
+        assert_eq!(state.segments[0].issues, vec!["Unclosed emphasis".to_string()]);
+        assert_eq!(state.segments[1].issues.len(), 1);
+    }
+
+    #[test]
     fn adopt_accepts_translations_that_already_render_the_terms() {
         let glossary =
             Glossary::from_toml("[terms.sponsor]\ntranslation = \"스폰서\"\n[whole.Abstract]\ntranslation = \"초록\"\n").unwrap();
@@ -1225,9 +1275,9 @@ mod tests {
             segment("Abstract", "개요"),
             segment("Nothing here.", "여기는 없습니다."),
         ];
-        let (adopted, left) = adopt_state(&mut state, &glossary, Markup::Markdown);
-        assert_eq!(adopted, 2);
-        assert_eq!(left, vec![vec!["sponsor".to_string()], vec!["Abstract".to_string()]]);
+        let adopted = adopt_state(&mut state, &glossary, Markup::Markdown);
+        assert_eq!(adopted.adopted, 2);
+        assert_eq!(adopted.left, vec![vec!["sponsor".to_string()], vec!["Abstract".to_string()]]);
         assert_eq!(state.segments[0].glossary_snapshot.get("sponsor").map(String::as_str), Some("스폰서"));
         assert!(state.segments[1].glossary_snapshot.is_empty());
         assert!(!glossary.is_snapshot_stale(&state.segments[2].glossary_snapshot, "Abstract"));

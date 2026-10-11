@@ -9,6 +9,9 @@ use yeokja_translate::terms::{
 
 /// Print what adoption did and which entries still leave segments to translate.
 pub fn print_adopt_report(report: &AdoptReport) {
+    if report.cleared > 0 {
+        println!("Dropped stale glossary issues from {} translation(s) that meet the glossary.", report.cleared);
+    }
     if report.restored > 0 {
         println!("Restored {} earlier translation(s) that already meet the glossary.", report.restored);
     }
