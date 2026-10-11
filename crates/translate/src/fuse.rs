@@ -91,6 +91,7 @@ mod tests {
             prompt_template: None,
             paragraphs: Default::default(),
             inline_tags: false,
+            surroundings: String::new(),
         }
     }
 

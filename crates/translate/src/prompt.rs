@@ -32,6 +32,7 @@ pub fn build_prompt(request: &TranslateRequest) -> String {
             .replace("{feedback}", request.feedback.as_deref().unwrap_or(""))
             .replace("{inline_tags}", if request.inline_tags { INLINE_TAG_RULES } else { "" })
             .replace("{context}", &request.block_context)
+            .replace("{surroundings}", &surroundings_section(request))
             .replace("{segments}", segments_section.trim_end());
     }
 
@@ -83,10 +84,25 @@ pub fn build_prompt(request: &TranslateRequest) -> String {
         request.block_context
     ));
 
+    prompt.push_str(&surroundings_section(request));
+
     prompt.push_str("\nSentences to translate:\n");
     prompt.push_str(&segments_section);
 
     prompt
+}
+
+/// The read-only context around a request, with how to use it, or nothing.
+fn surroundings_section(request: &TranslateRequest) -> String {
+    if request.surroundings.is_empty() {
+        return String::new();
+    }
+    format!(
+        "\nWhere this text sits (for reference only; do not translate it). Use it to resolve what \
+         pronouns and short answers refer to, to fit list items to the sentence that introduces them, \
+         and to keep terms and tone in step with the neighbouring translations:\n{}",
+        request.surroundings
+    )
 }
 
 /// The rules for inline-tag text (see `inline`). Code stays in backticks so
@@ -286,6 +302,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         }
     }
 

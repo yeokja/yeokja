@@ -769,6 +769,7 @@ fn batch_block_groups(groups: Vec<BlockGroup>, segment_limit: usize) -> Vec<Bloc
 
 /// The request `translate_block` sends for a group of pending segments, with
 /// its inline tags when the request goes as tag text.
+#[allow(clippy::too_many_arguments)]
 fn build_request(
     config: &ProjectConfig,
     glossary: &Glossary,
@@ -777,6 +778,7 @@ fn build_request(
     block_ids: &[Vec<String>],
     inline: Option<&InlineFile>,
     markup: Markup,
+    surroundings: &str,
 ) -> (TranslateRequest, Option<InlineBatch>) {
     let tagged = inline.and_then(|file| file.tag_request(block_ids, block_segments));
     let (block_context, request_segments, inline_batch) = match tagged {
@@ -801,7 +803,12 @@ fn build_request(
         })
         .collect();
 
-    let glossary_terms = glossary.terms().clone();
+    // Only the entries these sentences use: a term base runs to hundreds
+    // of entries, and all of them in every request only lengthened it.
+    let mut glossary_terms: HashMap<String, String> = HashMap::new();
+    for (_, seg) in block_segments {
+        glossary_terms.extend(glossary.find_matching_terms(&seg.source));
+    }
 
     let request = TranslateRequest {
         segments: request_segments,
@@ -814,6 +821,7 @@ fn build_request(
         prompt_template: config.provider.prompt_template.clone(),
         paragraphs,
         inline_tags: inline_batch.is_some(),
+        surroundings: surroundings.to_string(),
     };
 
     (request, inline_batch)
@@ -882,10 +890,20 @@ pub fn plan_requests(
         .flat_map(|block| block.segments.iter().map(move |seg| (seg.id.0.as_str(), block.raw_content.as_str())))
         .collect();
     let markup = parser.markup();
+    let states: Vec<SegmentState> = reconciled.iter().map(|rs| rs.state.clone()).collect();
+    let around = crate::surroundings::Surroundings::new(&doc, &states);
     let mut planned = Vec::new();
     for (block_context, block_segments, block_ids) in groups {
-        let (request, inline_batch) =
-            build_request(config, glossary, &block_context, &block_segments, &block_ids, inline.as_ref(), markup);
+        let (request, inline_batch) = build_request(
+            config,
+            glossary,
+            &block_context,
+            &block_segments,
+            &block_ids,
+            inline.as_ref(),
+            markup,
+            &around.describe(&block_ids),
+        );
         let index_of: HashMap<&str, usize> = block_segments
             .iter()
             .enumerate()
@@ -1124,6 +1142,8 @@ impl Orchestrator {
                 .unwrap_or_else(yeokja_core::config::default_batch_segments),
         );
         let markup = parser.markup();
+        let states: Vec<SegmentState> = reconciled.iter().map(|rs| rs.state.clone()).collect();
+        let around = crate::surroundings::Surroundings::new(&doc, &states);
         let mut handles = Vec::new();
         for (block_context, block_segments, block_ids) in groups {
             let current: BTreeMap<usize, String> = block_segments
@@ -1159,6 +1179,7 @@ impl Orchestrator {
                 &block_ids,
                 inline.as_deref(),
                 markup,
+                &around.describe(&block_ids),
             );
             let fuser = crate::fuse::Fuser { llm: editor.clone(), drafts };
             let semaphore = semaphore.clone();
@@ -1345,6 +1366,11 @@ impl FileTranslator {
             "Translating"
         );
 
+        let around = {
+            let states: Vec<SegmentState> = reconciled.iter().map(|rs| rs.state.clone()).collect();
+            crate::surroundings::Surroundings::new(&doc, &states)
+        };
+
         // Carry current context hashes into the stored state.
         let initial_segments: Vec<SegmentState> = reconciled
             .iter()
@@ -1404,6 +1430,7 @@ impl FileTranslator {
         let mut handles = Vec::new();
         let markup = parser.markup();
         for (block_context, block_segments, block_ids) in block_groups {
+            let surroundings = around.describe(&block_ids);
             let inline = inline.clone();
             let this = FileTranslator {
                 config: self.config.clone(),
@@ -1451,6 +1478,7 @@ impl FileTranslator {
                         &block_ids,
                         inline.as_deref(),
                         markup,
+                        &surroundings,
                         &progress,
                     )
                     .await
@@ -1500,10 +1528,19 @@ impl FileTranslator {
         block_ids: &[Vec<String>],
         inline: Option<&InlineFile>,
         markup: Markup,
+        surroundings: &str,
         progress: &Option<ProgressSender>,
     ) -> Result<Vec<SegmentUpdate>, crate::provider::TranslateError> {
-        let (request, inline_batch) =
-            build_request(&self.config, &self.glossary, block_context, block_segments, block_ids, inline, markup);
+        let (request, inline_batch) = build_request(
+            &self.config,
+            &self.glossary,
+            block_context,
+            block_segments,
+            block_ids,
+            inline,
+            markup,
+            surroundings,
+        );
 
         // Tag text has to become Markdown, so an inline-tag request always
         // goes through the pipeline, with or without evaluators.

@@ -152,3 +152,30 @@ fn planned_request_round_trips_through_json() {
     let numbered: usize = planned.iter().map(|p| p.request.segments.len()).sum();
     assert_eq!(segments, numbered);
 }
+
+#[test]
+fn requests_carry_their_surroundings_and_only_the_glossary_entries_they_use() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("ch1.md");
+    std::fs::write(&file, SOURCE).unwrap();
+    let config = config(dir.path(), 1);
+    let factory: ParserFactory = Arc::new(yeokja_parsers::select_parser);
+    let glossary = Glossary::from_toml("[terms.sentence]\ntranslation = \"문장\"\n[terms.zebra]\ntranslation = \"얼룩말\"\n").unwrap();
+    let planned = plan_requests(&file, &config, &glossary, &factory).unwrap();
+
+    let first_item = planned
+        .iter()
+        .find(|p| p.request.segments.iter().any(|(_, t)| t.contains("An item with")))
+        .expect("a request for the first list item");
+    let around = &first_item.request.surroundings;
+    assert!(around.contains("Under heading: Title"), "{around}");
+    assert!(around.contains("Before: A sentence with"), "{around}");
+    assert!(around.contains("After: A second item"), "{around}");
+
+    let paragraph = planned
+        .iter()
+        .find(|p| p.request.segments.iter().any(|(_, t)| t.starts_with("A sentence with")))
+        .unwrap();
+    assert_eq!(paragraph.request.glossary.keys().collect::<Vec<_>>(), vec!["sentence"]);
+    assert!(first_item.request.glossary.is_empty());
+}

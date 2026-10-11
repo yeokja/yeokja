@@ -51,6 +51,10 @@ pub struct TranslateRequest {
     /// The segments and context are inline-tag text (see `inline`), so the
     /// prompt states the tag rules instead of the markup's own.
     pub inline_tags: bool,
+    /// Read-only context around the request: headings above it and the
+    /// blocks before and after it (see `surroundings`). Empty when none.
+    #[serde(default)]
+    pub surroundings: String,
 }
 
 #[derive(Debug, Clone)]

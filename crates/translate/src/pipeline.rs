@@ -538,6 +538,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         };
 
         let results = translate_with_evaluation(
@@ -584,6 +585,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         };
 
         let result = translate_with_evaluation(
@@ -617,6 +619,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         }
     }
 
@@ -732,6 +735,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         };
 
         let results = translate_with_evaluation(
@@ -789,6 +793,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         };
 
         let results = translate_with_evaluation(
@@ -828,6 +833,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         };
         let results = translate_with_evaluation(
             &provider,
@@ -865,6 +871,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: false,
+            surroundings: String::new(),
         };
         let results = translate_with_evaluation(
             &provider,
@@ -938,6 +945,7 @@ mod tests {
             prompt_template: None,
             paragraphs: HashMap::new(),
             inline_tags: true,
+            surroundings: String::new(),
         };
         (request, InlineBatch { tagged, ctx })
     }
