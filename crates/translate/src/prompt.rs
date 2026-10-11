@@ -96,7 +96,9 @@ pub const INLINE_TAG_RULES: &str = "The text marks inline formatting with tags. 
     text: <bN>…</bN> bold, <iN>…</iN> italic, <sN>…</sN> strikethrough, <aN>…</aN> the visible text \
     of a link, <hN>…</hN> text inside an HTML element. Inline code is written in backticks as in \
     Markdown (`x`): copy every code span exactly, never translate or change what is inside it. Empty \
-    tags stand for things copied unchanged: <xN/> other markup, <mN/> math. Keep every tag exactly \
+    tags stand for things copied unchanged: <xN/> other markup, <mN/> math. An empty tag is not a word and \
+    may be invisible (an HTML comment): never add a word, number or unit (일, 년) to go with it, and put it \
+    next to the words it stood next to. Keep every tag exactly \
     once with its number and kind — never add, drop, rename or merge tags — translate the text inside \
     paired tags, and place the tags where Korean word order puts the words they belong to. A Korean \
     particle attaches directly after a closing tag, an empty tag or a code span (`x`를, </b2>에서): \

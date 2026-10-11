@@ -137,7 +137,15 @@ impl ParseState<'_> {
     }
 
     fn extend_run(&mut self, range: Range<usize>) {
-        if self.html_opaque.iter().any(|r| r.start < range.end && range.start < r.end) {
+        // An HTML comment inside a sentence (`as of <!-- date-check --> March
+        // 2023`) stays in it: cutting the paragraph there made two blocks,
+        // translated apart, of one sentence. The comment is markup the
+        // translation carries over, as an inline tag where tags are used.
+        let inline_comment = self.run.is_some()
+            && self.source[range.clone()].starts_with("<!--")
+            && self.source[range.clone()].trim_end().ends_with("-->")
+            && !self.source[range.clone()].contains('\n');
+        if !inline_comment && self.html_opaque.iter().any(|r| r.start < range.end && range.start < r.end) {
             self.flush_run();
             return;
         }
