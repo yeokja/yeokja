@@ -34,6 +34,7 @@ evals/ko-translation/
     items.cc-by-sa-4.0.jsonl
     items.cc-by-nc-sa-4.0.jsonl    zero-to-nix
     synthetic.jsonl                직접 작성한 항목 (MIT OR Apache-2.0)
+  v1-surroundings/                 v1 요청에 주변 문맥을 붙이고 용어집을 요청에 쓰이는 항목으로 줄인 파생 세트
   runs/<YYYY-MM-DD>-<label>/
     run.toml                       후보 모델, 프로바이더 설정, yeokja 커밋, 프롬프트 해시
     outputs.<license>.jsonl        입력 파일과 같은 라이선스 단위로 저장
@@ -149,6 +150,26 @@ Publication License PEP는 뺍니다. 프로젝트별 라이선스와 범위는 
   10요청은 세 번 돌려 편차를 봅니다.
 - `run.toml`에 모델 ID, 프로바이더 설정, yeokja 커밋, 프롬프트 해시, 날짜를
   기록합니다.
+
+### 5.1 파생 세트
+
+번역 요청의 모양을 바꾸는 변경은 같은 항목을 바뀐 요청으로 다시 만든 파생 세트로
+잽니다. `v1`은 그대로 두고, 파생 세트도 커밋해 고정합니다. 비교는 같은 날 같은
+후보로 원래 세트와 파생 세트를 각각 돌려 쌍대 비교합니다. 같은 조건의 두 실행도
+세그먼트의 절반 남짓이 글자가 다르게 나오므로, 번역문 차이 수로는 효과를 판단하지
+않습니다.
+
+- **`v1-surroundings`** (`yeokja-eval surround`): 요청 문맥 확장
+  (`docs/superpowers/specs/2026-10-11-request-context-design.md`)을 잽니다. 각 항목의
+  파일을 `plan_requests`로 다시 계획해 세그먼트가 같은 요청의 `surroundings`를 가져오고,
+  `request.glossary`는 `v1/glossaries/`의 용어집에서 항목의 세그먼트에 나오는 것만
+  남깁니다. 나머지(세그먼트, 인라인 태그, 블록 문맥)는 `v1` 그대로입니다. 저장된 state
+  없이 계획하므로 주변 블록은 원문만 보입니다(처음 번역하는 경우). 원문이나 파서가 바뀌어
+  세그먼트가 맞는 요청을 찾지 못한 항목은 주변 문맥 없이 둡니다.
+
+```sh
+target/release/yeokja-eval surround --out evals/ko-translation/v1-surroundings
+```
 
 ## 6. 채점
 

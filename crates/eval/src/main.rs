@@ -8,6 +8,7 @@ mod judge;
 mod manifest;
 mod report;
 mod run;
+mod surround;
 mod view;
 
 use clap::{Parser, Subcommand};
@@ -71,6 +72,18 @@ enum Commands {
         /// draft and run only the items that have one
         #[arg(long)]
         contaminate: bool,
+    },
+    /// Derive a set whose requests carry their surroundings and only the
+    /// glossary entries they use
+    Surround {
+        /// Repository root
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        #[arg(long, default_value = "evals/ko-translation/v1")]
+        set: PathBuf,
+        /// Derived set directory
+        #[arg(long)]
+        out: PathBuf,
     },
     /// Mechanical checks per block of each run (writes <run>/gates.jsonl)
     Gate {
@@ -170,6 +183,7 @@ async fn main() -> anyhow::Result<()> {
             run::run(run::Options { set, drafts, contaminate, candidate, out, concurrency, max_retries, repeat, subset, only })
                 .await
         }
+        Commands::Surround { repo, set, out } => surround::run(surround::Options { repo, set, out }),
         Commands::Gate { runs, set } => gate::run(set, runs).await,
         Commands::Judge { baseline, candidates, judges, out, set, concurrency, seed, real } => {
             judge::run(judge::Options { set, baseline, candidates, judges, out, concurrency, seed, real }).await

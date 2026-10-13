@@ -131,7 +131,7 @@ struct Context_<'a> {
     yeokja_commit: String,
 }
 
-struct ProjectRun {
+pub(crate) struct ProjectRun {
     name: String,
     dir: PathBuf,
     ctx: ProjectContext,
@@ -141,7 +141,7 @@ struct ProjectRun {
 }
 
 impl ProjectRun {
-    fn load(repo: &Path, dir: &Path, name: &str) -> Result<Self> {
+    pub(crate) fn load(repo: &Path, dir: &Path, name: &str) -> Result<Self> {
         std::env::set_current_dir(dir).with_context(|| format!("enter {}", dir.display()))?;
         let ctx = ProjectContext::load().with_context(|| format!("load {name}"))?;
         let upstream = upstream_of(repo, dir);
@@ -160,7 +160,7 @@ impl ProjectRun {
         Ok(())
     }
 
-    fn plan(&self, file: &Path) -> Result<Vec<PlannedRequest>> {
+    pub(crate) fn plan(&self, file: &Path) -> Result<Vec<PlannedRequest>> {
         self.enter()?;
         plan_requests(file, &self.ctx.config, &self.ctx.glossary, &self.factory)
             .map_err(|e| anyhow!("{}/{}: {e}", self.name, file.display()))
