@@ -27,8 +27,18 @@ fn is_middle_initial(chars: &[char], dot: usize) -> bool {
     let next_is_name = chars.get(dot + 1).is_some_and(|c| c.is_whitespace())
         && chars.get(dot + 2).is_some_and(|c| c.is_uppercase())
         && chars.get(dot + 3).is_some_and(|c| c.is_lowercase());
-    previous_is_name && next_is_name
+    // "Crate A. The following": a word that opens sentences is no surname.
+    let next: String = chars[(dot + 2).min(chars.len())..].iter().take_while(|c| c.is_alphabetic()).collect();
+    previous_is_name && next_is_name && !SENTENCE_OPENERS.contains(&next.as_str())
 }
+
+/// Capitalized words that open sentences and are not surnames.
+const SENTENCE_OPENERS: &[&str] = &[
+    "The", "This", "That", "These", "Those", "There", "Here", "It", "Its", "In", "On", "At", "An", "As",
+    "If", "When", "We", "You", "They", "He", "She", "For", "But", "And", "So", "To", "However", "Then",
+    "Now", "Each", "All", "Some", "No", "Note", "See", "Also", "Otherwise", "Since", "Because", "After",
+    "Before", "With", "Without", "Using", "Our", "Your", "Their", "What", "Why", "How",
+];
 
 pub fn split_sentences(text: &str) -> Vec<String> {
     if text.trim().is_empty() {
@@ -356,6 +366,12 @@ mod tests {
         assert_eq!(split_sentences("Thanks to Phillip J.\nEby for this."), vec!["Thanks to Phillip J.\nEby for this."]);
         // A capital letter that ends a sentence still ends it.
         assert_eq!(split_sentences("We call it type A. Next we start."), vec!["We call it type A.", "Next we start."]);
+        // A name never starts with a word that opens sentences.
+        assert_eq!(
+            split_sentences("Crate B depends on Crate A. The following table lists them."),
+            vec!["Crate B depends on Crate A.", "The following table lists them."]
+        );
+        assert_eq!(split_sentences("We need a Plan B. This one failed."), vec!["We need a Plan B.", "This one failed."]);
     }
 
     #[test]
