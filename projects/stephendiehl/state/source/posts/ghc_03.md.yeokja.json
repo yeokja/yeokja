@@ -1,0 +1,834 @@
+{
+  "version": 1,
+  "source_hash": 3528109653834468019,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Dive into GHC: Targeting Core",
+      "source_hash": 12376309283997467269,
+      "context_hash": 1865585126667904751,
+      "translation": "GHC 깊이 들여다보기: Core를 대상으로",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "GHC": "GHC"
+      },
+      "translated_at": "2026-10-17T13:15:30.747198Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "In the [last blog post](http://www.stephendiehl.com/posts/ghc_01.html), we discussed the intermediate structures used in the GHC compiler.",
+      "source_hash": 4228176055869335124,
+      "context_hash": 10457932127954436585,
+      "translation": "[지난 블로그 글](http://www.stephendiehl.com/posts/ghc_01.html)에서는 GHC 컴파일러에서 사용되는 중간 구조를 살펴보았습니다.",
+      "glossary_snapshot": {
+        "GHC": "GHC",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-10-17T13:15:30.747199Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "This time let's discuss the Core language.",
+      "source_hash": 4119723888885497458,
+      "context_hash": 2214607050882095439,
+      "translation": "이번에는 Core 언어를 살펴봅시다.",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:30.747199Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "\\*\\*\\[Accompaying Source Code\\](https://github.com/sdiehl/dive-into-ghc/tree/master/03-core)\\*\\*",
+      "source_hash": 2197976224634772626,
+      "context_hash": 7161301466560766651,
+      "translation": "\\*\\*\\[Accompaying Source Code\\](https://github.com/sdiehl/dive-into-ghc/tree/master/03-core)\\*\\*",
+      "glossary_snapshot": {
+        "code": "코드"
+      },
+      "translated_at": "2026-10-17T13:44:44.835493Z",
+      "issues": [
+        "Term 'code' should be translated as '코드' but was not found in translation"
+      ]
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Core",
+      "source_hash": 17314848919636016994,
+      "context_hash": 13044554555503485116,
+      "translation": "Core",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:30.747199Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "GHC's most central data types.",
+      "source_hash": 7171220930574525619,
+      "context_hash": 6616472742896023422,
+      "translation": "GHC에서 가장 핵심적인 데이터 타입입니다.",
+      "glossary_snapshot": {
+        "GHC": "GHC",
+        "data types": "데이터 타입"
+      },
+      "translated_at": "2026-10-17T13:15:30.747200Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "Core is a very small, explicitly-typed, variant of System FC; a typed lambda calculus that differs from the simply typed lambda calculus by the introduction of a mechanism of universal quantification over types denoted as capital lambda $\\Lambda$.",
+      "source_hash": 4162821705277202618,
+      "context_hash": 13777229404186732268,
+      "translation": "Core는 System FC의 아주 작고 명시적으로 타입이 지정된 변형입니다. 이는 타입 위에서의 전칭 양화 메커니즘을 도입했다는 점에서 단순 타입 람다 대수와 다른 타입 있는 람다 대수이며, 이 전칭 양화는 대문자 람다 $\\Lambda$로 표기됩니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "lambda calculus": "람다 대수"
+      },
+      "translated_at": "2026-10-17T13:15:30.747200Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "While the Haskell frontend is an implicitly-typed source language, Core is an explicitly-typed language.",
+      "source_hash": 4249635314921793636,
+      "context_hash": 16539534830012807143,
+      "translation": "Haskell 프런트엔드는 암묵적으로 타입이 지정되는 소스 언어이지만, Core는 명시적으로 타입이 지정되는 언어입니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "Haskell": "Haskell",
+        "frontend": "프런트엔드"
+      },
+      "translated_at": "2026-10-17T13:15:30.747201Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "Every binder has an explicit type, and terms include explicit type abstractions and applications.",
+      "source_hash": 14836435378474618395,
+      "context_hash": 10958639838228992081,
+      "translation": "모든 바인더는 명시적인 타입을 가지며, 항에는 명시적인 타입 추상화와 타입 적용이 포함됩니다.",
+      "glossary_snapshot": {
+        "abstractions": "추상화",
+        "binder": "바인더"
+      },
+      "translated_at": "2026-10-17T13:15:30.747201Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "To inspect the core from GHCi we can invoke it using the following flags and the following shell alias.",
+      "source_hash": 5487841562375846535,
+      "context_hash": 8206233106061099603,
+      "translation": "GHCi에서 Core를 살펴보려면 다음 플래그와 다음 셸 별칭을 사용하여 호출할 수 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "shell": "셸"
+      },
+      "translated_at": "2026-10-17T13:15:30.747201Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:1",
+      "source": "We have explicitly disable the printing of certain metadata and longform names to make the representation easier to read.",
+      "source_hash": 653566620006741072,
+      "context_hash": 15692927977123653418,
+      "translation": "표현을 읽기 쉽게 하려고 일부 메타데이터와 긴 형식의 이름이 출력되지 않도록 명시적으로 비활성화했습니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-10-17T13:15:30.747202Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "At the interactive prompt we can then explore the core representation interactively:",
+      "source_hash": 570238101355212235,
+      "context_hash": 13813357979844463741,
+      "translation": "그러면 대화형 프롬프트에서 Core 표현을 대화식으로 탐색할 수 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "prompt": "프롬프트"
+      },
+      "translated_at": "2026-10-17T13:15:30.747202Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "Then for example we can type in normal expressions and see their translation into Core.",
+      "source_hash": 4585357659562074109,
+      "context_hash": 7070192714472420128,
+      "translation": "예를 들어 일반적인 식을 입력하고 그것이 Core로 어떻게 변환되는지 확인할 수 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:30.747202Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Core Syntax",
+      "source_hash": 2458681988888612066,
+      "context_hash": 9239074033299951302,
+      "translation": "Core 구문",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:30.747203Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:0",
+      "source": "Core is defined in the [CoreSyn](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CoreSyn.html) module.",
+      "source_hash": 17957442681216540448,
+      "context_hash": 16197678732503676600,
+      "translation": "Core는 [CoreSyn](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CoreSyn.html) 모듈에 정의되어 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:15:30.747203Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:1",
+      "source": "The central datatype is `Expr` which holds the 10 core datatypes that all Haskell expressions can be condensed down into.",
+      "source_hash": 11164268305452707923,
+      "context_hash": 7510577035530948713,
+      "translation": "중심이 되는 데이터 타입은 `Expr`이며, 이 타입은 모든 Haskell 표현식을 압축하여 나타낼 수 있는 10가지 Core 데이터 타입을 담고 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "Haskell": "Haskell",
+        "datatype": "데이터 타입",
+        "datatypes": "데이터 타입"
+      },
+      "translated_at": "2026-10-17T13:15:30.747203Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:0",
+      "source": "The pattern match logic for Core is broken down into several datatypes which discriminate on at most one branch of a constructor.",
+      "source_hash": 8935004978073769606,
+      "context_hash": 205827088808798327,
+      "translation": "Core의 패턴 매치 로직은 생성자의 최대 한 갈래만을 판별하는 여러 데이터 타입으로 나뉩니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "datatypes": "데이터 타입",
+        "pattern": "패턴"
+      },
+      "translated_at": "2026-10-17T13:15:30.747203Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:1",
+      "source": "The process of translating frontend case statements into Core case statements involves the process of expanding pattern matches out into their a \"splitting tree\" of cases.",
+      "source_hash": 13061911457733678138,
+      "context_hash": 13439416792882396598,
+      "translation": "프런트엔드의 case 문을 Core의 case 문으로 변환하는 과정에서는 패턴 매치를 case들의 \"분할 트리\"로 펼치는 과정을 거칩니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "frontend": "프런트엔드",
+        "pattern": "패턴"
+      },
+      "translated_at": "2026-10-17T13:15:30.747204Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:2",
+      "source": "The case for the wild card pattern match is `(DEFAULT, [], rhs)`.",
+      "source_hash": 2068647446744803694,
+      "context_hash": 4633326821306157701,
+      "translation": "와일드카드 패턴 매치에 해당하는 case는 `(DEFAULT, [], rhs)`입니다.",
+      "glossary_snapshot": {
+        "pattern": "패턴"
+      },
+      "translated_at": "2026-10-17T13:15:30.747204Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "Notably on all the types there is a parameter `b` is the type of binders.",
+      "source_hash": 7747796681051063086,
+      "context_hash": 17171365007694943836,
+      "translation": "특히 모든 타입에는 바인더의 타입을 나타내는 매개변수 `b`가 있습니다.",
+      "glossary_snapshot": {
+        "binders": "바인더",
+        "parameter": "매개변수"
+      },
+      "translated_at": "2026-10-17T13:15:30.747204Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:1",
+      "source": "The binder type is a sum type containing a recursive binder and a non-recursive binder.",
+      "source_hash": 1140676286751002976,
+      "context_hash": 15598708633893270364,
+      "translation": "바인더 타입은 재귀 바인더와 비재귀 바인더를 포함하는 합 타입입니다.",
+      "glossary_snapshot": {
+        "binder": "바인더",
+        "sum type": "합 타입"
+      },
+      "translated_at": "2026-10-17T13:15:30.747204Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:2",
+      "source": "Bindings that are mutually recursive are encoded as a list of binders.",
+      "source_hash": 4918491146192007400,
+      "context_hash": 16122648146324534644,
+      "translation": "상호 재귀적인 바인딩은 바인더의 리스트로 인코딩됩니다.",
+      "glossary_snapshot": {
+        "binders": "바인더"
+      },
+      "translated_at": "2026-10-17T13:15:30.747204Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:0",
+      "source": "For example the factorial function:",
+      "source_hash": 10713702446850621129,
+      "context_hash": 7776903199676609201,
+      "translation": "예를 들어 팩토리얼 함수는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:30.747204Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "... is expanded out into it's core binders is enclosed in a recursive binding.",
+      "source_hash": 16137344640753708458,
+      "context_hash": 4153804599094199917,
+      "translation": "... 이 함수는 Core 바인더로 펼쳐지며 재귀 바인딩 안에 감싸집니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "binders": "바인더"
+      },
+      "translated_at": "2026-10-17T13:15:30.747204Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "There are several type synonyms provided by the `CoreSyn` module that expand out the binder parameter into a convenient synonym.",
+      "source_hash": 17112336932715899808,
+      "context_hash": 14502519834705296573,
+      "translation": "`CoreSyn` 모듈은 바인더 매개변수를 펼쳐 편리하게 쓸 수 있도록 한 타입 동의어를 여러 개 제공합니다.",
+      "glossary_snapshot": {
+        "binder": "바인더",
+        "module": "모듈",
+        "parameter": "매개변수"
+      },
+      "translated_at": "2026-10-17T13:15:30.747205Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "As an aside the notation used in papers on the typing judgements for Haskell syntax typically uses the following convention and has a one-to-one mapping to each of the Haskell datatypes in `Expr`.",
+      "source_hash": 9769700870510463036,
+      "context_hash": 13274873942097281799,
+      "translation": "덧붙이자면, Haskell 구문의 타이핑 판단을 다루는 논문에서 쓰이는 표기법은 일반적으로 다음 관례를 따르며, `Expr`에 있는 각 Haskell 데이터 타입과 일대일로 대응합니다.",
+      "glossary_snapshot": {
+        "Haskell": "Haskell",
+        "datatypes": "데이터 타입"
+      },
+      "translated_at": "2026-10-17T13:15:30.747205Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:0",
+      "source": "Var",
+      "source_hash": 681110621989203187,
+      "context_hash": 6071307855308828195,
+      "translation": "Var",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:30.747205Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:29/seg:0",
+      "source": "The `Var` type is central to most of the core definitions, it is the primary name type used in the later half of the compiler and contains is a synonym for the `Id` type but it may additionally potentially contain type variables,",
+      "source_hash": 3297553060425583307,
+      "context_hash": 12075079763244323824,
+      "translation": "`Var` 타입은 대부분의 Core 정의에서 중심이 되는 타입이며, 컴파일러의 후반부에서 사용되는 주된 이름 타입입니다. 이 타입은 `Id` 타입의 동의어이지만 추가로 타입 변수를 포함할 수도 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "compiler": "컴파일러"
+      },
+      "translated_at": "2026-10-17T13:15:30.747206Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:0",
+      "source": "The fields for Var also contain and important type which indicates the provenance of the identifier.",
+      "source_hash": 6554759636594308798,
+      "context_hash": 16543150137167066731,
+      "translation": "Var의 필드에는 식별자의 출처를 나타내는 중요한 타입도 들어 있습니다.",
+      "glossary_snapshot": {
+        "identifier": "식별자"
+      },
+      "translated_at": "2026-10-17T13:15:30.747206Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:1",
+      "source": "A `LocalId` is bound within an expression such as a lambda, case, or let binding.",
+      "source_hash": 16003228183434630562,
+      "context_hash": 2103927196584225816,
+      "translation": "`LocalId`는 람다, case, let 바인딩과 같은 식 안에서 바인딩됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:30.747206Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:2",
+      "source": "A `GlobalId` is either a top-level expression or a imported data constructor, class, etc.",
+      "source_hash": 4206498518366766804,
+      "context_hash": 15429681960595639512,
+      "translation": "`GlobalId`는 최상위 식이거나 임포트된 데이터 생성자, 클래스 등입니다.",
+      "glossary_snapshot": {
+        "data constructor": "데이터 생성자"
+      },
+      "translated_at": "2026-10-17T13:15:30.747206Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:0",
+      "source": "In addition to the scope there are two metadata records that give additional information about the usage and type of the identifier.",
+      "source_hash": 15671890845368945737,
+      "context_hash": 13196250138201062464,
+      "translation": "스코프 외에도 식별자의 사용 방식과 유형에 대한 추가 정보를 제공하는 두 가지 메타데이터 레코드가 있습니다.",
+      "glossary_snapshot": {
+        "identifier": "식별자",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-10-17T13:15:17.540136Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:1",
+      "source": "These are the `IdInfo` and `IdDetails`.",
+      "source_hash": 13440577418377701816,
+      "context_hash": 10602172843361475829,
+      "translation": "바로 `IdInfo`와 `IdDetails`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540138Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:2",
+      "source": "The `IdDetails` primary contains information about why the variable is introduced while `IdInfo` contains metadata about optimizations that may be applied during the core to core passes.",
+      "source_hash": 10829948279956636450,
+      "context_hash": 10208407175353509684,
+      "translation": "`IdDetails`는 주로 변수가 왜 도입되었는지에 대한 정보를 담고 있으며, `IdInfo`는 core에서 core로의 패스 동안 적용될 수 있는 최적화에 관한 메타데이터를 담고 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "metadata": "메타데이터",
+        "optimizations": "최적화"
+      },
+      "translated_at": "2026-10-17T13:15:17.540138Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:35/seg:0",
+      "source": "The structure of `IdInfo` is a set flags.",
+      "source_hash": 15582355827476074647,
+      "context_hash": 16329886621435843593,
+      "translation": "`IdInfo`의 구조는 플래그들의 집합입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540139Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:0",
+      "source": "For the identifiers we'll construct we'll simply use the vanilla flavor of id as they are simply from lambda expressions and toplevel functions.",
+      "source_hash": 12041924523857853174,
+      "context_hash": 4387238914327991623,
+      "translation": "우리가 구성할 식별자들은 단순히 람다 식과 최상위 함수에서 나온 것이므로, 기본(vanilla) 형태의 id를 그대로 사용하겠습니다.",
+      "glossary_snapshot": {
+        "identifiers": "식별자",
+        "toplevel": "최상위"
+      },
+      "translated_at": "2026-10-17T13:15:17.540140Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:0",
+      "source": "A name combined with this metadata and a type uniquely constructs and Id/Var and there are several helper functions that combine them together.",
+      "source_hash": 18108596877539310297,
+      "context_hash": 14098536057184008345,
+      "translation": "이름에 이 메타데이터와 타입을 결합하면 Id/Var가 고유하게 구성되며, 이들을 함께 결합해 주는 여러 헬퍼 함수가 있습니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-10-17T13:15:17.540140Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:41/seg:0",
+      "source": "Example",
+      "source_hash": 1513857641461741027,
+      "context_hash": 3541981523264382886,
+      "translation": "예제",
+      "glossary_snapshot": {
+        "Example": "예제"
+      },
+      "translated_at": "2026-10-17T13:15:17.540140Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:0",
+      "source": "Consider the following incredibly simple module:",
+      "source_hash": 8281860577649307467,
+      "context_hash": 6299832801026515652,
+      "translation": "다음과 같은 아주 간단한 모듈을 생각해 봅시다.",
+      "glossary_snapshot": {
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:15:17.540140Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:0",
+      "source": "Let's recreate it using Core constructions, as the functions we mentioned above.",
+      "source_hash": 15535383186176833128,
+      "context_hash": 1323239942444759778,
+      "translation": "앞서 언급한 함수들을 사용하여 Core 구성 요소로 이 모듈을 다시 만들어 봅시다.",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:17.540141Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:1",
+      "source": "We'll simulate the unique supply in a contrived way using `mkUnique`, in practice one shouldn't actually do this and instead simply initialize the supply inside of IO.",
+      "source_hash": 15315862670843795063,
+      "context_hash": 8712776415076563116,
+      "translation": "여기서는 `mkUnique`를 사용해 다소 억지스러운 방식으로 고유 값 공급(unique supply)을 흉내 내겠지만, 실제로는 이렇게 하지 말고 IO 안에서 공급을 초기화하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540141Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:0",
+      "source": "So now we have a synthetic Core module that we can package up into a `ModGuts` and `ModSummary` just like what we'd get from the top half of the compiler after Typechecking.",
+      "source_hash": 441389960966264522,
+      "context_hash": 9205135107318392411,
+      "translation": "이제 타입 검사 이후 컴파일러의 전반부에서 얻는 것과 똑같이 `ModGuts`와 `ModSummary`로 묶을 수 있는 합성 Core 모듈이 생겼습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "compiler": "컴파일러",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:15:17.540142Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:1",
+      "source": "For most of these fields we simply initialize them with default dummy values.",
+      "source_hash": 1407242676747020102,
+      "context_hash": 10920150296741998120,
+      "translation": "이 필드들 대부분은 기본 더미 값으로 초기화하기만 하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540142Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:49/seg:0",
+      "source": "Code Generation",
+      "source_hash": 11294664498961736895,
+      "context_hash": 12102616819656323701,
+      "translation": "코드 생성",
+      "glossary_snapshot": {
+        "code generation": "코드 생성"
+      },
+      "translated_at": "2026-10-17T13:15:17.540142Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:0",
+      "source": "So now that we have our synthetic core module we can run the normal compiler pipeline on it and compile it just like we would with source code.",
+      "source_hash": 15909200443222630369,
+      "context_hash": 16973021857925625030,
+      "translation": "이제 합성 core 모듈이 준비되었으므로, 여기에 일반 컴파일러 파이프라인을 실행하여 소스 코드를 컴파일할 때와 똑같이 컴파일할 수 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "code": "코드",
+        "compiler": "컴파일러",
+        "module": "모듈",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:15:17.540143Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:1",
+      "source": "The transformation of Core to native code goes through several processes:",
+      "source_hash": 2709871734359809295,
+      "context_hash": 8134189730915240176,
+      "translation": "Core를 네이티브 코드로 변환하는 과정은 여러 단계를 거칩니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "code": "코드"
+      },
+      "translated_at": "2026-10-17T13:15:17.540143Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:51/seg:0",
+      "source": "[CorePrep](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CorePrep.html)",
+      "source_hash": 7954680490313406841,
+      "context_hash": 10405762244973781156,
+      "translation": "[CorePrep](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CorePrep.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540143Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:52/seg:0",
+      "source": "[CoreToStg](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CoreToStg.html)",
+      "source_hash": 4533175872533969773,
+      "context_hash": 17271275575709010974,
+      "translation": "[CoreToStg](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CoreToStg.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540143Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:0",
+      "source": "[Core Linting (Optional)](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CoreLint.html)",
+      "source_hash": 11665490079261670144,
+      "context_hash": 9727164642954437064,
+      "translation": "[Core 린팅(선택 사항)](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/CoreLint.html)",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:17.540144Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:54/seg:0",
+      "source": "[Stg2Stg](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/SimplStg.html)",
+      "source_hash": 15114316308277904339,
+      "context_hash": 13778579088169373922,
+      "translation": "[Stg2Stg](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/SimplStg.html)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540144Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:55/seg:0",
+      "source": "[Code Generation](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/AsmCodeGen.html)",
+      "source_hash": 3292806912251139779,
+      "context_hash": 2319972105632280326,
+      "translation": "[코드 생성](https://downloads.haskell.org/~ghc/7.10.3/docs/html/libraries/ghc-7.10.3/AsmCodeGen.html)",
+      "glossary_snapshot": {
+        "code generation": "코드 생성"
+      },
+      "translated_at": "2026-10-17T13:15:17.540144Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:0",
+      "source": "The main pass is called the Simplifier, which maps Core to Core.",
+      "source_hash": 560637867848542499,
+      "context_hash": 14351396725920425386,
+      "translation": "주요 패스는 Simplifier라고 불리며, Core를 Core로 매핑합니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "pass": "패스"
+      },
+      "translated_at": "2026-10-17T13:15:17.540145Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:1",
+      "source": "It's job it is to perform a large collection of correctness-preserving transformations, with the goal of producing a more efficient program.",
+      "source_hash": 7180292520657414244,
+      "context_hash": 10291409373055321480,
+      "translation": "이 패스의 역할은 더 효율적인 프로그램을 만들어 내는 것을 목표로, 정확성을 보존하는 수많은 변환을 수행하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540145Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:57/seg:0",
+      "source": "Constant folding",
+      "source_hash": 4446277295501081717,
+      "context_hash": 10946366300012837335,
+      "translation": "상수 폴딩",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540145Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:58/seg:0",
+      "source": "Applying the rewrite rules",
+      "source_hash": 2628314280052396589,
+      "context_hash": 16395257503679695144,
+      "translation": "재작성 규칙 적용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:0",
+      "source": "Inlining",
+      "source_hash": 2039254670227290773,
+      "context_hash": 830325973099213888,
+      "translation": "인라이닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:60/seg:0",
+      "source": "Case of case optimization",
+      "source_hash": 15484879815999289473,
+      "context_hash": 10038980586401884878,
+      "translation": "case-of-case 최적화",
+      "glossary_snapshot": {
+        "optimization": "최적화"
+      },
+      "translated_at": "2026-10-17T13:15:17.540146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:61/seg:0",
+      "source": "Case of known constructor optimization",
+      "source_hash": 9583261468206441369,
+      "context_hash": 12994257582219507322,
+      "translation": "알려진 생성자에 대한 case 최적화",
+      "glossary_snapshot": {
+        "optimization": "최적화"
+      },
+      "translated_at": "2026-10-17T13:15:17.540146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:62/seg:0",
+      "source": "Eta expansion and Eta reduction",
+      "source_hash": 15076275117919001371,
+      "context_hash": 15599263857801982533,
+      "translation": "에타 확장과 에타 축소",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:17.540146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:0",
+      "source": "In addition to optimization GHC contains a pass called the Core Linter which does a variety of internal consistency checks on a given Core program.",
+      "source_hash": 8427481246295133208,
+      "context_hash": 4507785662930473270,
+      "translation": "최적화 외에도 GHC에는 Core Linter라는 패스가 있으며, 이 패스는 주어진 Core 프로그램에 대해 다양한 내부 일관성 검사를 수행합니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "GHC": "GHC",
+        "optimization": "최적화"
+      },
+      "translated_at": "2026-10-17T13:15:17.540146Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:1",
+      "source": "Since Core is explicitly typed, typechecking a given program is trivial as we simply check that the type of identifiers matches with their bindings and that the types are internally consistent.",
+      "source_hash": 14368822662088942209,
+      "context_hash": 16114744947212076527,
+      "translation": "Core는 명시적으로 타입이 지정되어 있으므로, 식별자의 타입이 바인딩과 일치하는지, 그리고 타입들이 내부적으로 일관적인지만 확인하면 되기 때문에 주어진 프로그램의 타입 검사는 간단합니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "identifiers": "식별자"
+      },
+      "translated_at": "2026-10-17T13:15:17.540147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:2",
+      "source": "The Core linter is extremely useful if you're writing optimization passes that transform Core or are targeting it from another language (other than vanilla Haskell).",
+      "source_hash": 9849642347160536349,
+      "context_hash": 12473820873562013914,
+      "translation": "Core linter는 Core를 변환하는 최적화 패스를 작성하거나 (기본 Haskell이 아닌) 다른 언어에서 Core를 대상으로 삼는 경우에 매우 유용합니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "Haskell": "Haskell",
+        "optimization": "최적화"
+      },
+      "translated_at": "2026-10-17T13:15:17.540147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:3",
+      "source": "The linter pass can prevent a whole slew of bugs before they manifest as code generation errors.",
+      "source_hash": 3873502411041495494,
+      "context_hash": 9937358517905880722,
+      "translation": "linter 패스는 수많은 버그가 코드 생성 오류로 드러나기 전에 이를 미리 막아 줄 수 있습니다.",
+      "glossary_snapshot": {
+        "code generation": "코드 생성",
+        "pass": "패스"
+      },
+      "translated_at": "2026-10-17T13:15:17.540147Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:64/seg:0",
+      "source": "So now we'll run the rest of the compiler pipeline and generate assembly code from our module.",
+      "source_hash": 16415357226633778832,
+      "context_hash": 2674473523830365132,
+      "translation": "이제 나머지 컴파일러 파이프라인을 실행하여 모듈에서 어셈블리 코드를 생성하겠습니다.",
+      "glossary_snapshot": {
+        "assembly": "어셈블리",
+        "code": "코드",
+        "compiler": "컴파일러",
+        "module": "모듈",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:12:06.588843Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:64/seg:1",
+      "source": "There's a bit of song and dance in converting between types but the process is basically just connecting the inputs and outputs of the above passes together.",
+      "source_hash": 10325705483532570267,
+      "context_hash": 692110375414329869,
+      "translation": "타입 간 변환에 약간 번거로운 절차가 따르지만, 이 과정은 기본적으로 위의 패스들의 입력과 출력을 서로 연결하는 것에 불과합니다.",
+      "glossary_snapshot": {
+        "inputs": "입력",
+        "outputs": "출력"
+      },
+      "translated_at": "2026-10-17T13:12:06.588844Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:66/seg:0",
+      "source": "And then we get a `Example.asm` file outputted from our synthetic core module.",
+      "source_hash": 18159635406669139297,
+      "context_hash": 10382966569672557646,
+      "translation": "그러면 합성한 Core 모듈로부터 `Example.asm` 파일이 출력됩니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:12:06.588844Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:66/seg:1",
+      "source": "A next step project would be to target a more complicated language to GHC Core to take advantage of it's compiler optimizations and native code generation.",
+      "source_hash": 8844703209070305827,
+      "context_hash": 5042476638307708963,
+      "translation": "다음 단계의 프로젝트로는 더 복잡한 언어가 GHC Core를 타깃으로 삼도록 하여 GHC의 컴파일러 최적화와 네이티브 코드 생성을 활용하는 것을 생각해 볼 수 있습니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "GHC": "GHC",
+        "code generation": "코드 생성",
+        "compiler": "컴파일러",
+        "optimizations": "최적화"
+      },
+      "translated_at": "2026-10-17T13:12:06.588845Z",
+      "issues": []
+    }
+  ]
+}

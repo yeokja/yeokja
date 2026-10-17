@@ -1,0 +1,1114 @@
+{
+  "version": 1,
+  "source_hash": 13468014197407798432,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Dependent Types in 200 Lines of Python",
+      "source_hash": 10167290962893963967,
+      "context_hash": 6377323514323648227,
+      "translation": "200줄의 Python으로 구현하는 의존 타입",
+      "glossary_snapshot": {
+        "Python": "Python"
+      },
+      "translated_at": "2026-10-17T13:26:09.660715Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "The Calculus of Constructions (shortened as CoC) is one of the most common typed lambda calculi, forming the theoretical foundation for dependently typed programming languages like Coq.",
+      "source_hash": 6955330666330158272,
+      "context_hash": 5038538832082913978,
+      "translation": "구성의 계산(Calculus of Constructions, 줄여서 CoC)은 가장 널리 쓰이는 타입 있는 람다 대수 중 하나이며, Coq와 같은 의존 타입의 프로그래밍 언어의 이론적 토대를 이룹니다.",
+      "glossary_snapshot": {
+        "dependently typed": "의존 타입의",
+        "programming languages": "프로그래밍 언어"
+      },
+      "translated_at": "2026-10-17T13:26:09.660716Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "In this post, we'll implement a type checker for CoC in 200 lines of Python, breaking down the key components and explaining how they work.",
+      "source_hash": 527918214604823332,
+      "context_hash": 8241370275453466371,
+      "translation": "이 글에서는 200줄의 Python으로 CoC의 타입 검사기를 구현하면서 핵심 구성 요소를 하나씩 나누어 살펴보고 각각이 어떻게 동작하는지 설명합니다.",
+      "glossary_snapshot": {
+        "Python": "Python"
+      },
+      "translated_at": "2026-10-17T13:26:09.660716Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "This is mostly a code-golf exercise, so the implementation is not super robust but it is fun that we can even implement this in Python.",
+      "source_hash": 754902251410747630,
+      "context_hash": 8059708636132844196,
+      "translation": "이것은 대체로 코드 골프 연습이므로 구현이 아주 견고하지는 않지만, 이것을 Python으로도 구현할 수 있다는 점이 재미있습니다.",
+      "glossary_snapshot": {
+        "Python": "Python",
+        "code": "코드",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:26:09.660716Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Some background, the CoC was developed by Thierry Coquand in 1985, and is a higher-order typed lambda calculus that combines two key ideas:",
+      "source_hash": 7719883150253760697,
+      "context_hash": 905425234179884688,
+      "translation": "배경을 조금 설명하자면, CoC는 1985년 Thierry Coquand가 개발한 고차 타입 람다 대수로, 두 가지 핵심 개념을 결합합니다.",
+      "glossary_snapshot": {
+        "lambda calculus": "람다 대수"
+      },
+      "translated_at": "2026-10-17T13:26:09.660716Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Dependent types - types that can depend on terms",
+      "source_hash": 10515550392892257277,
+      "context_hash": 2339720203924223248,
+      "translation": "의존 타입 - 항에 의존할 수 있는 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "Type polymorphism - the ability to quantify over types",
+      "source_hash": 7740934535581686173,
+      "context_hash": 12034236110506157172,
+      "translation": "타입 다형성 - 타입에 대해 양화할 수 있는 능력",
+      "glossary_snapshot": {
+        "polymorphism": "다형성"
+      },
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "The system has two sorts: `*` (the type of types) and `☐` (the type of `*`).",
+      "source_hash": 15173924013219960566,
+      "context_hash": 11939477888482681788,
+      "translation": "이 체계에는 두 가지 종류(sort)가 있습니다. `*`(타입들의 타입)와 `☐`(`*`의 타입)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:1",
+      "source": "It supports the following terms:",
+      "source_hash": 12591198557799774147,
+      "context_hash": 16115615759699482749,
+      "translation": "이 체계는 다음과 같은 항을 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "Variables",
+      "source_hash": 5196624676386524253,
+      "context_hash": 10144808996639594127,
+      "translation": "변수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "Lambda abstractions (λx:A.t)",
+      "source_hash": 12361329992232506531,
+      "context_hash": 9181629792480083166,
+      "translation": "람다 추상화 (λx:A.t)",
+      "glossary_snapshot": {
+        "abstractions": "추상화"
+      },
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "Function applications (t u)",
+      "source_hash": 10912158051540664283,
+      "context_hash": 890949939033686341,
+      "translation": "함수 적용 (t u)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "Dependent product types (Πx:A.B)",
+      "source_hash": 4536945458550201288,
+      "context_hash": 12263023432178997938,
+      "translation": "의존 곱 타입 (Πx:A.B)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660717Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "Type annotations (t : A)",
+      "source_hash": 2483828957202450039,
+      "context_hash": 8735206175608119527,
+      "translation": "타입 표기 (t : A)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660718Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "Let's break down our implementation into its core components.",
+      "source_hash": 15202369487509065736,
+      "context_hash": 3524089512735018093,
+      "translation": "구현을 Core 구성 요소별로 나누어 살펴봅시다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:26:09.660718Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:1",
+      "source": "We have the term representation, in which we approximate algebraic data types using Python classes.",
+      "source_hash": 17228530629414330355,
+      "context_hash": 11620879395150885247,
+      "translation": "먼저 항 표현이 있는데, 여기서는 Python 클래스를 사용해 대수적 데이터 타입을 흉내 냅니다.",
+      "glossary_snapshot": {
+        "Python": "Python",
+        "data types": "데이터 타입"
+      },
+      "translated_at": "2026-10-17T13:26:09.660718Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:12/seg:0",
+      "source": "**Understanding De Bruijn Indices**",
+      "source_hash": 504735065936807023,
+      "context_hash": 2981156359146951121,
+      "translation": "**De Bruijn 인덱스 이해하기**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660718Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "Before diving into the implementation, let's understand De Bruijn indices, which we use for variable lookup.",
+      "source_hash": 18001885364524852380,
+      "context_hash": 10176640017444090621,
+      "translation": "구현에 들어가기 전에, 변수 조회에 사용하는 De Bruijn 인덱스를 이해해 봅시다.",
+      "glossary_snapshot": {
+        "implementation": "구현",
+        "lookup": "조회"
+      },
+      "translated_at": "2026-10-17T13:26:09.660718Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:1",
+      "source": "In De Bruijn notation, variables are represented by numbers that indicate how many binders you need to go up to find the variable's binding site.",
+      "source_hash": 9181434863520519808,
+      "context_hash": 6526048151712852534,
+      "translation": "De Bruijn 표기법에서 변수는 해당 변수의 바인딩 위치를 찾기 위해 바인더를 몇 개나 거슬러 올라가야 하는지를 나타내는 숫자로 표현됩니다.",
+      "glossary_snapshot": {
+        "binders": "바인더"
+      },
+      "translated_at": "2026-10-17T13:26:09.660718Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:2",
+      "source": "For example:",
+      "source_hash": 4114854479619665730,
+      "context_hash": 9941855531345805998,
+      "translation": "예를 들면 다음과 같습니다.",
+      "glossary_snapshot": {
+        "For example:": "예를 들면 다음과 같습니다."
+      },
+      "translated_at": "2026-10-17T13:26:09.660719Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "More examples:",
+      "source_hash": 7359774827420858265,
+      "context_hash": 16622718725081709466,
+      "translation": "더 많은 예시입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660719Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "In our implementation, we use De Bruijn levels (counting from the outside) rather than indices (counting from the inside) for the context lookup.",
+      "source_hash": 10560165648211311399,
+      "context_hash": 6028902270264153695,
+      "translation": "우리 구현에서는 컨텍스트 조회에 인덱스(안쪽부터 셈) 대신 De Bruijn 레벨(바깥쪽부터 셈)을 사용합니다.",
+      "glossary_snapshot": {
+        "implementation": "구현",
+        "lookup": "조회"
+      },
+      "translated_at": "2026-10-17T13:26:09.660719Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:1",
+      "source": "This is why we use `lvl - x - 1` to access the context, converting from levels to indices.",
+      "source_hash": 4699958414170373539,
+      "context_hash": 12436001548205325258,
+      "translation": "이 때문에 컨텍스트에 접근할 때 `lvl - x - 1`을 사용하여 레벨을 인덱스로 변환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660719Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "**Type Term Hierarchy**",
+      "source_hash": 12950354860289109649,
+      "context_hash": 3291969718635679398,
+      "translation": "**타입 항 계층 구조**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660719Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:0",
+      "source": "For term evaluation, we implement beta reduction, the core computational rule of lambda calculus.",
+      "source_hash": 18075856274464069815,
+      "context_hash": 7689340743625952492,
+      "translation": "항 평가를 위해 람다 대수의 Core 계산 규칙인 베타 축약을 구현합니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "lambda calculus": "람다 대수"
+      },
+      "translated_at": "2026-10-17T13:26:09.660719Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:1",
+      "source": "The `eval` function implements call-by-value evaluation strategy and is crucial for type checking since dependent types require comparing types for computational equality.",
+      "source_hash": 331393264520461995,
+      "context_hash": 16316623315491345278,
+      "translation": "`eval` 함수는 값에 의한 호출(call-by-value) 평가 전략을 구현하며, 의존 타입에서는 타입이 계산상 동등한지 비교해야 하므로 타입 검사에 매우 중요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660720Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "The type checker is split into three mutually recursive functions.",
+      "source_hash": 9854392996785183312,
+      "context_hash": 2787575840367678695,
+      "translation": "타입 검사기는 서로 재귀적으로 호출하는 세 개의 함수로 나뉩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660720Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:1",
+      "source": "Some important implementation details to note:",
+      "source_hash": 4612030243059179765,
+      "context_hash": 13296038202877737375,
+      "translation": "주목해야 할 몇 가지 중요한 구현 세부 사항은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:26:09.660720Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:23/seg:0",
+      "source": "The `infer_ty` and `check_ty` functions always return evaluated types",
+      "source_hash": 8917971410153638598,
+      "context_hash": 17045535738294265264,
+      "translation": "`infer_ty`와 `check_ty` 함수는 항상 평가된 타입을 반환합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660720Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "The typing context (`ctx`) must contain only evaluated types and be well-formed (every entry must be of some sort)",
+      "source_hash": 12931967200915112532,
+      "context_hash": 9343599780041512220,
+      "translation": "타입 컨텍스트(`ctx`)는 평가된 타입만 포함해야 하며 잘 형성되어 있어야 합니다(모든 항목은 어떤 종류(sort)에 속해야 합니다)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660720Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:0",
+      "source": "Bindings are added to the beginning of the context and indexed by De Bruijn indices",
+      "source_hash": 7918843628581006778,
+      "context_hash": 2103497765469265490,
+      "translation": "바인딩은 컨텍스트의 앞쪽에 추가되며 De Bruijn 인덱스로 색인됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660720Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "Since `FreeVar` uses De Bruijn levels, we use `lvl - x - 1` to access the context",
+      "source_hash": 793011442980488256,
+      "context_hash": 8527528296608315606,
+      "translation": "`FreeVar`는 De Bruijn 레벨을 사용하므로, 컨텍스트에 접근할 때 `lvl - x - 1`을 사용합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.660720Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:0",
+      "source": "The `infer_ty` function implements bidirectional type checking:",
+      "source_hash": 9869241467197516228,
+      "context_hash": 14330965397826218196,
+      "translation": "`infer_ty` 함수는 양방향 타입 검사를 구현합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885818Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:29/seg:0",
+      "source": "For Pi types, ensures both the domain and codomain are sorts",
+      "source_hash": 9086278922902384469,
+      "context_hash": 11066024873069745969,
+      "translation": "Pi 타입의 경우, 정의역과 공역이 모두 소트(sort)인지 확인합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885818Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:0",
+      "source": "For applications, infers the function type and checks the argument",
+      "source_hash": 2781158858833754440,
+      "context_hash": 4998195098138853526,
+      "translation": "적용(application)의 경우, 함수 타입을 추론하고 인자를 검사합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885818Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:31/seg:0",
+      "source": "For annotations, verifies the type is valid and checks the term against it",
+      "source_hash": 8018203104979193574,
+      "context_hash": 8322180789059213506,
+      "translation": "주석(annotation)의 경우, 타입이 올바른지 확인하고 그 타입에 대해 항을 검사합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885818Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:0",
+      "source": "For variables, looks up their type in the context",
+      "source_hash": 2111064172770870777,
+      "context_hash": 10877618106680561778,
+      "translation": "변수의 경우, 컨텍스트에서 그 타입을 조회합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885818Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:0",
+      "source": "For `*`, returns `☐`",
+      "source_hash": 2405705424409214502,
+      "context_hash": 13713407322265032674,
+      "translation": "`*`의 경우, `☐`를 반환합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885818Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "`☐` has no type (it's at the top of the hierarchy)",
+      "source_hash": 1507904778964920595,
+      "context_hash": 16270349681901843392,
+      "translation": "`☐`는 타입을 갖지 않습니다(계층의 최상위에 있기 때문입니다)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885818Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:0",
+      "source": "The `infer_sort` function ensures a term has type `*` or `☐`:",
+      "source_hash": 512344767980533855,
+      "context_hash": 12803964043219716109,
+      "translation": "`infer_sort` 함수는 항이 `*` 또는 `☐` 타입을 갖는지 확인합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:0",
+      "source": "Infers the type of the term",
+      "source_hash": 10055507396601231851,
+      "context_hash": 5207086752084562190,
+      "translation": "항의 타입을 추론합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:38/seg:0",
+      "source": "Verifies it's a sort",
+      "source_hash": 15381712242802409972,
+      "context_hash": 16984833429950722906,
+      "translation": "그것이 소트인지 확인합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:0",
+      "source": "Returns the sort for use in type formation rules",
+      "source_hash": 17520893570390186023,
+      "context_hash": 1118231465120710551,
+      "translation": "타입 형성 규칙에서 사용할 수 있도록 소트를 반환합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:41/seg:0",
+      "source": "The `equate` function implements structural equality checking.",
+      "source_hash": 8687025766551499172,
+      "context_hash": 5703799732046024146,
+      "translation": "`equate` 함수는 구조적 동등성 검사를 구현합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:41/seg:1",
+      "source": "When checking two terms for beta-convertibility (computational equality), we must first evaluate them before calling `equate`.",
+      "source_hash": 16286742973053142375,
+      "context_hash": 15424007765226605556,
+      "translation": "두 항이 베타 변환 가능한지(계산적 동등성) 검사할 때는 `equate`를 호출하기 전에 먼저 두 항을 평가해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:41/seg:2",
+      "source": "In `check_ty`, when comparing the inferred type (`got_ty`) with the expected type (`ty`), both are already in normal form so no additional evaluation is needed.",
+      "source_hash": 5094198485111197442,
+      "context_hash": 14283029877878728874,
+      "translation": "`check_ty`에서 추론된 타입(`got_ty`)과 기대 타입(`ty`)을 비교할 때는 둘 다 이미 정규형이므로 추가 평가가 필요하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:0",
+      "source": "The `equate` function implements structural equality checking:",
+      "source_hash": 14512554063219992354,
+      "context_hash": 2054827716288215397,
+      "translation": "`equate` 함수는 구조적 동등성 검사를 구현합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:44/seg:0",
+      "source": "Compares terms recursively, handling all term constructors",
+      "source_hash": 10017631960043758914,
+      "context_hash": 8363184413599958069,
+      "translation": "모든 항 생성자를 처리하면서 항을 재귀적으로 비교합니다",
+      "glossary_snapshot": {
+        "handling": "처리"
+      },
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:0",
+      "source": "Uses HOAS comparison for bound variables",
+      "source_hash": 764442589012760634,
+      "context_hash": 15078506586434694382,
+      "translation": "속박 변수에 대해서는 HOAS 비교를 사용합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:0",
+      "source": "Implements alpha-equivalence through the level counting mechanism",
+      "source_hash": 4910917360004543841,
+      "context_hash": 10389869071507232464,
+      "translation": "레벨 카운팅 메커니즘을 통해 알파 동치를 구현합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:48/seg:0",
+      "source": "These utility functions handle HOAS variable manipulation:",
+      "source_hash": 13314776313647227107,
+      "context_hash": 3827197144469973117,
+      "translation": "다음 유틸리티 함수들은 HOAS 변수 조작을 처리합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:49/seg:0",
+      "source": "`unfurl` converts a HOAS function to a term with a free variable",
+      "source_hash": 9045924780024856761,
+      "context_hash": 17504184663100778440,
+      "translation": "`unfurl`은 HOAS 함수를 자유 변수를 가진 항으로 변환합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:0",
+      "source": "`unfurl2` does the same for pairs of functions",
+      "source_hash": 11047777586854377653,
+      "context_hash": 11525847216398355939,
+      "translation": "`unfurl2`는 함수 쌍에 대해 같은 일을 합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:51/seg:0",
+      "source": "The level parameter ensures proper scoping of variables",
+      "source_hash": 17775655247120530942,
+      "context_hash": 4418841187098175335,
+      "translation": "레벨 매개변수는 변수의 올바른 스코프를 보장합니다",
+      "glossary_snapshot": {
+        "parameter": "매개변수"
+      },
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:0",
+      "source": "The `print_term` function converts terms to readable string representations:",
+      "source_hash": 10683156639535721428,
+      "context_hash": 3920188724811525575,
+      "translation": "`print_term` 함수는 항을 읽기 쉬운 문자열 표현으로 변환합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:54/seg:0",
+      "source": "Now let's look at two \"practical\" examples of CoC in action: Church numerals and length-indexed vectors.",
+      "source_hash": 6930078053369137319,
+      "context_hash": 9203277902101370086,
+      "translation": "이제 CoC가 실제로 동작하는 두 가지 \"실용적인\" 예제인 처치 수(Church numeral)와 길이 색인 벡터를 살펴봅시다.",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:54/seg:1",
+      "source": "To make the examples more readable, we use some helper functions:",
+      "source_hash": 6180240765313869623,
+      "context_hash": 8876420022808409444,
+      "translation": "예제를 더 읽기 쉽게 만들기 위해 몇 가지 헬퍼 함수를 사용합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:0",
+      "source": "Church numerals represent natural numbers as functions.",
+      "source_hash": 14506427729181279034,
+      "context_hash": 1652382886621910187,
+      "translation": "처치 수는 자연수를 함수로 표현합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:1",
+      "source": "In CoC, we can give them precise types:",
+      "source_hash": 4354629493484725626,
+      "context_hash": 11335147036449036345,
+      "translation": "CoC에서는 처치 수에 정확한 타입을 부여할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:58/seg:0",
+      "source": "Here's what's happening:",
+      "source_hash": 1668033146636757064,
+      "context_hash": 15043971749404864868,
+      "translation": "다음과 같은 일이 일어납니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:0",
+      "source": "A Church numeral takes a type `a`, a function `f: a → a`, and a value `x: a`",
+      "source_hash": 4581398078193085306,
+      "context_hash": 5128309344880691044,
+      "translation": "처치 수는 타입 `a`, 함수 `f: a → a`, 값 `x: a`를 받습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:60/seg:0",
+      "source": "It applies `f` to `x` n times, where n is the number being represented",
+      "source_hash": 14455323443685930878,
+      "context_hash": 14234372813579188728,
+      "translation": "`f`를 `x`에 n번 적용하며, 여기서 n은 표현되는 수입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:61/seg:0",
+      "source": "`zero` returns x unchanged",
+      "source_hash": 9922997937740018343,
+      "context_hash": 12235644091157749028,
+      "translation": "`zero`는 x를 그대로 반환합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:62/seg:0",
+      "source": "`succ n` applies f one more time than n does",
+      "source_hash": 1228588196407536680,
+      "context_hash": 14420687495381253738,
+      "translation": "`succ n`은 n보다 f를 한 번 더 적용합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:09.885820Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:63/seg:0",
+      "source": "`add n m` applies f n+m times",
+      "source_hash": 7306670726155583125,
+      "context_hash": 16029590143253259229,
+      "translation": "`add n m`은 f를 n+m번 적용합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:12.465543Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:64/seg:0",
+      "source": "We can also use dependent types to create vectors whose length is statically known:",
+      "source_hash": 18219845109245659252,
+      "context_hash": 5277665479360657917,
+      "translation": "의존 타입을 사용하면 길이를 정적으로 알 수 있는 벡터도 만들 수 있습니다:",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465544Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:66/seg:0",
+      "source": "The vector operations demonstrate dependent typing:",
+      "source_hash": 11515338624781910470,
+      "context_hash": 13309810346777567084,
+      "translation": "벡터 연산은 의존 타이핑을 보여 줍니다:",
+      "glossary_snapshot": {
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465544Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:67/seg:0",
+      "source": "`replicate` creates a vector of length n filled with a value",
+      "source_hash": 15030047810807781768,
+      "context_hash": 7584125545566953641,
+      "translation": "`replicate`는 하나의 값으로 채워진 길이 n의 벡터를 만듭니다",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465544Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:68/seg:0",
+      "source": "`concat` combines vectors, with the result length being the sum",
+      "source_hash": 16076040678335901116,
+      "context_hash": 2907586071044514244,
+      "translation": "`concat`은 벡터를 결합하며, 결과의 길이는 두 길이의 합입니다",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465544Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:69/seg:0",
+      "source": "`zip` combines two vectors of the same length",
+      "source_hash": 2651958865728079049,
+      "context_hash": 14120169391865435510,
+      "translation": "`zip`은 길이가 같은 두 벡터를 결합합니다",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:70/seg:0",
+      "source": "Here's how we can use these operations:",
+      "source_hash": 99483309509863476,
+      "context_hash": 768737511342469161,
+      "translation": "이 연산들은 다음과 같이 사용할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:72/seg:0",
+      "source": "The type system ensures:",
+      "source_hash": 16170960237257274791,
+      "context_hash": 11038653941836389386,
+      "translation": "타입 시스템은 다음을 보장합니다:",
+      "glossary_snapshot": {
+        "type system": "타입 시스템"
+      },
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:73/seg:0",
+      "source": "Vector lengths are tracked precisely",
+      "source_hash": 16063221677667168235,
+      "context_hash": 10613346432966984590,
+      "translation": "벡터 길이가 정확하게 추적됩니다",
+      "glossary_snapshot": {
+        "lengths": "길이",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:74/seg:0",
+      "source": "Operations maintain length invariants",
+      "source_hash": 15335198832835115512,
+      "context_hash": 1691107850671739295,
+      "translation": "연산이 길이 불변 조건을 유지합니다",
+      "glossary_snapshot": {
+        "length": "길이"
+      },
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:75/seg:0",
+      "source": "Length mismatches are caught statically",
+      "source_hash": 14429282885971580008,
+      "context_hash": 380048048687977068,
+      "translation": "길이 불일치가 정적으로 검출됩니다",
+      "glossary_snapshot": {
+        "length": "길이"
+      },
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:76/seg:0",
+      "source": "These examples demonstrate how CoC can express both computation and static guarantees in a unified system.",
+      "source_hash": 11404570650320157618,
+      "context_hash": 10855785186597810360,
+      "translation": "이 예제들은 CoC가 계산과 정적 보장을 하나의 통합된 시스템 안에서 어떻게 함께 표현할 수 있는지 보여 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:76/seg:1",
+      "source": "The type checker ensures our operations respect these guarantees while still allowing flexible programming patterns.",
+      "source_hash": 6801277431045903785,
+      "context_hash": 6592277415529773062,
+      "translation": "타입 검사기는 유연한 프로그래밍 패턴을 여전히 허용하면서도 연산이 이러한 보장을 지키도록 합니다.",
+      "glossary_snapshot": {
+        "patterns": "패턴",
+        "programming": "프로그래밍"
+      },
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:76/seg:2",
+      "source": "Dependent types are cool.",
+      "source_hash": 15834010842057750402,
+      "context_hash": 17310960400743404035,
+      "translation": "의존 타입은 멋집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:12.465545Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:77/seg:0",
+      "source": "Let's look at the implementation of these vector operations in more detail:",
+      "source_hash": 11430168066343321481,
+      "context_hash": 4894845298793516202,
+      "translation": "이 벡터 연산들의 구현을 더 자세히 살펴봅시다:",
+      "glossary_snapshot": {
+        "implementation": "구현",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:78/seg:0",
+      "source": "**Replicate**",
+      "source_hash": 10098037841385377173,
+      "context_hash": 1176584959758140662,
+      "translation": "**Replicate**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:80/seg:0",
+      "source": "The replicate function creates a vector of length `n` where every element is `x`.",
+      "source_hash": 6059992819674314868,
+      "context_hash": 17753232084949961072,
+      "translation": "replicate 함수는 모든 원소가 `x`인 길이 `n`의 벡터를 만듭니다.",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:80/seg:1",
+      "source": "The type ensures that the resulting vector's length matches the input number `n`.",
+      "source_hash": 10064820030161498577,
+      "context_hash": 4014086627491567375,
+      "translation": "타입은 결과 벡터의 길이가 입력된 수 `n`과 일치하도록 보장합니다.",
+      "glossary_snapshot": {
+        "input": "입력",
+        "length": "길이",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:80/seg:2",
+      "source": "In a real implementation, this would construct a list of n copies of x, but in our type-only implementation we just track the types.",
+      "source_hash": 4582789030184454335,
+      "context_hash": 14543319439511936664,
+      "translation": "실제 구현이라면 x를 n개 복사한 리스트를 구성하겠지만, 타입만 다루는 우리 구현에서는 타입만 추적합니다.",
+      "glossary_snapshot": {
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:81/seg:0",
+      "source": "**Concatenate**",
+      "source_hash": 10452772171385466561,
+      "context_hash": 1476258379104391582,
+      "translation": "**Concatenate**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:83/seg:0",
+      "source": "The concat function combines two vectors.",
+      "source_hash": 6196361196127677935,
+      "context_hash": 4607921212566934849,
+      "translation": "concat 함수는 두 벡터를 결합합니다.",
+      "glossary_snapshot": {
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:83/seg:1",
+      "source": "Its type is particularly interesting because it shows how dependent types can track arithmetic relationships - the output vector's length is `n + m`, the sum of the input lengths.",
+      "source_hash": 13001354449663910584,
+      "context_hash": 3934684246560938748,
+      "translation": "이 함수의 타입은 의존 타입이 산술 관계를 어떻게 추적할 수 있는지 보여 주므로 특히 흥미롭습니다. 출력 벡터의 길이는 입력 길이의 합인 `n + m`입니다.",
+      "glossary_snapshot": {
+        "arithmetic": "산술",
+        "input": "입력",
+        "length": "길이",
+        "lengths": "길이",
+        "output": "출력",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:83/seg:2",
+      "source": "This is enforced statically by the type system.",
+      "source_hash": 1095420803276231488,
+      "context_hash": 5695610567478886281,
+      "translation": "이는 타입 시스템에 의해 정적으로 강제됩니다.",
+      "glossary_snapshot": {
+        "type system": "타입 시스템"
+      },
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:84/seg:0",
+      "source": "**Zip**",
+      "source_hash": 9881310675597796678,
+      "context_hash": 2773199177774489012,
+      "translation": "**Zip**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:26:12.465546Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:86/seg:0",
+      "source": "The zip function combines two vectors element-wise into a vector of pairs.",
+      "source_hash": 4790873459431520119,
+      "context_hash": 12804996629579230187,
+      "translation": "zip 함수는 두 벡터를 원소별로 결합하여 쌍의 벡터로 만듭니다.",
+      "glossary_snapshot": {
+        "vector": "벡터",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:86/seg:1",
+      "source": "The type system enforces that both input vectors must have the same length `n`, and guarantees the output vector will also have length `n`.",
+      "source_hash": 15520777216296888664,
+      "context_hash": 16922004132873523884,
+      "translation": "타입 시스템은 두 입력 벡터가 반드시 같은 길이 `n`을 가지도록 강제하며, 출력 벡터 역시 길이 `n`을 가지도록 보장합니다.",
+      "glossary_snapshot": {
+        "input": "입력",
+        "length": "길이",
+        "output": "출력",
+        "type system": "타입 시스템",
+        "vector": "벡터",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:86/seg:2",
+      "source": "If you try to zip vectors of different lengths, you'll get a type error at compile time rather than a runtime error.",
+      "source_hash": 4166197562466935581,
+      "context_hash": 10611722468861535106,
+      "translation": "길이가 다른 벡터를 zip하려고 하면 런타임 오류가 아니라 컴파일 타임에 타입 오류가 발생합니다.",
+      "glossary_snapshot": {
+        "lengths": "길이",
+        "runtime": "런타임",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:87/seg:0",
+      "source": "These operations form a small vector library with static length checking.",
+      "source_hash": 9963041492305758734,
+      "context_hash": 7997657143280681115,
+      "translation": "이 연산들은 정적 길이 검사를 갖춘 작은 벡터 라이브러리를 이룹니다.",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:87/seg:1",
+      "source": "The type system ensures we can't:",
+      "source_hash": 18284704773594884917,
+      "context_hash": 16836947353630331031,
+      "translation": "타입 시스템은 다음과 같은 일이 불가능하도록 보장합니다:",
+      "glossary_snapshot": {
+        "type system": "타입 시스템"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:88/seg:0",
+      "source": "Concatenate vectors and get the length wrong",
+      "source_hash": 7362359364956450725,
+      "context_hash": 5630778658616837362,
+      "translation": "벡터를 연결하면서 길이를 잘못 계산하는 일",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:89/seg:0",
+      "source": "Zip vectors of different lengths",
+      "source_hash": 16984841150084579946,
+      "context_hash": 14344837192415346228,
+      "translation": "길이가 다른 벡터를 zip하는 일",
+      "glossary_snapshot": {
+        "lengths": "길이",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:90/seg:0",
+      "source": "Create a vector with a length that doesn't match its type",
+      "source_hash": 17878134353317854428,
+      "context_hash": 2573277115914665081,
+      "translation": "타입과 일치하지 않는 길이의 벡터를 만드는 일",
+      "glossary_snapshot": {
+        "length": "길이",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:26:12.465547Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:91/seg:0",
+      "source": "This demonstrates how dependent types can encode precise specifications directly in the type system.",
+      "source_hash": 17919712407363040630,
+      "context_hash": 6485341764075714542,
+      "translation": "이는 의존 타입이 정밀한 명세를 타입 시스템 안에 직접 인코딩할 수 있는 방법을 보여 줍니다.",
+      "glossary_snapshot": {
+        "type system": "타입 시스템"
+      },
+      "translated_at": "2026-10-17T13:12:05.492614Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:91/seg:1",
+      "source": "While our implementation is just a type checker (we don't actually construct the vectors), it shows how these ideas work in languages like Coq or Agda where you would have real implementations.",
+      "source_hash": 15720696542216072666,
+      "context_hash": 6144923874855182064,
+      "translation": "우리 구현은 타입 검사기일 뿐이지만(실제로 벡터를 구성하지는 않습니다), 실제 구현을 갖추게 되는 Coq나 Agda 같은 언어에서 이러한 개념이 어떻게 작동하는지를 보여 줍니다.",
+      "glossary_snapshot": {
+        "implementation": "구현",
+        "implementations": "구현",
+        "vectors": "벡터"
+      },
+      "translated_at": "2026-10-17T13:12:05.492615Z",
+      "issues": []
+    }
+  ]
+}

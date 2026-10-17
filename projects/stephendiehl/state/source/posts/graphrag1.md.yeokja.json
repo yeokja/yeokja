@@ -1,0 +1,2705 @@
+{
+  "version": 1,
+  "source_hash": 9212453964948387225,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Tiny GraphRAG (Part 1)",
+      "source_hash": 7236792682271062315,
+      "context_hash": 5140576866600482575,
+      "translation": "Tiny GraphRAG (1부)",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG"
+      },
+      "translated_at": "2026-10-17T13:15:29.435688Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "We're going to build a tiny 1000 line implementation of a GraphRAG algorithm originally invented by Microsoft.",
+      "source_hash": 16107321446751888968,
+      "context_hash": 16683216918396167222,
+      "translation": "원래 Microsoft가 고안한 GraphRAG 알고리즘을 1000줄 정도의 작은 구현으로 만들어 보겠습니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "algorithm": "알고리즘",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:15:29.435689Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "I consistently hear people talk about this algorithm at meetups, but it appears there are several orders of magnitude of people talking about it than actually using it or implementing it.",
+      "source_hash": 13016909567078320184,
+      "context_hash": 16702058344217712542,
+      "translation": "밋업에서 이 알고리즘에 대한 이야기를 꾸준히 듣지만, 실제로 사용하거나 구현하는 사람보다 이야기하는 사람이 몇 자릿수는 더 많은 것 같습니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘"
+      },
+      "translated_at": "2026-10-17T13:15:29.435689Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "Likely because the reference implementation is enormous and rather complex.",
+      "source_hash": 334049890334387060,
+      "context_hash": 5349759752881495901,
+      "translation": "아마 참조 구현이 거대하고 꽤 복잡하기 때문일 것입니다.",
+      "glossary_snapshot": {
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:15:29.435690Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:3",
+      "source": "So let's break it down and see if there's any merit to the hype around this approach.",
+      "source_hash": 5681343529025080034,
+      "context_hash": 16578764200012267457,
+      "translation": "그러니 이를 하나씩 뜯어보고, 이 접근법을 둘러싼 과대광고에 실제로 가치가 있는지 살펴봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435691Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "For some background, naive RAG is a basic approach to augmenting LLM outputs with external information that primarily relies on vector similarity search.",
+      "source_hash": 1217354668324566668,
+      "context_hash": 15143676052550226232,
+      "translation": "배경을 조금 설명하자면, 나이브 RAG는 주로 벡터 유사도 검색에 의존하여 외부 정보로 LLM 출력을 보강하는 기본적인 접근법입니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM",
+        "RAG": "RAG",
+        "outputs": "출력",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:29.435691Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "The process involves converting documents to text, splitting that text into chunks, and embedding these chunks into a vector space where similar semantic meanings are represented by similar vector positions.",
+      "source_hash": 16393121190971416526,
+      "context_hash": 9853957817011708264,
+      "translation": "이 과정은 문서를 텍스트로 변환하고, 그 텍스트를 청크로 나눈 뒤, 이 청크들을 비슷한 의미가 비슷한 벡터 위치로 표현되는 벡터 공간에 임베딩하는 단계로 이루어집니다.",
+      "glossary_snapshot": {
+        "embedding": "임베딩",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:29.435691Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "When a user submits a query, it is embedded into the same vector space, and the text chunks with the nearest vector positions are retrieved and added to the LLM's context window along with the original query.",
+      "source_hash": 7099111549862515924,
+      "context_hash": 16416770749252034255,
+      "translation": "사용자가 쿼리를 제출하면 그 쿼리도 같은 벡터 공간에 임베딩되고, 벡터 위치가 가장 가까운 텍스트 청크들이 검색되어 원래 쿼리와 함께 LLM의 컨텍스트 윈도에 추가됩니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:29.435692Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "GraphRAG is an alternative structured approach to goes beyond simple semantic search and uses a graph-based index of a document.",
+      "source_hash": 1272725139637211297,
+      "context_hash": 12757925965146140616,
+      "translation": "GraphRAG는 단순한 의미 검색을 넘어 문서의 그래프 기반 인덱스를 사용하는 또 다른 구조화된 접근법입니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:29.435692Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "The key idea is that it uses LLMs to build a knowledge graph from source documents, then detects communities of closely-related entities within that graph, and generates summaries for these communities.",
+      "source_hash": 4919956299416973899,
+      "context_hash": 16006992651861588342,
+      "translation": "핵심 아이디어는 LLM을 사용해 원본 문서로부터 지식 그래프를 구축하고, 그 그래프 안에서 밀접하게 관련된 엔티티들의 커뮤니티를 탐지한 다음, 이 커뮤니티들에 대한 요약을 생성하는 것입니다.",
+      "glossary_snapshot": {
+        "LLMs": "LLM",
+        "graph": "그래프",
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:29.435692Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:2",
+      "source": "This creates a alternative structured index that can be leveraged for both local entity-specific queries and global document-wide analysis.",
+      "source_hash": 15760048265456934464,
+      "context_hash": 10653027503885745708,
+      "translation": "이렇게 하면 특정 엔티티에 대한 로컬 쿼리와 문서 전체에 걸친 글로벌 분석 모두에 활용할 수 있는 또 다른 구조화된 인덱스가 만들어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435693Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:3",
+      "source": "For some tasks this can perform better than naive RAG.",
+      "source_hash": 8602873530442597065,
+      "context_hash": 10501367718729104759,
+      "translation": "일부 작업에서는 이 방식이 나이브 RAG보다 더 좋은 성능을 낼 수 있습니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG"
+      },
+      "translated_at": "2026-10-17T13:15:29.435693Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "We're going to build a tiny version that runs entirely locally without depending on commercial LLM providers.",
+      "source_hash": 1939339057995829559,
+      "context_hash": 8738217818289878749,
+      "translation": "상용 LLM 제공자에 의존하지 않고 완전히 로컬에서 실행되는 작은 버전을 만들어 보겠습니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM"
+      },
+      "translated_at": "2026-10-17T13:15:29.435693Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "Our system uses:",
+      "source_hash": 9414273614042534219,
+      "context_hash": 15462266495642396823,
+      "translation": "우리 시스템은 다음을 사용합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435694Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "[Postgres](https://www.postgresql.org/) + [pgvector](https://github.com/pgvector/pgvector) for vector storage",
+      "source_hash": 550457769137122097,
+      "context_hash": 13726825885952883870,
+      "translation": "벡터 저장소로 [Postgres](https://www.postgresql.org/) + [pgvector](https://github.com/pgvector/pgvector)",
+      "glossary_snapshot": {
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:29.435694Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "[sentence-transformers](https://www.sbert.net/) for embeddings",
+      "source_hash": 17371230909891018396,
+      "context_hash": 15413799087227557185,
+      "translation": "임베딩에 [sentence-transformers](https://www.sbert.net/)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435694Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "[Meta's Llama 3.2-3B](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct) for core langauge model",
+      "source_hash": 1179502133846023588,
+      "context_hash": 4336514760673727222,
+      "translation": "Core 언어 모델로 [Meta's Llama 3.2-3B](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct)를 사용합니다",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "Llama": "Llama",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:29.435694Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "[GLiNER](https://github.com/urchade/GLiNER) for entity extraction",
+      "source_hash": 11111967766424809867,
+      "context_hash": 798163906344549603,
+      "translation": "엔티티 추출에 [GLiNER](https://github.com/urchade/GLiNER)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435694Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "[GLiREL](https://github.com/jackboyla/GLiREL) for relation extraction",
+      "source_hash": 6052443740161489417,
+      "context_hash": 393059217491354703,
+      "translation": "관계 추출에 [GLiREL](https://github.com/jackboyla/GLiREL)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435694Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "[networkx](https://networkx.org/) for graph operations",
+      "source_hash": 8861948262229961358,
+      "context_hash": 8448876525638613608,
+      "translation": "그래프 연산에 [networkx](https://networkx.org/)",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:29.435695Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "We could also trivially use a graph database (like [Memgraph](https://memgraph.com/) or [Neo4j](https://neo4j.com/)) but for the sake of simplicity we'll just store the networkx graph data serialized to disk.",
+      "source_hash": 1370559029770567747,
+      "context_hash": 10378197876254621666,
+      "translation": "([Memgraph](https://memgraph.com/)나 [Neo4j](https://neo4j.com/) 같은) 그래프 데이터베이스를 사용하는 것도 간단하지만, 단순함을 위해 networkx 그래프 데이터를 직렬화하여 디스크에 저장하기만 하겠습니다.",
+      "glossary_snapshot": {
+        "Memgraph": "Memgraph",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:29.435695Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:12/seg:0",
+      "source": "The source code is available on Github under a MIT license.",
+      "source_hash": 17810855145922962782,
+      "context_hash": 11713244077958234925,
+      "translation": "소스 코드는 MIT 라이선스로 Github에 공개되어 있습니다.",
+      "glossary_snapshot": {
+        "GitHub": "GitHub",
+        "code": "코드"
+      },
+      "translated_at": "2026-10-17T13:15:29.435695Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "<https://github.com/sdiehl/tiny-graphrag>",
+      "source_hash": 2443441405691131746,
+      "context_hash": 9679831252383452615,
+      "translation": "<https://github.com/sdiehl/tiny-graphrag>",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435695Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Core Ideas",
+      "source_hash": 13047839651735311901,
+      "context_hash": 18216757504965911764,
+      "translation": "Core 아이디어",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:29.435695Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "When doing naive RAG, we typically rely on vector similarity to find relevant context.",
+      "source_hash": 3486286111204165592,
+      "context_hash": 9536704523153187131,
+      "translation": "나이브 RAG를 할 때는 보통 관련 컨텍스트를 찾기 위해 벡터 유사도에 의존합니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:29.435695Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "This works well for simple cases but can miss important contextual relationships.",
+      "source_hash": 8418621512989661188,
+      "context_hash": 16772647380398520247,
+      "translation": "이 방식은 단순한 경우에는 잘 작동하지만 중요한 맥락적 관계를 놓칠 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:29.435696Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "For example, let's look at a basic vector similarity comparison using the `sentence-transformers` library.",
+      "source_hash": 13872088114726640436,
+      "context_hash": 9639529378188366232,
+      "translation": "예를 들어, `sentence-transformers` 라이브러리를 사용한 기본적인 벡터 유사도 비교를 살펴봅시다.",
+      "glossary_snapshot": {
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:29.435696Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "While this approach can identify semantically similar content, it has several key limitations.",
+      "source_hash": 15771091122914221384,
+      "context_hash": 17883456716835190864,
+      "translation": "이 방식은 의미적으로 유사한 콘텐츠를 찾아낼 수 있지만, 몇 가지 핵심적인 한계가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985827Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "First, it doesn't capture the rich relationships between entities and concepts that exist in our documents.",
+      "source_hash": 1624000833014753860,
+      "context_hash": 11753401368344476393,
+      "translation": "첫째, 문서 안에 존재하는 엔터티와 개념 사이의 풍부한 관계를 포착하지 못합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985829Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "Second, it struggles with what is commonly called the \"local context problem\" - where relevant information may be scattered across different parts of a document or multiple documents, without having direct semantic similarity to the query.",
+      "source_hash": 8956800205581346809,
+      "context_hash": 2763829695973514786,
+      "translation": "둘째, 흔히 \"로컬 컨텍스트 문제\"라고 부르는 상황에 취약합니다. 이는 관련 정보가 질의와 직접적인 의미적 유사성을 갖지 않은 채 한 문서의 여러 부분이나 여러 문서에 흩어져 있을 수 있는 문제를 말합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985829Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:3",
+      "source": "For example, understanding the side effects of a medication might require connecting information about its chemical composition in one section with patient outcomes described in another, even though these passages may not be semantically similar to a query about side effects.",
+      "source_hash": 14883254356964455264,
+      "context_hash": 10741150043235837221,
+      "translation": "예를 들어, 어떤 약물의 부작용을 이해하려면 한 섹션에 있는 화학 성분에 관한 정보와 다른 섹션에 서술된 환자 경과를 연결해야 할 수 있는데, 이러한 구절들은 부작용에 관한 질의와 의미적으로 유사하지 않을 수도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985829Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:4",
+      "source": "GraphRAG addresses these limitations by building a structured knowledge graph that explicitly represents relationships between entities and concepts, allowing it to trace these connections and assemble relevant context even when the individual pieces aren't semantically similar to the query.",
+      "source_hash": 14701510302069749006,
+      "context_hash": 9275479793990572992,
+      "translation": "GraphRAG는 엔터티와 개념 사이의 관계를 명시적으로 표현하는 구조화된 지식 그래프를 구축하여 이러한 한계를 해결합니다. 이를 통해 개별 조각이 질의와 의미적으로 유사하지 않더라도 이러한 연결을 추적하고 관련 컨텍스트를 모을 수 있습니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985830Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:5",
+      "source": "GraphRAG has two different modes, *local search* and *global search*.",
+      "source_hash": 5935992603495707897,
+      "context_hash": 6192946689565346994,
+      "translation": "GraphRAG에는 *로컬 검색*과 *글로벌 검색*이라는 두 가지 모드가 있습니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG"
+      },
+      "translated_at": "2026-10-17T13:15:28.985830Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Local search is optimized for entity-specific queries and operates by focusing on specific entities and their relationships within the knowledge graph.",
+      "source_hash": 7845791469169302465,
+      "context_hash": 15069165778711282229,
+      "translation": "로컬 검색은 엔터티 중심의 질의에 최적화되어 있으며, 지식 그래프 안의 특정 엔터티와 그 관계에 초점을 맞추어 동작합니다.",
+      "glossary_snapshot": {
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985831Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "It combines structured data from the knowledge graph with unstructured data from input documents, making it particularly effective for questions about specific entities, such as \"What are the healing properties of chamomile?\" The process begins by taking a user query and optional conversation history, then identifies semantically-related entities in the knowledge graph.",
+      "source_hash": 3299428846368106343,
+      "context_hash": 12167951368190543552,
+      "translation": "로컬 검색은 지식 그래프의 구조화된 데이터와 입력 문서의 비구조화된 데이터를 결합하므로, \"캐모마일의 치유 효능은 무엇입니까?\"와 같이 특정 엔터티에 관한 질문에 특히 효과적입니다. 이 과정은 사용자 질의와 선택적인 대화 기록을 입력받는 것으로 시작하며, 이어서 지식 그래프에서 의미적으로 관련된 엔터티를 식별합니다.",
+      "glossary_snapshot": {
+        "input": "입력",
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985831Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "It extracts relevant information including connected entities, relationships, entity covariates, community reports, and associated text chunks from source documents.",
+      "source_hash": 7331899573802579159,
+      "context_hash": 344594642669104731,
+      "translation": "그런 다음 연결된 엔터티, 관계, 엔터티 공변량, 커뮤니티 보고서, 그리고 원본 문서에서 가져온 관련 텍스트 청크를 포함한 관련 정보를 추출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985832Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:3",
+      "source": "This information is then prioritized and filtered to fit within a context window before generating a response using the filtered context.",
+      "source_hash": 18263203580331616255,
+      "context_hash": 14297726412267104643,
+      "translation": "이후 이 정보에 우선순위를 매기고 컨텍스트 윈도에 들어가도록 필터링한 다음, 필터링된 컨텍스트를 사용해 응답을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985832Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Global search, on the other hand, is designed for dataset-wide analysis and performs better at handling queries that require information aggregation across the entire dataset.",
+      "source_hash": 12998176386788552817,
+      "context_hash": 9038473066738146165,
+      "translation": "반면 글로벌 검색은 데이터셋 전체에 걸친 분석을 위해 설계되었으며, 데이터셋 전체에서 정보를 집계해야 하는 질의를 더 잘 처리합니다.",
+      "glossary_snapshot": {
+        "dataset": "데이터셋",
+        "handling": "처리"
+      },
+      "translated_at": "2026-10-17T13:15:28.985832Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "It's better at identifying broader themes and patterns, making it optimal for answering high-level questions like \"What are the top 5 themes in the data?\" The process employs a map-reduce approach where the map phase segments community reports into text chunks and generates intermediate responses with rated importance points.",
+      "source_hash": 7595825714612647137,
+      "context_hash": 16098924189760928716,
+      "translation": "글로벌 검색은 더 폭넓은 주제와 패턴을 식별하는 데 뛰어나므로, \"데이터에서 가장 중요한 주제 5가지는 무엇입니까?\"와 같은 상위 수준의 질문에 답하는 데 가장 적합합니다. 이 과정은 맵리듀스 방식을 사용하는데, 맵 단계에서는 커뮤니티 보고서를 텍스트 청크로 나누고 중요도 점수가 매겨진 요점이 담긴 중간 응답을 생성합니다.",
+      "glossary_snapshot": {
+        "patterns": "패턴"
+      },
+      "translated_at": "2026-10-17T13:15:28.985832Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "The reduce phase then filters and aggregates the most important points to produce a final comprehensive response.",
+      "source_hash": 4275418576126294749,
+      "context_hash": 12158833736827733233,
+      "translation": "그런 다음 리듀스 단계에서 가장 중요한 요점을 걸러 내고 집계하여 최종적인 종합 응답을 만들어 냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985833Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The key difference between these approaches is that while local search focuses on specific entity-based reasoning, global search provides broader dataset-level insights by leveraging the knowledge graph's community structure and pre-summarized semantic clusters.",
+      "source_hash": 17230556786418435072,
+      "context_hash": 12209712848061510461,
+      "translation": "두 방식의 핵심적인 차이는, 로컬 검색이 특정 엔터티 기반의 추론에 초점을 맞추는 반면, 글로벌 검색은 지식 그래프의 커뮤니티 구조와 미리 요약된 의미 클러스터를 활용하여 데이터셋 수준의 더 폭넓은 통찰을 제공한다는 점입니다.",
+      "glossary_snapshot": {
+        "dataset": "데이터셋",
+        "knowledge graph": "지식 그래프",
+        "reasoning": "추론"
+      },
+      "translated_at": "2026-10-17T13:15:28.985833Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Building the Graph",
+      "source_hash": 10303199720730578265,
+      "context_hash": 3516131749650441194,
+      "translation": "그래프 구축하기",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985833Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "GraphRAG takes a new approach to RAG by building a graph-based index of document content.",
+      "source_hash": 5669018813300312925,
+      "context_hash": 10375571710704496069,
+      "translation": "GraphRAG는 문서 콘텐츠에 대한 그래프 기반 인덱스를 구축하는 방식으로 RAG에 새롭게 접근합니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "RAG": "RAG",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985833Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "There are four main steps.",
+      "source_hash": 8252782892133615662,
+      "context_hash": 10023779804040741359,
+      "translation": "주요 단계는 네 가지입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985834Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "**Graph Construction**: We first process source documents to extract entities and relationships, building a knowledge graph representation of the content.",
+      "source_hash": 7340683080423093903,
+      "context_hash": 12997830731014973163,
+      "translation": "**그래프 구축**: 먼저 원본 문서를 처리하여 엔터티와 관계를 추출하고, 콘텐츠를 지식 그래프로 표현합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985834Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "This is done using:",
+      "source_hash": 6465360944518949884,
+      "context_hash": 6873743377118379311,
+      "translation": "이 작업에는 다음이 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985834Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Text chunking and preprocessing",
+      "source_hash": 523906728679548271,
+      "context_hash": 4511063624512532201,
+      "translation": "텍스트 청킹과 전처리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985834Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Entity and relationship extraction using LLMs",
+      "source_hash": 2738738298530806853,
+      "context_hash": 12105384872369390176,
+      "translation": "LLM을 사용한 엔터티 및 관계 추출",
+      "glossary_snapshot": {
+        "LLMs": "LLM"
+      },
+      "translated_at": "2026-10-17T13:15:28.985835Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Graph construction with extracted elements",
+      "source_hash": 8563870397512646439,
+      "context_hash": 13735353314934980528,
+      "translation": "추출된 요소를 이용한 그래프 구축",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985835Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "**Community Detection**: The system then uses the Leiden algorithm to detect communities of closely-related entities in the graph.",
+      "source_hash": 772575440401199381,
+      "context_hash": 17030276799396824078,
+      "translation": "**커뮤니티 탐지**: 다음으로 시스템은 라이덴(Leiden) 알고리즘을 사용하여 그래프에서 서로 밀접하게 관련된 엔터티들의 커뮤니티를 탐지합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985835Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "**Community Summary**: For each detected community, we generate a natural language summary describing the key entities and relationships within that community.",
+      "source_hash": 7579186635150705557,
+      "context_hash": 10681235078473364164,
+      "translation": "**커뮤니티 요약**: 탐지된 각 커뮤니티에 대해, 그 커뮤니티 안의 핵심 엔터티와 관계를 설명하는 자연어 요약을 생성합니다.",
+      "glossary_snapshot": {
+        "natural language": "자연어"
+      },
+      "translated_at": "2026-10-17T13:15:28.985835Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "This provides a high-level overview of the topics and concepts represented in each cluster.",
+      "source_hash": 10949603430793382528,
+      "context_hash": 528976820074936844,
+      "translation": "이를 통해 각 클러스터에 담긴 주제와 개념을 상위 수준에서 개괄할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985835Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "**Map-Reduce**: For global search queries, we use a map-reduce approach where we first generate responses for each community summary (map phase) and then combine and synthesize these responses (reduce phase) to create a comprehensive answer that draws from information across the entire graph.",
+      "source_hash": 6190983228968725492,
+      "context_hash": 10725996006894768594,
+      "translation": "**맵리듀스**: 글로벌 검색 질의에는 맵리듀스 방식을 사용합니다. 먼저 각 커뮤니티 요약에 대한 응답을 생성하고(맵 단계), 이어서 이 응답들을 결합하고 종합하여(리듀스 단계) 그래프 전체의 정보를 아우르는 포괄적인 답변을 만들어 냅니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Example Dataset",
+      "source_hash": 18005596691339519703,
+      "context_hash": 7971036653460220431,
+      "translation": "예제 데이터셋",
+      "glossary_snapshot": {
+        "dataset": "데이터셋"
+      },
+      "translated_at": "2026-10-17T13:15:28.985835Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "In our example we'll use a set of Wikipedia articles about Barack Obama to demonstrate how the system automatically detects topical clusters.",
+      "source_hash": 9290054714083454636,
+      "context_hash": 8646850126701564414,
+      "translation": "이 예제에서는 버락 오바마에 관한 위키백과 문서 모음을 사용하여 시스템이 주제별 클러스터를 어떻게 자동으로 탐지하는지 보여 드리겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "The Leiden community detection algorithm will analyze the entity-relationship graph and identify densely connected subgraphs that represent coherent topics.",
+      "source_hash": 17843837160353338189,
+      "context_hash": 12489926069985994633,
+      "translation": "라이덴 커뮤니티 탐지 알고리즘은 엔터티-관계 그래프를 분석하여 일관된 주제를 나타내는, 조밀하게 연결된 부분 그래프를 식별합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:28.985836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "For example, when processing Obama's biography, it will automatically detect clusters like:",
+      "source_hash": 2470952430530347438,
+      "context_hash": 3259365713729305767,
+      "translation": "예를 들어, 오바마의 전기를 처리하면 다음과 같은 클러스터를 자동으로 탐지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Early Life & Education: Entities about his childhood in Hawaii, education at Columbia and Harvard Law",
+      "source_hash": 13539019460697964728,
+      "context_hash": 16581585378495850679,
+      "translation": "유년기와 교육: 하와이에서 보낸 어린 시절, 컬럼비아 대학교와 하버드 로스쿨에서 받은 교육에 관한 엔터티",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Political Career: His time as state senator, U.S. senator, and presidential campaigns",
+      "source_hash": 1850394510123316689,
+      "context_hash": 3722988704845644534,
+      "translation": "정치 경력: 주 상원의원, 연방 상원의원 시절과 대통령 선거 운동",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:28.985836Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Presidency: Key policies, executive actions, and administration officials",
+      "source_hash": 2448915776133288079,
+      "context_hash": 16764160884621027501,
+      "translation": "대통령 재임기: 주요 정책, 행정 조치, 행정부 관료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435087Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Post-Presidency: Book deals, speaking engagements, Obama Foundation work",
+      "source_hash": 5839039835671680167,
+      "context_hash": 7866036722895042838,
+      "translation": "퇴임 이후: 출판 계약, 강연 활동, 오바마 재단 활동",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435088Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Each cluster is then summarized by analyzing the entities and relationships within it.",
+      "source_hash": 8023486713702538254,
+      "context_hash": 13865407381230339886,
+      "translation": "그런 다음 각 클러스터는 그 안의 엔터티와 관계를 분석하여 요약됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435088Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "For instance, the Early Life cluster summary might read: \"This section covers Barack Obama's upbringing in Hawaii and Indonesia, his undergraduate studies in political science at Columbia University, and his law degree from Harvard where he was president of the Harvard Law Review.\"",
+      "source_hash": 6378115866826668921,
+      "context_hash": 9987577137497560623,
+      "translation": "예를 들어, 유년기 클러스터의 요약은 다음과 같을 수 있습니다. \"이 섹션은 버락 오바마의 하와이와 인도네시아에서의 성장 과정, 컬럼비아 대학교에서의 정치학 학부 과정, 그리고 하버드 로 리뷰(Harvard Law Review)의 편집장을 지낸 하버드에서의 법학 학위를 다룹니다.\"",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435088Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "The system determines cluster boundaries automatically based on the density of connections between entities, without requiring manual topic specification.",
+      "source_hash": 1892407080179518169,
+      "context_hash": 5108984803366352655,
+      "translation": "시스템은 주제를 수동으로 지정할 필요 없이 엔터티 간 연결의 밀도를 기반으로 클러스터 경계를 자동으로 결정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435088Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:1",
+      "source": "This organic clustering helps capture the natural thematic structure of the documents across non-local chunks.",
+      "source_hash": 4124080111132014190,
+      "context_hash": 11194347131419108410,
+      "translation": "이러한 유기적인 클러스터링은 서로 떨어져 있는 청크들에 걸쳐 문서의 자연스러운 주제 구조를 포착하는 데 도움이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435088Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Data Models (`db.py`)",
+      "source_hash": 8559939324496076041,
+      "context_hash": 13576641170765331065,
+      "translation": "데이터 모델 (`db.py`)",
+      "glossary_snapshot": {
+        "models": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:34.435088Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "We'll use the SQLAlchemy data models to define persistence to Postgres.",
+      "source_hash": 13074934732330979138,
+      "context_hash": 11658911033605534327,
+      "translation": "SQLAlchemy 데이터 모델을 사용하여 Postgres에 대한 영속성을 정의하겠습니다.",
+      "glossary_snapshot": {
+        "models": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:34.435089Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The **Document** model stores the original document content and metadata.",
+      "source_hash": 10350602339453116047,
+      "context_hash": 10845533259814291391,
+      "translation": "**Document** 모델은 원본 문서 내용과 메타데이터를 저장합니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:34.435089Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "The content is stored as raw text, with optional title and timestamps.",
+      "source_hash": 13692738134414556521,
+      "context_hash": 5291252852401271873,
+      "translation": "내용은 원시 텍스트로 저장되며, 선택적으로 제목과 타임스탬프를 가집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435089Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "The **DocumentChunk** model stores segments of documents with their vector embeddings for efficient semantic search.",
+      "source_hash": 10260962628977819274,
+      "context_hash": 3925613590425330658,
+      "translation": "**DocumentChunk** 모델은 효율적인 의미 검색을 위해 문서의 조각을 벡터 임베딩과 함께 저장합니다.",
+      "glossary_snapshot": {
+        "model": "모델",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:34.435089Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "Each chunk contains the raw text content, its position in the original document (chunk_index), and a dense vector embedding.",
+      "source_hash": 12493282830646652494,
+      "context_hash": 8465284544087556945,
+      "translation": "각 청크는 원시 텍스트 내용, 원본 문서에서의 위치(chunk_index), 그리고 밀집 벡터 임베딩을 포함합니다.",
+      "glossary_snapshot": {
+        "embedding": "임베딩",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:34.435089Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "The model uses HNSW (Hierarchical Navigable Small World) indexing for fast approximate nearest neighbor search on embeddings, and a GIN index for full-text search on content.",
+      "source_hash": 801772712996454272,
+      "context_hash": 5245702989800207932,
+      "translation": "이 모델은 임베딩에 대한 빠른 근사 최근접 이웃 검색을 위해 HNSW(Hierarchical Navigable Small World) 인덱싱을 사용하고, 내용에 대한 전문 검색을 위해 GIN 인덱스를 사용합니다.",
+      "glossary_snapshot": {
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:34.435089Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:3",
+      "source": "This enables both semantic similarity search via embeddings and keyword-based search on the text.",
+      "source_hash": 680076441222670773,
+      "context_hash": 14149851194122702134,
+      "translation": "이를 통해 임베딩을 이용한 의미 유사도 검색과 텍스트에 대한 키워드 기반 검색이 모두 가능해집니다.",
+      "glossary_snapshot": {
+        "keyword": "키워드"
+      },
+      "translated_at": "2026-10-17T13:15:34.435090Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "The **Community** model represents clusters of related entities detected in the document.",
+      "source_hash": 3677804648123545155,
+      "context_hash": 10805033515655285840,
+      "translation": "**Community** 모델은 문서에서 탐지된 관련 엔터티들의 클러스터를 나타냅니다.",
+      "glossary_snapshot": {
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:34.435090Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "Each community has a summary description (content), a vector embedding for similarity search, and stores its member node IDs as a JSON string.",
+      "source_hash": 5280580787040326871,
+      "context_hash": 2241706717002437595,
+      "translation": "각 커뮤니티는 요약 설명(content)과 유사도 검색을 위한 벡터 임베딩을 가지며, 구성원 노드 ID를 JSON 문자열로 저장합니다.",
+      "glossary_snapshot": {
+        "JSON": "JSON",
+        "embedding": "임베딩",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:34.435090Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:2",
+      "source": "Like DocumentChunk, it uses HNSW indexing on the embedding for efficient similarity search.",
+      "source_hash": 438188546025709704,
+      "context_hash": 16541762741080747912,
+      "translation": "DocumentChunk와 마찬가지로, 효율적인 유사도 검색을 위해 임베딩에 HNSW 인덱싱을 사용합니다.",
+      "glossary_snapshot": {
+        "embedding": "임베딩"
+      },
+      "translated_at": "2026-10-17T13:15:34.435090Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:3",
+      "source": "Communities are linked back to their source document and enable exploration of thematically related entity groups.",
+      "source_hash": 12193563528613854283,
+      "context_hash": 15289460677908360783,
+      "translation": "커뮤니티는 원본 문서와 다시 연결되며, 주제적으로 관련된 엔터티 그룹을 탐색할 수 있게 해 줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435090Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "The **Summary** model stores generated summaries of a community.",
+      "source_hash": 6349683502051063331,
+      "context_hash": 1413922700615872779,
+      "translation": "**Summary** 모델은 커뮤니티에 대해 생성된 요약을 저장합니다.",
+      "glossary_snapshot": {
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:34.435091Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:1",
+      "source": "Each summary has a text content field and a vector embedding for similarity search.",
+      "source_hash": 13213983186910138315,
+      "context_hash": 17454716943531758180,
+      "translation": "각 요약은 텍스트 내용 필드와 유사도 검색을 위한 벡터 임베딩을 가집니다.",
+      "glossary_snapshot": {
+        "embedding": "임베딩",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:34.435091Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:2",
+      "source": "Like the other models, it uses HNSW indexing on the embedding for efficient similarity search, as well as a full-text search index on the content.",
+      "source_hash": 785298184823664905,
+      "context_hash": 11534728897883794967,
+      "translation": "다른 모델들과 마찬가지로, 효율적인 유사도 검색을 위해 임베딩에 HNSW 인덱싱을 사용하며, 내용에 대해서는 전문 검색 인덱스도 사용합니다.",
+      "glossary_snapshot": {
+        "embedding": "임베딩",
+        "models": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:34.435091Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Document Processing Pipeline (`build.py`)",
+      "source_hash": 10405699951271874776,
+      "context_hash": 11097760968540764275,
+      "translation": "문서 처리 파이프라인 (`build.py`)",
+      "glossary_snapshot": {
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:15:34.435091Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The top of of graph processing pipeline beings in `build.py` which handles the construction of the vector index and knowledge graph from our textual source.",
+      "source_hash": 9418237064164022601,
+      "context_hash": 13788778247455806124,
+      "translation": "그래프 처리 파이프라인의 최상위는 `build.py`에서 시작하며, 이 파일은 텍스트 소스로부터 벡터 인덱스와 지식 그래프를 구축하는 작업을 담당합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "knowledge graph": "지식 그래프",
+        "pipeline": "파이프라인",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:34.435091Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "This calls out to several core functions.",
+      "source_hash": 12332072621926633801,
+      "context_hash": 5954714675988040683,
+      "translation": "이 파일은 여러 Core 함수를 호출합니다.",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:34.435091Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "`process_document` - Takes a document filepath and processes it by chunking the text, extracting entities and relations, and building a knowledge graph.",
+      "source_hash": 16622297465354556647,
+      "context_hash": 8600604995328468385,
+      "translation": "`process_document` - 문서 파일 경로를 받아 텍스트를 청크로 나누고, 엔터티와 관계를 추출하고, 지식 그래프를 구축하는 방식으로 문서를 처리합니다.",
+      "glossary_snapshot": {
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:34.435092Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "Returns both the chunked document with embeddings and the constructed graph.",
+      "source_hash": 6331587263407852678,
+      "context_hash": 11803044511548981868,
+      "translation": "임베딩이 포함된 청크 단위 문서와 구축된 그래프를 모두 반환합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:34.435092Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "`chunk_document` - Splits a document into overlapping text segments of configurable size with some overlap between chunks to maintain context across boundaries.",
+      "source_hash": 4958191914317877576,
+      "context_hash": 16248785995719503082,
+      "translation": "`chunk_document` - 경계를 넘어 문맥을 유지하기 위해 청크 사이에 일부 겹침을 두고, 문서를 크기를 설정할 수 있는 겹치는 텍스트 조각들로 분할합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435092Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "Returns a list of text chunks.",
+      "source_hash": 16597962144950785874,
+      "context_hash": 8662108296351638757,
+      "translation": "텍스트 청크의 리스트를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435092Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "`build_communities` - Analyzes the knowledge graph to detect clusters of closely related entities using community detection algorithms.",
+      "source_hash": 9212771523453195184,
+      "context_hash": 10746730616579604726,
+      "translation": "`build_communities` - 커뮤니티 탐지 알고리즘을 사용하여 지식 그래프를 분석하고 밀접하게 관련된 엔터티들의 클러스터를 탐지합니다.",
+      "glossary_snapshot": {
+        "algorithms": "알고리즘",
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:34.435092Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "Generates summaries for each community to capture the key information.",
+      "source_hash": 5404338161069550281,
+      "context_hash": 16983926029678212918,
+      "translation": "핵심 정보를 포착하기 위해 각 커뮤니티에 대한 요약을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435092Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "Returns community assignments and summaries.",
+      "source_hash": 2850131182250577600,
+      "context_hash": 8923992201410407161,
+      "translation": "커뮤니티 할당 결과와 요약을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:34.435092Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "`extract_rels` - Processes text chunks to identify relationships between entities using a combination of rule-based patterns and LLM extraction.",
+      "source_hash": 4136571799212079862,
+      "context_hash": 16663631016538877880,
+      "translation": "`extract_rels` - 규칙 기반 패턴과 LLM 추출을 함께 사용해 텍스트 청크를 처리하고 엔티티 간 관계를 식별합니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM",
+        "patterns": "패턴"
+      },
+      "translated_at": "2026-10-17T13:15:40.429746Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "Returns a list of extracted relationships with their entity pairs and relationship types.",
+      "source_hash": 9864317803013734967,
+      "context_hash": 7879462257742841808,
+      "translation": "추출된 관계의 목록을 엔티티 쌍 및 관계 유형과 함께 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429746Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "The `process_document` function handles the construction of hte knowledge graph entities (nodes and relations) from the chunk.",
+      "source_hash": 4672238377020040008,
+      "context_hash": 9984459316293055550,
+      "translation": "`process_document` 함수는 청크에서 지식 그래프 엔티티(노드와 관계)를 구성하는 일을 담당합니다.",
+      "glossary_snapshot": {
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "These are appended into a global graph which is a networkx undirected Graph data structure.",
+      "source_hash": 4891919898908766764,
+      "context_hash": 13663017571472738391,
+      "translation": "이들은 networkx 무방향 Graph 자료 구조인 전역 그래프에 추가됩니다.",
+      "glossary_snapshot": {
+        "data structure": "자료 구조",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:2",
+      "source": "We store the source text provenance as a proeprty of each triple that is generated which is used in the local search method at the end.",
+      "source_hash": 16436515749095813551,
+      "context_hash": 17917704989663806795,
+      "translation": "생성되는 각 트리플의 속성으로 원본 텍스트의 출처를 저장하며, 이는 마지막의 로컬 검색 메서드에서 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Chunking (`chunking.py`)",
+      "source_hash": 11860642229811493736,
+      "context_hash": 15211928742959734244,
+      "translation": "청킹(`chunking.py`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The chunking algorithm splits input documents into overlapping segments while preserving sentence boundaries and semantic coherence.",
+      "source_hash": 4417278435739162478,
+      "context_hash": 460182971332779794,
+      "translation": "청킹 알고리즘은 문장 경계와 의미적 일관성을 유지하면서 입력 문서를 서로 겹치는 세그먼트로 분할합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "input": "입력"
+      },
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "It processes the text sentence by sentence, accumulating them into chunks until reaching a specified size limit (default 200 characters), then generates dense vector embeddings for each chunk using a sentence transformer model.",
+      "source_hash": 6424759914694363550,
+      "context_hash": 15234497078486571426,
+      "translation": "텍스트를 한 문장씩 처리하면서 지정된 크기 제한(기본값 200자)에 도달할 때까지 문장을 청크에 누적한 다음, 문장 트랜스포머 모델을 사용해 각 청크의 밀집 벡터 임베딩을 생성합니다.",
+      "glossary_snapshot": {
+        "model": "모델",
+        "transformer": "트랜스포머",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:2",
+      "source": "To maintain context continuity between chunks, it implements an overlap mechanism (default 50 characters) where a portion of the previous chunk's sentences are carried forward into the next chunk.",
+      "source_hash": 10681681774261833531,
+      "context_hash": 8678276900760258154,
+      "translation": "청크 간 문맥의 연속성을 유지하기 위해 이전 청크 문장의 일부를 다음 청크로 넘겨주는 오버랩 메커니즘(기본값 50자)을 구현합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:3",
+      "source": "This overlap helps capture cross-chunk relationships and ensures no context is lost at chunk boundaries.",
+      "source_hash": 16019500333572015801,
+      "context_hash": 4327257704820525759,
+      "translation": "이 오버랩은 청크를 가로지르는 관계를 포착하는 데 도움이 되며, 청크 경계에서 문맥이 손실되지 않도록 보장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:4",
+      "source": "The algorithm returns a list of tuples containing both the text chunks and their corresponding embeddings, which are used later for similarity search and knowledge graph construction.",
+      "source_hash": 2957558819565531050,
+      "context_hash": 17445071983643897738,
+      "translation": "이 알고리즘은 텍스트 청크와 그에 대응하는 임베딩을 함께 담은 튜플의 목록을 반환하며, 이는 이후 유사도 검색과 지식 그래프 구성에 사용됩니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "knowledge graph": "지식 그래프",
+        "tuples": "튜플"
+      },
+      "translated_at": "2026-10-17T13:15:40.429748Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Entity and Relation Extraction (`extract.py`)",
+      "source_hash": 11758671779587269286,
+      "context_hash": 9639645627474863271,
+      "translation": "엔티티 및 관계 추출(`extract.py`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429748Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "The extraction pipeline integrates GLiNER and GLiREL models into a spaCy workflow for entity and relation extraction.",
+      "source_hash": 7827802330151599405,
+      "context_hash": 2279980591755690486,
+      "translation": "추출 파이프라인은 엔티티 및 관계 추출을 위해 GLiNER와 GLiREL 모델을 spaCy 워크플로에 통합합니다.",
+      "glossary_snapshot": {
+        "models": "모델",
+        "pipeline": "파이프라인",
+        "workflow": "워크플로"
+      },
+      "translated_at": "2026-10-17T13:15:40.429748Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "GLiNER handles named entity recognition while GLiREL extracts relationships between those entities.",
+      "source_hash": 6362079409993704957,
+      "context_hash": 15956927869915609700,
+      "translation": "GLiNER는 개체명 인식을 담당하고, GLiREL은 해당 엔티티 간의 관계를 추출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429748Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:2",
+      "source": "We configure the pipeline to use GPU acceleration for better performance and allow customization of both entity types (e.g. `Person`, `Organization`) and relation types (e.g. `occupation`, `place of birth` ) through parameters.",
+      "source_hash": 6648145297689843104,
+      "context_hash": 1012130046958129782,
+      "translation": "더 나은 성능을 위해 GPU 가속을 사용하도록 파이프라인을 구성하며, 매개변수를 통해 엔티티 유형(예: `Person`, `Organization`)과 관계 유형(예: `occupation`, `place of birth` )을 모두 사용자 정의할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "parameters": "매개변수",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:15:40.429748Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:3",
+      "source": "The core extraction logic is implemented in two key functions:",
+      "source_hash": 18182184817729524723,
+      "context_hash": 11374513267835566799,
+      "translation": "Core 추출 로직은 두 가지 핵심 함수로 구현되어 있습니다:",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:40.429748Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "And the `extract_rels` method which takes text input along with entity and relation type configurations, processes it through the NLP pipeline, and returns structured extraction results containing both the identified entities and their relationships.",
+      "source_hash": 2122406544592850421,
+      "context_hash": 9694950429423474574,
+      "translation": "그리고 `extract_rels` 메서드는 텍스트 입력과 함께 엔티티 및 관계 유형 설정을 받아 NLP 파이프라인으로 처리하고, 식별된 엔티티와 그 관계를 모두 담은 구조화된 추출 결과를 반환합니다.",
+      "glossary_snapshot": {
+        "input": "입력",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:15:40.429748Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "The method applies a confidence threshold to filter out low-quality relation matches, ensuring only high-confidence relationships are included in the final output.",
+      "source_hash": 2367191777958840260,
+      "context_hash": 5452290802341873129,
+      "translation": "이 메서드는 신뢰도 임계값을 적용해 품질이 낮은 관계 매칭을 걸러 내므로, 신뢰도가 높은 관계만 최종 출력에 포함됩니다.",
+      "glossary_snapshot": {
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:15:40.429749Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "GLiNER is an transformer-based Named Entity Recognition model that can identify enitites in text.",
+      "source_hash": 11102685266812038407,
+      "context_hash": 4546219525956693065,
+      "translation": "GLiNER는 텍스트에서 엔티티를 식별할 수 있는 트랜스포머 기반 개체명 인식 모델입니다.",
+      "glossary_snapshot": {
+        "model": "모델",
+        "transformer": "트랜스포머"
+      },
+      "translated_at": "2026-10-17T13:15:40.429749Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:1",
+      "source": "Unlike traditional NER (like in spaCy) models that are limited to predefined entity types, or LLM-based models that require significant computing resources, GLiNER offers a more resource-efficient solution while maintaining high performance.",
+      "source_hash": 10856904297950390610,
+      "context_hash": 10327997424018800659,
+      "translation": "사전 정의된 엔티티 유형으로 제한되는 기존 NER 모델(spaCy의 모델 등)이나 상당한 컴퓨팅 자원을 요구하는 LLM 기반 모델과 달리, GLiNER는 높은 성능을 유지하면서도 자원 효율이 더 높은 해법을 제공합니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM",
+        "models": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:40.429749Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:2",
+      "source": "It uses a bidirectional transformer encoder to process text and entity types in parallel, treating NER as a matching problem between entity type embeddings and textual span representations in latent space.",
+      "source_hash": 7020745330372305159,
+      "context_hash": 5235049993228552818,
+      "translation": "양방향 트랜스포머 인코더를 사용해 텍스트와 엔티티 유형을 병렬로 처리하며, NER을 잠재 공간에서 엔티티 유형 임베딩과 텍스트 스팬 표현 간의 매칭 문제로 다룹니다.",
+      "glossary_snapshot": {
+        "transformer": "트랜스포머"
+      },
+      "translated_at": "2026-10-17T13:15:40.429749Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:3",
+      "source": "Despite being much smaller (only 0.3B parameters), it outperforms both ChatGPT and fine-tuned LLMs in zero-shot evaluations on various NER benchmarks.",
+      "source_hash": 57604473689659397,
+      "context_hash": 17679371939682051246,
+      "translation": "훨씬 작은 모델(매개변수 0.3B개)임에도 불구하고, 다양한 NER 벤치마크의 제로샷 평가에서 ChatGPT와 파인튜닝된 LLM을 모두 능가합니다.",
+      "glossary_snapshot": {
+        "LLMs": "LLM",
+        "benchmarks": "벤치마크",
+        "parameters": "매개변수"
+      },
+      "translated_at": "2026-10-17T13:44:34.598213Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "A set of minimal default entity annotations are provided but can be optionally overloaded.",
+      "source_hash": 12632136603206497014,
+      "context_hash": 355592512098519676,
+      "translation": "최소한의 기본 엔티티 어노테이션 세트가 제공되지만, 선택적으로 재정의할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429749Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Named Relation Recognition (`rel_types.py`)",
+      "source_hash": 17467475620565642558,
+      "context_hash": 1624126214595317877,
+      "translation": "명명된 관계 인식(`rel_types.py`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "GLiREL (Generalist and Lightweight model for Relation Extraction) is a zero-shot relation extraction model that can classify relationships between entities in text without requiring pre-training on specific relation types.",
+      "source_hash": 7910645825452199451,
+      "context_hash": 3465811864244731816,
+      "translation": "GLiREL(Generalist and Lightweight model for Relation Extraction)은 특정 관계 유형에 대한 사전 학습 없이도 텍스트 내 엔티티 간의 관계를 분류할 수 있는 제로샷 관계 추출 모델입니다.",
+      "glossary_snapshot": {
+        "model": "모델",
+        "pre-training": "사전 학습"
+      },
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "It works alongside GLiNER in the spaCy pipeline to identify semantic relationships between detected entities, providing confidence scores that allow for threshold-based filtering.",
+      "source_hash": 5806407121875094937,
+      "context_hash": 569609904748586442,
+      "translation": "spaCy 파이프라인에서 GLiNER와 함께 작동하여 탐지된 엔티티 간의 의미적 관계를 식별하며, 임계값 기반 필터링을 가능하게 하는 신뢰도 점수를 제공합니다.",
+      "glossary_snapshot": {
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:2",
+      "source": "The model is particularly efficient as it can handle new relation types on the fly while maintaining a lightweight architecture.",
+      "source_hash": 7996857081409200843,
+      "context_hash": 7358528634427125091,
+      "translation": "이 모델은 경량 아키텍처를 유지하면서도 새로운 관계 유형을 즉석에서 처리할 수 있어 특히 효율적입니다.",
+      "glossary_snapshot": {
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "The relation recognition system defines semantic relationships between entities using a either free form relations with no constraints.",
+      "source_hash": 1203106034878044552,
+      "context_hash": 844691953392523154,
+      "translation": "관계 인식 시스템은 제약이 없는 자유 형식의 관계를 사용해 엔티티 간의 의미적 관계를 정의합니다.",
+      "glossary_snapshot": {
+        "constraints": "제약"
+      },
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "Like the following",
+      "source_hash": 424360494167439330,
+      "context_hash": 2991238816161479689,
+      "translation": "다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Or we can specify type constraints which use the NER labels to constrain the types of relations that can be created.",
+      "source_hash": 10144253010342912934,
+      "context_hash": 6979322405484533065,
+      "translation": "또는 NER 레이블을 사용해 생성될 수 있는 관계의 유형을 제한하는 유형 제약을 지정할 수도 있습니다.",
+      "glossary_snapshot": {
+        "constraints": "제약"
+      },
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Community Segmentation (`communities.py`)",
+      "source_hash": 10004727702512112828,
+      "context_hash": 9347621104393992456,
+      "translation": "커뮤니티 분할(`communities.py`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:40.429750Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "The [Leiden algorithm](https://en.wikipedia.org/wiki/Leiden_algorithm) is a graph community detection method that improves upon the earlier Louvain algorithm for finding communities in large-scale networks.",
+      "source_hash": 7011895526453515980,
+      "context_hash": 15730635031865708706,
+      "translation": "[Leiden 알고리즘](https://en.wikipedia.org/wiki/Leiden_algorithm)은 대규모 네트워크에서 커뮤니티를 찾는 그래프 커뮤니티 탐지 방법으로, 이전의 Louvain 알고리즘을 개선한 것입니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:50.881638Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "It's particularly notable for its ability to guarantee well-connected communities, which makes it ideal for the GraphRAG approach to document analysis.",
+      "source_hash": 3800502654008426324,
+      "context_hash": 2673923236207285543,
+      "translation": "이 알고리즘은 특히 잘 연결된 커뮤니티를 보장할 수 있다는 점에서 주목할 만하며, 이 덕분에 문서 분석을 위한 GraphRAG 접근 방식에 이상적입니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG"
+      },
+      "translated_at": "2026-10-17T13:15:50.881638Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:2",
+      "source": "The algorithm works by partitioning a graph into modular communities where nodes within each community have stronger connections to each other than to nodes in other communities.",
+      "source_hash": 8122481413228616893,
+      "context_hash": 16827350971617026716,
+      "translation": "이 알고리즘은 그래프를 모듈식 커뮤니티로 분할하는 방식으로 동작하며, 각 커뮤니티 내의 노드들은 다른 커뮤니티의 노드들보다 서로 더 강하게 연결되어 있습니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:50.881638Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "We use the Leiden algorithm in our system to detect communities within the knowledge graph constructed from document entities and relationships.",
+      "source_hash": 16959051875312144852,
+      "context_hash": 11497383063267605082,
+      "translation": "우리 시스템에서는 문서의 엔티티와 관계로 구성된 지식 그래프 내에서 커뮤니티를 탐지하기 위해 Leiden 알고리즘을 사용합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:50.881638Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:1",
+      "source": "The implementation uses the `networkx` and `cdlib` library for graph operations and stores the community structure alongside the original text chunks which generated the triple from the graph.",
+      "source_hash": 17457665133799593654,
+      "context_hash": 12830109723273363735,
+      "translation": "구현에서는 그래프 연산을 위해 `networkx`와 `cdlib` 라이브러리를 사용하며, 커뮤니티 구조를 그래프의 트리플을 생성한 원본 텍스트 청크와 함께 저장합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:15:50.881639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "Once we have extracted communities from our knowledge graph, we need to generate natural language summaries that capture the key information and relationships contained in each community's triples.",
+      "source_hash": 13600124236017436066,
+      "context_hash": 10358372154205315408,
+      "translation": "지식 그래프에서 커뮤니티를 추출하고 나면, 각 커뮤니티의 트리플에 담긴 핵심 정보와 관계를 포착하는 자연어 요약을 생성해야 합니다.",
+      "glossary_snapshot": {
+        "knowledge graph": "지식 그래프",
+        "natural language": "자연어"
+      },
+      "translated_at": "2026-10-17T13:15:50.881639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:1",
+      "source": "To do this, we pass the triples to a language model which synthesizes them into coherent text that describes the main concepts and connections present in that portion of the graph.",
+      "source_hash": 14407527622164923253,
+      "context_hash": 4489584285556518049,
+      "translation": "이를 위해 트리플을 언어 모델에 전달하면, 언어 모델은 이를 종합하여 그래프의 해당 부분에 존재하는 주요 개념과 연결을 설명하는 일관된 텍스트를 만들어 냅니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "language model": "언어 모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:2",
+      "source": "This summary text provides a semantic representation of the community that we can later use for retrieval.",
+      "source_hash": 17929464380508735961,
+      "context_hash": 12383245503538046480,
+      "translation": "이 요약 텍스트는 나중에 검색에 활용할 수 있는 커뮤니티의 의미적 표현을 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:50.881639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "Since communities can contain many triples and language models have limited context windows, we need to handle large communities carefully.",
+      "source_hash": 14860496044412729020,
+      "context_hash": 14848626085463664080,
+      "translation": "커뮤니티에는 많은 트리플이 포함될 수 있고 언어 모델의 컨텍스트 윈도우는 제한되어 있으므로, 큰 커뮤니티는 신중하게 처리해야 합니다.",
+      "glossary_snapshot": {
+        "models": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:1",
+      "source": "For communities with more triples than can fit in the context window (default 30 triples), we first split them into smaller chunks and generate intermediate summaries.",
+      "source_hash": 5261694343087955798,
+      "context_hash": 15879244715683215554,
+      "translation": "컨텍스트 윈도우에 담을 수 있는 것보다 많은 트리플(기본값 30개)을 가진 커뮤니티의 경우, 먼저 이를 더 작은 청크로 나누고 중간 요약을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:50.881639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:2",
+      "source": "These chunk summaries are then concatenated and passed through the model again to produce a final unified summary that captures the key information across all chunks.",
+      "source_hash": 12353553634531781087,
+      "context_hash": 9706676987042676512,
+      "translation": "그런 다음 이 청크 요약들을 이어 붙여 모델에 다시 통과시켜, 모든 청크에 걸친 핵심 정보를 포착하는 최종 통합 요약을 생성합니다.",
+      "glossary_snapshot": {
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:3",
+      "source": "This two-pass approach allows us to summarize communities of any size while working within model constraints.",
+      "source_hash": 1210148837246427556,
+      "context_hash": 14816977699750385600,
+      "translation": "이러한 2단계 접근 방식을 통해 모델의 제약 안에서 작업하면서도 어떤 크기의 커뮤니티든 요약할 수 있습니다.",
+      "glossary_snapshot": {
+        "constraints": "제약",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881640Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "When we run this on a subset of our Obama dataset we get something like the following graph with five major communities.",
+      "source_hash": 15972221557968843840,
+      "context_hash": 12778321057187373899,
+      "translation": "이를 Obama 데이터셋의 일부에 실행하면 다섯 개의 주요 커뮤니티를 가진 다음과 같은 그래프를 얻게 됩니다.",
+      "glossary_snapshot": {
+        "dataset": "데이터셋",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:50.881640Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:1",
+      "source": "Related to topics like the Supreme Court appointeess, Iraq War and the Democratic party that are discovered automatically from the graph structure.",
+      "source_hash": 13816516944668180567,
+      "context_hash": 13686941648791234482,
+      "translation": "대법관 지명자, 이라크 전쟁, 민주당과 같은 주제와 관련된 커뮤니티로, 이는 그래프 구조로부터 자동으로 발견됩니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:50:18.364870Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "And now we're done with the construction phase of the pipeline.",
+      "source_hash": 9093351686415459251,
+      "context_hash": 13997070393099397133,
+      "translation": "이제 파이프라인의 구축 단계를 마쳤습니다.",
+      "glossary_snapshot": {
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:50:18.364871Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:1",
+      "source": "Now onto the search methods.",
+      "source_hash": 15866843045927124559,
+      "context_hash": 6431063130658429360,
+      "translation": "이제 검색 방법으로 넘어갑시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:50.881640Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Query (`query.py`)",
+      "source_hash": 18423033920903737126,
+      "context_hash": 34175743833946761,
+      "translation": "쿼리 (`query.py`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:50.881640Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "The `QueryEngine` class is the core component responsible for handling different types of searches.",
+      "source_hash": 11865114515005609166,
+      "context_hash": 16977604875809809526,
+      "translation": "`QueryEngine` 클래스는 다양한 유형의 검색을 처리하는 Core 구성 요소입니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "handling": "처리"
+      },
+      "translated_at": "2026-10-17T13:15:50.881640Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:1",
+      "source": "During initialization, it sets up the Llama language model for generating responses and creates a database session factory using SQLAlchemy.",
+      "source_hash": 3331565123102388129,
+      "context_hash": 6589155202664590722,
+      "translation": "초기화 과정에서 응답 생성을 위한 Llama 언어 모델을 설정하고, SQLAlchemy를 사용하여 데이터베이스 세션 팩토리를 생성합니다.",
+      "glossary_snapshot": {
+        "Llama": "Llama",
+        "initialization": "초기화",
+        "language model": "언어 모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881640Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:2",
+      "source": "The engine parameter connects to the PostgreSQL database with pgvector for our vector searches.",
+      "source_hash": 37668130871228120,
+      "context_hash": 11641078601713870828,
+      "translation": "engine 매개변수는 벡터 검색을 위해 pgvector가 설치된 PostgreSQL 데이터베이스에 연결합니다.",
+      "glossary_snapshot": {
+        "parameter": "매개변수",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "The query engine uses `llama-cpp-python` to interface with Meta's Llama 3.2-3B model for generating responses.",
+      "source_hash": 3800268585703532804,
+      "context_hash": 8282758262086068924,
+      "translation": "쿼리 엔진은 응답을 생성하기 위해 `llama-cpp-python`을 사용하여 Meta의 Llama 3.2-3B 모델과 연동합니다.",
+      "glossary_snapshot": {
+        "Llama": "Llama",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:1",
+      "source": "The model is loaded from a local GGUF file that can be downloaded from Hugging Face.",
+      "source_hash": 10568518456653757530,
+      "context_hash": 3874543001324590169,
+      "translation": "모델은 Hugging Face에서 내려받을 수 있는 로컬 GGUF 파일에서 로드됩니다.",
+      "glossary_snapshot": {
+        "Hugging Face": "Hugging Face",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:2",
+      "source": "During initialization, the model is loaded with a specific context length and configuration.",
+      "source_hash": 13768021284849260595,
+      "context_hash": 5996410862522091547,
+      "translation": "초기화 과정에서 모델은 특정 컨텍스트 길이와 설정으로 로드됩니다.",
+      "glossary_snapshot": {
+        "initialization": "초기화",
+        "length": "길이",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:3",
+      "source": "The core interaction happens through the `_generate_llm_response` method which provides a local interface for chat completion requests.",
+      "source_hash": 3064167101888951443,
+      "context_hash": 14283942601210605991,
+      "translation": "Core 상호작용은 채팅 완성 요청을 위한 로컬 인터페이스를 제공하는 `_generate_llm_response` 메서드를 통해 이루어집니다.",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:4",
+      "source": "It takes a system prompt, user content, and temperature parameter, then returns the generated response as a string.",
+      "source_hash": 827517809566755147,
+      "context_hash": 16764336867171924718,
+      "translation": "이 메서드는 시스템 프롬프트, 사용자 콘텐츠, temperature 매개변수를 받아 생성된 응답을 문자열로 반환합니다.",
+      "glossary_snapshot": {
+        "parameter": "매개변수",
+        "prompt": "프롬프트"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Local Search",
+      "source_hash": 8381696795023475159,
+      "context_hash": 9735500050508737158,
+      "translation": "로컬 검색",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "The local search method implements entity-centric search using the knowledge graph.",
+      "source_hash": 12897695514501222785,
+      "context_hash": 13751834386392709851,
+      "translation": "로컬 검색 메서드는 지식 그래프를 사용하여 엔티티 중심 검색을 구현합니다.",
+      "glossary_snapshot": {
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:1",
+      "source": "It first loads the serialized graph, extracts entities from the query, gathers relevant data (entities, relationships, and text chunks) from the graph, builds a context string, and generates a response using the LLM.",
+      "source_hash": 8458178882124335745,
+      "context_hash": 7747000812508692310,
+      "translation": "이 메서드는 먼저 직렬화된 그래프를 로드하고, 쿼리에서 엔티티를 추출하고, 그래프에서 관련 데이터(엔티티, 관계, 텍스트 청크)를 수집하고, 컨텍스트 문자열을 구성한 뒤, LLM을 사용하여 응답을 생성합니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:50.881641Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:2",
+      "source": "This approach is particularly effective for queries about specific entities and their relationships.",
+      "source_hash": 189527478325510017,
+      "context_hash": 15585253041207784410,
+      "translation": "이 접근 방식은 특정 엔티티와 그 관계에 대한 쿼리에 특히 효과적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:50.881642Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "This helper method gathers relevant information from the knowledge graph for local search.",
+      "source_hash": 15580990913244590524,
+      "context_hash": 12122965814258594894,
+      "translation": "이 헬퍼 메서드는 로컬 검색을 위해 지식 그래프에서 관련 정보를 수집합니다.",
+      "glossary_snapshot": {
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:38.978101Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:1",
+      "source": "It takes query entities and the graph as input, then collects matching nodes, their relationships, and associated text chunks.",
+      "source_hash": 13743569624281719178,
+      "context_hash": 10237190871179511094,
+      "translation": "쿼리 엔티티와 그래프를 입력으로 받은 다음, 일치하는 노드와 그 관계, 그리고 연관된 텍스트 청크를 수집합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "input": "입력"
+      },
+      "translated_at": "2026-10-17T13:15:38.978104Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:2",
+      "source": "While our implementation uses simple case-insensitive substring matching to find relevant entities, a production system would likely employ more sophisticated entity matching techniques to improve accuracy and coverage.",
+      "source_hash": 1784520946414097500,
+      "context_hash": 9236054080233843497,
+      "translation": "저희 구현에서는 관련 엔티티를 찾기 위해 대소문자를 구분하지 않는 단순한 부분 문자열 매칭을 사용하지만, 프로덕션 시스템에서는 정확도와 커버리지를 높이기 위해 더 정교한 엔티티 매칭 기법을 사용할 가능성이 높습니다.",
+      "glossary_snapshot": {
+        "implementation": "구현",
+        "techniques": "기법"
+      },
+      "translated_at": "2026-10-17T13:15:38.978105Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:3",
+      "source": "The method builds a comprehensive context for the query based on the matched entities.",
+      "source_hash": 786460743458890547,
+      "context_hash": 13292335245856095573,
+      "translation": "이 메서드는 일치하는 엔티티를 바탕으로 쿼리에 대한 포괄적인 컨텍스트를 구성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978106Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "The local search context is structured to provide the LLM with a comprehensive view of the relevant information extracted from the knowledge graph.",
+      "source_hash": 14925505406378099945,
+      "context_hash": 354888511302436184,
+      "translation": "로컬 검색 컨텍스트는 지식 그래프에서 추출한 관련 정보를 LLM이 포괄적으로 파악할 수 있도록 구조화되어 있습니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM",
+        "knowledge graph": "지식 그래프"
+      },
+      "translated_at": "2026-10-17T13:15:38.978106Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:1",
+      "source": "It takes the entities matched from the query, their relationships found in the graph, and supporting text chunks, and formats them into a clear template.",
+      "source_hash": 5580959104477931486,
+      "context_hash": 9788954923607361290,
+      "translation": "쿼리에서 일치한 엔티티, 그래프에서 찾은 그 관계, 그리고 근거가 되는 텍스트 청크를 받아 명확한 템플릿으로 정리합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "template": "템플릿"
+      },
+      "translated_at": "2026-10-17T13:15:38.978107Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:2",
+      "source": "The entities section lists all matched nodes from the graph that were relevant to the query.",
+      "source_hash": 5422174021956176091,
+      "context_hash": 13160375242118883009,
+      "translation": "엔티티 섹션에는 그래프에서 쿼리와 관련하여 일치한 모든 노드가 나열됩니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:38.978107Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:3",
+      "source": "The relationships section details how these entities are connected to each other through the graph edges.",
+      "source_hash": 8864351955288914138,
+      "context_hash": 13619208571795294983,
+      "translation": "관계 섹션에는 이러한 엔티티들이 그래프 엣지를 통해 서로 어떻게 연결되어 있는지가 자세히 기술됩니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:38.978107Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:4",
+      "source": "Finally, the supporting text section includes the actual document text chunks associated with these entities and relationships.",
+      "source_hash": 4682275743427346076,
+      "context_hash": 17570335736152557352,
+      "translation": "마지막으로 근거 텍스트 섹션에는 이러한 엔티티 및 관계와 연관된 실제 문서 텍스트 청크가 포함됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978107Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:5",
+      "source": "This structured context helps the LLM understand both the semantic relationships between entities as well as their textual descriptions, allowing it to generate more accurate and contextually appropriate responses.",
+      "source_hash": 1078903594879326474,
+      "context_hash": 15586445383651742002,
+      "translation": "이렇게 구조화된 컨텍스트는 LLM이 엔티티 간의 의미적 관계와 텍스트 설명을 모두 이해하도록 도와, 더 정확하고 문맥에 적합한 응답을 생성할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM"
+      },
+      "translated_at": "2026-10-17T13:15:38.978108Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Global Search",
+      "source_hash": 5232558840014083143,
+      "context_hash": 13918153124125727562,
+      "translation": "글로벌 검색",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978109Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "Global search uses a map-reduce approach to analyze document communities.",
+      "source_hash": 4229674085670535621,
+      "context_hash": 7457175537589930933,
+      "translation": "글로벌 검색은 맵-리듀스 방식을 사용하여 문서 커뮤니티를 분석합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978109Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:1",
+      "source": "It first retrieves all community summaries for a document, then in the map phase, it generates intermediate answers for each community.",
+      "source_hash": 7811876900085413760,
+      "context_hash": 13663409773936045644,
+      "translation": "먼저 문서에 대한 모든 커뮤니티 요약을 가져온 다음, 맵 단계에서 각 커뮤니티에 대한 중간 답변을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978109Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:2",
+      "source": "In the reduce phase, it combines these answers into a coherent response.",
+      "source_hash": 3085019722558051272,
+      "context_hash": 8524037574080131599,
+      "translation": "리듀스 단계에서는 이러한 답변들을 결합하여 일관된 응답을 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978109Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Naive RAG",
+      "source_hash": 4890769534030833433,
+      "context_hash": 12549488851458927578,
+      "translation": "나이브 RAG",
+      "glossary_snapshot": {
+        "RAG": "RAG"
+      },
+      "translated_at": "2026-10-17T13:15:38.978110Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "The naive search method implements a traditional RAG approach using hybrid search (combining vector similarity and keyword matching).",
+      "source_hash": 11326160828866971948,
+      "context_hash": 14488292029914659081,
+      "translation": "나이브 검색 메서드는 하이브리드 검색(벡터 유사도와 키워드 매칭의 결합)을 사용하는 전통적인 RAG 방식을 구현합니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG",
+        "keyword": "키워드",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:38.978110Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:1",
+      "source": "It retrieves relevant text chunks using the hybrid search function, combines them into a context string, and generates a response using the LLM.",
+      "source_hash": 4640960074489011417,
+      "context_hash": 14527823528226096561,
+      "translation": "하이브리드 검색 함수를 사용해 관련 텍스트 청크를 가져와 하나의 컨텍스트 문자열로 결합한 뒤, LLM을 사용해 응답을 생성합니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM"
+      },
+      "translated_at": "2026-10-17T13:15:38.978110Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:2",
+      "source": "This method is simpler than the graph-based approaches but can be effective for straightforward queries.",
+      "source_hash": 416338485136400283,
+      "context_hash": 9513163963510143749,
+      "translation": "이 방법은 그래프 기반 방식보다 단순하지만, 간단한 쿼리에는 효과적일 수 있습니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:38.978110Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "The hybrid search implementation combines two different search strategies: semantic search using vector embeddings and traditional keyword-based search.",
+      "source_hash": 15850635483178751998,
+      "context_hash": 11463874255594331762,
+      "translation": "하이브리드 검색 구현은 벡터 임베딩을 사용하는 시맨틱 검색과 전통적인 키워드 기반 검색이라는 두 가지 서로 다른 검색 전략을 결합합니다.",
+      "glossary_snapshot": {
+        "implementation": "구현",
+        "keyword": "키워드",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:38.978110Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:1",
+      "source": "This is implemented in a single SQL query that leverages PostgreSQL's pgvector extension for vector similarity and full-text search capabilities.",
+      "source_hash": 3610964372783124808,
+      "context_hash": 15859622652269515915,
+      "translation": "이는 벡터 유사도를 위한 PostgreSQL의 pgvector 확장과 전문 검색(full-text search) 기능을 활용하는 단일 SQL 쿼리로 구현됩니다.",
+      "glossary_snapshot": {
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:38.978110Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:2",
+      "source": "Let's look at the core query from the `search.py` file:",
+      "source_hash": 9692711234533628339,
+      "context_hash": 17693593061940097826,
+      "translation": "`search.py` 파일의 Core 쿼리를 살펴봅시다:",
+      "glossary_snapshot": {
+        "Core": "Core"
+      },
+      "translated_at": "2026-10-17T13:15:38.978111Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:0",
+      "source": "The query uses Common Table Expressions (CTEs) to perform two parallel searches.",
+      "source_hash": 3076978530138971674,
+      "context_hash": 11779653949705001815,
+      "translation": "이 쿼리는 공통 테이블 표현식(CTE)을 사용하여 두 개의 병렬 검색을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978112Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:1",
+      "source": "The first CTE, semantic_search, uses pgvector's cosine similarity operator \\<=\\> to find documents whose embeddings are closest to the query embedding.",
+      "source_hash": 17387430098043920121,
+      "context_hash": 14759242505664315863,
+      "translation": "첫 번째 CTE인 semantic_search는 pgvector의 코사인 유사도 연산자 \\<=\\>를 사용하여 임베딩이 쿼리 임베딩과 가장 가까운 문서를 찾습니다.",
+      "glossary_snapshot": {
+        "cosine": "코사인",
+        "embedding": "임베딩"
+      },
+      "translated_at": "2026-10-17T13:15:38.978112Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:2",
+      "source": "It ranks results based on vector similarity and selects the top 20 matches.",
+      "source_hash": 778654480926304127,
+      "context_hash": 17873122212530643159,
+      "translation": "벡터 유사도를 기준으로 결과의 순위를 매기고 상위 20개의 일치 항목을 선택합니다.",
+      "glossary_snapshot": {
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:38.978112Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:3",
+      "source": "The second CTE, keyword_search, uses PostgreSQL's full-text search capabilities with ts_rank_cd to find and rank documents based on keyword matches, also selecting the top 20 results.",
+      "source_hash": 1440546814293347290,
+      "context_hash": 7054269156523329437,
+      "translation": "두 번째 CTE인 keyword_search는 ts_rank_cd와 함께 PostgreSQL의 전문 검색 기능을 사용하여 키워드 일치를 기준으로 문서를 찾고 순위를 매기며, 마찬가지로 상위 20개의 결과를 선택합니다.",
+      "glossary_snapshot": {
+        "keyword": "키워드"
+      },
+      "translated_at": "2026-10-17T13:15:38.978113Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "The main SELECT statement then combines these results using a FULL OUTER JOIN, which ensures we capture matches from both search methods even if a document only appears in one of them.",
+      "source_hash": 3705212903883660254,
+      "context_hash": 6305640637370581818,
+      "translation": "그런 다음 메인 SELECT 문은 FULL OUTER JOIN을 사용하여 이 결과들을 결합하는데, 이를 통해 어떤 문서가 둘 중 한쪽에만 나타나더라도 두 검색 방법의 일치 항목을 모두 확보할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978114Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:1",
+      "source": "This is where the Reciprocal Rank Fusion comes into play.",
+      "source_hash": 17456549960273691575,
+      "context_hash": 7183194464403379062,
+      "translation": "바로 여기서 상호 순위 융합(Reciprocal Rank Fusion)이 작동합니다.",
+      "glossary_snapshot": {
+        "fusion": "융합"
+      },
+      "translated_at": "2026-10-17T13:15:38.978114Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:2",
+      "source": "The formula is implemented in the scoring formula:",
+      "source_hash": 12714583979482131939,
+      "context_hash": 9142931199261652464,
+      "translation": "이 공식은 다음 점수 계산식으로 구현됩니다:",
+      "glossary_snapshot": {
+        "formula": "공식"
+      },
+      "translated_at": "2026-10-17T13:15:38.978115Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:0",
+      "source": "The RRF algorithm combines multiple ranked lists by giving each item a score based on its position in each list.",
+      "source_hash": 9956215362588692445,
+      "context_hash": 31131252477147605,
+      "translation": "RRF 알고리즘은 각 목록에서의 위치에 따라 각 항목에 점수를 부여하는 방식으로 여러 순위 목록을 결합합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘"
+      },
+      "translated_at": "2026-10-17T13:15:38.978116Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:1",
+      "source": "The constant k (default 60) acts as a smoothing factor that mitigates the impact of high rankings in individual result lists.",
+      "source_hash": 7414349922295139,
+      "context_hash": 15740258637490756631,
+      "translation": "상수 k(기본값 60)는 개별 결과 목록에서 높은 순위가 미치는 영향을 완화하는 평활화 계수 역할을 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978117Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:2",
+      "source": "For each document, its final score is the sum of the reciprocal of (k + rank) from each source.",
+      "source_hash": 1232897293377644378,
+      "context_hash": 9096213186469675808,
+      "translation": "각 문서의 최종 점수는 각 출처에서의 (k + 순위)의 역수를 합한 값입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978117Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:3",
+      "source": "The COALESCE function handles cases where a document appears in only one of the result sets, defaulting to 0 for missing rankings.",
+      "source_hash": 3557341879833976693,
+      "context_hash": 13684556325856634176,
+      "translation": "COALESCE 함수는 문서가 결과 집합 중 하나에만 나타나는 경우를 처리하며, 누락된 순위에 대해서는 기본값 0을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:38.978117Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:0",
+      "source": "This fusion approach is an improvement because it compoensates for the strengths and weaknesses of both search methods.",
+      "source_hash": 134557608588181878,
+      "context_hash": 17519142345859565337,
+      "translation": "이 융합 방식은 두 검색 방법의 장단점을 서로 보완하므로 개선된 방식입니다.",
+      "glossary_snapshot": {
+        "fusion": "융합"
+      },
+      "translated_at": "2026-10-17T13:15:47.890272Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:1",
+      "source": "Semantic search can capture documents with similar meaning even when they use different words, while keyword search ensures exact matches aren't missed.",
+      "source_hash": 12814044829611158054,
+      "context_hash": 15386263141304492016,
+      "translation": "시맨틱 검색은 서로 다른 단어를 사용하더라도 의미가 비슷한 문서를 찾아낼 수 있으며, 키워드 검색은 정확히 일치하는 항목을 놓치지 않도록 보장합니다.",
+      "glossary_snapshot": {
+        "keyword": "키워드"
+      },
+      "translated_at": "2026-10-17T13:15:47.890274Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:2",
+      "source": "The RRF algorithm provides a principled way to combine these signals, giving higher weight to documents that rank well in both searches while still preserving strong single-source matches.",
+      "source_hash": 14085671165092772233,
+      "context_hash": 17303369486194649908,
+      "translation": "RRF 알고리즘은 이러한 신호를 원칙에 따라 결합하는 방법을 제공하며, 두 검색 모두에서 순위가 높은 문서에 더 높은 가중치를 부여하면서도 한쪽 검색에서만 강하게 일치한 결과도 유지합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘"
+      },
+      "translated_at": "2026-10-17T13:15:47.890274Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:3",
+      "source": "The results are finally ordered by the combined RRF score in descending order and limited to the requested number of results.",
+      "source_hash": 2653270976935339917,
+      "context_hash": 4590772815027067566,
+      "translation": "최종적으로 결과는 결합된 RRF 점수의 내림차순으로 정렬되고 요청된 결과 개수만큼으로 제한됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890275Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:4",
+      "source": "This hybrid approach provides more robust search results than either semantic or keyword search alone, particularly for queries where the relevant information might be expressed in various ways throughout the document.",
+      "source_hash": 16298782253726574618,
+      "context_hash": 8555234748057490603,
+      "translation": "이 하이브리드 방식은 시맨틱 검색이나 키워드 검색 중 하나만 사용할 때보다 더 견고한 검색 결과를 제공하며, 특히 관련 정보가 문서 전반에 걸쳐 다양한 방식으로 표현될 수 있는 쿼리에서 그렇습니다.",
+      "glossary_snapshot": {
+        "keyword": "키워드"
+      },
+      "translated_at": "2026-10-17T13:15:47.890275Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:0/seg:0",
+      "source": "Putting It All Together",
+      "source_hash": 17514353799182656213,
+      "context_hash": 7119876355784205722,
+      "translation": "모두 합치기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890275Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:1/seg:0",
+      "source": "Ok we have everything implemented.",
+      "source_hash": 4365457153495892894,
+      "context_hash": 8599492338838185532,
+      "translation": "이제 모든 것을 구현했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890275Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:1/seg:1",
+      "source": "A basic CLI interface is provided in the reference implementation to run the pipeline the terminal.",
+      "source_hash": 2977100801918861168,
+      "context_hash": 13832314352348509858,
+      "translation": "참조 구현에는 터미널에서 파이프라인을 실행할 수 있는 기본 CLI 인터페이스가 포함되어 있습니다.",
+      "glossary_snapshot": {
+        "implementation": "구현",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:15:47.890276Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:1/seg:2",
+      "source": "We also provide a Docker Compose setup for running the pgvector database in an ephemeral Docker container.",
+      "source_hash": 17482384499060094515,
+      "context_hash": 752675420209484589,
+      "translation": "또한 임시 Docker 컨테이너에서 pgvector 데이터베이스를 실행하기 위한 Docker Compose 설정도 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890276Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:2/seg:0",
+      "source": "To setup the database and ingest a text document, run the following:",
+      "source_hash": 10009019850024672691,
+      "context_hash": 9345451671212890317,
+      "translation": "데이터베이스를 설정하고 텍스트 문서를 수집하려면 다음을 실행하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890276Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:4/seg:0",
+      "source": "This will ingest into Postgres and local graph file in the `./graphs` folder.",
+      "source_hash": 10648166191380592472,
+      "context_hash": 2482569263563834543,
+      "translation": "이렇게 하면 Postgres와 `./graphs` 폴더의 로컬 그래프 파일로 데이터가 수집됩니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:47.890276Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:4/seg:1",
+      "source": "To search use the `query` command.",
+      "source_hash": 17220155093403753831,
+      "context_hash": 13116225240688737844,
+      "translation": "검색하려면 `query` 명령을 사용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890276Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:6/seg:0",
+      "source": "Under the hood this is using the toplevel Python API which we built above.",
+      "source_hash": 12471407235819437847,
+      "context_hash": 3467812386566811246,
+      "translation": "내부적으로는 앞에서 만든 최상위 Python API를 사용합니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "Python": "Python",
+        "toplevel": "최상위"
+      },
+      "translated_at": "2026-10-17T13:15:47.890277Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:6/seg:1",
+      "source": "To call it from Python import the `tiny_graphgrag` namespace and invoke the toplevel functions.",
+      "source_hash": 4670680105602472180,
+      "context_hash": 756156114936272424,
+      "translation": "Python에서 호출하려면 `tiny_graphgrag` 네임스페이스를 임포트하고 최상위 함수를 호출하십시오.",
+      "glossary_snapshot": {
+        "Python": "Python",
+        "toplevel": "최상위"
+      },
+      "translated_at": "2026-10-17T13:15:47.890277Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:0/seg:0",
+      "source": "Custom Entity Types",
+      "source_hash": 16736978896112622510,
+      "context_hash": 13674182644240217023,
+      "translation": "사용자 정의 엔티티 유형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890277Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:1/seg:0",
+      "source": "For more specialized use cases, we can overload the entity and relation types.",
+      "source_hash": 4593113106169923337,
+      "context_hash": 2100771440193585014,
+      "translation": "더 특화된 사용 사례를 위해 엔티티 유형과 관계 유형을 재정의할 수 있습니다.",
+      "glossary_snapshot": {
+        "use cases": "사용 사례"
+      },
+      "translated_at": "2026-10-17T13:15:47.890277Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:0/seg:0",
+      "source": "Part Two",
+      "source_hash": 17282291550651732496,
+      "context_hash": 14358337267235781993,
+      "translation": "2부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890277Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:1/seg:0",
+      "source": "In [Part 2](graphrag2.md), we'll go beyond the minimal 1000 line toy impelmentation, and add several significant improvements to our toy implementation that would make it more suitable for production use.",
+      "source_hash": 14281140871266429462,
+      "context_hash": 12670813215361654258,
+      "translation": "[2부](graphrag2.md)에서는 최소한의 1000줄짜리 장난감 구현을 넘어, 프로덕션 환경에 더 적합하도록 장난감 구현에 몇 가지 중요한 개선 사항을 추가합니다.",
+      "glossary_snapshot": {
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:15:47.890277Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:1/seg:1",
+      "source": "The first major change would be replacing our serialized networkx graphs with a proper graph database (Memgraph).",
+      "source_hash": 17438151767296942175,
+      "context_hash": 9224821834155846703,
+      "translation": "첫 번째 주요 변경 사항은 직렬화된 networkx 그래프를 제대로 된 그래프 데이터베이스(Memgraph)로 교체하는 것입니다.",
+      "glossary_snapshot": {
+        "Memgraph": "Memgraph",
+        "graph": "그래프",
+        "graphs": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:47.890278Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:1/seg:2",
+      "source": "Graph databases are specifically optimized for relationship-based queries and can handle large-scale graphs much more efficiently than our current pickle file-based approach.",
+      "source_hash": 9449453894488266131,
+      "context_hash": 9585715844719149999,
+      "translation": "그래프 데이터베이스는 관계 기반 쿼리에 특화되어 최적화되어 있으며, 현재의 pickle 파일 기반 방식보다 대규모 그래프를 훨씬 더 효율적으로 처리할 수 있습니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "graphs": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:47.890278Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:1/seg:3",
+      "source": "They also provide built-in support for graph embeddings (node2vec), which allow us to combine structural and semantic similarity in our queries.",
+      "source_hash": 18136820306211267342,
+      "context_hash": 18230237359508303795,
+      "translation": "또한 그래프 임베딩(node2vec)을 기본적으로 지원하므로, 쿼리에서 구조적 유사도와 의미적 유사도를 결합할 수 있습니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:15:47.890278Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:1/seg:4",
+      "source": "This is particularly useful for finding related entities that might not be directly connected but share similar patterns of relationships.",
+      "source_hash": 6492048013673280348,
+      "context_hash": 13922217484345435543,
+      "translation": "이는 직접 연결되어 있지는 않지만 비슷한 관계 패턴을 공유하는 관련 엔티티를 찾을 때 특히 유용합니다.",
+      "glossary_snapshot": {
+        "patterns": "패턴"
+      },
+      "translated_at": "2026-10-17T13:15:47.890278Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:2/seg:0",
+      "source": "The second addition will address the computational expense of our current global search implementation.",
+      "source_hash": 10494753352460409459,
+      "context_hash": 7500692763043061406,
+      "translation": "두 번째로 추가할 사항은 현재 전역 검색 구현의 계산 비용 문제를 해결하는 것입니다.",
+      "glossary_snapshot": {
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:15:47.890278Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:2/seg:1",
+      "source": "Instead of using a map-reduce approach that requires n+1 LLM calls, we will use top-k clustering on the community summaries.",
+      "source_hash": 10105588236733421053,
+      "context_hash": 4671406330735774385,
+      "translation": "n+1번의 LLM 호출이 필요한 맵리듀스 방식 대신, 커뮤니티 요약에 top-k 클러스터링을 사용합니다.",
+      "glossary_snapshot": {
+        "LLM": "LLM"
+      },
+      "translated_at": "2026-10-17T13:15:47.890278Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:2/seg:2",
+      "source": "This would group similar communities together based on their vector embeddings.",
+      "source_hash": 2277756277280680621,
+      "context_hash": 7211033086643904061,
+      "translation": "이를 통해 벡터 임베딩을 기반으로 비슷한 커뮤니티를 함께 묶습니다.",
+      "glossary_snapshot": {
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:47.890279Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:2/seg:3",
+      "source": "We will also implement a hierarchical clustering approach (like the original GraphRAG reference implementation) that creates a multi-level summary structure, enabling us to start with high-level summaries and drill down only when necessary.",
+      "source_hash": 17265856810929371840,
+      "context_hash": 5393578312495034360,
+      "translation": "또한 (원래 GraphRAG 참조 구현처럼) 다단계 요약 구조를 만드는 계층적 클러스터링 방식을 구현하여, 상위 수준의 요약에서 시작해 필요할 때만 세부 내용으로 파고들 수 있도록 합니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:15:47.890279Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:3/seg:0",
+      "source": "Then we will focus on improving entity resolution and deduplication.",
+      "source_hash": 15266782140001895948,
+      "context_hash": 4814188573898713916,
+      "translation": "그다음에는 엔티티 해석과 중복 제거를 개선하는 데 집중합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890279Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:3/seg:1",
+      "source": "Our current implementation treats entities as exact string matches, which can miss connections between different references to the same entity (e.g., \"Barack Obama\" vs. \"President Obama\" vs. \"Obama\").",
+      "source_hash": 13159670128770348849,
+      "context_hash": 15140823733481603336,
+      "translation": "현재 구현은 엔티티를 정확한 문자열 일치로 취급하므로, 같은 엔티티를 가리키는 서로 다른 표현 간의 연결을 놓칠 수 있습니다(예: \"Barack Obama\", \"President Obama\", \"Obama\").",
+      "glossary_snapshot": {
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:15:47.890279Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:3/seg:2",
+      "source": "We can add vector similarity comparison for entity matching, using the embeddings of entity mentions along with their surrounding context to identify when different strings refer to the same entity.",
+      "source_hash": 3264263409213674070,
+      "context_hash": 7724305187493331642,
+      "translation": "엔티티 매칭에 벡터 유사도 비교를 추가하여, 엔티티 언급의 임베딩과 그 주변 문맥을 함께 사용해 서로 다른 문자열이 같은 엔티티를 가리키는 경우를 식별할 수 있습니다.",
+      "glossary_snapshot": {
+        "mentions": "언급",
+        "vector": "벡터"
+      },
+      "translated_at": "2026-10-17T13:15:47.890280Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:0/seg:0",
+      "source": "How Does It Perform",
+      "source_hash": 11272423472127682701,
+      "context_hash": 9060763039835363258,
+      "translation": "성능은 어떨까",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:15:47.890280Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:1/seg:0",
+      "source": "GraphRAG can theoretically outperform naive RAG in certain scenarios, however both approaches suffer from fundamental limitations that make them quite fragile to use in practice.",
+      "source_hash": 8769249080926133278,
+      "context_hash": 17590883028494867791,
+      "translation": "GraphRAG는 이론적으로 특정 시나리오에서 나이브 RAG보다 뛰어난 성능을 낼 수 있지만, 두 접근 방식 모두 근본적인 한계를 안고 있어 실제로 사용하기에는 상당히 취약합니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "RAG": "RAG"
+      },
+      "translated_at": "2026-10-17T13:13:21.968571Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:1/seg:1",
+      "source": "Naive RAG's effectiveness heavily depends on careful tuning of chunking strategies and embedding parameters - optimizations that often need to be discovered empirically and rarely generalize well across different domains or document types.",
+      "source_hash": 9159218887235443692,
+      "context_hash": 4649910842495347191,
+      "translation": "나이브 RAG의 효과는 청킹 전략과 임베딩 매개변수를 얼마나 세심하게 조정하느냐에 크게 좌우됩니다. 이러한 최적화는 대개 경험적으로 찾아내야 하며, 서로 다른 도메인이나 문서 유형에 잘 일반화되는 경우가 드뭅니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG",
+        "embedding": "임베딩",
+        "optimizations": "최적화",
+        "parameters": "매개변수"
+      },
+      "translated_at": "2026-10-17T13:13:21.968572Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:1/seg:2",
+      "source": "GraphRAG attempts to address these limitations by introducing structured knowledge representation, but it essentially trades one set of hard problems for another.",
+      "source_hash": 5178370087818774564,
+      "context_hash": 7741756716777902651,
+      "translation": "GraphRAG는 구조화된 지식 표현을 도입하여 이러한 한계를 해결하려 하지만, 본질적으로는 한 묶음의 어려운 문제를 다른 묶음의 어려운 문제로 맞바꾸는 것에 불과합니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG"
+      },
+      "translated_at": "2026-10-17T13:13:21.968572Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:1/seg:3",
+      "source": "While it can capture relationships that naive RAG might miss, it critically depends on accurate entity and relation extraction, which is itself an unsolved problem.",
+      "source_hash": 17239781001456360933,
+      "context_hash": 10319915579992071420,
+      "translation": "GraphRAG는 나이브 RAG가 놓칠 수 있는 관계를 포착할 수 있지만, 정확한 엔티티 및 관계 추출에 결정적으로 의존하며, 이 추출 자체가 아직 해결되지 않은 문제입니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG"
+      },
+      "translated_at": "2026-10-17T13:13:21.968572Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:1/seg:4",
+      "source": "The quality of the final results is highly sensitive to the accuracy of these extraction steps, and errors tend to compound throughout the pipeline.",
+      "source_hash": 9012598621095677254,
+      "context_hash": 2033432558858795473,
+      "translation": "최종 결과의 품질은 이러한 추출 단계의 정확도에 매우 민감하며, 오류는 파이프라인 전반에 걸쳐 누적되는 경향이 있습니다.",
+      "glossary_snapshot": {
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:2/seg:0",
+      "source": "Both approaches require what amounts to a sequence of statistical \"miracles\" to align perfectly in order to produce accurate and contextually appropriate answers.",
+      "source_hash": 729161984536463975,
+      "context_hash": 3298293772214631377,
+      "translation": "두 접근 방식 모두 정확하고 맥락에 맞는 답변을 내놓으려면 일련의 통계적 \"기적\"이 완벽하게 맞아떨어져야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:2/seg:1",
+      "source": "The chunking must be just right, the embeddings must capture the relevant semantic relationships, the LLM must interpret the context correctly, and in GraphRAG's case, the entity and relation extraction must also be accurate.",
+      "source_hash": 7369656218050351803,
+      "context_hash": 3032953807643711203,
+      "translation": "청킹이 딱 알맞아야 하고, 임베딩이 관련된 의미적 관계를 포착해야 하며, LLM이 맥락을 올바르게 해석해야 하고, GraphRAG의 경우에는 엔티티 및 관계 추출까지 정확해야 합니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "LLM": "LLM"
+      },
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:2/seg:2",
+      "source": "The failure of any single component can lead to irrelevant or misleading responses.",
+      "source_hash": 1526084829756796568,
+      "context_hash": 5106847968870267962,
+      "translation": "어느 하나의 구성 요소만 실패해도 관련 없는 응답이나 오해를 불러일으키는 응답이 나올 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:2/seg:3",
+      "source": "GraphRAG is not uniformly \"better\" but it trades an embedding simliarity problem for a entity/relation extration problem, which may be easier to solve in some domains.",
+      "source_hash": 6815457467912123814,
+      "context_hash": 4804940151291412201,
+      "translation": "GraphRAG가 모든 면에서 \"더 나은\" 것은 아니며, 임베딩 유사도 문제를 엔티티/관계 추출 문제로 맞바꾸는 것일 뿐입니다. 다만 일부 도메인에서는 후자가 더 풀기 쉬울 수 있습니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "embedding": "임베딩"
+      },
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:2/seg:4",
+      "source": "The global search for GraphRAG is also significantly more computationally expensive and requires n+1 (where n is the communities in the graph) calls to LLMs to perform it's map-reduce operation, which for large documents could be considerable.",
+      "source_hash": 679888176052361186,
+      "context_hash": 4939516474457649982,
+      "translation": "또한 GraphRAG의 전역 검색은 계산 비용이 훨씬 더 크며, 맵리듀스 연산을 수행하기 위해 LLM을 n+1번(여기서 n은 그래프의 커뮤니티 수) 호출해야 하므로 큰 문서에서는 그 비용이 상당할 수 있습니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG",
+        "LLMs": "LLM",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:3/seg:0",
+      "source": "For anyone considering implementing either approach, it's crucial to understand that end users of this system would need to accept a high degree of potential inaccuracy and out-of-context answers when relying on these chains of black box models.",
+      "source_hash": 6689361428884607761,
+      "context_hash": 9950911002850821348,
+      "translation": "두 접근 방식 중 하나를 구현하려는 분이라면, 이 시스템의 최종 사용자가 이러한 블랙박스 모델의 연쇄에 의존할 때 상당한 수준의 잠재적 부정확성과 맥락에서 벗어난 답변을 감수해야 한다는 점을 반드시 이해해야 합니다.",
+      "glossary_snapshot": {
+        "models": "모델"
+      },
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:3/seg:1",
+      "source": "The current state of RAG, whether graph-based or naive, is not sufficiently reliable for production systems where accuracy and consistency are important.",
+      "source_hash": 10019339235542594885,
+      "context_hash": 17565029763147425540,
+      "translation": "그래프 기반이든 나이브 방식이든, 현재 RAG의 수준은 정확성과 일관성이 중요한 프로덕션 시스템에 쓰기에는 충분히 신뢰할 만하지 않습니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:3/seg:2",
+      "source": "While these approaches can be interesting for experimental or research purposes, they are not yet mature enough to serve as dependable solutions for production information retrieval systems.",
+      "source_hash": 13704997530032998584,
+      "context_hash": 16343987770872121685,
+      "translation": "이러한 접근 방식은 실험이나 연구 목적으로는 흥미로울 수 있지만, 프로덕션 정보 검색 시스템에서 믿고 쓸 수 있는 솔루션이 되기에는 아직 성숙하지 않았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:4/seg:0",
+      "source": "GraphRAG is not some algorithmic panacea it seems to often be marketed as.",
+      "source_hash": 15164342852247390124,
+      "context_hash": 7289403265750792059,
+      "translation": "GraphRAG는 흔히 홍보되는 것처럼 만병통치약 같은 알고리즘이 아닙니다.",
+      "glossary_snapshot": {
+        "GraphRAG": "GraphRAG"
+      },
+      "translated_at": "2026-10-17T13:13:21.968573Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:4/seg:1",
+      "source": "It does not \"solve hallucinations\" or fix the \"pre-training overflow problem\" that all RAG approachs that use a language model as final synthesizer suffer from.",
+      "source_hash": 2518430928523667340,
+      "context_hash": 7898113708226918013,
+      "translation": "GraphRAG는 \"환각을 해결\"하지도 않으며, 언어 모델을 최종 합성기로 사용하는 모든 RAG 접근 방식이 겪는 \"사전 학습 오버플로 문제\"를 고쳐 주지도 않습니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG",
+        "language model": "언어 모델",
+        "pre-training": "사전 학습"
+      },
+      "translated_at": "2026-10-17T13:13:21.968574Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:4/seg:2",
+      "source": "However it might prove more useful in some specific low-risk domains and may show improvement over a naive RAG implementation.",
+      "source_hash": 9820663624532630605,
+      "context_hash": 10139716351775316550,
+      "translation": "그러나 위험이 낮은 일부 특정 도메인에서는 더 유용할 수 있으며, 나이브 RAG 구현보다 나은 결과를 보일 수도 있습니다.",
+      "glossary_snapshot": {
+        "RAG": "RAG",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:13:21.968574Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:4/seg:3",
+      "source": "In conclusion, if you're looking for a way to turn perfectly good documents into unreliable answers while burning through GPU credits, both naive RAG and GraphRAG are excellent choices.",
+      "source_hash": 16851809233584028217,
+      "context_hash": 8465436396705352482,
+      "translation": "결론적으로, GPU 크레딧을 태워 가며 멀쩡한 문서를 신뢰할 수 없는 답변으로 바꾸는 방법을 찾고 계신다면, 나이브 RAG와 GraphRAG 모두 훌륭한 선택입니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "GraphRAG": "GraphRAG",
+        "RAG": "RAG"
+      },
+      "translated_at": "2026-10-17T13:13:21.968574Z",
+      "issues": []
+    }
+  ]
+}
