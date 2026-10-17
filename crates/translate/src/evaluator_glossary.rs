@@ -65,9 +65,22 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
     match markup {
         Markup::Verso => without_verso_role_headers(source),
         Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
-        Markup::Markdown | Markup::MkDocs if is_external_link_only(source) || is_image_only(source) => String::new(),
+        Markup::Markdown | Markup::MkDocs
+            if is_external_link_only(source) || is_image_only(source) || is_display_math_only(source) =>
+        {
+            String::new()
+        }
         _ => source.to_string(),
     }
+}
+
+/// Whether `source` is exactly one display formula, `$$…$$`: a KaTeX/MathJax
+/// segment the translator copies byte for byte. Its `\text{variable}` labels
+/// and `\mathsf{instance}` names read as glossary terms, but they are the
+/// formula, not prose, and no translation can meet the glossary inside them.
+fn is_display_math_only(source: &str) -> bool {
+    let source = source.trim();
+    source.len() > 4 && source.starts_with("$$") && source.ends_with("$$") && source.matches("$$").count() == 2
 }
 
 /// Whether `source` is exactly one image, `![alt](path)`: its alt text
@@ -266,6 +279,32 @@ translation = "예"
         let result = GlossaryEvaluator.evaluate(&context("예시는 다음과 같습니다:")).await.unwrap();
         assert!(!result.passed);
         assert!(result.issues[0].message.contains("exactly '예'"));
+    }
+
+    #[tokio::test]
+    async fn a_segment_that_is_only_a_display_formula_has_no_prose() {
+        let glossary = yeokja_core::glossary::Glossary::from_toml(
+            "[terms.variable]\ntranslation = \"변수\"\n[terms.instance]\ntranslation = \"인스턴스\"\n",
+        )
+        .unwrap();
+        let context = |source: &str, translation: &str| EvaluationContext {
+            source: source.to_string(),
+            translation: translation.to_string(),
+            glossary: glossary.clone(),
+            source_lang: "en".to_string(),
+            target_lang: "ko".to_string(),
+            markup: Markup::Markdown,
+        };
+        let formula = r"$$ \begin{aligned} e & = x & \quad & \text{variable} \end{aligned} $$";
+        assert!(GlossaryEvaluator.evaluate(&context(formula, formula)).await.unwrap().passed);
+        let rule = r"$$ \frac{\mathsf{instance}\;Q\Rightarrow C\;\tau}{P\vdash C\;S\tau}\;\text{(Instance)} $$";
+        assert!(GlossaryEvaluator.evaluate(&context(rule, rule)).await.unwrap().passed);
+        let prose = r"Each variable is bound: $$ x $$";
+        assert!(!GlossaryEvaluator.evaluate(&context(prose, "각 항목은 묶입니다: $$ x $$")).await.unwrap().passed);
+        let two = r"$$ x $$ names the variable $$ y $$";
+        assert!(!GlossaryEvaluator.evaluate(&context(two, "$$ x $$는 항목 $$ y $$를 이름합니다")).await.unwrap().passed);
+        let empty = "$$$$";
+        assert!(GlossaryEvaluator.evaluate(&context(empty, empty)).await.unwrap().passed);
     }
 
     #[tokio::test]
