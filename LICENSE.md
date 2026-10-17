@@ -47,6 +47,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `thebeambook` | CC BY 4.0 |
 | `tpil` | Apache-2.0 |
 | `webassembly-component-docs` | CC BY 4.0 |
+| `write-you-a-haskell` | 산문 CC BY-SA 4.0, 코드 MIT (코드는 번역하지 않음) |
 | `zero-to-nix` | CC BY-NC-SA 4.0 (비상업) |
 
 원문 라이선스 전문은 각 `projects/<name>/upstream/`의 라이선스 파일에 있습니다.
