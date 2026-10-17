@@ -164,9 +164,16 @@ jobs:
         uses: actions/checkout@v4
 
       # 이 잡이 다루는 프로젝트의 submodule만 받습니다 — 다른 프로젝트의
-      # upstream(수백 MB)까지 받을 이유가 없습니다.
+      # upstream(수백 MB)까지 받을 이유가 없습니다. 공개 원고 저장소가 없어
+      # 복원한 source/를 커밋하는 프로젝트(stephendiehl)는 submodule이 없으므로
+      # .gitmodules에 등록된 경우에만 받습니다.
       - name: Fetch this project's submodule
-        run: git submodule update --init --depth 1 projects/${{ matrix.project }}/upstream
+        run: |
+          if git config --file .gitmodules --get "submodule.projects/${{ matrix.project }}/upstream.path" >/dev/null; then
+            git submodule update --init --depth 1 projects/${{ matrix.project }}/upstream
+          else
+            echo "projects/${{ matrix.project }} has no upstream submodule; skipping"
+          fi
 
       # contributors 표가 git 히스토리 전체를 요구합니다. actions/checkout이
       # submodule을 얕게 받았을 때만 --unshallow가 의미가 있고, 아니면 no-op.
