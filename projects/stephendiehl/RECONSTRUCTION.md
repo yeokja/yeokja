@@ -34,9 +34,9 @@ nix develop path:../../nix#stephendiehl -c python3 scripts/fetch_site.py convert
 ## 변환 규칙 (`scripts/fetch_site.py`)
 
 1. **범위는 `/posts/` 색인이다.** 사이트맵에만 있고 색인에서 빠진
-   `/posts/<slug>/`는 저자가 목록에서 내린 글로 보고 가져오지 않는다. 그 URL
-   목록은 `manifest.json`의 `unlisted_posts`에 적어 두어 저자가 다시 올리면 알 수
-   있게 한다. `/writings/`(별도 책 링크 모음), `/hire/`, `/pgp/`, `/tags/*`는
+   `/posts/<slug>/`는 저자가 목록에서 내린 글로 보고 가져오지 않는다(이 글들은
+   `/tags/`에도 없고 `feed.xml`에만 남아 있다). 그 URL 목록은 `manifest.json`의
+   `unlisted_posts`에 적어 두어 저자가 다시 올리면 알 수 있게 한다. `/writings/`(별도 책 링크 모음), `/hire/`, `/pgp/`, `/tags/*`는
    번역 대상이 아니다.
 2. **`<main>` 안만 쓴다.** 사이트 머리글·꼬리글·내비게이션은 버린다. 글 상단의
    `post-meta` 블록(게시일, 태그, 읽기 모드 버튼)은 본문에서 떼어 내 게시일과
