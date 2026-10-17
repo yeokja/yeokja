@@ -153,6 +153,7 @@ overlay_site "dist-zero-to-nix" "site" "zero-to-nix"
 overlay_site "dist-nix-dev" "site" "nix-dev"
 overlay_site "dist-raytracing" "site" "raytracing"
 overlay_site "dist-cp-algorithms" "site" "cp-algorithms"
+overlay_site "dist-rust-api-guidelines" "site" "rust-api-guidelines"
 
 prune_orphaned_site_entries
 
