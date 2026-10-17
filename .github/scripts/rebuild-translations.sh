@@ -84,6 +84,12 @@ case "$project" in
     "$yeokja" translate upstream/peps
     "$yeokja" status --check upstream/peps
     ;;
+  write-you-a-haskell)
+    # book/src mdBook 책 전체를 한 번에 확인해 upstream이 새로 추가한 장이
+    # state 없이 빠지는 경우도 배포를 막습니다.
+    "$yeokja" translate upstream/book/src
+    "$yeokja" status --check upstream/book/src
+    ;;
   jeffe-algorithms)
     # 복원한 영어 원고(source/) 전체를 확인한 뒤 ko/를 재구성합니다.
     "$yeokja" status --check source

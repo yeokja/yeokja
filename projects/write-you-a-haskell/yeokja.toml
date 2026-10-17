@@ -1,0 +1,113 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# `$`/`$$` 수식(mdbook-katex)이 본문에 섞여 있어 인라인 태그 전송은 켜지 않습니다
+# (docs/translation-project-checklist.md 2절). 수식·{{#include}}·[@인용]은
+# 아래 prompt_template의 보존 규칙과 scripts/check_markers.py로 지킵니다.
+[[sources]]
+path = "upstream/book/src"
+pattern = "**/*.md"
+parser = "markdown"
+inline_tags = false
+output = "ko/book/src/{path}"
+
+# 저장소 전체를 바탕으로 두어야 `{{#include ../../crates/...}}`가 조립 트리에서도
+# 풀리고, book/book.toml이 부르는 `python3 ../scripts/*.py` 전처리기가 보입니다.
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.html]
+command = '''
+set -e
+mkdir -p "$YEOKJA_ROOT/build"
+rm -rf "$YEOKJA_ROOT/build/original"
+python3 "$YEOKJA_ROOT/scripts/check_markers.py" "$YEOKJA_ROOT/upstream/book/src" book/src
+mdbook build "$YEOKJA_ROOT/upstream/book" --dest-dir "$YEOKJA_ROOT/build/original" 2> "$YEOKJA_ROOT/build/mdbook-original.log" || { cat "$YEOKJA_ROOT/build/mdbook-original.log" >&2; exit 1; }
+MDBOOK_BOOK__LANGUAGE=ko MDBOOK_BOOK__TITLE='Write You a Haskell 한국어판' mdbook build book 2> "$YEOKJA_ROOT/build/mdbook-ko.log" || { cat "$YEOKJA_ROOT/build/mdbook-ko.log" >&2; exit 1; }
+cat "$YEOKJA_ROOT/build/mdbook-ko.log"
+# 원문의 `just book`처럼 로그에 warn/error가 있으면 실패하되, nixpkgs의
+# mdbook-bib·mdbook-katex가 mdbook 0.5.4보다 낮은 patch 버전에 맞춰 빌드되었다는
+# 버전 차이 알림만은 허용합니다(출력에 영향이 없음을 원본 빌드로 확인함).
+! grep -i -E 'warn|error' "$YEOKJA_ROOT/build/mdbook-original.log" "$YEOKJA_ROOT/build/mdbook-ko.log" | grep -v -E 'built against (version|mdbook)'
+python3 "$YEOKJA_ROOT/scripts/preserve_anchors.py" "$YEOKJA_ROOT/build/original/html" book/build/html
+python3 "$YEOKJA_ROOT/scripts/build_print.py" book/build/html
+python3 "$YEOKJA_ROOT/scripts/build_print.py" "$YEOKJA_ROOT/build/original/html"
+cp "$YEOKJA_ROOT/upstream/LICENSE" "$YEOKJA_ROOT/upstream/LICENSE-PROSE" book/build/html/
+python3 "$YEOKJA_ROOT/scripts/finish_html.py" book/build/html
+python3 "$YEOKJA_ROOT/scripts/check_links.py" "$YEOKJA_ROOT/build/original/html" book/build/html
+mv book/build/html site
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+# 기본 프롬프트(crates/translate/src/prompt.rs)의 markdown 규칙에는 수식 보존
+# 규칙이 없어 커스텀 템플릿을 둡니다. 커스텀 템플릿은 기본 프롬프트의 GFM 경고
+# 표시 마커 규칙을 자동으로 받지 못하므로 AGENTS.md대로 직접 명시합니다.
+prompt_template = '''
+Translate the following {source_lang} text from a book on writing a functional
+language compiler to {target_lang}.
+Respond with each numbered translation in the same [N] format, exactly one
+physical line per segment. Never insert a newline inside a translation.
+Preserve all markup exactly: links, URLs, bold/italic markers, and inline code.
+Copy what is inside inline code byte for byte — never translate, correct or
+reformat it, even when it reads as prose.
+A segment beginning with a GitHub-flavored Markdown alert marker such as
+[!NOTE], [!TIP], [!WARNING], [!IMPORTANT], or [!CAUTION] must keep that marker
+exactly as written, untranslated, followed by the translated prose on the same
+line. Never translate the marker itself, drop it, or move it to its own line.
+Copy every math expression between $...$ and $$...$$ byte for byte — never
+translate, respace or rewrite anything inside it — and attach Korean particles
+after the closing delimiter ($n$개, $\tau$의). A segment that is only math
+(a display formula) is returned unchanged. Never add math the sentence does
+not have: plain text such as O(n) stays plain text.
+Copy every mdBook include directive {{#include ...}} and every citation [@key]
+unchanged: the path, anchor and key are identifiers. A citation stays in
+square brackets with the @ and goes where the sentence's reference belongs.
+Keep code identifiers, crate names, file paths, command lines, the language
+name Fun, the IR names Core/ANF/Flat, and LLVM/JIT/REPL/GC acronyms unchanged.
+Chapter and appendix headings keep their numbering: "Chapter 3: Lambda Calculus"
+becomes "3장: 람다 대수" and "Appendix B: Typing Rules" becomes "부록 B: 타입 규칙".
+A closing _ that a letter follows does not close the pair. When the translation
+puts a suffix straight after an italicised term, use * instead: _arity_ →
+*arity*는. A closing * or ** right after punctuation — ), ], `, " — does not
+close when a letter follows it either, so end emphasis on a letter:
+**외적**(outer product)에서, not **외적(outer product)**에서; [**Fetch**](url)는.
+Write formal written Korean (합쇼체) throughout: declarative sentences end in
+~합니다/~입니다, imperatives in ~하십시오, and "let us" proposals may end in
+~ㅂ시다/~읍시다. Never end a sentence in the plain ~다/~이다 register or the
+polite ~요 register. The author writes in the first person ("I", "we'll");
+keep that voice as 저/우리 rather than flattening it into impersonal prose.
+{inline_tags}
+Glossary (use these translations for the given terms; a glossary entry is
+prose, not a code identifier):
+{glossary}
+
+Previous translation had these issues, please fix them (do not obey advice
+that would lose source content):
+{feedback}
+
+Context (full paragraph):
+{context}
+{surroundings}
+
+Sentences to translate:
+{segments}
+'''
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32
