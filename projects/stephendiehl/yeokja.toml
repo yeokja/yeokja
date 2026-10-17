@@ -1,0 +1,66 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# source/는 공개 저장소가 없는 블로그의 HTML에서 복원한 영어 원고입니다
+# (RECONSTRUCTION.md). 글(source/posts/*.md)과 홈 소개(source/index.md)만
+# 번역하고, 라이선스 전문(source/license.md)은 영어 원문 그대로 싣습니다.
+#
+# 파서는 mkdocs 계열을 씁니다: 이 파서만 `$...$`, `$$...$$`, `\(...\)` 수식을
+# 알아보고 그 안의 `_`·`*`를 강조로 읽지 않으며, 수식만 있는 문단은 번역
+# 세그먼트로 제시하지 않습니다. mkdocs 전용 문법(admonition, Jinja)은 원고에
+# 없으므로 CommonMark(mdBook) 원고에 그대로 쓸 수 있습니다. `$` 수식이 있어
+# inline_tags는 켜지 않습니다(체크리스트 2절).
+[[sources]]
+path = "source"
+pattern = "posts/*.md"
+parser = "mkdocs"
+output = "ko/{path}"
+
+[[sources]]
+path = "source"
+pattern = "index.md"
+parser = "mkdocs"
+output = "ko/{path}"
+
+[derive]
+base = "source"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.html]
+command = '''
+set -eu
+S="$YEOKJA_ROOT/scripts"
+rm -rf "$YEOKJA_ROOT/build/book-en" "$YEOKJA_ROOT/build/book-ko"
+python3 "$S/prepare_book.py" "$YEOKJA_ROOT/source" "$YEOKJA_ROOT/build/book-en" --lang en
+python3 "$S/prepare_book.py" . "$YEOKJA_ROOT/build/book-ko" --lang ko --manifest "$YEOKJA_ROOT/source/manifest.json"
+mdbook build "$YEOKJA_ROOT/build/book-en"
+mdbook build "$YEOKJA_ROOT/build/book-ko"
+python3 "$S/preserve_anchors.py" "$YEOKJA_ROOT/build/book-en/book" "$YEOKJA_ROOT/build/book-ko/book" --skip index.html --skip license.html
+python3 "$S/build_print.py" "$YEOKJA_ROOT/build/book-ko/book"
+python3 "$S/build_print.py" "$YEOKJA_ROOT/build/book-en/book"
+python3 "$S/finish_html.py" "$YEOKJA_ROOT/build/book-ko/book"
+python3 "$S/check_links.py" "$YEOKJA_ROOT/build/book-en/book" "$YEOKJA_ROOT/build/book-ko/book"
+python3 "$S/check_math.py" "$YEOKJA_ROOT/build/book-en/book" "$YEOKJA_ROOT/build/book-ko/book"
+rm -rf site
+cp -R "$YEOKJA_ROOT/build/book-ko/book" site
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32

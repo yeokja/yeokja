@@ -1,0 +1,732 @@
+{
+  "version": 1,
+  "source_hash": 12580143227269040583,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "The FlashAttention CUDA Kernel Line by Line",
+      "source_hash": 12957157202715244575,
+      "context_hash": 10638009250203798781,
+      "translation": "FlashAttention CUDA 커널 한 줄씩 살펴보기",
+      "glossary_snapshot": {
+        "CUDA": "CUDA",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-10-17T13:20:53.553124Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Flash Attention is a memory-efficient algorithm for computing attention in transformers.",
+      "source_hash": 13970382496509162573,
+      "context_hash": 13727714643686880436,
+      "translation": "Flash 어텐션은 트랜스포머에서 어텐션을 계산하기 위한 메모리 효율적인 알고리즘입니다.",
+      "glossary_snapshot": {
+        "Flash Attention": "Flash 어텐션",
+        "algorithm": "알고리즘",
+        "attention": "어텐션"
+      },
+      "translated_at": "2026-10-17T13:44:38.117317Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Let's break down the CUDA implementation block by block.",
+      "source_hash": 11792293525129721150,
+      "context_hash": 9463371284719754801,
+      "translation": "CUDA 구현을 블록 단위로 하나씩 살펴봅시다.",
+      "glossary_snapshot": {
+        "CUDA": "CUDA",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:20:53.553125Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "The core innovation of Flash Attention is processing attention in blocks while maintaining numerical stability through careful tracking of maximum values and partial sums.",
+      "source_hash": 198579358663909520,
+      "context_hash": 4088506989611095435,
+      "translation": "Flash 어텐션의 핵심(Core) 혁신은 최댓값과 부분 합을 세심하게 추적하여 수치적 안정성을 유지하면서 어텐션을 블록 단위로 처리한다는 점입니다.",
+      "glossary_snapshot": {
+        "Core": "Core",
+        "Flash Attention": "Flash 어텐션",
+        "attention": "어텐션"
+      },
+      "translated_at": "2026-10-17T13:44:38.117318Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:3",
+      "source": "The algorithm achieves memory efficiency by never materializing the full attention matrix while still producing mathematically equivalent results to the standard attention mechanism.",
+      "source_hash": 9325846174720399631,
+      "context_hash": 8294366183699121901,
+      "translation": "이 알고리즘은 전체 어텐션 행렬을 한 번도 메모리에 실체화하지 않으면서도 표준 어텐션 메커니즘과 수학적으로 동등한 결과를 만들어 내어 메모리 효율성을 달성합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "attention": "어텐션",
+        "attention mechanism": "어텐션 메커니즘",
+        "matrix": "행렬"
+      },
+      "translated_at": "2026-10-17T13:20:53.553126Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "First we need some small macros.",
+      "source_hash": 10229700410339584925,
+      "context_hash": 13203188480044139115,
+      "translation": "먼저 몇 가지 작은 매크로가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553126Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "The `CEIL_DIV` is used to compute the ceiling of the division of two numbers.",
+      "source_hash": 5097792550646582134,
+      "context_hash": 4210894492862371100,
+      "translation": "`CEIL_DIV`는 두 수를 나눈 값의 올림을 계산하는 데 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553126Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "Now we need the kernel declaration:",
+      "source_hash": 11815523459717737295,
+      "context_hash": 11363159251545949753,
+      "translation": "이제 커널 선언이 필요합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-10-17T13:20:53.553126Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "This declares a CUDA kernel with template parameters `Br` and `Bc` which represent the block sizes for rows and columns.",
+      "source_hash": 7644564183792390904,
+      "context_hash": 8176716871850812534,
+      "translation": "이 코드는 행과 열의 블록 크기를 나타내는 템플릿 매개변수 `Br`과 `Bc`를 가진 CUDA 커널을 선언합니다.",
+      "glossary_snapshot": {
+        "CUDA": "CUDA",
+        "kernel": "커널",
+        "parameters": "매개변수",
+        "template": "템플릿"
+      },
+      "translated_at": "2026-10-17T13:20:53.553126Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "The function takes:",
+      "source_hash": 3832712154378314876,
+      "context_hash": 7118119161874142219,
+      "translation": "이 함수는 다음을 인자로 받습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553127Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:7/seg:0",
+      "source": "Q, K, V: Query, Key, and Value matrices",
+      "source_hash": 8607405922408564929,
+      "context_hash": 4977534141178658719,
+      "translation": "Q, K, V: Query, Key, Value 행렬",
+      "glossary_snapshot": {
+        "matrices": "행렬"
+      },
+      "translated_at": "2026-10-17T13:20:53.553127Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "N: Sequence length",
+      "source_hash": 4047126896744766627,
+      "context_hash": 7868028817764040692,
+      "translation": "N: 시퀀스 길이",
+      "glossary_snapshot": {
+        "sequence length": "시퀀스 길이"
+      },
+      "translated_at": "2026-10-17T13:20:53.553127Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "d: Head dimension",
+      "source_hash": 14671508479684631652,
+      "context_hash": 5275442395140992162,
+      "translation": "d: 헤드 차원",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553127Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:10/seg:0",
+      "source": "Tr, Tc: Number of blocks in rows and columns",
+      "source_hash": 4957480006919341775,
+      "context_hash": 3587856785120852884,
+      "translation": "Tr, Tc: 행과 열 방향의 블록 개수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553127Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "scale: Scaling factor for attention scores",
+      "source_hash": 5728809392050568857,
+      "context_hash": 12321688220454686071,
+      "translation": "scale: 어텐션 점수에 대한 스케일링 계수",
+      "glossary_snapshot": {
+        "attention scores": "어텐션 점수"
+      },
+      "translated_at": "2026-10-17T13:20:53.553127Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:12/seg:0",
+      "source": "l, m: Auxiliary arrays for the numerically stable softmax computation",
+      "source_hash": 1945684765052513941,
+      "context_hash": 15122630411851199746,
+      "translation": "l, m: 수치적으로 안정적인 소프트맥스 계산을 위한 보조 배열",
+      "glossary_snapshot": {
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "O: Output matrix",
+      "source_hash": 2537057631367723352,
+      "context_hash": 7431547308832661018,
+      "translation": "O: 출력 행렬",
+      "glossary_snapshot": {
+        "matrix": "행렬",
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:14/seg:0",
+      "source": "**Thread and Block Index Setup**",
+      "source_hash": 17001973152476613956,
+      "context_hash": 11334366507831643662,
+      "translation": "**스레드 및 블록 인덱스 설정**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:0",
+      "source": "This section retrieves the thread and block indices (tx, bx, by) that identify which thread is executing.",
+      "source_hash": 1434488648623594878,
+      "context_hash": 16844407440078256203,
+      "translation": "이 부분은 어떤 스레드가 실행 중인지 식별하는 스레드 및 블록 인덱스(tx, bx, by)를 가져옵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:1",
+      "source": "It then calculates two important offset values: qkv_off for accessing the Q, K, V matrices and lm_off for accessing the auxiliary arrays l and m.",
+      "source_hash": 13674978017789786318,
+      "context_hash": 17962691113781624094,
+      "translation": "그런 다음 두 가지 중요한 오프셋 값을 계산합니다. Q, K, V 행렬에 접근하기 위한 qkv_off와 보조 배열 l과 m에 접근하기 위한 lm_off입니다.",
+      "glossary_snapshot": {
+        "matrices": "행렬"
+      },
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:2",
+      "source": "These offsets ensure each block processes the correct portion of the input data.",
+      "source_hash": 14405030504570349865,
+      "context_hash": 15130739661359318265,
+      "translation": "이 오프셋들은 각 블록이 입력 데이터의 올바른 부분을 처리하도록 보장합니다.",
+      "glossary_snapshot": {
+        "input": "입력"
+      },
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:17/seg:0",
+      "source": "**Shared Memory Setup**",
+      "source_hash": 10158559874625555456,
+      "context_hash": 10723429343861287885,
+      "translation": "**공유 메모리 설정**",
+      "glossary_snapshot": {
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:19/seg:0",
+      "source": "This section partitions the shared memory into different regions for:",
+      "source_hash": 17461243186311905334,
+      "context_hash": 11199422345114770331,
+      "translation": "이 부분은 공유 메모리를 다음 용도의 여러 영역으로 분할합니다:",
+      "glossary_snapshot": {
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-10-17T13:20:53.553128Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:20/seg:0",
+      "source": "Qi: Current block of Query matrix",
+      "source_hash": 4137864550526456865,
+      "context_hash": 3186914149098915429,
+      "translation": "Qi: Query 행렬의 현재 블록",
+      "glossary_snapshot": {
+        "matrix": "행렬"
+      },
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:21/seg:0",
+      "source": "Kj: Current block of Key matrix",
+      "source_hash": 9696608626874098513,
+      "context_hash": 11146870660608026775,
+      "translation": "Kj: Key 행렬의 현재 블록",
+      "glossary_snapshot": {
+        "matrix": "행렬"
+      },
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:22/seg:0",
+      "source": "Vj: Current block of Value matrix",
+      "source_hash": 17780005211699215058,
+      "context_hash": 6829601979565535319,
+      "translation": "Vj: Value 행렬의 현재 블록",
+      "glossary_snapshot": {
+        "matrix": "행렬"
+      },
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:23/seg:0",
+      "source": "Sij: Attention scores",
+      "source_hash": 6368428109433973341,
+      "context_hash": 4961399998513969535,
+      "translation": "Sij: 어텐션 점수",
+      "glossary_snapshot": {
+        "attention scores": "어텐션 점수"
+      },
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:24/seg:0",
+      "source": "Oi: Output accumulator",
+      "source_hash": 17417601549246601912,
+      "context_hash": 15747907444083134080,
+      "translation": "Oi: 출력 누산기",
+      "glossary_snapshot": {
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:25/seg:0",
+      "source": "li, li_new, mi, mi_new, mij_dash: Softmax computation variables",
+      "source_hash": 14300056501388146193,
+      "context_hash": 17349674802840358586,
+      "translation": "li, li_new, mi, mi_new, mij_dash: 소프트맥스 계산 변수",
+      "glossary_snapshot": {
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:26/seg:0",
+      "source": "**Main Processing Loops**",
+      "source_hash": 15138407766313294951,
+      "context_hash": 17346713277328808911,
+      "translation": "**주요 처리 루프**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:27/seg:0",
+      "source": "The kernel uses two nested loops:",
+      "source_hash": 9114361478103980658,
+      "context_hash": 12442950706210805343,
+      "translation": "이 커널은 두 개의 중첩 루프를 사용합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:28/seg:0",
+      "source": "Outer loop over Key/Value blocks (`j`)",
+      "source_hash": 6795699681296875571,
+      "context_hash": 7062421646867378086,
+      "translation": "Key/Value 블록(`j`)에 대한 바깥쪽 루프",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:20:53.553129Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:29/seg:0",
+      "source": "Inner loop over Query blocks (`i`)",
+      "source_hash": 4766932353885740812,
+      "context_hash": 34920174827514215,
+      "translation": "Query 블록(`i`)에 대한 내부 루프",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984669Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:30/seg:0",
+      "source": "**Key-Value Loading**",
+      "source_hash": 5285027892615080197,
+      "context_hash": 8108804809641836192,
+      "translation": "**Key-Value 로딩**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984670Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:32/seg:0",
+      "source": "This section loads the current block of K and V matrices into shared memory, with bounds checking to prevent out-of-bounds access.",
+      "source_hash": 8381026256331606675,
+      "context_hash": 11357066788541811148,
+      "translation": "이 부분은 K 행렬과 V 행렬의 현재 블록을 공유 메모리로 로드하며, 범위를 벗어난 접근을 막기 위해 경계 검사를 수행합니다.",
+      "glossary_snapshot": {
+        "matrices": "행렬",
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-10-17T13:13:24.984670Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:33/seg:0",
+      "source": "Let's break down the main computation loop which processes each block of queries:",
+      "source_hash": 8789114794163752611,
+      "context_hash": 12965332462552556322,
+      "translation": "각 쿼리 블록을 처리하는 주 계산 루프를 자세히 살펴봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984671Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:34/seg:0",
+      "source": "**Loading Query and Output Data**",
+      "source_hash": 10893907821206147057,
+      "context_hash": 5273666447202113963,
+      "translation": "**Query 및 출력 데이터 로딩**",
+      "glossary_snapshot": {
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:44:38.117319Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:0",
+      "source": "This section loads the current block of Query matrix and Output accumulator into shared memory.",
+      "source_hash": 1164483673330803204,
+      "context_hash": 18383285167818711077,
+      "translation": "이 섹션에서는 Query 행렬의 현재 블록과 출력 누산기를 공유 메모리로 로드합니다.",
+      "glossary_snapshot": {
+        "matrix": "행렬",
+        "output": "출력",
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-10-17T13:44:38.117319Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:1",
+      "source": "Each thread may load multiple elements to ensure efficient memory access patterns.",
+      "source_hash": 5378854701327220310,
+      "context_hash": 17418112598018705342,
+      "translation": "효율적인 메모리 접근 패턴을 보장하기 위해 각 스레드는 여러 요소를 로드할 수 있습니다.",
+      "glossary_snapshot": {
+        "patterns": "패턴"
+      },
+      "translated_at": "2026-10-17T13:13:24.984672Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:36/seg:2",
+      "source": "The bounds checking ensures we don't access out-of-bounds memory when N isn't perfectly divisible by the block size.",
+      "source_hash": 1881672870644082728,
+      "context_hash": 11464960507059807370,
+      "translation": "경계 검사는 N이 블록 크기로 나누어떨어지지 않을 때 범위를 벗어난 메모리에 접근하지 않도록 보장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984672Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:37/seg:0",
+      "source": "**Thread Position Calculation and Max/Sum Loading**",
+      "source_hash": 3787198698615749881,
+      "context_hash": 11063946489940758763,
+      "translation": "**스레드 위치 계산 및 최댓값/합계 로딩**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984673Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:0",
+      "source": "Each thread calculates its position in the shared memory block.",
+      "source_hash": 13552070077482497663,
+      "context_hash": 17899761212834319368,
+      "translation": "각 스레드는 공유 메모리 블록 내에서 자신의 위치를 계산합니다.",
+      "glossary_snapshot": {
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-10-17T13:13:24.984673Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:39/seg:1",
+      "source": "The first thread in each row (`s_col == 0`) loads the running maximum and sum values needed for the numerically stable softmax computation.",
+      "source_hash": 3369522363727439980,
+      "context_hash": 6894543768667991374,
+      "translation": "각 행의 첫 번째 스레드(`s_col == 0`)는 수치적으로 안정적인 소프트맥스 계산에 필요한 누적 최댓값과 누적 합계를 로드합니다.",
+      "glossary_snapshot": {
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:13:24.984673Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:40/seg:0",
+      "source": "**Computing Attention Scores**",
+      "source_hash": 14887811914573044016,
+      "context_hash": 7211406147753886426,
+      "translation": "**어텐션 점수 계산**",
+      "glossary_snapshot": {
+        "attention scores": "어텐션 점수"
+      },
+      "translated_at": "2026-10-17T13:13:24.984673Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:0",
+      "source": "This computes the scaled dot product attention scores between the Query and Key matrices.",
+      "source_hash": 7213438354342595147,
+      "context_hash": 6428544007464222540,
+      "translation": "이 부분은 Query 행렬과 Key 행렬 사이의 스케일드 닷 프로덕트 어텐션 점수를 계산합니다.",
+      "glossary_snapshot": {
+        "attention scores": "어텐션 점수",
+        "matrices": "행렬"
+      },
+      "translated_at": "2026-10-17T13:13:24.984674Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:42/seg:1",
+      "source": "Each thread computes one element of the attention score matrix Sij.",
+      "source_hash": 9861364877934466083,
+      "context_hash": 14739271358928839947,
+      "translation": "각 스레드는 어텐션 점수 행렬 Sij의 요소 하나를 계산합니다.",
+      "glossary_snapshot": {
+        "attention score": "어텐션 점수",
+        "matrix": "행렬"
+      },
+      "translated_at": "2026-10-17T13:13:24.984674Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:43/seg:0",
+      "source": "**Numerically Stable Softmax Computation**",
+      "source_hash": 4778555931649752377,
+      "context_hash": 14903248986962136566,
+      "translation": "**수치적으로 안정적인 소프트맥스 계산**",
+      "glossary_snapshot": {
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:13:24.984674Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:0",
+      "source": "This implements the numerically stable softmax algorithm.",
+      "source_hash": 15356058302042169687,
+      "context_hash": 14001935300443500127,
+      "translation": "이 부분은 수치적으로 안정적인 소프트맥스 알고리즘을 구현합니다.",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:13:24.984674Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:45/seg:1",
+      "source": "For each row:",
+      "source_hash": 2711761407969876440,
+      "context_hash": 14574502272690937643,
+      "translation": "각 행에 대해 다음을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984674Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:46/seg:0",
+      "source": "Find the maximum value for numerical stability",
+      "source_hash": 9866258679061440020,
+      "context_hash": 8164538692240581068,
+      "translation": "수치적 안정성을 위해 최댓값을 찾습니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984675Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:47/seg:0",
+      "source": "Compute exponentials normalized by the maximum",
+      "source_hash": 13433261710076475560,
+      "context_hash": 18108380930328117906,
+      "translation": "최댓값으로 정규화한 지수를 계산합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984675Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:48/seg:0",
+      "source": "Sum the normalized exponentials",
+      "source_hash": 12784511835844955100,
+      "context_hash": 4979321548286170831,
+      "translation": "정규화된 지수들을 합산합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984675Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:49/seg:0",
+      "source": "Update the running maximum and sum for the online softmax computation",
+      "source_hash": 4029610620099170689,
+      "context_hash": 1795675599519284703,
+      "translation": "온라인 소프트맥스 계산을 위해 누적 최댓값과 누적 합계를 갱신합니다",
+      "glossary_snapshot": {
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:13:24.984675Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:50/seg:0",
+      "source": "**Output Computation and Update**",
+      "source_hash": 3045775079172591780,
+      "context_hash": 2834546802585386064,
+      "translation": "**출력 계산 및 갱신**",
+      "glossary_snapshot": {
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:13:24.984675Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:52/seg:0",
+      "source": "This final section:",
+      "source_hash": 4405975283568500297,
+      "context_hash": 8625130496395615884,
+      "translation": "이 마지막 부분은 다음을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984675Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:53/seg:0",
+      "source": "Computes the matrix multiplication between the softmax probabilities and the Value matrix",
+      "source_hash": 4671286683245965155,
+      "context_hash": 7364995247270825745,
+      "translation": "소프트맥스 확률과 Value 행렬 사이의 행렬 곱셈을 계산합니다",
+      "glossary_snapshot": {
+        "matrix": "행렬",
+        "matrix multiplication": "행렬 곱셈",
+        "probabilities": "확률",
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:13:24.984675Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:54/seg:0",
+      "source": "Updates the output using the online softmax algorithm",
+      "source_hash": 5769651030506592506,
+      "context_hash": 1520978090552592722,
+      "translation": "온라인 소프트맥스 알고리즘을 사용하여 출력을 갱신합니다",
+      "glossary_snapshot": {
+        "algorithm": "알고리즘",
+        "output": "출력",
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:13:24.984676Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:55/seg:0",
+      "source": "Each thread may compute multiple output elements (when d \\> Bc)",
+      "source_hash": 14549137670067115424,
+      "context_hash": 521064902150137641,
+      "translation": "각 스레드는 여러 출력 요소를 계산할 수 있습니다(d \\> Bc인 경우)",
+      "glossary_snapshot": {
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:13:24.984676Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:56/seg:0",
+      "source": "The reason for the complex update formula is to ensure numerical stability while accumulating partial results",
+      "source_hash": 11503769002215410436,
+      "context_hash": 13366447823788245126,
+      "translation": "갱신 공식이 복잡한 이유는 부분 결과를 누적하는 동안 수치적 안정성을 보장하기 위해서입니다",
+      "glossary_snapshot": {
+        "formula": "공식"
+      },
+      "translated_at": "2026-10-17T13:13:24.984676Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:57/seg:0",
+      "source": "**State Update for Next Iteration**",
+      "source_hash": 739746078492406008,
+      "context_hash": 14173067430937093121,
+      "translation": "**다음 반복을 위한 상태 갱신**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984676Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:0",
+      "source": "Finally, we update the running maximum and sum values in global memory for the next iteration.",
+      "source_hash": 645799484243430991,
+      "context_hash": 9995436845497462494,
+      "translation": "마지막으로, 다음 반복을 위해 전역 메모리에 있는 누적 최댓값과 누적 합계를 갱신합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:13:24.984676Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:59/seg:1",
+      "source": "This is crucial for the online softmax computation across blocks.",
+      "source_hash": 18359012444772060087,
+      "context_hash": 6489271113226849636,
+      "translation": "이는 블록 전반에 걸친 온라인 소프트맥스 계산에 매우 중요합니다.",
+      "glossary_snapshot": {
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:13:24.984676Z",
+      "issues": []
+    }
+  ]
+}

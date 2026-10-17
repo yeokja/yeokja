@@ -1,0 +1,522 @@
+{
+  "version": 1,
+  "source_hash": 2926885988982540540,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Using CUDA Deep Neural Network (cuDNN) in Python",
+      "source_hash": 3731312066803462343,
+      "context_hash": 12799791646829561078,
+      "translation": "Python에서 CUDA 심층 신경망(cuDNN) 사용하기",
+      "glossary_snapshot": {
+        "CUDA": "CUDA",
+        "Python": "Python",
+        "cuDNN": "cuDNN",
+        "neural network": "신경망"
+      },
+      "translated_at": "2026-10-17T13:23:30.160227Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Let's go through how to implement scaled dot product attention using the cuDNN Python API.",
+      "source_hash": 4301653381126230195,
+      "context_hash": 7431839606702424966,
+      "translation": "cuDNN Python API를 사용해 스케일드 닷 프로덕트 어텐션(scaled dot product attention)을 구현하는 방법을 살펴봅시다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "Python": "Python",
+        "attention": "어텐션",
+        "cuDNN": "cuDNN"
+      },
+      "translated_at": "2026-10-17T13:23:30.160228Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "This is the most computationally expensive part of inference in a transformer-style model, while also being partially parallelizable so it's usually offloaded to the GPU.",
+      "source_hash": 6459645016540485830,
+      "context_hash": 1423115908586018427,
+      "translation": "이는 트랜스포머 계열 모델의 추론에서 계산 비용이 가장 큰 부분이면서도 부분적으로 병렬화할 수 있어서, 보통 GPU로 오프로드합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "inference": "추론",
+        "model": "모델",
+        "transformer": "트랜스포머"
+      },
+      "translated_at": "2026-10-17T13:23:30.160229Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "Under the hood this uses the FlashAttention-2 algorithm but provides an API that is higher level than just the [raw kernel implementation](https://github.com/Dao-AILab/flash-attention).",
+      "source_hash": 5994760665467893747,
+      "context_hash": 8418594231475314402,
+      "translation": "내부적으로는 FlashAttention-2 알고리즘을 사용하지만, 단순한 [원시 커널 구현](https://github.com/Dao-AILab/flash-attention)보다 더 높은 수준의 API를 제공합니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "algorithm": "알고리즘",
+        "implementation": "구현",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-10-17T13:23:30.160229Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "First, we import necessary libraries: `cudnn` for the cuDNN API, `torch` for tensor operations and comparison.",
+      "source_hash": 2780945594227225085,
+      "context_hash": 12647563830116118416,
+      "translation": "먼저 필요한 라이브러리를 임포트합니다. cuDNN API에는 `cudnn`을, 텐서 연산과 비교에는 `torch`를 사용합니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "cuDNN": "cuDNN",
+        "tensor operations": "텐서 연산"
+      },
+      "translated_at": "2026-10-17T13:23:30.160229Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Note that you will need a GPU with compute capability SM80 architecture (Ampere) or above in order to use the optimized kernels.",
+      "source_hash": 495651137594868225,
+      "context_hash": 2784328075749258958,
+      "translation": "최적화된 커널을 사용하려면 컴퓨트 성능(compute capability) SM80 아키텍처(Ampere) 이상의 GPU가 필요하다는 점에 유의하십시오.",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-10-17T13:23:30.160229Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "Next, we define the problem dimensions for our attention mechanism, based on a GPT-2 like configuration: batch size (`b`), number of heads (`h`), maximum sequence length (`s`), and embedding dimension per head (`d`).",
+      "source_hash": 2023730022843138058,
+      "context_hash": 17165898519815698165,
+      "translation": "다음으로 GPT-2와 비슷한 구성을 바탕으로 어텐션 메커니즘의 문제 차원을 정의합니다. 배치 크기(`b`), 헤드 수(`h`), 최대 시퀀스 길이(`s`), 헤드당 임베딩 차원(`d`)이 그것입니다.",
+      "glossary_snapshot": {
+        "attention mechanism": "어텐션 메커니즘",
+        "batch size": "배치 크기",
+        "embedding dimension": "임베딩 차원",
+        "sequence length": "시퀀스 길이"
+      },
+      "translated_at": "2026-10-17T13:23:30.160230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "The attention scaling factor `attn_scale` is also calculated.",
+      "source_hash": 6398400493632982299,
+      "context_hash": 10142207122955351933,
+      "translation": "어텐션 스케일링 계수 `attn_scale`도 계산합니다.",
+      "glossary_snapshot": {
+        "attention": "어텐션"
+      },
+      "translated_at": "2026-10-17T13:23:30.160230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:0",
+      "source": "We then create the query (Q), key (K), value (V), and output (O) tensors on the GPU using PyTorch.",
+      "source_hash": 7248391363807006968,
+      "context_hash": 13543972139952039855,
+      "translation": "그런 다음 PyTorch를 사용해 GPU에 쿼리(Q), 키(K), 값(V), 출력(O) 텐서를 생성합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "PyTorch": "PyTorch",
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:23:30.160230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:1",
+      "source": "These tensors are initialized with half-precision (`.half()`).",
+      "source_hash": 179229579578797578,
+      "context_hash": 9400817929650908527,
+      "translation": "이 텐서들은 반정밀도(`.half()`)로 초기화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:23:30.160230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:2",
+      "source": "We define their logical dimensions as `(b, h, s, d)` (BHSD).",
+      "source_hash": 5235505350254498993,
+      "context_hash": 14903853711656382389,
+      "translation": "논리적 차원은 `(b, h, s, d)`(BHSD)로 정의합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:23:30.160230Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:6/seg:3",
+      "source": "Importantly, we specify a physical memory layout using `strides` that corresponds to BSHD (Batch, Sequence, Head, Dims_per_head) to demonstrate explicit layout control.",
+      "source_hash": 4092226641468185800,
+      "context_hash": 11944650051112151944,
+      "translation": "특히 명시적인 레이아웃 제어를 보여 주기 위해 `strides`를 사용하여 BSHD(배치, 시퀀스, 헤드, 헤드당 차원)에 해당하는 물리적 메모리 레이아웃을 지정합니다.",
+      "glossary_snapshot": {
+        "batch": "배치",
+        "memory layout": "메모리 레이아웃"
+      },
+      "translated_at": "2026-10-17T13:46:02.027415Z",
+      "issues": [
+        "Emphasis marker runs count mismatch: source has 2, translation has 0"
+      ]
+    },
+    {
+      "id": "section:0/block:6/seg:4",
+      "source": "The `as_strided` method applies this layout without data copies.",
+      "source_hash": 2389548169916296522,
+      "context_hash": 2513600293147249569,
+      "translation": "`as_strided` 메서드는 데이터를 복사하지 않고 이 레이아웃을 적용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:23:30.160231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:0",
+      "source": "Now, we construct the cuDNN computation graph.",
+      "source_hash": 6998010305606277516,
+      "context_hash": 11375000518516985452,
+      "translation": "이제 cuDNN 계산 그래프를 구성합니다.",
+      "glossary_snapshot": {
+        "cuDNN": "cuDNN",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:1",
+      "source": "The cuDNN graph system provides a high-level interface for describing tensor operations as a dataflow graph that can be efficiently executed on the GPU.",
+      "source_hash": 5315849824043773647,
+      "context_hash": 16289604828275267873,
+      "translation": "cuDNN 그래프 시스템은 텐서 연산을 GPU에서 효율적으로 실행할 수 있는 데이터 흐름 그래프로 기술하기 위한 고수준 인터페이스를 제공합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "cuDNN": "cuDNN",
+        "graph": "그래프",
+        "tensor operations": "텐서 연산"
+      },
+      "translated_at": "2026-10-17T13:23:30.160231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:2",
+      "source": "Users build up their computation by adding operations to the graph, which typically represents a subset of their full neural network that they want to optimize and offload to specialized GPU kernels.",
+      "source_hash": 16564204884161663588,
+      "context_hash": 15881512115468142118,
+      "translation": "사용자는 그래프에 연산을 추가하는 방식으로 계산을 구성하며, 이 그래프는 일반적으로 전체 신경망 중에서 최적화하여 특화된 GPU 커널로 오프로드하려는 일부분을 나타냅니다.",
+      "glossary_snapshot": {
+        "GPU kernels": "GPU 커널",
+        "graph": "그래프",
+        "neural network": "신경망"
+      },
+      "translated_at": "2026-10-17T13:23:30.160231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:8/seg:3",
+      "source": "Once the graph is finalized, cuDNN provides multiple execution engines with different tradeoffs—some prioritizing ease of use, others minimizing runtime overhead or maximizing performance.",
+      "source_hash": 6755199596507055943,
+      "context_hash": 9179182245028507187,
+      "translation": "그래프가 확정되면 cuDNN은 서로 다른 트레이드오프를 가진 여러 실행 엔진을 제공합니다. 어떤 엔진은 사용 편의성을 우선시하고, 어떤 엔진은 런타임 오버헤드를 최소화하거나 성능을 극대화합니다.",
+      "glossary_snapshot": {
+        "cuDNN": "cuDNN",
+        "execution engines": "실행 엔진",
+        "graph": "그래프",
+        "runtime": "런타임"
+      },
+      "translated_at": "2026-10-17T13:23:30.160231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:0",
+      "source": "The graph is initialized specifying half-precision for I/O and float precision for intermediate and compute operations.",
+      "source_hash": 14541920899175507445,
+      "context_hash": 5391654784145935924,
+      "translation": "그래프는 입출력에는 반정밀도를, 중간 연산과 계산 연산에는 float 정밀도를 지정하여 초기화합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160231Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:1",
+      "source": "We create graph tensor descriptors (`q`, `k`, `v`) that mirror our PyTorch GPU tensors.",
+      "source_hash": 2523041635304137515,
+      "context_hash": 14904636655114851450,
+      "translation": "PyTorch GPU 텐서에 대응하는 그래프 텐서 디스크립터(`q`, `k`, `v`)를 생성합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "PyTorch": "PyTorch",
+        "descriptors": "디스크립터",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:2",
+      "source": "The SDPA operation is added to the graph, configured for inference (`is_inference=True`), using the calculated `attn_scale`, and with causal masking enabled (`use_causal_mask=True`).",
+      "source_hash": 12854286200245495285,
+      "context_hash": 7129971256143677950,
+      "translation": "SDPA 연산을 그래프에 추가하며, 추론용으로 구성하고(`is_inference=True`), 계산된 `attn_scale`을 사용하며, 인과 마스킹을 활성화합니다(`use_causal_mask=True`).",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "inference": "추론"
+      },
+      "translated_at": "2026-10-17T13:23:30.160232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:3",
+      "source": "The second return value (stats tensor) is ignored as it's for training.",
+      "source_hash": 12227757369403726297,
+      "context_hash": 18059042411043678716,
+      "translation": "두 번째 반환값(stats 텐서)은 학습용이므로 무시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:23:30.160232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:9/seg:4",
+      "source": "Finally, the output graph tensor `o` is marked as an output and its dimensions and strides are set.",
+      "source_hash": 5775789351116684087,
+      "context_hash": 12364713373094586089,
+      "translation": "마지막으로 출력 그래프 텐서 `o`를 출력으로 표시하고 차원과 스트라이드를 설정합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:23:30.160232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:0",
+      "source": "With the graph defined, we build it.",
+      "source_hash": 13795128514983108512,
+      "context_hash": 13087132584844111332,
+      "translation": "그래프를 정의했으면 이를 빌드합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:1",
+      "source": "This involves validating the graph structure, building an internal operation graph, creating execution plans using cuDNN's heuristics (Mode A and Fallback), checking if the chosen plans are supported, and finally building these plans, which may involve JIT compilation of kernels.",
+      "source_hash": 8590740254208008683,
+      "context_hash": 9508568539358599965,
+      "translation": "이 과정에는 그래프 구조 검증, 내부 연산 그래프 구축, cuDNN의 휴리스틱(Mode A와 Fallback)을 사용한 실행 계획 생성, 선택된 계획의 지원 여부 확인, 그리고 마지막으로 이 계획들의 빌드가 포함되며, 빌드 과정에서 커널의 JIT 컴파일이 일어날 수 있습니다.",
+      "glossary_snapshot": {
+        "JIT": "JIT",
+        "compilation": "컴파일",
+        "cuDNN": "cuDNN",
+        "execution": "실행",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160232Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:2",
+      "source": "Heuristics Mode A is designed to be fast and be able to handle most operation graph patterns.",
+      "source_hash": 13289421028543499557,
+      "context_hash": 15314500954377021544,
+      "translation": "휴리스틱 Mode A는 빠르면서도 대부분의 연산 그래프 패턴을 처리할 수 있도록 설계되었습니다.",
+      "glossary_snapshot": {
+        "graph": "그래프",
+        "patterns": "패턴"
+      },
+      "translated_at": "2026-10-17T13:23:30.160233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:11/seg:3",
+      "source": "Heuristics Mode B is designed to be more accurate but slower.",
+      "source_hash": 1302947192777077531,
+      "context_hash": 16194903167526191623,
+      "translation": "휴리스틱 Mode B는 더 정확하지만 더 느리도록 설계되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:23:30.160233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:0",
+      "source": "To execute the graph, we create a `variant_pack` dictionary.",
+      "source_hash": 9241482017948322068,
+      "context_hash": 15934089184455182934,
+      "translation": "그래프를 실행하기 위해 `variant_pack` 딕셔너리를 생성합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:1",
+      "source": "This maps the symbolic graph tensors (defined earlier) to the actual PyTorch GPU tensors holding the data.",
+      "source_hash": 9058551970192744873,
+      "context_hash": 8023618358822062397,
+      "translation": "이 딕셔너리는 (앞서 정의한) 심볼릭 그래프 텐서를 실제 데이터를 담고 있는 PyTorch GPU 텐서에 매핑합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "PyTorch": "PyTorch",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:2",
+      "source": "We also query the required workspace size for the execution plan and allocate it on the GPU.",
+      "source_hash": 388981496768920746,
+      "context_hash": 11802326170573001887,
+      "translation": "또한 실행 계획에 필요한 워크스페이스 크기를 조회하여 GPU에 할당합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "execution": "실행"
+      },
+      "translated_at": "2026-10-17T13:23:30.160233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:13/seg:3",
+      "source": "The graph is then executed, and `torch.cuda.synchronize()` ensures the computation completes before proceeding.",
+      "source_hash": 9522044731399718863,
+      "context_hash": 1860201525584690639,
+      "translation": "그런 다음 그래프를 실행하며, `torch.cuda.synchronize()`는 다음 단계로 넘어가기 전에 계산이 완료되도록 보장합니다.",
+      "glossary_snapshot": {
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:23:30.160233Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:0",
+      "source": "Finally, we verify the output of our cuDNN SDPA implementation against PyTorch's native `scaled_dot_product_attention`.",
+      "source_hash": 18356661397135447003,
+      "context_hash": 17614683406770682850,
+      "translation": "마지막으로, cuDNN SDPA 구현의 출력을 PyTorch의 네이티브 `scaled_dot_product_attention`과 비교하여 검증합니다.",
+      "glossary_snapshot": {
+        "PyTorch": "PyTorch",
+        "cuDNN": "cuDNN",
+        "implementation": "구현",
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:23:07.757904Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:1",
+      "source": "We prepare reference tensors `q_ref`, `k_ref`, `v_ref` from our original GPU tensors, converting them to float.",
+      "source_hash": 3259801780751665227,
+      "context_hash": 14449516159452676407,
+      "translation": "원래의 GPU 텐서로부터 참조 텐서 `q_ref`, `k_ref`, `v_ref`를 준비하고, 이를 float로 변환합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-10-17T13:23:07.757904Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:2",
+      "source": "Since our cuDNN tensors used a BSHD physical layout, and PyTorch's native function expects 4D inputs in BHSD, we permute the reference tensors from BSHD to BHSD.",
+      "source_hash": 10441519823775934987,
+      "context_hash": 3350022452555442416,
+      "translation": "cuDNN 텐서는 BSHD 물리적 레이아웃을 사용했고 PyTorch의 네이티브 함수는 BHSD 형식의 4D 입력을 기대하므로, 참조 텐서를 BSHD에서 BHSD로 순열 변환(permute)합니다.",
+      "glossary_snapshot": {
+        "PyTorch": "PyTorch",
+        "cuDNN": "cuDNN",
+        "inputs": "입력"
+      },
+      "translated_at": "2026-10-17T13:23:07.757905Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:15/seg:3",
+      "source": "We then compute the reference output `o_ref`.",
+      "source_hash": 4537977022113215594,
+      "context_hash": 13645990153101512487,
+      "translation": "그런 다음 참조 출력 `o_ref`를 계산합니다.",
+      "glossary_snapshot": {
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:23:07.757905Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:0",
+      "source": "In simple terms, permute(0, 2, 1, 3) rearranges the dimensions of a 4D tensor.",
+      "source_hash": 7459253852288834148,
+      "context_hash": 10863742674729406093,
+      "translation": "간단히 말해, permute(0, 2, 1, 3)은 4D 텐서의 차원을 재배열합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:23:07.757905Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:16/seg:1",
+      "source": "If the original tensor's dimensions represent (Batch, Sequence, Head, Dim_per_head) (BSHD), this operation swaps the second and third dimensions (Sequence and Head) to produce a tensor with dimensions (Batch, Head, Sequence, Dim_per_head) (BHSD).",
+      "source_hash": 13983841325308119861,
+      "context_hash": 674140538475342476,
+      "translation": "원래 텐서의 차원이 (배치, 시퀀스, 헤드, 헤드당 차원)(BSHD)을 나타낸다면, 이 연산은 두 번째와 세 번째 차원(시퀀스와 헤드)을 맞바꾸어 (배치, 헤드, 시퀀스, 헤드당 차원)(BHSD) 차원을 갖는 텐서를 만듭니다.",
+      "glossary_snapshot": {
+        "batch": "배치"
+      },
+      "translated_at": "2026-10-17T13:46:02.027417Z",
+      "issues": [
+        "Emphasis marker runs count mismatch: source has 4, translation has 0"
+      ]
+    },
+    {
+      "id": "section:0/block:16/seg:2",
+      "source": "This is done because the torch.nn.functional.scaled_dot_product_attention function expects its 4D input tensors to be in the BHSD format, so the permutation ensures the tensor's layout matches the function's requirements.",
+      "source_hash": 3371453471954949325,
+      "context_hash": 17825837702630835873,
+      "translation": "이렇게 하는 이유는 torch.nn.functional.scaled_dot_product_attention 함수가 4D 입력 텐서를 BHSD 형식으로 기대하기 때문이며, 따라서 이 순열 변환은 텐서의 레이아웃이 함수의 요구 사항과 일치하도록 보장합니다.",
+      "glossary_snapshot": {
+        "input": "입력",
+        "permutation": "순열"
+      },
+      "translated_at": "2026-10-17T13:23:07.757905Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:0",
+      "source": "In the modern AI tooling stack, tools like the cuDNN Frontend API sit at below high-level deep learning frameworks (like PyTorch or Jax) but above raw CUDA programming.",
+      "source_hash": 17200395867896778449,
+      "context_hash": 8288344247380738144,
+      "translation": "현대 AI 도구 스택에서 cuDNN 프런트엔드 API 같은 도구는 고수준 딥러닝 프레임워크(PyTorch나 Jax 등)보다는 아래에, 하지만 원시 CUDA 프로그래밍보다는 위에 자리합니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "CUDA": "CUDA",
+        "PyTorch": "PyTorch",
+        "cuDNN": "cuDNN",
+        "deep learning": "딥러닝",
+        "frontend": "프런트엔드",
+        "programming": "프로그래밍",
+        "tools": "도구"
+      },
+      "translated_at": "2026-10-17T13:46:02.027417Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:18/seg:1",
+      "source": "Exposing this level of control over highly optimized kernels like SDPA directly allows for rapid prototyping and performance tuning of model components without needing to delve into C++ for every optimization.",
+      "source_hash": 15100874076446295201,
+      "context_hash": 8482231581715781559,
+      "translation": "SDPA와 같이 고도로 최적화된 커널에 대해 이 수준의 제어를 직접 노출하면, 최적화할 때마다 C++까지 파고들 필요 없이 모델 구성 요소의 신속한 프로토타이핑과 성능 튜닝이 가능해집니다.",
+      "glossary_snapshot": {
+        "model": "모델",
+        "optimization": "최적화"
+      },
+      "translated_at": "2026-10-17T13:23:07.757905Z",
+      "issues": []
+    }
+  ]
+}

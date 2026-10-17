@@ -1,0 +1,1447 @@
+{
+  "version": 1,
+  "source_hash": 9507051997267894051,
+  "segments": [
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Fusion, Bufferization and Execution",
+      "source_hash": 2685797589813018777,
+      "context_hash": 11138795804924706171,
+      "translation": "융합, 버퍼화 그리고 실행",
+      "glossary_snapshot": {
+        "bufferization": "버퍼화",
+        "execution": "실행",
+        "fusion": "융합"
+      },
+      "translated_at": "2026-10-17T13:18:00.062125Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Our frontend now describes the transformer as tensor operations.",
+      "source_hash": 2419884228747969910,
+      "context_hash": 2086727516046238273,
+      "translation": "이제 우리 프런트엔드는 트랜스포머를 텐서 연산으로 기술합니다.",
+      "glossary_snapshot": {
+        "frontend": "프런트엔드",
+        "tensor operations": "텐서 연산",
+        "transformer": "트랜스포머"
+      },
+      "translated_at": "2026-10-17T13:44:18.524329Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "We've deliberately left questions about storage and execution out of those definitions.",
+      "source_hash": 2952605020152734005,
+      "context_hash": 359520936149645992,
+      "translation": "저장 공간과 실행에 관한 문제는 의도적으로 이러한 정의에서 제외했습니다.",
+      "glossary_snapshot": {
+        "execution": "실행"
+      },
+      "translated_at": "2026-10-17T13:18:00.062125Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "This chapter follows the other half of the compiler: transforming the tensor program, assigning buffers, lowering to LLVM and calling the result from Python.",
+      "source_hash": 17134522294361037949,
+      "context_hash": 6464962120942863910,
+      "translation": "이 장에서는 컴파일러의 나머지 절반을 따라갑니다. 즉, 텐서 프로그램을 변환하고, 버퍼를 할당하고, LLVM으로 로어링한 뒤, 그 결과를 Python에서 호출하는 과정입니다.",
+      "glossary_snapshot": {
+        "LLVM": "LLVM",
+        "Python": "Python",
+        "compiler": "컴파일러",
+        "lowering": "로어링"
+      },
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "The implementation is in `tinymlir/jit.py`.",
+      "source_hash": 14170745014748894887,
+      "context_hash": 5838318156922642507,
+      "translation": "구현은 `tinymlir/jit.py`에 있습니다.",
+      "glossary_snapshot": {
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "It retains the original, optimized and lowered modules separately, so we can inspect what each stage changes.",
+      "source_hash": 15805163611780670396,
+      "context_hash": 16510251032329158835,
+      "translation": "이 구현은 원본 모듈, 최적화된 모듈, 로어링된 모듈을 각각 따로 보관하므로 각 단계가 무엇을 바꾸는지 살펴볼 수 있습니다.",
+      "glossary_snapshot": {
+        "modules": "모듈"
+      },
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Elementwise Fusion",
+      "source_hash": 16318824519313592844,
+      "context_hash": 18310525386990298769,
+      "translation": "원소별 융합",
+      "glossary_snapshot": {
+        "fusion": "융합"
+      },
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Consider a simple function:",
+      "source_hash": 6966585491729720460,
+      "context_hash": 12840513065038151163,
+      "translation": "간단한 함수를 하나 생각해 봅시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The builder initially emits three elementwise `linalg.generic` operations.",
+      "source_hash": 15377650063089908033,
+      "context_hash": 7996483359509766127,
+      "translation": "빌더는 처음에 원소별 `linalg.generic` 연산 세 개를 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "Each has its own output tensor.",
+      "source_hash": 17405674919545669582,
+      "context_hash": 17805011770076635444,
+      "translation": "각 연산에는 자체 출력 텐서가 있습니다.",
+      "glossary_snapshot": {
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "At the tensor level, these values describe the results of computations; their existence doesn't yet require three separate heap allocations.",
+      "source_hash": 13998120865980972166,
+      "context_hash": 5427211242112421639,
+      "translation": "텐서 수준에서 이 값들은 계산의 결과를 기술할 뿐이며, 이 값들이 존재한다고 해서 아직 세 번의 별도 힙 할당이 필요한 것은 아닙니다.",
+      "glossary_snapshot": {
+        "heap": "힙"
+      },
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Our optimization pipeline is:",
+      "source_hash": 1603866781750437562,
+      "context_hash": 1974426296167275057,
+      "translation": "우리의 최적화 파이프라인은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "optimization": "최적화",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:18:00.062126Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "The fusion pass combines compatible producer and consumer regions, composing their indexing maps.",
+      "source_hash": 17644729526570623751,
+      "context_hash": 4635266843982699646,
+      "translation": "융합 패스는 호환되는 생산자 영역과 소비자 영역을 결합하면서 그 인덱싱 맵을 합성합니다.",
+      "glossary_snapshot": {
+        "fusion": "융합",
+        "pass": "패스"
+      },
+      "translated_at": "2026-10-17T13:18:00.062127Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "For this example, the optimized module contains one `linalg.generic`.",
+      "source_hash": 11381230522771167608,
+      "context_hash": 1405390171354796966,
+      "translation": "이 예제에서 최적화된 모듈에는 `linalg.generic`이 하나만 들어 있습니다.",
+      "glossary_snapshot": {
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:18:00.062127Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:2",
+      "source": "Its scalar body multiplies, adds and multiplies again before yielding a result.",
+      "source_hash": 1898602608046318326,
+      "context_hash": 13298364716527325079,
+      "translation": "그 스칼라 본문은 곱셈, 덧셈, 그리고 다시 곱셈을 수행한 뒤 결과를 내보냅니다.",
+      "glossary_snapshot": {
+        "scalar": "스칼라"
+      },
+      "translated_at": "2026-10-17T13:18:00.062127Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "The test suite checks both facts: the operation count changes from three to one, and executing the optimized and unoptimized modules produces the same array.",
+      "source_hash": 13182798563627207931,
+      "context_hash": 14059696437635865421,
+      "translation": "테스트 스위트는 두 가지 사실을 모두 확인합니다. 연산 개수가 세 개에서 한 개로 바뀌는지, 그리고 최적화된 모듈과 최적화되지 않은 모듈을 실행했을 때 같은 배열이 나오는지입니다.",
+      "glossary_snapshot": {
+        "modules": "모듈"
+      },
+      "translated_at": "2026-10-17T13:18:00.062127Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "This verifies an actual compiler transformation, rather than comparing two separately written kernel implementations.",
+      "source_hash": 509599050491468266,
+      "context_hash": 14820821677032767057,
+      "translation": "이는 따로 작성한 두 커널 구현을 비교하는 것이 아니라 실제 컴파일러 변환을 검증합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "implementations": "구현",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-10-17T13:18:00.062127Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "The pass-pipeline string names transformations for MLIR's pass manager.",
+      "source_hash": 12651301857663718722,
+      "context_hash": 5198268862653163051,
+      "translation": "패스 파이프라인 문자열은 MLIR의 패스 관리자에게 적용할 변환을 지정합니다.",
+      "glossary_snapshot": {
+        "MLIR": "MLIR",
+        "pass manager": "패스 관리자",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:18:00.062127Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "The program being transformed is an object graph constructed through the Python bindings:",
+      "source_hash": 7625193320815243332,
+      "context_hash": 11233090743646240231,
+      "translation": "변환되는 프로그램은 Python 바인딩을 통해 구성된 객체 그래프입니다.",
+      "glossary_snapshot": {
+        "Python bindings": "Python 바인딩",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:18:00.062127Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "The verifier checks the result after transformation.",
+      "source_hash": 989770775655965476,
+      "context_hash": 17245097174368411390,
+      "translation": "검증기는 변환 후의 결과를 검사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "Errors are propagated to the caller; there is no alternative NumPy path which could conceal a compilation failure.",
+      "source_hash": 10853087040440393288,
+      "context_hash": 9350797088398728547,
+      "translation": "오류는 호출자에게 전파되며, 컴파일 실패를 감출 수 있는 대체 NumPy 경로는 없습니다.",
+      "glossary_snapshot": {
+        "NumPy": "NumPy",
+        "compilation": "컴파일"
+      },
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The Limits of Fusion",
+      "source_hash": 15050481439834390514,
+      "context_hash": 10528247076519845635,
+      "translation": "융합의 한계",
+      "glossary_snapshot": {
+        "fusion": "융합"
+      },
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Elementwise fusion is useful because it can eliminate intermediate stores, loads and allocations.",
+      "source_hash": 13233269140581687086,
+      "context_hash": 16894051018661494131,
+      "translation": "원소별 융합은 중간 저장, 로드, 할당을 없앨 수 있기 때문에 유용합니다.",
+      "glossary_snapshot": {
+        "fusion": "융합"
+      },
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "It doesn't imply that every chain of operations should become one region.",
+      "source_hash": 12702314157762886633,
+      "context_hash": 13469418154256102401,
+      "translation": "그렇다고 해서 모든 연산 사슬이 하나의 영역이 되어야 한다는 뜻은 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "Reductions have different iteration semantics, matrix multiplication has a reduction dimension, and a producer may have multiple consumers.",
+      "source_hash": 11967175948564603188,
+      "context_hash": 484791686059740244,
+      "translation": "리덕션은 반복 의미론이 다르고, 행렬 곱셈에는 리덕션 차원이 있으며, 하나의 생산자에 소비자가 여럿 있을 수도 있습니다.",
+      "glossary_snapshot": {
+        "matrix multiplication": "행렬 곱셈"
+      },
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "For example, softmax's exponentials feed both a sum and the final division.",
+      "source_hash": 8715891246930226816,
+      "context_hash": 7429600876329679779,
+      "translation": "예를 들어 소프트맥스의 지수 값들은 합계와 마지막 나눗셈 양쪽에 모두 입력됩니다.",
+      "glossary_snapshot": {
+        "softmax": "소프트맥스"
+      },
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "A legal transformation must account for that use pattern.",
+      "source_hash": 9838641170313870920,
+      "context_hash": 2529032000684801973,
+      "translation": "올바른 변환이라면 이러한 사용 패턴을 고려해야 합니다.",
+      "glossary_snapshot": {
+        "pattern": "패턴"
+      },
+      "translated_at": "2026-10-17T13:18:00.062128Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:2",
+      "source": "Depending on the schedule, storing a result or recomputing it can have different costs.",
+      "source_hash": 17141528086209705997,
+      "context_hash": 18044138806107468927,
+      "translation": "스케줄에 따라 결과를 저장하는 것과 다시 계산하는 것의 비용이 달라질 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:00.062129Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:3",
+      "source": "The tensor graph gives the compiler enough information to make and check those decisions.",
+      "source_hash": 16318786790222044273,
+      "context_hash": 17419681937081889903,
+      "translation": "텐서 그래프는 컴파일러가 이러한 결정을 내리고 검사하기에 충분한 정보를 제공합니다.",
+      "glossary_snapshot": {
+        "compiler": "컴파일러",
+        "graph": "그래프"
+      },
+      "translated_at": "2026-10-17T13:18:00.062129Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Floating-point arithmetic also limits transformations.",
+      "source_hash": 15476348850067799616,
+      "context_hash": 3900955613996326754,
+      "translation": "부동소수점 산술도 변환을 제한합니다.",
+      "glossary_snapshot": {
+        "arithmetic": "산술"
+      },
+      "translated_at": "2026-10-17T13:18:24.069651Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "Reassociating a reduction can change its result.",
+      "source_hash": 10021152398712223941,
+      "context_hash": 9052939935035694527,
+      "translation": "리덕션의 결합 순서를 바꾸면 결과가 달라질 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:24.069651Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "Our frontend preserves the formula's dtype promotions, and the generated arithmetic doesn't request unrestricted fast-math behavior.",
+      "source_hash": 2165564973277552607,
+      "context_hash": 14086795418435440448,
+      "translation": "우리 프런트엔드는 공식의 dtype 승격을 그대로 보존하며, 생성된 산술은 제한 없는 fast-math 동작을 요청하지 않습니다.",
+      "glossary_snapshot": {
+        "arithmetic": "산술",
+        "dtype": "dtype",
+        "formula": "공식",
+        "frontend": "프런트엔드"
+      },
+      "translated_at": "2026-10-17T13:44:18.524337Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:3",
+      "source": "We still compare against NumPy with numerical tolerances because its reductions and BLAS implementation may accumulate in a different order.",
+      "source_hash": 5181561532555310520,
+      "context_hash": 12587543565976327544,
+      "translation": "그래도 NumPy의 리덕션과 BLAS 구현은 다른 순서로 누산할 수 있으므로, 여전히 수치 허용 오차를 두고 NumPy와 비교합니다.",
+      "glossary_snapshot": {
+        "NumPy": "NumPy",
+        "implementation": "구현"
+      },
+      "translated_at": "2026-10-17T13:18:24.069652Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Bufferization",
+      "source_hash": 4899084402308126850,
+      "context_hash": 14983361578657774931,
+      "translation": "버퍼화",
+      "glossary_snapshot": {
+        "bufferization": "버퍼화"
+      },
+      "translated_at": "2026-10-17T13:18:24.069652Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "After tensor transformations, we run one-shot bufferization.",
+      "source_hash": 1491226884535537158,
+      "context_hash": 11947367910520897047,
+      "translation": "텐서 변환이 끝나면 one-shot 버퍼화를 실행합니다.",
+      "glossary_snapshot": {
+        "bufferization": "버퍼화"
+      },
+      "translated_at": "2026-10-17T13:18:24.069652Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "It analyzes tensor uses to decide where storage can be reused and where a separate allocation is required.",
+      "source_hash": 7320079672619340799,
+      "context_hash": 16800197796005773009,
+      "translation": "이 과정은 텐서의 사용 방식을 분석하여 어디서 저장 공간을 재사용할 수 있고 어디서 별도의 할당이 필요한지 결정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:24.069652Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "The external function already has a straightforward contract: memref inputs and a caller-provided output memref.",
+      "source_hash": 7434155126389030115,
+      "context_hash": 3164105685268631510,
+      "translation": "외부 함수에는 이미 간단한 계약이 있습니다. memref 입력들과 호출자가 제공하는 출력 memref입니다.",
+      "glossary_snapshot": {
+        "inputs": "입력",
+        "memref": "memref",
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:18:24.069653Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "Inside the function, `bufferization.to_tensor` makes inputs available to tensor operations. `bufferization.materialize_in_destination` requires the final result to be written to the output buffer.",
+      "source_hash": 7067341566344602731,
+      "context_hash": 1182652693359794880,
+      "translation": "함수 내부에서는 `bufferization.to_tensor`가 입력을 텐서 연산에서 사용할 수 있게 합니다. `bufferization.materialize_in_destination`은 최종 결과가 출력 버퍼에 기록되도록 요구합니다.",
+      "glossary_snapshot": {
+        "inputs": "입력",
+        "output": "출력",
+        "tensor operations": "텐서 연산"
+      },
+      "translated_at": "2026-10-17T13:18:24.069653Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "We mark the input conversions `restrict`.",
+      "source_hash": 15389445552336139558,
+      "context_hash": 18203382242903106755,
+      "translation": "입력 변환에는 `restrict`를 표시합니다.",
+      "glossary_snapshot": {
+        "conversions": "변환",
+        "input": "입력"
+      },
+      "translated_at": "2026-10-17T13:18:24.069653Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "This is a promise about aliasing at the boundary.",
+      "source_hash": 11762377309308828614,
+      "context_hash": 6818819035609213706,
+      "translation": "이는 경계에서의 앨리어싱에 관한 약속입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:24.069653Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "If the caller passes the same array twice, or passes overlapping views, the runtime copies overlapping inputs before invoking the function.",
+      "source_hash": 16060292747775610219,
+      "context_hash": 13024687972079746349,
+      "translation": "호출자가 같은 배열을 두 번 전달하거나 겹치는 뷰를 전달하면, 런타임은 함수를 호출하기 전에 겹치는 입력을 복사합니다.",
+      "glossary_snapshot": {
+        "inputs": "입력",
+        "runtime": "런타임"
+      },
+      "translated_at": "2026-10-17T13:18:24.069653Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:3",
+      "source": "The new output allocation is also distinct from the inputs.",
+      "source_hash": 16838494322281684591,
+      "context_hash": 1101730473014120738,
+      "translation": "새로 할당된 출력 역시 입력과 구별됩니다.",
+      "glossary_snapshot": {
+        "inputs": "입력",
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:18:24.069653Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:4",
+      "source": "The promise made to bufferization therefore matches what the runtime supplies.",
+      "source_hash": 1430503720355341892,
+      "context_hash": 16118544042795945967,
+      "translation": "따라서 버퍼화에 한 약속은 런타임이 실제로 제공하는 것과 일치합니다.",
+      "glossary_snapshot": {
+        "bufferization": "버퍼화",
+        "runtime": "런타임"
+      },
+      "translated_at": "2026-10-17T13:18:24.069654Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Inputs are read-only from the tensor program's perspective.",
+      "source_hash": 17535652519583325834,
+      "context_hash": 12655608908736662098,
+      "translation": "텐서 프로그램의 관점에서 입력은 읽기 전용입니다.",
+      "glossary_snapshot": {
+        "inputs": "입력"
+      },
+      "translated_at": "2026-10-17T13:18:24.069654Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "Intermediate results remain functional values until bufferization chooses their storage.",
+      "source_hash": 2204920164364115973,
+      "context_hash": 12327744141836827574,
+      "translation": "중간 결과는 버퍼화가 저장 공간을 정할 때까지 함수형 값으로 남아 있습니다.",
+      "glossary_snapshot": {
+        "bufferization": "버퍼화"
+      },
+      "translated_at": "2026-10-17T13:18:24.069654Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:2",
+      "source": "We don't modify the model's weights while evaluating a block.",
+      "source_hash": 16208412289781722644,
+      "context_hash": 17085076778718990441,
+      "translation": "블록을 평가하는 동안 모델의 가중치는 수정하지 않습니다.",
+      "glossary_snapshot": {
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:18:24.069654Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Storage ownership is a separate concern from buffer assignment.",
+      "source_hash": 165569862276848044,
+      "context_hash": 11173737920237609866,
+      "translation": "저장 공간의 소유권은 버퍼 배정과는 별개의 문제입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:24.069654Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "Our pipeline includes the buffer-deallocation pipeline so internally allocated buffers are released.",
+      "source_hash": 10055369334324209898,
+      "context_hash": 14093226065852976935,
+      "translation": "우리 파이프라인에는 buffer-deallocation 파이프라인이 포함되어 있어 내부에서 할당된 버퍼가 해제됩니다.",
+      "glossary_snapshot": {
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:18:24.069654Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:2",
+      "source": "The caller's NumPy arrays remain owned by Python.",
+      "source_hash": 10615471693678631415,
+      "context_hash": 14874475973776789180,
+      "translation": "호출자의 NumPy 배열은 계속 Python이 소유합니다.",
+      "glossary_snapshot": {
+        "NumPy arrays": "NumPy 배열",
+        "Python": "Python"
+      },
+      "translated_at": "2026-10-17T13:18:24.069655Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:3",
+      "source": "Returning a pointer to an unmanaged temporary would make a small successful example misleading; repeated inference needs the ownership boundary to be correct too.",
+      "source_hash": 14708473067578136016,
+      "context_hash": 12305275723960699553,
+      "translation": "관리되지 않는 임시 버퍼의 포인터를 반환하면 작은 예제가 성공하더라도 오해를 불러일으킬 수 있습니다. 추론을 반복하려면 소유권 경계도 올바라야 합니다.",
+      "glossary_snapshot": {
+        "inference": "추론",
+        "pointer": "포인터"
+      },
+      "translated_at": "2026-10-17T13:18:24.069655Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Lowering the Module",
+      "source_hash": 4529310229372161924,
+      "context_hash": 896986224066247675,
+      "translation": "모듈 로어링하기",
+      "glossary_snapshot": {
+        "lowering": "로어링",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:18:24.069655Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "After fusion, the companion project lowers in two stages, with a target-specific step between them:",
+      "source_hash": 11978668630938324768,
+      "context_hash": 1207626344565752073,
+      "translation": "융합이 끝나면 동반 프로젝트는 두 단계로 로어링하며, 그 사이에 타깃별 단계가 하나 있습니다.",
+      "glossary_snapshot": {
+        "fusion": "융합"
+      },
+      "translated_at": "2026-10-17T13:18:24.069655Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Bufferization runs once, for every target.",
+      "source_hash": 11610980279033632866,
+      "context_hash": 9964866181617501642,
+      "translation": "버퍼화는 모든 타깃에 대해 한 번 실행됩니다.",
+      "glossary_snapshot": {
+        "bufferization": "버퍼화"
+      },
+      "translated_at": "2026-10-17T13:18:24.069655Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "It resolves tensor storage and inserts the deallocations.",
+      "source_hash": 3692516394763412067,
+      "context_hash": 6513137362896814802,
+      "translation": "버퍼화는 텐서 저장 공간을 확정하고 해제 연산을 삽입합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:24.069656Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:2",
+      "source": "What comes out is a module of `linalg` operations over memrefs in which the matrix multiplications are still `linalg.matmul` and `linalg.batch_matmul`.",
+      "source_hash": 4419056000181317799,
+      "context_hash": 6992023813118985830,
+      "translation": "그 결과는 memref 위의 `linalg` 연산으로 이루어진 모듈이며, 이 모듈에서 행렬 곱셈은 여전히 `linalg.matmul`과 `linalg.batch_matmul`입니다.",
+      "glossary_snapshot": {
+        "matrix": "행렬",
+        "module": "모듈",
+        "multiplications": "곱셈"
+      },
+      "translated_at": "2026-10-17T13:18:24.069656Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:3",
+      "source": "That is where the targets diverge:",
+      "source_hash": 16059196979165578889,
+      "context_hash": 7469511296793646375,
+      "translation": "여기서 타깃별로 경로가 갈립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:18:24.069656Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "On the CPU, `blas.rewrite` walks the module for row-major matmuls and replaces each with a call to `cblas_sgemm` or `cblas_dgemm`.",
+      "source_hash": 17685770221793476654,
+      "context_hash": 10812319627220725359,
+      "translation": "CPU에서는 `blas.rewrite`가 모듈을 순회하며 행 우선 matmul을 찾아 각각을 `cblas_sgemm` 또는 `cblas_dgemm` 호출로 바꿉니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "matmuls": "matmul",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:18:24.069656Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "The library is whatever the process can load, Accelerate on macOS or OpenBLAS on Linux, and NumPy's own matrix multiplication calls a BLAS in the same way.",
+      "source_hash": 11319794957631915582,
+      "context_hash": 1947063117394217486,
+      "translation": "라이브러리는 프로세스가 불러올 수 있는 것이면 무엇이든 되며, macOS에서는 Accelerate, Linux에서는 OpenBLAS입니다. NumPy 자체의 행렬 곱셈도 같은 방식으로 BLAS를 호출합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "NumPy": "NumPy",
+        "matrix multiplication": "행렬 곱셈"
+      },
+      "translated_at": "2026-10-17T13:18:24.069656Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:2",
+      "source": "The rewrite reads the aligned base pointer, offset, sizes and strides out of each memref with `memref.extract_strided_metadata`, passes the row strides as leading dimensions, and turns a batched product into an `scf.for` loop of GEMM calls.",
+      "source_hash": 2724116705263453384,
+      "context_hash": 10505591248155086672,
+      "translation": "이 재작성은 `memref.extract_strided_metadata`로 각 memref에서 정렬된 기준 포인터, 오프셋, 크기, 스트라이드를 읽어 내고, 행 스트라이드를 leading dimension으로 전달하며, 배치 곱은 GEMM 호출을 반복하는 `scf.for` 루프로 바꿉니다.",
+      "glossary_snapshot": {
+        "memref": "memref",
+        "pointer": "포인터"
+      },
+      "translated_at": "2026-10-17T13:18:24.069657Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:3",
+      "source": "When no BLAS is present the rewrite does nothing and the matmuls lower to loops along with everything else.",
+      "source_hash": 11644485869088313317,
+      "context_hash": 12293729590786523753,
+      "translation": "BLAS가 없으면 이 재작성은 아무것도 하지 않으며, matmul은 다른 모든 연산과 함께 루프로 로어링됩니다.",
+      "glossary_snapshot": {
+        "matmuls": "matmul"
+      },
+      "translated_at": "2026-10-17T13:18:24.069657Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:4",
+      "source": "This is why the frontend was careful to keep the matmul recognizable through fusion.",
+      "source_hash": 9416265151663731062,
+      "context_hash": 9640507020448476107,
+      "translation": "프런트엔드가 융합을 거치는 동안에도 matmul을 알아볼 수 있는 형태로 유지하도록 신경 쓴 이유가 바로 이것입니다.",
+      "glossary_snapshot": {
+        "frontend": "프런트엔드",
+        "fusion": "융합",
+        "matmul": "matmul"
+      },
+      "translated_at": "2026-10-17T13:18:24.069657Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "The remaining stages follow the information being removed.",
+      "source_hash": 13027337242302054950,
+      "context_hash": 15869870329311423767,
+      "translation": "나머지 단계는 제거되는 정보를 따라 진행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:17:58.317419Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "Linalg lowering chooses explicit loops.",
+      "source_hash": 2891088811378759716,
+      "context_hash": 9043274421259096750,
+      "translation": "Linalg 로어링은 명시적인 루프를 선택합니다.",
+      "glossary_snapshot": {
+        "lowering": "로어링"
+      },
+      "translated_at": "2026-10-17T13:17:58.317420Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:2",
+      "source": "Metadata expansion and affine lowering expose address calculations.",
+      "source_hash": 13870338357300646548,
+      "context_hash": 9195499250444763276,
+      "translation": "메타데이터 확장과 affine 로어링은 주소 계산을 드러냅니다.",
+      "glossary_snapshot": {
+        "lowering": "로어링",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-10-17T13:17:58.317420Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:3",
+      "source": "Structured control flow becomes ordinary branches.",
+      "source_hash": 14166085531950534306,
+      "context_hash": 9713018867283994224,
+      "translation": "구조적 제어 흐름은 일반적인 분기가 됩니다.",
+      "glossary_snapshot": {
+        "control flow": "제어 흐름"
+      },
+      "translated_at": "2026-10-17T13:17:58.317421Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:4",
+      "source": "Arithmetic, functions and memory references then become LLVM dialect operations.",
+      "source_hash": 11815110361548084378,
+      "context_hash": 15497911213750708585,
+      "translation": "그다음 산술 연산, 함수, 메모리 참조가 LLVM 다이얼렉트 연산이 됩니다.",
+      "glossary_snapshot": {
+        "LLVM dialect": "LLVM 다이얼렉트",
+        "arithmetic": "산술"
+      },
+      "translated_at": "2026-10-17T13:17:58.317421Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:5",
+      "source": "Math operations use the LLVM or host math-library paths available in this pinned toolchain.",
+      "source_hash": 17780526637848218240,
+      "context_hash": 13296697264057788234,
+      "translation": "수학 연산은 이 고정된 툴체인에서 사용할 수 있는 LLVM 또는 호스트 수학 라이브러리 경로를 사용합니다.",
+      "glossary_snapshot": {
+        "LLVM": "LLVM"
+      },
+      "translated_at": "2026-10-17T13:17:58.317422Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:6",
+      "source": "Finally, reconciliation removes conversion artifacts whose source and destination types have converged.",
+      "source_hash": 624331368565269436,
+      "context_hash": 17210730395879363880,
+      "translation": "마지막으로, reconciliation은 소스 타입과 대상 타입이 같아진 변환 잔여물을 제거합니다.",
+      "glossary_snapshot": {
+        "conversion": "변환"
+      },
+      "translated_at": "2026-10-17T13:17:58.317422Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "The CPU pipeline runs in the same process as the Python bindings and uses their matching execution engine.",
+      "source_hash": 15543686497251296569,
+      "context_hash": 11178918559968313450,
+      "translation": "CPU 파이프라인은 Python 바인딩과 같은 프로세스에서 실행되며, 바인딩과 짝을 이루는 실행 엔진을 사용합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "Python bindings": "Python 바인딩",
+        "execution engine": "실행 엔진",
+        "pipeline": "파이프라인"
+      },
+      "translated_at": "2026-10-17T13:17:58.317422Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "We aren't serializing a module to a subprocess and attempting to combine unrelated LLVM builds.",
+      "source_hash": 13642139551416213360,
+      "context_hash": 1760923580195913779,
+      "translation": "모듈을 하위 프로세스로 직렬화하여 서로 무관한 LLVM 빌드를 결합하려 하는 것이 아닙니다.",
+      "glossary_snapshot": {
+        "LLVM": "LLVM",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:17:58.317422Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:2",
+      "source": "The GPU path takes the same bufferized module in a different direction, and gets its own chapter.",
+      "source_hash": 7980916695056672587,
+      "context_hash": 2275000440249364743,
+      "translation": "GPU 경로는 같은 버퍼화된 모듈을 다른 방향으로 가져가며, 별도의 장에서 다룹니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:17:58.317423Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Calling Native Code",
+      "source_hash": 448705934525135462,
+      "context_hash": 1404822530117591441,
+      "translation": "네이티브 코드 호출",
+      "glossary_snapshot": {
+        "code": "코드"
+      },
+      "translated_at": "2026-10-17T13:17:58.317423Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The function carries `llvm.emit_c_interface`, which requests a wrapper with a C-compatible calling convention.",
+      "source_hash": 10077176349069529876,
+      "context_hash": 14607954965440431129,
+      "translation": "이 함수에는 `llvm.emit_c_interface`가 붙어 있으며, 이는 C 호환 호출 규약을 따르는 래퍼를 요청합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:17:58.317423Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "The runtime uses MLIR's ranked memref descriptor helper:",
+      "source_hash": 9948042315300434578,
+      "context_hash": 7621586501629008395,
+      "translation": "런타임은 MLIR의 랭크가 있는 memref 디스크립터 헬퍼를 사용합니다.",
+      "glossary_snapshot": {
+        "MLIR": "MLIR",
+        "descriptor": "디스크립터",
+        "memref": "memref",
+        "runtime": "런타임"
+      },
+      "translated_at": "2026-10-17T13:17:58.317423Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "The execution engine's packed invocation API takes pointers to argument storage.",
+      "source_hash": 4007597170987991650,
+      "context_hash": 2331980123261668927,
+      "translation": "실행 엔진의 packed 호출 API는 인자 저장 공간에 대한 포인터를 받습니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "execution engine": "실행 엔진",
+        "pointers": "포인터"
+      },
+      "translated_at": "2026-10-17T13:17:58.317424Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "The C interface's memref arguments are themselves descriptor pointers, which accounts for the extra level of indirection here.",
+      "source_hash": 10776714713242709644,
+      "context_hash": 9120643662987997402,
+      "translation": "C 인터페이스의 memref 인자는 그 자체로 디스크립터 포인터이므로, 여기서 간접 참조가 한 단계 더 생깁니다.",
+      "glossary_snapshot": {
+        "descriptor": "디스크립터",
+        "memref": "memref",
+        "pointers": "포인터"
+      },
+      "translated_at": "2026-10-17T13:17:58.317424Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:2",
+      "source": "The descriptor records the array's address, offset, sizes and strides.",
+      "source_hash": 13709992410858948944,
+      "context_hash": 10132955240857864120,
+      "translation": "디스크립터는 배열의 주소, 오프셋, 크기, 스트라이드를 기록합니다.",
+      "glossary_snapshot": {
+        "descriptor": "디스크립터"
+      },
+      "translated_at": "2026-10-17T13:17:58.317424Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "Before invoking the function, the runtime checks the specialization's shapes and dtypes and makes inputs contiguous.",
+      "source_hash": 9037610471261435538,
+      "context_hash": 8040674525876810616,
+      "translation": "함수를 호출하기 전에 런타임은 특수화의 shape와 dtype을 검사하고 입력을 연속 메모리로 만듭니다.",
+      "glossary_snapshot": {
+        "dtypes": "dtype",
+        "inputs": "입력",
+        "runtime": "런타임"
+      },
+      "translated_at": "2026-10-17T13:17:58.317424Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "It allocates a NumPy output array of the inferred result type.",
+      "source_hash": 12068337311238934428,
+      "context_hash": 14694829575557840638,
+      "translation": "그리고 추론된 결과 타입의 NumPy 출력 배열을 할당합니다.",
+      "glossary_snapshot": {
+        "NumPy": "NumPy",
+        "output": "출력"
+      },
+      "translated_at": "2026-10-17T13:17:58.317424Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:2",
+      "source": "The arrays and descriptors remain alive throughout the call, and the compiled object owns the context, modules and engine for as long as its specialization is cached.",
+      "source_hash": 12208687950610420004,
+      "context_hash": 15078733339988429723,
+      "translation": "배열과 디스크립터는 호출이 끝날 때까지 살아 있으며, 컴파일된 객체는 해당 특수화가 캐시되어 있는 동안 컨텍스트, 모듈, 엔진을 소유합니다.",
+      "glossary_snapshot": {
+        "descriptors": "디스크립터",
+        "modules": "모듈"
+      },
+      "translated_at": "2026-10-17T13:17:58.317425Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "Tensor-valued gather indices are also checked before entering native code.",
+      "source_hash": 13160302672360043962,
+      "context_hash": 17916149474384676677,
+      "translation": "텐서 값으로 된 gather 인덱스도 네이티브 코드에 들어가기 전에 검사합니다.",
+      "glossary_snapshot": {
+        "code": "코드"
+      },
+      "translated_at": "2026-10-17T13:17:58.317425Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "Shape checking can't prove that runtime token IDs lie within an embedding table.",
+      "source_hash": 1052937476113134424,
+      "context_hash": 15255683345435208886,
+      "translation": "shape 검사만으로는 런타임 토큰 ID가 임베딩 테이블 범위 안에 있음을 증명할 수 없습니다.",
+      "glossary_snapshot": {
+        "embedding": "임베딩",
+        "runtime": "런타임",
+        "token IDs": "토큰 ID"
+      },
+      "translated_at": "2026-10-17T13:17:58.317425Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:2",
+      "source": "The model validates vocabulary bounds, and the generic gather boundary performs its own index check.",
+      "source_hash": 18377359304426999398,
+      "context_hash": 2982668111602724993,
+      "translation": "모델은 어휘 범위를 검증하고, 범용 gather 경계는 자체적으로 인덱스를 검사합니다.",
+      "glossary_snapshot": {
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:17:58.317425Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Specialization and Cost",
+      "source_hash": 4456680171247288833,
+      "context_hash": 1878606453211875553,
+      "translation": "특수화와 비용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:17:58.317425Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "The JIT cache is keyed by the structure of the arguments, the static keyword arguments and the target.",
+      "source_hash": 11010900575332014923,
+      "context_hash": 7302036843617502284,
+      "translation": "JIT 캐시의 키는 인자의 구조, 정적 키워드 인자, 타깃으로 구성됩니다.",
+      "glossary_snapshot": {
+        "JIT": "JIT",
+        "cache": "캐시",
+        "keyword": "키워드"
+      },
+      "translated_at": "2026-10-17T13:17:58.317425Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "Arguments are flattened as trees: tuples, named tuples, dataclasses and dicts are taken apart recursively until arrays are reached, and the key records the tree's shape together with the shape and dtype of every leaf.",
+      "source_hash": 13114197759275896596,
+      "context_hash": 12891511418609709408,
+      "translation": "인자는 트리로 평탄화됩니다. 튜플, named tuple, 데이터클래스, 딕셔너리는 배열에 도달할 때까지 재귀적으로 분해되며, 키는 트리의 모양과 함께 모든 리프의 shape와 dtype을 기록합니다.",
+      "glossary_snapshot": {
+        "dataclasses": "데이터클래스",
+        "dtype": "dtype",
+        "tuples": "튜플"
+      },
+      "translated_at": "2026-10-17T13:17:58.317426Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:2",
+      "source": "A compiled function can therefore take a whole parameter record while remaining a function of arrays.",
+      "source_hash": 7500626299598154563,
+      "context_hash": 5564042940546281001,
+      "translation": "따라서 컴파일된 함수는 배열의 함수로 남으면서도 매개변수 레코드 전체를 인자로 받을 수 있습니다.",
+      "glossary_snapshot": {
+        "compiled function": "컴파일된 함수",
+        "parameter": "매개변수"
+      },
+      "translated_at": "2026-10-17T13:17:58.317426Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:3",
+      "source": "Transformer blocks with different weight values share a specialization when their argument shapes and dtypes agree.",
+      "source_hash": 2764984923489666565,
+      "context_hash": 13085693970093780569,
+      "translation": "가중치 값이 서로 다른 트랜스포머 블록이라도 인자의 shape와 dtype이 일치하면 하나의 특수화를 공유합니다.",
+      "glossary_snapshot": {
+        "dtypes": "dtype",
+        "transformer blocks": "트랜스포머 블록"
+      },
+      "translated_at": "2026-10-17T13:17:58.317426Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:4",
+      "source": "The weights are runtime inputs, rather than constants embedded in each compiled module.",
+      "source_hash": 15132621849484506005,
+      "context_hash": 10557235663345144779,
+      "translation": "가중치는 컴파일된 각 모듈에 포함된 상수가 아니라 런타임 입력입니다.",
+      "glossary_snapshot": {
+        "inputs": "입력",
+        "module": "모듈",
+        "runtime": "런타임"
+      },
+      "translated_at": "2026-10-17T13:17:58.317426Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "A new sequence length changes the shapes and requires another specialization.",
+      "source_hash": 11620246278091804150,
+      "context_hash": 1936404609723367750,
+      "translation": "시퀀스 길이가 새로 바뀌면 shape가 달라지므로 특수화가 하나 더 필요합니다.",
+      "glossary_snapshot": {
+        "sequence length": "시퀀스 길이"
+      },
+      "translated_at": "2026-10-17T13:17:58.317426Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "The example recomputes the full prefix for each generated token, so its first run includes compilation for several lengths.",
+      "source_hash": 9657973309078884333,
+      "context_hash": 1189603810928204389,
+      "translation": "이 예제는 토큰을 하나 생성할 때마다 접두부 전체를 다시 계산하므로, 첫 실행에는 여러 길이에 대한 컴파일이 포함됩니다.",
+      "glossary_snapshot": {
+        "compilation": "컴파일",
+        "lengths": "길이"
+      },
+      "translated_at": "2026-10-17T13:17:58.317426Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:2",
+      "source": "Repeated calls at an existing shape reuse the engine.",
+      "source_hash": 6590135466843728585,
+      "context_hash": 12246267816186844103,
+      "translation": "이미 있는 shape로 반복 호출하면 엔진을 재사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:17:58.317427Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "This is a deliberately small in-process cache.",
+      "source_hash": 3883463429465332820,
+      "context_hash": 2543648623239988137,
+      "translation": "이것은 의도적으로 작게 만든 프로세스 내 캐시입니다.",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-10-17T13:16:48.415632Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "It doesn't provide persistent object caching or a memory policy for an unlimited stream of shapes.",
+      "source_hash": 12356842892046889618,
+      "context_hash": 1480483125694039791,
+      "translation": "영속적인 객체 캐싱이나, 끝없이 이어지는 형상들에 대한 메모리 정책은 제공하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:16:48.415633Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:2",
+      "source": "Those would be useful extensions, but they aren't necessary to understand the compilation boundary.",
+      "source_hash": 11435597864097029407,
+      "context_hash": 10797994327196887466,
+      "translation": "그런 기능은 유용한 확장이 되겠지만, 컴파일 경계를 이해하는 데 꼭 필요하지는 않습니다.",
+      "glossary_snapshot": {
+        "compilation": "컴파일"
+      },
+      "translated_at": "2026-10-17T13:16:48.415633Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "When measuring execution, warm up the relevant specializations first.",
+      "source_hash": 9394787270013458128,
+      "context_hash": 16584491151835201545,
+      "translation": "실행 시간을 측정할 때에는 먼저 관련 특수화를 워밍업하십시오.",
+      "glossary_snapshot": {
+        "execution": "실행"
+      },
+      "translated_at": "2026-10-17T13:16:48.415634Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "Otherwise a timing includes tracing, IR construction, pass execution and machine-code generation as well as inference.",
+      "source_hash": 11351117148099634003,
+      "context_hash": 11526813761829415757,
+      "translation": "그렇지 않으면 측정 시간에 추론뿐 아니라 트레이싱, IR 구성, 패스 실행, 기계어 코드 생성까지 포함됩니다.",
+      "glossary_snapshot": {
+        "code generation": "코드 생성",
+        "execution": "실행",
+        "inference": "추론"
+      },
+      "translated_at": "2026-10-17T13:16:48.415634Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:2",
+      "source": "A comparison which mixes those costs tells us little about the generated kernels.",
+      "source_hash": 594211039111491729,
+      "context_hash": 6446135701539984388,
+      "translation": "이러한 비용이 섞인 비교로는 생성된 커널에 대해 알 수 있는 것이 거의 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-17T13:16:48.415636Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Returning to the GPU",
+      "source_hash": 297065995615352161,
+      "context_hash": 17850968598456688078,
+      "translation": "다시 GPU로",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-10-17T13:16:48.415636Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Part 8 established the GPU execution model and PTX path.",
+      "source_hash": 11277908552819433714,
+      "context_hash": 2672244836873401538,
+      "translation": "8부에서는 GPU 실행 모델과 PTX 경로를 다루었습니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "PTX": "PTX",
+        "execution": "실행",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:16:48.415636Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "A GPU backend for this tensor compiler makes different scheduling decisions before lowering away the structured operations: matrix multiplication is tiled, loop iterations are mapped to blocks and threads, and launches appear at the host-device boundary.",
+      "source_hash": 7985463896760485268,
+      "context_hash": 5834598657414240467,
+      "translation": "이 텐서 컴파일러의 GPU 백엔드는 구조화된 연산을 로어링하여 없애기 전에 다른 스케줄링 결정을 내립니다. 행렬 곱셈은 타일링되고, 루프 반복은 블록과 스레드에 매핑되며, 호스트-디바이스 경계에서 런치가 나타납니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "backend": "백엔드",
+        "compiler": "컴파일러",
+        "lowering": "로어링",
+        "matrix multiplication": "행렬 곱셈"
+      },
+      "translated_at": "2026-10-17T13:16:48.415637Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "The retained `linalg.matmul` and reduction operations in the bufferized module give such a backend something useful to transform.",
+      "source_hash": 8912361530056396854,
+      "context_hash": 15180172775267590863,
+      "translation": "버퍼화된 모듈에 남아 있는 `linalg.matmul`과 리덕션 연산은 이러한 백엔드에 변환할 만한 유용한 대상을 제공합니다.",
+      "glossary_snapshot": {
+        "backend": "백엔드",
+        "module": "모듈"
+      },
+      "translated_at": "2026-10-17T13:16:48.415637Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "Once everything has become scalar loops and pointer arithmetic, recovering that structure becomes harder.",
+      "source_hash": 4815990152505270228,
+      "context_hash": 382896298644773189,
+      "translation": "모든 것이 스칼라 루프와 포인터 산술로 바뀌고 나면, 그 구조를 복원하기가 더 어려워집니다.",
+      "glossary_snapshot": {
+        "arithmetic": "산술",
+        "pointer": "포인터",
+        "scalar": "스칼라"
+      },
+      "translated_at": "2026-10-17T13:44:18.524339Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "The [`tiny-mlir`](https://github.com/sdiehl/tiny-mlir) project has this backend.",
+      "source_hash": 15281193383548631967,
+      "context_hash": 14586241703596757231,
+      "translation": "[`tiny-mlir`](https://github.com/sdiehl/tiny-mlir) 프로젝트에 이 백엔드가 있습니다.",
+      "glossary_snapshot": {
+        "backend": "백엔드"
+      },
+      "translated_at": "2026-10-17T13:16:48.415638Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:1",
+      "source": "Passing `--gpu` to the example or the verification script selects a target that replaces the matmuls with a shared-memory tiled kernel, maps the remaining parallel loops onto blocks and threads, outlines them as GPU kernels and runs the result over CUDA managed memory.",
+      "source_hash": 16239471837956927976,
+      "context_hash": 5568033839072604076,
+      "translation": "예제나 검증 스크립트에 `--gpu`를 전달하면, matmul을 공유 메모리 타일링 커널로 대체하고, 나머지 병렬 루프를 블록과 스레드에 매핑하며, 이를 GPU 커널로 분리한 뒤 그 결과를 CUDA 관리 메모리 위에서 실행하는 타깃이 선택됩니다.",
+      "glossary_snapshot": {
+        "CUDA": "CUDA",
+        "GPU kernels": "GPU 커널",
+        "kernel": "커널",
+        "matmuls": "matmul",
+        "parallel loops": "병렬 루프",
+        "verification": "검증"
+      },
+      "translated_at": "2026-10-17T13:44:18.524341Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:2",
+      "source": "The PTX it emits is checked with `ptxas` in continuous integration, and the full reference comparison has been run on a Tesla T4.",
+      "source_hash": 11213526780986815150,
+      "context_hash": 13120959198140712460,
+      "translation": "이 백엔드가 내보내는 PTX는 지속적 통합에서 `ptxas`로 검사되며, 전체 레퍼런스 비교는 Tesla T4에서 실행되었습니다.",
+      "glossary_snapshot": {
+        "PTX": "PTX"
+      },
+      "translated_at": "2026-10-17T13:16:48.415638Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:3",
+      "source": "None of the Python model's formulas change between the two targets.",
+      "source_hash": 2184233487128859529,
+      "context_hash": 1702260262971936153,
+      "translation": "두 타깃 사이에서 Python 모델의 공식은 하나도 바뀌지 않습니다.",
+      "glossary_snapshot": {
+        "Python": "Python",
+        "formulas": "공식",
+        "model": "모델"
+      },
+      "translated_at": "2026-10-17T13:44:18.524344Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:4",
+      "source": "Part 14 walks through the backend.",
+      "source_hash": 15073543637933008849,
+      "context_hash": 11136880491523457763,
+      "translation": "14부에서 이 백엔드를 자세히 살펴봅니다.",
+      "glossary_snapshot": {
+        "backend": "백엔드"
+      },
+      "translated_at": "2026-10-17T13:16:48.415639Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Next we'll load the pretrained checkpoint and test the complete inference path, including the exact sequence of generated tokens.",
+      "source_hash": 9354604200153870493,
+      "context_hash": 7203467675952719874,
+      "translation": "다음으로는 사전 학습된 체크포인트를 불러와, 생성된 토큰의 정확한 시퀀스를 포함한 전체 추론 경로를 테스트하겠습니다.",
+      "glossary_snapshot": {
+        "checkpoint": "체크포인트",
+        "inference": "추론"
+      },
+      "translated_at": "2026-10-17T13:16:48.415639Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "External Resources",
+      "source_hash": 1680309685827318274,
+      "context_hash": 1958220764424511052,
+      "translation": "외부 자료",
+      "glossary_snapshot": {
+        "External Resources": "외부 자료"
+      },
+      "translated_at": "2026-10-17T13:16:48.415640Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "[MLIR Python bindings](https://mlir.llvm.org/docs/Bindings/Python/)",
+      "source_hash": 8893484151662827213,
+      "context_hash": 17598598527637107238,
+      "translation": "[MLIR Python 바인딩](https://mlir.llvm.org/docs/Bindings/Python/)",
+      "glossary_snapshot": {
+        "MLIR": "MLIR",
+        "Python bindings": "Python 바인딩"
+      },
+      "translated_at": "2026-10-17T13:16:48.415640Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "[MLIR Bufferization](https://mlir.llvm.org/docs/Bufferization/)",
+      "source_hash": 12436257176795329105,
+      "context_hash": 16967415997340786032,
+      "translation": "[MLIR 버퍼화](https://mlir.llvm.org/docs/Bufferization/)",
+      "glossary_snapshot": {
+        "MLIR": "MLIR",
+        "bufferization": "버퍼화"
+      },
+      "translated_at": "2026-10-17T13:16:48.415640Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "[MLIR passes](https://mlir.llvm.org/docs/Passes/)",
+      "source_hash": 17058211086589739126,
+      "context_hash": 5538695193548426730,
+      "translation": "[MLIR 패스](https://mlir.llvm.org/docs/Passes/)",
+      "glossary_snapshot": {
+        "MLIR": "MLIR"
+      },
+      "translated_at": "2026-10-17T13:16:48.415640Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "[MLIR GPU dialect](https://mlir.llvm.org/docs/Dialects/GPU/)",
+      "source_hash": 4780407068850244699,
+      "context_hash": 2498330895568836111,
+      "translation": "[MLIR GPU 다이얼렉트](https://mlir.llvm.org/docs/Dialects/GPU/)",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "MLIR": "MLIR",
+        "dialect": "다이얼렉트"
+      },
+      "translated_at": "2026-10-17T13:16:48.415640Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "[Previous: Part 11 - Matrix Multiplication and Attention](mlir_attention.md) · [Series contents](mlir_introduction.md) · [Next: Part 13 - Running GPT-2](mlir_gpt2.md)",
+      "source_hash": 375183431799648386,
+      "context_hash": 10695073575606454019,
+      "translation": "[이전: 11부 - 행렬 곱셈과 어텐션](mlir_attention.md) · [시리즈 목차](mlir_introduction.md) · [다음: 13부 - GPT-2 실행하기](mlir_gpt2.md)",
+      "glossary_snapshot": {
+        "Series contents": "시리즈 목차",
+        "attention": "어텐션",
+        "matrix multiplication": "행렬 곱셈"
+      },
+      "translated_at": "2026-10-17T13:16:48.415641Z",
+      "issues": []
+    }
+  ]
+}
