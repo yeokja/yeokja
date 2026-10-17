@@ -87,6 +87,12 @@ case "$project" in
     "$yeokja" status --check source
     "$yeokja" translate source
     ;;
+  stephendiehl)
+    # 블로그 HTML에서 복원한 영어 원고(source/: 글과 홈 소개)를 한 번에 확인한
+    # 뒤 ko/를 재구성합니다. 재구성 전에 확인하므로 CI가 provider를 부르지 않습니다.
+    "$yeokja" status --check source
+    "$yeokja" translate source
+    ;;
   cp-algorithms)
     # 문서 디렉터리 전체와 홈 본문(README → src/index_body)을 함께 확인해
     # upstream이 추가한 문서가 state 없이 빠지는 경우도 배포를 막습니다.

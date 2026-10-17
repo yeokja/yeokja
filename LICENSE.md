@@ -44,6 +44,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `raytracing` | CC0 1.0 |
 | `rust-forge` | MIT OR Apache-2.0 |
 | `rustc-dev-guide` | MIT OR Apache-2.0 |
+| `stephendiehl` | 글 CC BY-SA 4.0, 코드 MIT (`source/`는 공개 원고가 없어 게시된 HTML에서 복원한 파생 원고) |
 | `thebeambook` | CC BY 4.0 |
 | `tpil` | Apache-2.0 |
 | `webassembly-component-docs` | CC BY 4.0 |
