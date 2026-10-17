@@ -76,6 +76,9 @@ cargo build --manifest-path ../../Cargo.toml
 
 번역문을 수정할 때는 `ko/`가 아니라 `state/`의 `translation` 필드를 수정합니다.
 `ko/`와 `build/tree/`는 다음 실행에서 다시 만들어지는 파생 산출물입니다.
+번역문 안에서 `{leanRef}`는 같은 항목에서 그것을 묶는 `{lean}` 항보다 뒤에 와야
+합니다. 어순을 바꿔 `{leanRef}`가 앞서면 `status --check`는 통과하지만 Lean 빌드는
+실패합니다.
 
 ## 원문 갱신
 
