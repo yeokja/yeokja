@@ -1,0 +1,48 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+[[sources]]
+path = "upstream/src"
+pattern = "**/*.md"
+parser = "markdown"
+inline_tags = true
+output = "ko/src/{path}"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.html]
+command = '''
+set -e
+mkdir -p "$YEOKJA_ROOT/build"
+rm -rf "$YEOKJA_ROOT/build/original"
+mdbook build "$YEOKJA_ROOT/upstream" --dest-dir "$YEOKJA_ROOT/build/original"
+MDBOOK_BOOK__LANGUAGE=ko MDBOOK_BOOK__TITLE='Rust API 가이드라인' mdbook build
+python3 "$YEOKJA_ROOT/scripts/preserve_anchors.py" "$YEOKJA_ROOT/build/original" book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" "$YEOKJA_ROOT/build/original"
+python3 "$YEOKJA_ROOT/scripts/check_links.py" "$YEOKJA_ROOT/build/original" book
+mv book site
+cp "$YEOKJA_ROOT/upstream/"LICENSE-* site/
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32

@@ -42,6 +42,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `putting-the-you-in-cpu` | MIT |
 | `pypy` | MIT |
 | `raytracing` | CC0 1.0 |
+| `rust-api-guidelines` | MIT OR Apache-2.0 |
 | `rust-forge` | MIT OR Apache-2.0 |
 | `rustc-dev-guide` | MIT OR Apache-2.0 |
 | `thebeambook` | CC BY 4.0 |

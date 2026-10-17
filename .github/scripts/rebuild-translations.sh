@@ -60,7 +60,9 @@ case "$project" in
     "$yeokja" translate upstream/component-model/src
     "$yeokja" status --check upstream/component-model/src
     ;;
-  rustc-dev-guide)
+  rustc-dev-guide|rust-api-guidelines)
+    # src/ 디렉터리 전체를 한 번에 확인해 upstream이 새로 추가한 문서가
+    # state 없이 빠지는 경우도 배포를 막습니다.
     "$yeokja" translate upstream/src
     "$yeokja" status --check upstream/src
     ;;
