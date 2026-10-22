@@ -80,13 +80,14 @@ git 저장소가 없으므로 서브모듈 대신 **압축을 푼 트리를 커�
 [project]
 source_lang = "en"
 target_lang = "ko"
+state_dir = "state"
 
 [[sources]]
 path = "upstream/OEBPS"
 pattern = "*.html"
-parser = "xhtml"
-output = "{dir}/{stem}{ext}"
 exclude = ["front-cover.html", "table-of-contents.html"]
+parser = "xhtml"
+output = "ko/OEBPS/{path}"
 
 [provider]
 type = "claude_code"
@@ -94,22 +95,19 @@ model = "claude-opus-5-5"
 
 [derive]
 base = "upstream"
-target = "build/tree"
-overlay = [{ path = "ko", require_base = true }]
 
-[build.epub]
-command = "python3 -I $YEOKJA_ROOT/scripts/build_epub.py"
-outputs = ["technicalpm-ko.epub"]
+[[derive.overlay]]
+path = "ko"
+require_base = true
 
-[build.html]
-command = "python3 -I $YEOKJA_ROOT/scripts/build_site.py"
-outputs = ["site"]
+[build.epub]   # build_epub.py . technicalpm-ko.epub
+[build.html]   # build_epub.py 다음 build_site.py . site
 ```
 
-`exclude` 같은 필드 이름과 `derive` 표기는 계획 단계에서 기존 설정 구조에 맞춘다.
-기본 프롬프트를 쓴다. 커스텀 템플릿이 필요해지면 AGENTS.md의 GFM 마커 문장과
-`{inline_tags}` 자리표시자를 넣는다. 문체는 교재이므로 합쇼체(~합니다)로 한다.
-기본 프롬프트가 문체를 정하지 않으면 그 한 가지 때문에 커스텀 템플릿을 둔다.
+빌드 명령은 조립 트리(`build/tree`) 안에서 `YEOKJA_ROOT`와 함께 돈다. 기본
+프롬프트를 쓴다. 기본 프롬프트가 한국어에 합쇼체를 요구하므로 교재 문체에 맞다.
+커스텀 템플릿이 필요해지면 AGENTS.md의 GFM 마커 문장과 `{inline_tags}`
+자리표시자를 넣는다.
 
 ### 3. 용어
 
@@ -122,6 +120,9 @@ outputs = ["site"]
   value, risk register 등)는 PMBOK 지침서 한국어판 용어를 따른다. 약어(WBS, EVM,
   CPM, PERT)는 영문으로 둔다.
 - Lean 용어(*muda*, pull/push, value stream)는 국내 Lean 문헌의 관용 표기를 따른다.
+  *Lean*, *Agile* 자체는 용어집에 두지 않는다. 기관·방법론 이름(Lean Construction
+  Institute 등)에서 영어로 남아야 하는 곳이 많아 용어 검사가 오탐으로 재시도를
+  일으킨다(1장 시험 번역에서 재시도 7건이 모두 이 오탐이었다).
 
 첫 번역 후 `yeokja terms build`로 제목·반복 용어를 고정한다(체크리스트 3절).
 
@@ -146,8 +147,10 @@ spine 순서다. 각 문서에 이전·다음 링크와 공통 하단(저작자 
 문서는 XHTML이지만 `.html`로 내놓아 브라우저가 HTML로 읽는다. 엔티티를 문자 참조로
 쓰므로(XHTML 파서 설계 3.3) 어느 쪽으로 읽어도 같다.
 
-빌드 툴체인은 `nix/projects/technicalpm.nix`에 `python3`, `epubcheck`, `libxml2`를
-선언한다.
+빌드 툴체인은 `nix/projects/technicalpm.nix`에 `python3` 하나를 선언한다. 빌드와
+검사 스크립트는 표준 라이브러리만 쓴다. `epubcheck` 비교는 JDK를 끌어오므로 CI
+셸에 넣지 않고 README의 로컬 검증 절차로 둔다. 원문 EPUB의 결과는 RSC-006(원격
+리소스)과 RSC-012(없는 조각 링크) 각 3건이다.
 
 ### 5. 검사
 
