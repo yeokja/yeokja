@@ -38,7 +38,7 @@
 
 - [x] `yeokja translate upstream/OEBPS`: 8,637개 전부, 태그 판독 실패 0, 재시도 16회.
 - [x] `yeokja evaluate --mechanical-only upstream/OEBPS` → 0건(모델이 글자로 쓴 `&nbsp;` 1건을 직렬화기·링크 평가기 수정과 함께 바로잡음).
-- [ ] `yeokja terms build` → `terms.toml` 검토 → `yeokja glossary adopt --prefer HEAD` → 남은 세그먼트 `yeokja translate` → `status --check`, `evaluate --mechanical-only` 재확인.
+- [x] `yeokja terms build` → `terms.toml` 검토(사람 이름 5개를 원문 철자로, 서명 줄 `whole` 항목을 `Engineering Manager` 항목과 같은 번역어로) → `yeokja glossary adopt --prefer HEAD` → 남은 1,070개 `yeokja translate` → `status --check`, `evaluate --mechanical-only` 0건.
 
 ### Task 4: 빌드와 검사
 
@@ -47,7 +47,7 @@
 - [x] `build_epub.py`: 실제 파일로 스테이징, 목차·NCX·OPF·`<title>`·`xml:lang`, 판권 고지, 그림 제외, `mimetype` 무압축 첫 항목.
 - [x] `build_site.py`: spine 순서 페이지, 이전·다음 탐색, 공통 하단, 랜딩 페이지, EPUB 내려받기.
 - [x] `check.py skeleton|epub`을 두 빌드 대상 앞뒤에 넣는다.
-- [ ] 확인:
+- [x] 확인:
 
 ```sh
 cd projects/technicalpm
@@ -55,7 +55,7 @@ nix develop path:../../nix#technicalpm -c ../../target/release/yeokja build html
 epubcheck build/tree/technicalpm-ko.epub   # RSC-006 3건, RSC-012 3건(원문과 같음)
 ```
 
-- [ ] 브라우저로 랜딩, 목차, 1장(자리 표시 그림), 판권 고지, 모바일 폭을 확인한다.
+- [x] 브라우저로 랜딩, 목차, 1장(자리 표시 그림), 판권 고지, 모바일 폭을 확인한다.
 
 ### Task 5: 배포 배선
 
@@ -63,4 +63,4 @@ epubcheck build/tree/technicalpm-ko.epub   # RSC-006 3건, RSC-012 3건(원문�
 
 - [x] Pages 항목, 스테이징 줄, 재구성 전 `status --check upstream/OEBPS` 분기.
 - [x] 랜딩 페이지 "프로젝트 관리" 주제와 항목, 라이선스 표 줄.
-- [ ] `bash .github/scripts/rebuild-translations.sh technicalpm`가 provider 호출 없이 통과하는지 확인.
+- [x] `bash .github/scripts/rebuild-translations.sh technicalpm`가 provider 호출 없이 통과하는지 확인.
