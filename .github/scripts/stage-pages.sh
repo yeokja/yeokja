@@ -156,6 +156,7 @@ overlay_site "dist-cp-algorithms" "site" "cp-algorithms"
 overlay_site "dist-rust-api-guidelines" "site" "rust-api-guidelines"
 overlay_site "dist-write-you-a-haskell" "site" "write-you-a-haskell"
 overlay_site "dist-stephendiehl" "site" "stephendiehl"
+overlay_site "dist-technicalpm" "site" "technicalpm"
 
 prune_orphaned_site_entries
 

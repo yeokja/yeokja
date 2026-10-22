@@ -46,6 +46,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `rust-forge` | MIT OR Apache-2.0 |
 | `rustc-dev-guide` | MIT OR Apache-2.0 |
 | `stephendiehl` | 글 CC BY-SA 4.0, 코드 MIT (`source/`는 공개 원고가 없어 게시된 HTML에서 복원한 파생 원고) |
+| `technicalpm` | CC BY 4.0 (원서에 허락받아 실린 1장 그림 한 점은 싣지 않음, 라이선스 문구는 `upstream/OEBPS/copyright.html`) |
 | `thebeambook` | CC BY 4.0 |
 | `tpil` | Apache-2.0 |
 | `webassembly-component-docs` | CC BY 4.0 |

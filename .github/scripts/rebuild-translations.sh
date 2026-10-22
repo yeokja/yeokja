@@ -101,6 +101,13 @@ case "$project" in
     "$yeokja" status --check source
     "$yeokja" translate source
     ;;
+  technicalpm)
+    # EPUB 콘텐츠 문서 전체(upstream/OEBPS)를 재구성 전에 확인해 CI가 provider를
+    # 부르지 않게 하고, 원문을 다시 내려받아 생긴 새 문서가 state 없이 빠지는
+    # 경우도 배포를 막습니다.
+    "$yeokja" status --check upstream/OEBPS
+    "$yeokja" translate upstream/OEBPS
+    ;;
   cp-algorithms)
     # 문서 디렉터리 전체와 홈 본문(README → src/index_body)을 함께 확인해
     # upstream이 추가한 문서가 state 없이 빠지는 경우도 배포를 막습니다.
