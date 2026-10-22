@@ -161,6 +161,8 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              each translation on its one [N] line: an inline <br> stays inline, with the text \
              after it on the same line.\n"
         }
+        // XHTML always travels as tags, whose rules replace this one.
+        Markup::Xhtml => "",
         Markup::Rst => {
             "A closing `, ``, * or ** that a letter follows is not recognized: \
              reStructuredText requires whitespace or punctuation after it, and doubling the \

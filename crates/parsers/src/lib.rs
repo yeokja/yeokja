@@ -23,6 +23,8 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
         // actionable error from `parse_checked`.
         Some("lean") => Box::new(yeokja_parser_verso::VersoParser::new(file_path, "")),
         Some("mdx") => Box::new(yeokja_parser_mdx::MdxParser),
+        // `.html` may be HTML5, so it is read as XHTML only when a source says so.
+        Some("xhtml") => Box::new(yeokja_parser_xhtml::XhtmlParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
@@ -49,6 +51,7 @@ fn parser_by_name(
         )),
         "myst" => Box::new(yeokja_parser_myst::MystParser),
         "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser),
+        "xhtml" => Box::new(yeokja_parser_xhtml::XhtmlParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }

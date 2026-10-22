@@ -6,3 +6,4 @@
 
 pub mod audit;
 pub mod markdown;
+pub mod xhtml;

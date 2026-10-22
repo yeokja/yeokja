@@ -911,7 +911,7 @@ fn backtick_spans(chars: &[char], markup: Markup) -> BacktickSpans {
             Markup::Markdown | Markup::MkDocs => i == 0 || chars[i - 1] != '}',
             Markup::Asciidoc => true,
             Markup::Rst => literal,
-            Markup::Verso | Markup::Latex => false,
+            Markup::Verso | Markup::Latex | Markup::Xhtml => false,
         };
         // RST does not nest inline markup, but a translation that moves a
         // literal into link text keeps the literal's content; count it there.
@@ -1125,7 +1125,7 @@ fn constrained_marks(markup: Markup) -> &'static [(char, &'static str)] {
         // reStructuredText pairs are checked by `rst_broken_pairs`: every one
         // of its marker forms is constrained, so the doubled-form advice these
         // entries carry would be wrong there.
-        Markup::Rst | Markup::Latex => &[],
+        Markup::Rst | Markup::Latex | Markup::Xhtml => &[],
     }
 }
 

@@ -35,6 +35,9 @@ pub enum Dialect {
     /// MDX: `{…}` expressions and JSX; a `{` or a `<` that could open one
     /// must be escaped in text.
     Mdx,
+    /// Not Markdown: XHTML, whose tagging and serializing live in
+    /// `inline::xhtml`. Only the tag reading here is shared.
+    Xhtml,
 }
 
 impl Dialect {
@@ -43,6 +46,7 @@ impl Dialect {
         match parser {
             "myst" => Dialect::Myst,
             "mdx" => Dialect::Mdx,
+            "xhtml" => Dialect::Xhtml,
             _ => Dialect::CommonMark,
         }
     }
@@ -60,6 +64,9 @@ pub struct DocContext {
 
 impl DocContext {
     pub fn new(source: &str, dialect: Dialect) -> Self {
+        if dialect == Dialect::Xhtml {
+            return Self { reference_labels: HashSet::new(), dialect };
+        }
         let parser = Parser::new_ext(source, options(dialect));
         let reference_labels =
             parser.reference_definitions().iter().map(|(label, _)| normalize_label(label)).collect();
@@ -147,6 +154,14 @@ pub struct Tag {
     shape: String,
     /// The text it contributes when read back (math renders its own source).
     visible: String,
+}
+
+impl Tag {
+    /// A tag of a markup whose serializer restores `open` and `close` as
+    /// written, so there is no Markdown shape to verify against.
+    pub(super) fn verbatim(n: usize, kind: TagKind, open: String, close: String, code: Option<String>) -> Self {
+        Tag { n, kind, open, close, label: None, code, role: None, shape: String::new(), visible: String::new() }
+    }
 }
 
 /// A MyST role, apart from what the model sees of it.
@@ -528,6 +543,9 @@ fn pair_inline_html(events: &[(Event, Range<usize>)]) -> HashMap<usize, usize> {
 }
 
 pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut usize) -> Result<Tagged, Untaggable> {
+    if ctx.dialect == Dialect::Xhtml {
+        return super::xhtml::tagify(source, position, counter);
+    }
     tagify_with(source, ctx, position, counter, false)
 }
 
@@ -934,6 +952,9 @@ fn absorb_role_names(pieces: Vec<Piece>) -> Vec<Piece> {
 /// the reply marks up words the source wrote as text. A MyST role counts as
 /// the text it shows: `` {term}`Nix` `` shows `Nix`.
 fn prose_of(tagged: &Tagged) -> String {
+    if tagged.dialect == Dialect::Xhtml {
+        return super::xhtml::prose(&tagged.source);
+    }
     let Masking { text, spans, .. } = mask(&tagged.source, tagged.dialect);
     let shown: String = split_masked(&text, &spans)
         .into_iter()
@@ -1631,6 +1652,9 @@ pub(super) fn structure(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> (S
 /// finally HTML — never an invisible character, which would linger in search,
 /// copy and diffs.
 pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
+    if tagged.dialect == Dialect::Xhtml {
+        return super::xhtml::render(tree, tagged);
+    }
     if tagged.position == Position::Plain {
         let markdown = tree
             .nodes

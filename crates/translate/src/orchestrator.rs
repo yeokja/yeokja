@@ -497,7 +497,7 @@ pub fn standard_evaluators(
 /// Whether `file`'s source exchanges inline markup as tags.
 pub fn inline_tags_for(config: &ProjectConfig, file: &Path) -> bool {
     config.source_for(file).is_some_and(|source| {
-        source.inline_tags && yeokja_core::config::INLINE_TAG_PARSERS.contains(&source.parser.as_str())
+        source.uses_inline_tags() && yeokja_core::config::INLINE_TAG_PARSERS.contains(&source.parser.as_str())
     })
 }
 
@@ -574,7 +574,8 @@ pub fn audit_file(
     let Some(parser) = config
         .source_for(file_path)
         .map(|source| source.parser.clone())
-        .filter(|parser| yeokja_core::config::INLINE_TAG_PARSERS.contains(&parser.as_str()))
+        // The audit reads Markdown; XHTML replies are only ever tag text.
+        .filter(|parser| parser != "xhtml" && yeokja_core::config::INLINE_TAG_PARSERS.contains(&parser.as_str()))
     else {
         return Ok(Vec::new());
     };

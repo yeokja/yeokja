@@ -9,8 +9,14 @@ impl TranslationEvaluator for LinkEvaluator {
         &self,
         context: &EvaluationContext,
     ) -> Result<EvaluationResult, EvaluationError> {
-        let source_urls = extract_urls(&context.source, context.markup);
-        let translation_urls = extract_urls(&context.translation, context.markup);
+        // XHTML spells one character several ways (`&nbsp;`, `&#160;`), and a
+        // URL in the text ends at the no-break space either stands for.
+        let text = |t: &str| match context.markup {
+            Markup::Xhtml => crate::inline::xhtml::read_entities(t),
+            _ => t.to_string(),
+        };
+        let source_urls = extract_urls(&text(&context.source), context.markup);
+        let translation_urls = extract_urls(&text(&context.translation), context.markup);
         let mut issues = Vec::new();
 
         for url in &source_urls {
@@ -426,6 +432,17 @@ mod tests {
             "Update labels at https://github.com/python/cpython/issues:",
             "https://github.com/python/cpython/issues 의 레이블을 업데이트하십시오:",
         );
+        let result = LinkEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+    }
+
+    #[tokio::test]
+    async fn xhtml_entity_spelling_does_not_change_a_url() {
+        let mut ctx = make_context(
+            "See http://example.com/a.html&nbsp;now.",
+            "지금 http://example.com/a.html&#160;을 보십시오.",
+        );
+        ctx.markup = Markup::Xhtml;
         let result = LinkEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed, "{:?}", result.issues);
     }

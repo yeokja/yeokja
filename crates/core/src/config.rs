@@ -181,7 +181,15 @@ pub struct SourceConfig {
 
 /// The parsers whose sources may set `inline_tags`: the Markdown family whose
 /// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX).
-pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx"];
+/// `xhtml` sources always use them.
+pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx", "xhtml"];
+
+impl SourceConfig {
+    /// Whether this source exchanges inline markup as tags.
+    pub fn uses_inline_tags(&self) -> bool {
+        self.inline_tags || self.parser == "xhtml"
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderConfig {
@@ -381,7 +389,7 @@ impl ProjectConfig {
 
     pub fn from_toml(content: &str) -> Result<Self, ConfigError> {
         let config: Self = toml::from_str(content)?;
-        for source in config.sources.iter().filter(|source| source.inline_tags) {
+        for source in config.sources.iter().filter(|source| source.uses_inline_tags()) {
             if !INLINE_TAG_PARSERS.contains(&source.parser.as_str()) {
                 return Err(ConfigError::Invalid(format!(
                     "source {} sets inline_tags, which supports the {} parsers only (not {})",
@@ -776,6 +784,17 @@ model = "sonnet"
         assert!(error.to_string().contains("{inline_tags}"), "{error}");
         ProjectConfig::from_toml(&inline_config("markdown", "prompt_template = \"{inline_tags} {segments}\""))
             .unwrap();
+    }
+
+    #[test]
+    fn xhtml_sources_always_use_inline_tags() {
+        let toml = inline_config("xhtml", "").replace("inline_tags = true\n", "");
+        let config = ProjectConfig::from_toml(&toml).unwrap();
+        assert!(!config.sources[0].inline_tags);
+        assert!(config.sources[0].uses_inline_tags());
+        let error = ProjectConfig::from_toml(&inline_config("xhtml", "prompt_template = \"{segments}\"").replace("inline_tags = true\n", ""))
+            .unwrap_err();
+        assert!(error.to_string().contains("{inline_tags}"), "{error}");
     }
 
     #[test]

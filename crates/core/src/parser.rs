@@ -26,6 +26,8 @@ pub enum Markup {
     /// MkDocs (Python-Markdown + pymdown-extensions): Markdown whose spans may
     /// carry `$`/`$$`/`\(`/`\[` math that must survive translation verbatim.
     MkDocs,
+    /// XHTML, read as XML. Inline markup always travels as tags.
+    Xhtml,
 }
 
 pub trait DocumentParser: Send + Sync {
