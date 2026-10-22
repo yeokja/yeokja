@@ -1,0 +1,54 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+state_dir = "state"
+
+# upstream/은 Pressbooks EPUB의 압축을 푼 트리입니다(upstream.lock).
+# 콘텐츠 문서는 확장자가 .html인 XHTML 1.1이라 파서를 이름으로 지정합니다.
+# xhtml 소스는 언제나 인라인 태그로 주고받습니다.
+# 표지는 이미지뿐이고, 목차는 빌드가 번역된 본문 제목에서 다시 만듭니다.
+[[sources]]
+path = "upstream/OEBPS"
+pattern = "*.html"
+exclude = ["front-cover.html", "table-of-contents.html"]
+parser = "xhtml"
+output = "ko/OEBPS/{path}"
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.epub]
+command = '''
+set -e
+python3 -I "$YEOKJA_ROOT/scripts/check.py" skeleton "$YEOKJA_ROOT/upstream/OEBPS" OEBPS
+python3 -I "$YEOKJA_ROOT/scripts/build_epub.py" . technicalpm-ko.epub
+python3 -I "$YEOKJA_ROOT/scripts/check.py" epub "$YEOKJA_ROOT/upstream" technicalpm-ko.epub
+'''
+outputs = ["technicalpm-ko.epub"]
+
+[build.html]
+command = '''
+set -e
+python3 -I "$YEOKJA_ROOT/scripts/check.py" skeleton "$YEOKJA_ROOT/upstream/OEBPS" OEBPS
+python3 -I "$YEOKJA_ROOT/scripts/build_epub.py" . technicalpm-ko.epub
+python3 -I "$YEOKJA_ROOT/scripts/check.py" epub "$YEOKJA_ROOT/upstream" technicalpm-ko.epub
+python3 -I "$YEOKJA_ROOT/scripts/build_site.py" . site
+'''
+outputs = ["site"]
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32
