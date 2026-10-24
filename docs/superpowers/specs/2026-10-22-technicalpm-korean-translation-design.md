@@ -145,7 +145,11 @@ require_base = true
 `index.html`(랜딩: 책 소개, 목차 링크, EPUB 내려받기) → `table-of-contents.html` →
 spine 순서다. 각 문서에 이전·다음 링크와 공통 하단(저작자 표시, 번역 고지)을 넣는다.
 문서는 XHTML이지만 `.html`로 내놓아 브라우저가 HTML로 읽는다. 엔티티를 문자 참조로
-쓰므로(XHTML 파서 설계 3.3) 어느 쪽으로 읽어도 같다.
+쓰므로(XHTML 파서 설계 3.3) 어느 쪽으로 읽어도 같다. 각 문서는 원서 `jacobs.css`
+뒤에 `site.css`를 얹는다. `site.css`는 읽기 폭과 한국어 줄바꿈을 정하고, 리더용으로
+`small`인 본문 글자 크기를 `1rem`으로 되돌리며(학습 상자와 표는 원서 비율대로 그보다
+작다), 원서 규칙의 잘못된 색 값 때문에 사라지는 표 칸 테두리를 그리고, 다크 모드
+색을 정한다.
 
 빌드 툴체인은 `nix/projects/technicalpm.nix`에 `python3` 하나를 선언한다. 빌드와
 검사 스크립트는 표준 라이브러리만 쓴다. `epubcheck` 비교는 JDK를 끌어오므로 CI

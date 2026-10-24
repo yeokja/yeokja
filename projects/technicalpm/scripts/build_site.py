@@ -21,8 +21,12 @@ EPUB = "technicalpm-ko.epub"
 
 STYLE = """
 body { max-width: 46rem; margin: 0 auto; padding: 0 1rem 3rem; line-height: 1.75;
-  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; word-break: keep-all; }
+  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; word-break: keep-all;
+  /* The EPUB style sheet sets `small` for reading systems; text boxes and tables shrink further from it. */
+  font-size: 1rem; }
 img { max-width: 100%; height: auto; }
+/* The EPUB style sheet's table borders use an invalid `initial` color, so no cell has a border. */
+td, th { border: 1px solid #ccc; }
 nav.site { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; padding: .75rem 0; border-bottom: 1px solid #ccc; font-size: .95rem; }
 nav.site.bottom { border-top: 1px solid #ccc; border-bottom: none; margin-top: 2rem; }
 footer.site { margin-top: 2rem; font-size: .85rem; color: #555; }
@@ -34,6 +38,7 @@ footer.site { margin-top: 2rem; font-size: .85rem; color: #555; }
   a, a * { color: #8ab4ff !important; }
   footer.site { color: #aaa !important; }
   .textbox, .shaded, .textbox__header, .textbox__content { background: #222 !important; border-color: #444 !important; }
+  td, th { border-color: #444; }
 }
 """
 
