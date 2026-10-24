@@ -115,7 +115,9 @@ require_base = true
 전에 정해야 재번역이 적다.
 
 - *living order* / *geometric order*: 책 제목이자 중심 개념이다. "살아 있는
-  질서"/"기하학적 질서"로 옮기고, 첫 등장에만 원어를 괄호로 병기한다.
+  질서"/"기하학적 질서"로 옮기고, 첫 등장에만 원어를 괄호로 병기한다. 책 제목
+  전체는 "살아 있는 질서와 기하학적 질서 속의 기술 프로젝트 관리"로 고정한다. 모든
+  문서의 `<title>` 뒷부분에 되풀이되므로, 항목이 없으면 문서마다 다르게 옮겨진다.
 - PMBOK 용어(scope, work breakdown structure, stakeholder, critical path, earned
   value, risk register 등)는 PMBOK 지침서 한국어판 용어를 따른다. 약어(WBS, EVM,
   CPM, PERT)는 영문으로 둔다.
@@ -123,6 +125,9 @@ require_base = true
   *Lean*, *Agile* 자체는 용어집에 두지 않는다. 기관·방법론 이름(Lean Construction
   Institute 등)에서 영어로 남아야 하는 곳이 많아 용어 검사가 오탐으로 재시도를
   일으킨다(1장 시험 번역에서 재시도 7건이 모두 이 오탐이었다).
+- *waste*는 Lean의 낭비(muda)로 "낭비"이지만, 쓰레기라는 뜻(solid waste, hazardous
+  wastes, waste-to-energy 등)은 더 긴 항목으로 "폐기물"을 준다. 용어 검사는 가장 긴
+  항목을 쓰므로, 그 항목이 없으면 모델이 "폐기물(낭비 자원)"처럼 두 뜻을 겹쳐 적는다.
 
 첫 번역 후 `yeokja terms build`로 제목·반복 용어를 고정한다(체크리스트 3절).
 
