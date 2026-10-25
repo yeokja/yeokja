@@ -78,6 +78,7 @@ def source_items(text):
     # prepare_book.py의 이식성 손질(Windows 경로)은 양쪽에서 같게 봅니다.
     text = text.replace('read.csv("Data\\\\', 'read.csv("Data/')
     text = re.sub(r'\b(l(?:scale|shape))="loge"', r'\1="loglink"', text)
+    text = re.sub(r"Figures/(F5Iterative|FigureEvolution)\.png", r"Figures/\1.PNG", text)
     prose, chunks = split_chunks(text)
     items = collections.Counter()
     for head, body in chunks:
