@@ -1,17 +1,17 @@
-//! XHTML codec for inline tag transport.
+//! Codec for inline tag transport in XML vocabularies (XHTML, CNXML,
+//! PreTeXt).
 //!
 //! An inline element becomes a numbered tag the model moves with the words it
 //! wraps; the serializer writes the element's own start and end tags back, so
 //! there is no delimiter rule to satisfy. Code shows as a backtick span the
-//! model can read and comes back as the source bytes. Reading the reply is
-//! shared with the Markdown codec (`markdown::read`).
+//! model can read and comes back as the source bytes. What an element is —
+//! code, emphasis, link, never translated — is the vocabulary's call
+//! (`yeokja_parser_xhtml::Vocabulary`), shared with the parser. Reading the
+//! reply is shared with the Markdown codec (`markdown::read`).
 
 use super::markdown::{Dialect, Node, Position, Rendered, Tag, TagKind, Tagged, Tree, Untaggable};
 use yeokja_parser_xhtml::xml::{self, Element, Node as XmlNode};
-use yeokja_parser_xhtml::{CODE, is_untranslated};
-
-const ITALIC: &[&str] = &["em", "i", "cite", "dfn", "var"];
-const BOLD: &[&str] = &["strong", "b"];
+use yeokja_parser_xhtml::{InlineKind, Vocabulary};
 
 fn escape(c: char, out: &mut String) {
     match c {
@@ -50,32 +50,16 @@ fn shown_text(source: &str, range: std::ops::Range<usize>, out: &mut String) -> 
     Ok(())
 }
 
-fn has_letter(source: &str, nodes: &[XmlNode]) -> bool {
+fn has_letter(vocab: Vocabulary, source: &str, nodes: &[XmlNode]) -> bool {
     nodes.iter().any(|node| match node {
         XmlNode::Text(range) => xml::decode(source, range.clone()).is_ok_and(|t| t.chars().any(char::is_alphabetic)),
-        XmlNode::Element(e) => !is_untranslated(e, source) && has_letter(source, &e.children),
+        XmlNode::Element(e) => !vocab.is_untranslated(e, source) && has_letter(vocab, source, &e.children),
         XmlNode::Other(_) => false,
     })
 }
 
-/// A footnote reference: a link whose only content is `<sup class="footnote">`.
-fn is_footnote_ref(source: &str, e: &Element) -> bool {
-    let elements: Vec<&Element> = e
-        .children
-        .iter()
-        .filter_map(|n| match n {
-            XmlNode::Element(c) => Some(c),
-            _ => None,
-        })
-        .collect();
-    e.local() == "a"
-        && elements.len() == 1
-        && elements[0].local() == "sup"
-        && elements[0].has_class(source, "footnote")
-        && e.children.iter().all(|n| !matches!(n, XmlNode::Text(r) if !source[r.clone()].trim().is_empty()))
-}
-
 struct Tagger<'a> {
+    vocab: Vocabulary,
     source: &'a str,
     text: String,
     tags: Vec<Tag>,
@@ -106,17 +90,16 @@ impl Tagger<'_> {
     }
 
     fn element(&mut self, e: &Element) -> Result<(), Untaggable> {
-        let source = self.source;
-        let name = e.local();
+        let (vocab, source) = (self.vocab, self.source);
         if e.end.is_none()
-            || is_untranslated(e, source)
-            || is_footnote_ref(source, e)
-            || !has_letter(source, &e.children)
+            || vocab.is_untranslated(e, source)
+            || vocab.is_opaque_inline(e, source)
+            || !has_letter(vocab, source, &e.children)
         {
             self.opaque(e.range());
             return Ok(());
         }
-        if CODE.contains(&name) {
+        if vocab.is_code(e, source) {
             if e.children.iter().any(|n| !matches!(n, XmlNode::Text(_))) {
                 self.opaque(e.range());
                 return Ok(());
@@ -135,14 +118,11 @@ impl Tagger<'_> {
             self.tags.push(Tag::verbatim(n, TagKind::Code, source[e.range()].to_string(), String::new(), Some(content)));
             return Ok(());
         }
-        let kind = if ITALIC.contains(&name) {
-            TagKind::Italic
-        } else if BOLD.contains(&name) {
-            TagKind::Bold
-        } else if name == "a" {
-            TagKind::Link
-        } else {
-            TagKind::Html
+        let kind = match vocab.inline_kind(e, source) {
+            InlineKind::Italic => TagKind::Italic,
+            InlineKind::Bold => TagKind::Bold,
+            InlineKind::Link => TagKind::Link,
+            InlineKind::Other => TagKind::Html,
         };
         let n = self.next();
         let letter = match kind {
@@ -164,21 +144,22 @@ fn longest_backtick_run(text: &str) -> usize {
     text.split(|c| c != '`').map(str::len).max().unwrap_or(0)
 }
 
-/// A segment's source as tag text. A plain segment (an attribute value) goes
-/// as its text.
-pub fn tagify(source: &str, position: Position, counter: &mut usize) -> Result<Tagged, Untaggable> {
+/// A segment's source as tag text. A plain segment (an attribute value, a
+/// MathML `mtext`) goes as its text.
+pub fn tagify(source: &str, vocab: Vocabulary, position: Position, counter: &mut usize) -> Result<Tagged, Untaggable> {
+    let dialect = Dialect::for_vocabulary(vocab);
     let mut text = String::new();
     if position == Position::Plain {
         let decoded = xml::decode(source, 0..source.len()).map_err(|e| Untaggable(e.to_string()))?;
         for c in decoded.chars() {
             escape(c, &mut text);
         }
-        return Ok(Tagged { source: source.to_string(), text, tags: Vec::new(), position, dialect: Dialect::Xhtml });
+        return Ok(Tagged { source: source.to_string(), text, tags: Vec::new(), position, dialect });
     }
     let nodes = xml::parse(source).map_err(|e| Untaggable(e.to_string()))?;
-    let mut tagger = Tagger { source, text, tags: Vec::new(), counter };
+    let mut tagger = Tagger { vocab, source, text, tags: Vec::new(), counter };
     tagger.nodes(&nodes)?;
-    Ok(Tagged { source: source.to_string(), text: tagger.text, tags: tagger.tags, position, dialect: Dialect::Xhtml })
+    Ok(Tagged { source: source.to_string(), text: tagger.text, tags: tagger.tags, position, dialect })
 }
 
 /// Text written into the document: `&`, `<`, `>` escaped, a no-break space
@@ -240,20 +221,20 @@ pub fn render(tree: &Tree, tagged: &Tagged) -> Rendered {
 
 /// The source's text without its markup, for telling whether a code span of
 /// the reply marks up words the source wrote as text.
-pub fn prose(source: &str) -> String {
-    fn walk(source: &str, nodes: &[XmlNode], out: &mut String) {
+pub fn prose(source: &str, vocab: Vocabulary) -> String {
+    fn walk(vocab: Vocabulary, source: &str, nodes: &[XmlNode], out: &mut String) {
         for node in nodes {
             match node {
                 XmlNode::Text(r) => out.push_str(&xml::decode(source, r.clone()).unwrap_or_default()),
-                XmlNode::Element(e) if CODE.contains(&e.local()) => out.push(' '),
-                XmlNode::Element(e) => walk(source, &e.children, out),
+                XmlNode::Element(e) if vocab.is_code(e, source) => out.push(' '),
+                XmlNode::Element(e) => walk(vocab, source, &e.children, out),
                 XmlNode::Other(_) => {}
             }
         }
     }
     let mut out = String::new();
     if let Ok(nodes) = xml::parse(source) {
-        walk(source, &nodes, &mut out);
+        walk(vocab, source, &nodes, &mut out);
     }
     out
 }
@@ -264,12 +245,51 @@ mod tests {
     use crate::inline::markdown::read;
 
     fn tag(source: &str) -> Tagged {
-        tagify(source, Position::Inline, &mut 0).unwrap()
+        tag_in(Vocabulary::Xhtml, source)
+    }
+
+    fn tag_in(vocab: Vocabulary, source: &str) -> Tagged {
+        tagify(source, vocab, Position::Inline, &mut 0).unwrap()
     }
 
     fn translate(source: &str, reply: &str) -> String {
-        let tagged = tag(source);
+        translate_in(Vocabulary::Xhtml, source, reply)
+    }
+
+    fn translate_in(vocab: Vocabulary, source: &str, reply: &str) -> String {
+        let tagged = tag_in(vocab, source);
         render(&read(reply, &tagged).unwrap(), &tagged).markdown
+    }
+
+    #[test]
+    fn cnxml_semantic_elements_map_to_tags() {
+        let t = tag_in(
+            Vocabulary::Cnxml,
+            "The word <emphasis effect=\"italics\">finance</emphasis> and <emphasis>bold</emphasis>, <term id=\"t1\">capital</term>, <link url=\"http://x\">site</link>, <sub>max</sub> and <link target-id=\"fig\"/>.",
+        );
+        assert_eq!(t.text, "The word <i1>finance</i1> and <b2>bold</b2>, <b3>capital</b3>, <a4>site</a4>, <h5>max</h5> and <x6/>.");
+    }
+
+    #[test]
+    fn cnxml_math_is_opaque_and_calculator_keys_are_code() {
+        let source = "Press <span class=\"primary-function\">ENTER</span> for <m:math><m:mtext>PV</m:mtext></m:math> now.";
+        let t = tag_in(Vocabulary::Cnxml, source);
+        assert_eq!(t.text, "Press `ENTER` for <x2/> now.");
+        assert_eq!(
+            translate_in(Vocabulary::Cnxml, source, "지금 <x2/>에 대해 `ENTER`를 누릅니다."),
+            "지금 <m:math><m:mtext>PV</m:mtext></m:math>에 대해 <span class=\"primary-function\">ENTER</span>를 누릅니다."
+        );
+    }
+
+    #[test]
+    fn pretext_math_is_code_and_display_math_is_opaque() {
+        let source = "A <term>vector</term> in <m>\\R^n</m> is\n    <me>v = \\vec{1 3}.</me>\n    See <xref ref=\"x\"/> and <xref ref=\"y\">this</xref>, <em>really</em>.";
+        let t = tag_in(Vocabulary::Pretext, source);
+        assert_eq!(t.text, "A <b1>vector</b1> in `\\R^n` is <x3/> See <x4/> and <a5>this</a5>, <i6>really</i6>.");
+        assert_eq!(
+            translate_in(Vocabulary::Pretext, source, "`\\R^n`의 <b1>벡터</b1>는 <x3/> <x4/>와 <a5>이것</a5>을 <i6>꼭</i6> 보십시오."),
+            "<m>\\R^n</m>의 <term>벡터</term>는 <me>v = \\vec{1 3}.</me> <xref ref=\"x\"/>와 <xref ref=\"y\">이것</xref>을 <em>꼭</em> 보십시오."
+        );
     }
 
     #[test]
@@ -314,7 +334,7 @@ mod tests {
 
     #[test]
     fn plain_values_escape_quotes() {
-        let tagged = tagify("A &quot;nice&quot; chart", Position::Plain, &mut 0).unwrap();
+        let tagged = tagify("A &quot;nice&quot; chart", Vocabulary::Xhtml, Position::Plain, &mut 0).unwrap();
         assert_eq!(tagged.text, "A \"nice\" chart");
         let tree = read("\"멋진\" 도표 & 'x'", &tagged).unwrap();
         assert_eq!(render(&tree, &tagged).markdown, "&quot;멋진&quot; 도표 &amp; &#39;x&#39;");
@@ -328,6 +348,6 @@ mod tests {
 
     #[test]
     fn backtick_in_prose_is_untaggable() {
-        assert!(tagify("a `b` c", Position::Inline, &mut 0).is_err());
+        assert!(tagify("a `b` c", Vocabulary::Xhtml, Position::Inline, &mut 0).is_err());
     }
 }

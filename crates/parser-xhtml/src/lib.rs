@@ -1,12 +1,17 @@
-//! XHTML content documents (EPUB) read as XML. See
-//! `docs/superpowers/specs/2026-10-22-xhtml-parser-design.md`.
+//! XML documents read through a vocabulary: XHTML content documents (EPUB),
+//! OpenStax CNXML and PreTeXt. See
+//! `docs/superpowers/specs/2026-10-22-xhtml-parser-design.md` and
+//! `docs/superpowers/specs/2026-10-25-xml-vocabulary-profiles-design.md`.
 //!
 //! A translation unit is a run of text and inline elements inside a block
 //! element; a block child ends the run. Reconstruction splices translations
 //! into the source, so everything outside the runs stays byte for byte.
 
 mod entities;
+mod vocab;
 pub mod xml;
+
+pub use vocab::{BlockKind, InlineKind, Vocabulary};
 
 use std::collections::HashMap;
 use std::ops::Range;
@@ -14,83 +19,7 @@ use xml::{Element, Node, XmlError};
 use yeokja_core::hash::content_hash;
 use yeokja_core::model::{Block, BlockRole, BlockType, Document, Section, Segment, SegmentId};
 use yeokja_core::parser::{DocumentParseError, DocumentParser, Markup, TranslationMap};
-use yeokja_parser_utils::{apply_splices, join_segments_with_translations, split_sentences};
-
-pub struct XhtmlParser;
-
-/// Elements that end a run of inline content.
-const BLOCK: &[&str] = &[
-    "address",
-    "article",
-    "aside",
-    "blockquote",
-    "body",
-    "caption",
-    "center",
-    "dd",
-    "details",
-    "dialog",
-    "dir",
-    "div",
-    "dl",
-    "dt",
-    "fieldset",
-    "figcaption",
-    "figure",
-    "footer",
-    "form",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "head",
-    "header",
-    "hgroup",
-    "hr",
-    "html",
-    "legend",
-    "li",
-    "main",
-    "menu",
-    "nav",
-    "noscript",
-    "ol",
-    "p",
-    "pre",
-    "section",
-    "summary",
-    "table",
-    "tbody",
-    "td",
-    "tfoot",
-    "th",
-    "thead",
-    "tr",
-    "ul",
-];
-
-/// Subtrees never offered for translation.
-pub const SKIP: &[&str] = &[
-    "pre", "script", "style", "math", "svg", "object", "iframe", "template", "textarea", "select",
-];
-
-/// Inline elements whose text is code: shown to the model, never changed.
-pub const CODE: &[&str] = &["code", "kbd", "samp", "tt"];
-
-/// Attributes whose values are translated.
-const TRANSLATED_ATTRS: &[&str] = &["alt", "title"];
-
-fn is_block(e: &Element) -> bool {
-    BLOCK.contains(&e.local())
-}
-
-/// Never translated, wherever it sits: a skipped element or one marked
-/// `translate="no"`.
-pub fn is_untranslated(e: &Element, source: &str) -> bool {
-    SKIP.contains(&e.local()) || e.attr(source, "translate") == Some("no")
-}
+use yeokja_parser_utils::{apply_splices, split_sentences};
 
 /// What one translatable unit is, before it becomes a [`Block`].
 #[derive(Debug, Clone)]
@@ -102,109 +31,140 @@ enum Item {
         heading_level: Option<u8>,
         role: BlockRole,
     },
-    /// A translated attribute: the tag it is in and its value.
-    Attr {
-        tag: Range<usize>,
+    /// Text translated on its own inside markup kept as it is: an
+    /// attribute value inside its start tag, or a MathML `mtext` inside its
+    /// `math`. Translating it rewrites the host.
+    Inner {
+        host: Range<usize>,
         value: Range<usize>,
     },
 }
 
-#[derive(Default)]
+/// Where a block element sits.
+#[derive(Clone, Default)]
+struct Ctx {
+    /// Sectioning elements around it.
+    depth: u8,
+    /// Whether its parent is a sectioning element.
+    in_section: bool,
+}
+
 struct Walk {
+    vocab: Vocabulary,
     items: Vec<Item>,
     tables: usize,
     table: Option<usize>,
     row: usize,
     column: usize,
+    /// Inside a table section of label rows (`thead`).
+    head_rows: bool,
 }
 
 /// The translatable units of `source`, in document order.
-fn analyze(source: &str) -> Result<Vec<Item>, XmlError> {
+fn analyze(vocab: Vocabulary, source: &str) -> Result<Vec<Item>, XmlError> {
     let nodes = xml::parse(source)?;
-    let mut walk = Walk::default();
+    let mut walk = Walk {
+        vocab,
+        items: Vec::new(),
+        tables: 0,
+        table: None,
+        row: 0,
+        column: 0,
+        head_rows: false,
+    };
     for node in &nodes {
         if let Node::Element(e) = node {
-            walk.block(source, e, None)?;
+            walk.block(source, e, &Ctx::default())?;
         }
     }
     Ok(walk.items)
 }
 
 impl Walk {
-    fn block(
-        &mut self,
-        source: &str,
-        e: &Element,
-        cell: Option<BlockRole>,
-    ) -> Result<(), XmlError> {
+    fn block(&mut self, source: &str, e: &Element, ctx: &Ctx) -> Result<(), XmlError> {
+        let vocab = self.vocab;
         let name = e.local();
-        if is_untranslated(e, source) {
+        if vocab.is_untranslated(e, source) {
             return Ok(());
         }
-        if name == "head" {
+        if let Some(title) = vocab.head_title(name) {
             for child in &e.children {
-                if let Node::Element(title) = child
-                    && title.local() == "title"
+                if let Node::Element(t) = child
+                    && t.local() == title
                 {
-                    self.run(
-                        source,
-                        &title.children,
-                        BlockType::Heading,
-                        None,
-                        BlockRole::None,
-                    )?;
+                    let nodes: Vec<&Node> = t.children.iter().collect();
+                    self.run(source, &nodes, BlockType::Heading, None, BlockRole::None)?;
                 }
             }
             return Ok(());
         }
         self.attrs(source, e);
-        let mut cell = cell;
-        match name {
-            "table" => {
-                self.table = Some(self.tables);
-                self.tables += 1;
-                self.row = 0;
-            }
-            "tr" => self.column = 0,
-            "td" | "th" => {
-                cell = self.table.map(|table| BlockRole::TableCell {
+        let mut role = BlockRole::None;
+        if vocab.is_table(name) {
+            self.table = Some(self.tables);
+            self.tables += 1;
+            self.row = 0;
+        } else if vocab.is_row(name) {
+            self.column = 0;
+        } else if vocab.is_cell(name) {
+            role = self
+                .table
+                .map(|table| BlockRole::TableCell {
                     table,
                     column: self.column,
-                    label_row: self.row == 0,
+                    label_row: self.row == 0 || self.head_rows,
                     header: None,
-                });
-                self.column += 1;
-            }
-            _ => {}
+                })
+                .unwrap_or_default();
+            self.column += 1;
         }
-        let (block_type, level) = match name {
-            "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => (BlockType::Heading, name[1..].parse().ok()),
-            "li" | "dt" | "dd" => (BlockType::ListItem, None),
-            "td" | "th" => (BlockType::Table, None),
-            "blockquote" => (BlockType::BlockQuote, None),
-            _ => (BlockType::Paragraph, None),
+        let (block_type, level) = match vocab.block_kind(name) {
+            BlockKind::Heading(level) => (BlockType::Heading, level),
+            BlockKind::Title => {
+                let level = if ctx.in_section {
+                    ctx.depth
+                } else {
+                    ctx.depth.saturating_add(1)
+                };
+                (BlockType::Heading, Some(level.max(1)))
+            }
+            BlockKind::ListItem => (BlockType::ListItem, None),
+            BlockKind::TableCell => (BlockType::Table, None),
+            BlockKind::BlockQuote => (BlockType::BlockQuote, None),
+            BlockKind::Paragraph => (BlockType::Paragraph, None),
         };
-        let role = if matches!(name, "td" | "th") {
-            cell.clone().unwrap_or_default()
+        // An inline element walked only because it holds a block is
+        // transparent: what it holds sits where the element does.
+        let inner = if vocab.is_container(e) {
+            ctx.clone()
         } else {
-            BlockRole::None
+            let sectioning = vocab.is_sectioning(name);
+            Ctx {
+                depth: ctx.depth.saturating_add(u8::from(sectioning)),
+                in_section: sectioning,
+            }
         };
-        let mut run: Vec<Node> = Vec::new();
+        let head_rows = self.head_rows;
+        if vocab.is_table_head(name) {
+            self.head_rows = true;
+        }
+        let mut run: Vec<&Node> = Vec::new();
         for child in &e.children {
             match child {
-                Node::Element(c) if is_block(c) => {
+                Node::Element(c) if vocab.breaks_run(c, source) => {
                     self.run(source, &run, block_type, level, role.clone())?;
                     run.clear();
-                    self.block(source, c, cell.clone())?;
+                    self.block(source, c, &inner)?;
                 }
-                other => run.push(other.clone()),
+                other => run.push(other),
             }
         }
         self.run(source, &run, block_type, level, role)?;
-        if name == "tr" {
+        self.head_rows = head_rows;
+        if vocab.is_row(name) {
             self.row += 1;
         }
-        if name == "table" {
+        if vocab.is_table(name) {
             self.table = None;
         }
         Ok(())
@@ -213,22 +173,23 @@ impl Walk {
     /// The translated attributes of `e` itself.
     fn attrs(&mut self, source: &str, e: &Element) {
         for attr in &e.attrs {
-            if TRANSLATED_ATTRS.contains(&attr.name.as_str())
-                && has_letter(&source[attr.value.clone()])
-            {
-                self.items.push(Item::Attr {
-                    tag: e.start.clone(),
+            if self.vocab.translates_attr(&attr.name) && has_letter(&source[attr.value.clone()]) {
+                self.items.push(Item::Inner {
+                    host: e.start.clone(),
                     value: attr.value.clone(),
                 });
             }
         }
     }
 
-    /// The translated attributes inside a run's inline elements.
-    fn inline_attrs(&mut self, source: &str, nodes: &[Node]) {
+    /// The translated attributes and islands inside a run's inline elements.
+    fn inline_attrs<'a>(&mut self, source: &str, nodes: impl IntoIterator<Item = &'a Node>) {
         for node in nodes {
             if let Node::Element(e) = node {
-                if is_untranslated(e, source) {
+                if self.vocab.is_untranslated(e, source) {
+                    if let Some(island) = self.vocab.island(e.local()) {
+                        self.islands(source, e.range(), &e.children, island);
+                    }
                     continue;
                 }
                 self.attrs(source, e);
@@ -237,10 +198,42 @@ impl Walk {
         }
     }
 
+    /// The text of every `island` element under a skipped element, each
+    /// translated on its own; the spaces around it stay.
+    fn islands(&mut self, source: &str, host: Range<usize>, nodes: &[Node], island: &str) {
+        for node in nodes {
+            let Node::Element(e) = node else { continue };
+            if e.local() != island {
+                self.islands(source, host.clone(), &e.children, island);
+                continue;
+            }
+            if e.children.iter().any(|n| !matches!(n, Node::Text(_))) {
+                continue;
+            }
+            let inner = e.inner();
+            let text = &source[inner.clone()];
+            let lead = text.len()
+                - text
+                    .trim_start_matches(|c: char| c.is_ascii_whitespace())
+                    .len();
+            let trail = text.len()
+                - text
+                    .trim_end_matches(|c: char| c.is_ascii_whitespace())
+                    .len();
+            if lead + trail >= text.len() || !has_letter(text) {
+                continue;
+            }
+            self.items.push(Item::Inner {
+                host: host.clone(),
+                value: inner.start + lead..inner.end - trail,
+            });
+        }
+    }
+
     fn run(
         &mut self,
         source: &str,
-        nodes: &[Node],
+        nodes: &[&Node],
         block_type: BlockType,
         heading_level: Option<u8>,
         role: BlockRole,
@@ -249,7 +242,9 @@ impl Walk {
             return Ok(());
         };
         let mut chars = Vec::new();
-        project(source, nodes, 0, false, &mut chars)?;
+        for node in nodes {
+            project(self.vocab, source, node, 0, false, &mut chars)?;
+        }
         if chars.iter().any(|c| c.c.is_alphabetic() && !c.code) {
             let segments = split(source, &span, &chars);
             self.items.push(Item::Run {
@@ -260,7 +255,7 @@ impl Walk {
                 role,
             });
         }
-        self.inline_attrs(source, nodes);
+        self.inline_attrs(source, nodes.iter().copied());
         Ok(())
     }
 }
@@ -270,7 +265,7 @@ fn has_letter(text: &str) -> bool {
 }
 
 /// The run's bytes without leading and trailing whitespace.
-fn trimmed_span(source: &str, nodes: &[Node]) -> Option<Range<usize>> {
+fn trimmed_span(source: &str, nodes: &[&Node]) -> Option<Range<usize>> {
     let start = nodes.first()?.range().start;
     let end = nodes.last()?.range().end;
     let text = &source[start..end];
@@ -296,31 +291,44 @@ struct Shown {
 }
 
 fn project(
+    vocab: Vocabulary,
     source: &str,
-    nodes: &[Node],
+    node: &Node,
     depth: usize,
     code: bool,
     out: &mut Vec<Shown>,
 ) -> Result<(), XmlError> {
-    for node in nodes {
-        match node {
-            Node::Text(range) => {
-                xml::decode_each(source, range.clone(), |c, bytes| {
-                    out.push(Shown {
-                        c,
-                        bytes,
-                        depth,
-                        code,
-                    })
-                })?;
-            }
-            Node::Element(e) if is_untranslated(e, source) => {}
-            Node::Element(e) => {
-                let code = code || CODE.contains(&e.local());
-                project(source, &e.children, depth + 1, code, out)?;
-            }
-            Node::Other(_) => {}
+    match node {
+        Node::Text(range) => {
+            xml::decode_each(source, range.clone(), |c, bytes| {
+                out.push(Shown {
+                    c,
+                    bytes,
+                    depth,
+                    code,
+                })
+            })?;
         }
+        // A display equation that ends its sentence (`… = 0.</me> Then …`)
+        // reads as the mark it holds, so the next sentence is a segment of
+        // its own; the equation stays with the sentence it ends.
+        Node::Element(e) if vocab.is_untranslated(e, source) => {
+            if let Some(mark) = vocab.ends_sentence(e, source) {
+                out.push(Shown {
+                    c: mark,
+                    bytes: e.range(),
+                    depth,
+                    code: false,
+                });
+            }
+        }
+        Node::Element(e) => {
+            let code = code || vocab.is_code(e, source);
+            for child in &e.children {
+                project(vocab, source, child, depth + 1, code, out)?;
+            }
+        }
+        Node::Other(_) => {}
     }
     Ok(())
 }
@@ -384,7 +392,7 @@ fn document(source: &str, items: &[Item]) -> Document {
                 span.clone(),
                 segments.clone(),
             ),
-            Item::Attr { value, .. } => (
+            Item::Inner { value, .. } => (
                 BlockType::Paragraph,
                 None,
                 BlockRole::Literal,
@@ -429,97 +437,164 @@ fn document(source: &str, items: &[Item]) -> Document {
     }
 }
 
-impl DocumentParser for XhtmlParser {
-    fn markup(&self) -> Markup {
-        Markup::Xhtml
-    }
-
-    fn parse(&self, source: &str) -> Document {
-        self.parse_checked(source).unwrap_or_else(|_| Document {
-            sections: Vec::new(),
-            source: source.to_string(),
-        })
-    }
-
-    fn parse_checked(&self, source: &str) -> Result<Document, DocumentParseError> {
-        let items = analyze(source)
-            .map_err(|e| DocumentParseError(format!("not well-formed XHTML: {e}")))?;
-        Ok(document(source, &items))
-    }
-
-    fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
-        let source = &document.source;
-        let Ok(items) = analyze(source) else {
-            return source.clone();
-        };
-        let blocks: Vec<&Block> = document.sections.iter().flat_map(|s| &s.blocks).collect();
-        if blocks.len() != items.len() {
-            return yeokja_parser_utils::splice_reconstruct(document, translations);
-        }
-        let joined = |block: &Block| {
-            block
-                .segments
-                .iter()
-                .any(|seg| translations.contains_key(&seg.id))
-                .then(|| join_segments_with_translations(&block.segments, translations))
-        };
-        // A translated attribute rewrites its whole start tag, which a run's
-        // translation carries as source bytes when the tag is inside it.
-        let mut values: HashMap<Range<usize>, Vec<(Range<usize>, String)>> = HashMap::new();
-        for (item, block) in items.iter().zip(&blocks) {
-            if let (Item::Attr { tag, value }, Some(text)) = (item, joined(block)) {
-                let local = value.start - tag.start..value.end - tag.start;
-                values.entry(tag.clone()).or_default().push((local, text));
-            }
-        }
-        let tags: HashMap<Range<usize>, String> = values
-            .into_iter()
-            .map(|(tag, edits)| {
-                let updated = apply_splices(&source[tag.clone()], edits);
-                (tag, updated)
-            })
-            .collect();
-        let mut splices = Vec::new();
-        let mut placed: Vec<Range<usize>> = Vec::new();
-        for (item, block) in items.iter().zip(&blocks) {
-            let Item::Run { span, .. } = item else {
-                continue;
-            };
-            let Some(mut text) = joined(block) else {
-                continue;
-            };
-            for (tag, updated) in &tags {
-                if span.start <= tag.start && tag.end <= span.end {
-                    text = text.replace(&source[tag.clone()], updated);
-                    placed.push(tag.clone());
-                }
-            }
-            splices.push((span.clone(), text));
-        }
-        for (tag, updated) in tags {
-            if !placed.contains(&tag) {
-                splices.push((tag, updated));
-            }
-        }
-        apply_splices(source, splices)
-    }
+fn parse_with(vocab: Vocabulary, source: &str) -> Result<Document, DocumentParseError> {
+    let items = analyze(vocab, source)
+        .map_err(|e| DocumentParseError(format!("not well-formed {}: {e}", vocab.name())))?;
+    Ok(document(source, &items))
 }
 
-/// Emphasis that Korean word order may split in two.
-const EMPHASIS: &[&str] = &["em", "i", "cite", "dfn", "var", "strong", "b"];
+/// A block's text with its translations and the source's own whitespace
+/// between its segments, or `None` when none of them is translated.
+fn joined(
+    source: &str,
+    item: &Item,
+    block: &Block,
+    translations: &TranslationMap,
+) -> Option<String> {
+    if !block
+        .segments
+        .iter()
+        .any(|seg| translations.contains_key(&seg.id))
+    {
+        return None;
+    }
+    let ranges = match item {
+        Item::Run { segments, .. } => segments.as_slice(),
+        Item::Inner { value, .. } => std::slice::from_ref(value),
+    };
+    let mut out = String::new();
+    for (i, seg) in block.segments.iter().enumerate() {
+        if i > 0 {
+            match (ranges.get(i - 1), ranges.get(i)) {
+                (Some(before), Some(after)) if ranges.len() == block.segments.len() => {
+                    out.push_str(&source[before.end..after.start]);
+                }
+                _ => out.push(' '),
+            }
+        }
+        out.push_str(translations.get(&seg.id).unwrap_or(&seg.source));
+    }
+    Some(out)
+}
+
+fn reconstruct_with(
+    vocab: Vocabulary,
+    document: &Document,
+    translations: &TranslationMap,
+) -> String {
+    let source = &document.source;
+    let Ok(items) = analyze(vocab, source) else {
+        return source.clone();
+    };
+    let blocks: Vec<&Block> = document.sections.iter().flat_map(|s| &s.blocks).collect();
+    if blocks.len() != items.len() {
+        return yeokja_parser_utils::splice_reconstruct(document, translations);
+    }
+    // A translated attribute rewrites its whole start tag, and an `mtext`
+    // its whole `math`, which a run's translation carries as source bytes
+    // when the host is inside it.
+    let mut values: HashMap<Range<usize>, Vec<(Range<usize>, String)>> = HashMap::new();
+    for (item, block) in items.iter().zip(&blocks) {
+        if let (Item::Inner { host, value }, Some(text)) =
+            (item, joined(source, item, block, translations))
+        {
+            let local = value.start - host.start..value.end - host.start;
+            values.entry(host.clone()).or_default().push((local, text));
+        }
+    }
+    let hosts: HashMap<Range<usize>, String> = values
+        .into_iter()
+        .map(|(host, edits)| {
+            let updated = apply_splices(&source[host.clone()], edits);
+            (host, updated)
+        })
+        .collect();
+    let mut splices = Vec::new();
+    let mut placed: Vec<Range<usize>> = Vec::new();
+    for (item, block) in items.iter().zip(&blocks) {
+        let Item::Run { span, .. } = item else {
+            continue;
+        };
+        let Some(mut text) = joined(source, item, block, translations) else {
+            continue;
+        };
+        for (host, updated) in &hosts {
+            if span.start <= host.start && host.end <= span.end {
+                text = text.replace(&source[host.clone()], updated);
+                placed.push(host.clone());
+            }
+        }
+        splices.push((span.clone(), text));
+    }
+    for (host, updated) in hosts {
+        if !placed.contains(&host) {
+            splices.push((host, updated));
+        }
+    }
+    apply_splices(source, splices)
+}
+
+macro_rules! vocabulary_parser {
+    ($(#[$doc:meta])* $parser:ident, $vocab:expr) => {
+        $(#[$doc])*
+        pub struct $parser;
+
+        impl DocumentParser for $parser {
+            fn markup(&self) -> Markup {
+                Markup::Xhtml
+            }
+
+            fn parse(&self, source: &str) -> Document {
+                self.parse_checked(source).unwrap_or_else(|_| Document {
+                    sections: Vec::new(),
+                    source: source.to_string(),
+                })
+            }
+
+            fn parse_checked(&self, source: &str) -> Result<Document, DocumentParseError> {
+                parse_with($vocab, source)
+            }
+
+            fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
+                reconstruct_with($vocab, document, translations)
+            }
+        }
+    };
+}
+
+vocabulary_parser!(
+    /// The `xhtml` parser: XHTML content documents.
+    XhtmlParser,
+    Vocabulary::Xhtml
+);
+vocabulary_parser!(
+    /// The `cnxml` parser: OpenStax CNXML modules and collections.
+    CnxmlParser,
+    Vocabulary::Cnxml
+);
+vocabulary_parser!(
+    /// The `pretext` parser: PreTeXt and MathBook XML.
+    PretextParser,
+    Vocabulary::Pretext
+);
+
+/// The element structure of an XHTML document; see [`skeleton_with`].
+pub fn skeleton(source: &str) -> Result<String, XmlError> {
+    skeleton_with(Vocabulary::Xhtml, source)
+}
 
 /// The element structure of `source` without its text or the values of the
 /// translated attributes: block elements in order, and the inline elements
 /// inside each block as a multiset — translation moves them with the words
 /// they wrap, and may split an emphasis, which only has to be there. Two
 /// documents with the same skeleton differ only in what translation changes.
-pub fn skeleton(source: &str) -> Result<String, XmlError> {
-    fn head(source: &str, e: &Element) -> String {
+pub fn skeleton_with(vocab: Vocabulary, source: &str) -> Result<String, XmlError> {
+    fn head(vocab: Vocabulary, source: &str, e: &Element) -> String {
         let mut attrs: Vec<String> = e
             .attrs
             .iter()
             .map(|attr| {
-                if TRANSLATED_ATTRS.contains(&attr.name.as_str()) {
+                if vocab.translates_attr(&attr.name) {
                     attr.name.clone()
                 } else {
                     format!(
@@ -533,14 +608,14 @@ pub fn skeleton(source: &str) -> Result<String, XmlError> {
         attrs.sort();
         format!("<{} {}>", e.name, attrs.join(" "))
     }
-    fn element(source: &str, e: &Element) -> String {
+    fn element(vocab: Vocabulary, source: &str, e: &Element) -> String {
         let mut blocks = Vec::new();
         let mut inline = Vec::new();
-        collect(source, &e.children, &mut blocks, &mut inline);
+        collect(vocab, source, &e.children, &mut blocks, &mut inline);
         let mut counted: Vec<String> = Vec::new();
         let mut present: Vec<String> = Vec::new();
-        for (name, h) in inline {
-            if EMPHASIS.contains(&name.as_str()) {
+        for (emphasis, h) in inline {
+            if emphasis {
                 present.push(h)
             } else {
                 counted.push(h)
@@ -551,25 +626,26 @@ pub fn skeleton(source: &str) -> Result<String, XmlError> {
         present.dedup();
         format!(
             "{}[{}]{{{}}}{{{}}}",
-            head(source, e),
+            head(vocab, source, e),
             blocks.join(""),
             counted.join(""),
             present.join("")
         )
     }
     fn collect(
+        vocab: Vocabulary,
         source: &str,
         nodes: &[Node],
         blocks: &mut Vec<String>,
-        inline: &mut Vec<(String, String)>,
+        inline: &mut Vec<(bool, String)>,
     ) {
         for node in nodes {
             if let Node::Element(e) = node {
-                if is_block(e) {
-                    blocks.push(element(source, e));
+                if vocab.breaks_run(e, source) {
+                    blocks.push(element(vocab, source, e));
                 } else {
-                    inline.push((e.local().to_string(), head(source, e)));
-                    collect(source, &e.children, blocks, inline);
+                    inline.push((vocab.is_emphasis(e, source), head(vocab, source, e)));
+                    collect(vocab, source, &e.children, blocks, inline);
                 }
             }
         }
@@ -577,7 +653,7 @@ pub fn skeleton(source: &str) -> Result<String, XmlError> {
     let nodes = xml::parse(source)?;
     let mut blocks = Vec::new();
     let mut inline = Vec::new();
-    collect(source, &nodes, &mut blocks, &mut inline);
+    collect(vocab, source, &nodes, &mut blocks, &mut inline);
     Ok(blocks.join(""))
 }
 

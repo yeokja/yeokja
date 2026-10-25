@@ -180,9 +180,13 @@ pub struct SourceConfig {
 }
 
 /// The parsers whose sources may set `inline_tags`: the Markdown family whose
-/// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX).
-/// `xhtml` sources always use them.
-pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx", "xhtml"];
+/// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX), and
+/// the XML vocabularies in [`XML_PARSERS`], which always use them.
+pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx", "xhtml", "cnxml", "pretext"];
+
+/// The parsers that read an XML vocabulary (XHTML, OpenStax CNXML, PreTeXt).
+/// Their sources always exchange inline markup as tags.
+pub const XML_PARSERS: &[&str] = &["xhtml", "cnxml", "pretext"];
 
 /// Every parser name a `[[sources]].parser` may hold. Must match the registry
 /// in the `parsers` crate; an unknown name is a configuration error, since
@@ -206,12 +210,14 @@ pub const PARSER_NAMES: &[&str] = &[
     "myst",
     "mkdocs",
     "xhtml",
+    "cnxml",
+    "pretext",
 ];
 
 impl SourceConfig {
     /// Whether this source exchanges inline markup as tags.
     pub fn uses_inline_tags(&self) -> bool {
-        self.inline_tags || self.parser == "xhtml"
+        self.inline_tags || XML_PARSERS.contains(&self.parser.as_str())
     }
 }
 
@@ -813,9 +819,9 @@ model = "sonnet"
 
     #[test]
     fn unknown_parser_name_is_a_config_error() {
-        let error = ProjectConfig::from_toml(&inline_config("pretext", "").replace("inline_tags = true\n", ""))
+        let error = ProjectConfig::from_toml(&inline_config("pandoc", "").replace("inline_tags = true\n", ""))
             .unwrap_err();
-        assert!(error.to_string().contains("unknown parser \"pretext\""), "{error}");
+        assert!(error.to_string().contains("unknown parser \"pandoc\""), "{error}");
     }
 
     #[test]
@@ -828,14 +834,18 @@ model = "sonnet"
     }
 
     #[test]
-    fn xhtml_sources_always_use_inline_tags() {
-        let toml = inline_config("xhtml", "").replace("inline_tags = true\n", "");
-        let config = ProjectConfig::from_toml(&toml).unwrap();
-        assert!(!config.sources[0].inline_tags);
-        assert!(config.sources[0].uses_inline_tags());
-        let error = ProjectConfig::from_toml(&inline_config("xhtml", "prompt_template = \"{segments}\"").replace("inline_tags = true\n", ""))
+    fn xml_sources_always_use_inline_tags() {
+        for parser in XML_PARSERS {
+            let toml = inline_config(parser, "").replace("inline_tags = true\n", "");
+            let config = ProjectConfig::from_toml(&toml).unwrap();
+            assert!(!config.sources[0].inline_tags);
+            assert!(config.sources[0].uses_inline_tags(), "{parser}");
+            let error = ProjectConfig::from_toml(
+                &inline_config(parser, "prompt_template = \"{segments}\"").replace("inline_tags = true\n", ""),
+            )
             .unwrap_err();
-        assert!(error.to_string().contains("{inline_tags}"), "{error}");
+            assert!(error.to_string().contains("{inline_tags}"), "{parser}: {error}");
+        }
     }
 
     #[test]

@@ -833,9 +833,11 @@ mod tests {
     }
 
     #[test]
-    fn heading_id_suffix_is_mdx_only() {
+    fn heading_id_suffix_is_shared_with_plain_markdown() {
+        // mdBook and Pandoc read `{#id}` too, so the plain Markdown parser
+        // keeps the attribute outside the segment as well.
         let doc = MarkdownParser.parse("## Refs \\{#refs}\n");
-        assert_eq!(sources(&doc), ["Refs \\{#refs}"]);
+        assert_eq!(sources(&doc), ["Refs"]);
     }
 
     #[test]
