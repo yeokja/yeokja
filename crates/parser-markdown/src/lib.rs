@@ -19,7 +19,9 @@ impl DocumentParser for MarkdownParser {
     }
 
     fn parse(&self, source: &str) -> Document {
-        parse_with(source, source, false, Vec::new())
+        // mdBook (and Pandoc) support `{#id}` heading attributes, so the id
+        // stays outside the segment and anchors survive translation.
+        parse_with(source, source, true, Vec::new())
     }
 
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
@@ -50,6 +52,18 @@ mod tests {
         let parser = MarkdownParser;
         let doc = parser.parse("# Chapter 1\n\nSome text.\n\n## Chapter 2\n\nMore text.");
         assert!(doc.sections.len() >= 2);
+    }
+
+    #[test]
+    fn heading_id_attribute_stays_outside_the_segment() {
+        let parser = MarkdownParser;
+        let source = "# Emulation Basics {#eb}\n\nSee [basics](#eb).\n";
+        let doc = parser.parse(source);
+        assert_eq!(doc.sections[0].blocks[0].segments[0].source, "Emulation Basics");
+        let mut translations = TranslationMap::new();
+        translations.insert(doc.sections[0].blocks[0].segments[0].id.clone(), "에뮬레이션 기초".to_string());
+        let out = parser.reconstruct(&doc, &translations);
+        assert!(out.starts_with("# 에뮬레이션 기초 {#eb}\n"), "{out}");
     }
 
     #[test]

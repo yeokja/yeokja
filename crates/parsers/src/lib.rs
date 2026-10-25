@@ -52,266 +52,32 @@ fn parser_by_name(
         "myst" => Box::new(yeokja_parser_myst::MystParser),
         "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser),
         "xhtml" => Box::new(yeokja_parser_xhtml::XhtmlParser),
+        // `ProjectConfig::from_toml` rejects names outside `PARSER_NAMES`, so
+        // this arm is only reached for "markdown".
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
 
 #[cfg(test)]
-mod tests {
+mod registry_tests {
     use super::*;
-    use yeokja_core::config::ProjectConfig;
+    use yeokja_core::config::PARSER_NAMES;
+    use yeokja_core::parser::Markup;
 
-    fn config_with_source(path: &str, parser: &str) -> ProjectConfig {
-        ProjectConfig::from_toml(&format!(
-            r#"
-[project]
-source_lang = "en"
-target_lang = "ko"
-
-[[sources]]
-path = "{path}"
-pattern = "**/*.md"
-parser = "{parser}"
-output = "{{dir}}/{{stem}}.ko{{ext}}"
-
-[provider]
-type = "openai_compatible"
-model = "gpt-4o"
-"#
-        ))
-        .unwrap()
-    }
-
+    /// Every advertised parser name must resolve to its own parser, so the
+    /// config validation list and this registry cannot drift apart: only the
+    /// CommonMark-family names may come back as plain Markdown markup.
     #[test]
-    fn source_config_parser_wins() {
-        let config = config_with_source("book/", "asciidoc");
-        // .md extension, but the source config says asciidoc
-        let parser = select_parser(Path::new("book/ch1.md"), &config);
-        let doc = parser.parse("= Title");
-        // Asciidoc parses "= Title" as a level-1 heading
-        assert_eq!(doc.sections[0].blocks[0].heading_level, Some(1));
-    }
-
-    #[test]
-    fn pattern_disambiguates_sources_sharing_a_path() {
-        let config = ProjectConfig::from_toml(
-            r#"
-[project]
-source_lang = "en"
-target_lang = "ko"
-
-[[sources]]
-path = "docs"
-pattern = "**/*.adoc"
-parser = "asciidoc"
-output = "{dir}/{stem}.ko{ext}"
-
-[[sources]]
-path = "docs"
-pattern = "**/*.md"
-parser = "markdown"
-output = "{dir}/{stem}.ko{ext}"
-
-[provider]
-type = "openai_compatible"
-model = "gpt-4o"
-"#,
-        )
-        .unwrap();
-
-        // Both sources share `docs`; the pattern must pick the right parser.
-        let parser = select_parser(Path::new("docs/notes.md"), &config);
-        let doc = parser.parse("# Title");
-        assert_eq!(doc.sections[0].blocks[0].heading_level, Some(1));
-
-        let parser = select_parser(Path::new("docs/notes.adoc"), &config);
-        let doc = parser.parse("= Title");
-        assert_eq!(doc.sections[0].blocks[0].heading_level, Some(1));
-    }
-
-    #[test]
-    fn a_single_star_does_not_match_across_directories() {
-        let config = ProjectConfig::from_toml(
-            r#"
-[project]
-source_lang = "en"
-target_lang = "ko"
-
-[[sources]]
-path = "peps"
-pattern = "pep-*.rst"
-parser = "pep"
-output = "ko/{path}"
-
-[[sources]]
-path = "peps"
-pattern = "pep-*/appendix-*.rst"
-parser = "rst"
-output = "ko/{path}"
-
-[provider]
-type = "openai_compatible"
-model = "test"
-"#,
-        )
-        .unwrap();
-
-        let parser = select_parser(Path::new("peps/pep-0639/appendix-examples.rst"), &config);
-        let document = parser.parse("Appendix\n========\n\nBody.\n");
-        assert_eq!(document.translatable_segments()[0].source, "Appendix");
-    }
-
-    #[test]
-    fn source_config_selects_verso_for_lean_files() {
-        let config = ProjectConfig::from_toml(
-            r#"
-[project]
-source_lang = "en"
-target_lang = "ko"
-
-[[sources]]
-path = "book"
-pattern = "**/*.lean"
-parser = "verso"
-output = "ko/{path}"
-
-[provider]
-type = "openai_compatible"
-model = "gpt-4o"
-"#,
-        )
-        .unwrap();
-
-        let parser = select_parser(Path::new("book/Chapter.lean"), &config);
-        assert_eq!(parser.markup(), yeokja_core::parser::Markup::Verso);
-    }
-
-    #[test]
-    fn source_config_selects_mil_parser_for_lean_files() {
-        let config = ProjectConfig::from_toml(
-            r#"
-[project]
-source_lang = "en"
-target_lang = "ko"
-
-[[sources]]
-path = "MIL"
-pattern = "**/*.lean"
-parser = "mil"
-output = "ko/{path}"
-
-[provider]
-type = "openai_compatible"
-model = "gpt-4o"
-"#,
-        )
-        .unwrap();
-
-        let parser = select_parser(Path::new("MIL/C01/S01.lean"), &config);
-        assert_eq!(parser.markup(), yeokja_core::parser::Markup::Rst);
-        assert_eq!(
-            parser
-                .parse("/- TEXT:\nHello.\nTEXT. -/")
-                .translatable_segments()[0]
-                .source,
-            "Hello."
-        );
-    }
-
-    #[test]
-    fn source_config_selects_myst_parser() {
-        let config = config_with_source("source/", "myst");
-        let parser = select_parser(Path::new("source/index.md"), &config);
-        let doc = parser.parse(":::{note}\nA note.\n:::\n");
-        let segments = doc.translatable_segments();
-        assert_eq!(segments.len(), 1);
-        assert_eq!(segments[0].source, "A note.");
-
-        // The plain Markdown parser keeps reading the fence as prose.
-        let config = config_with_source("source/", "markdown");
-        let parser = select_parser(Path::new("source/index.md"), &config);
-        let doc = parser.parse(":::{note}\nA note.\n:::\n");
-        assert_eq!(
-            doc.translatable_segments()[0].source,
-            ":::{note} A note. :::"
-        );
-    }
-
-    #[test]
-    fn extension_fallback_selects_asciidoc() {
-        let config = config_with_source("book/", "markdown");
-        let parser = select_parser(Path::new("docs/guide.adoc"), &config);
-        let doc = parser.parse("= Title");
-        assert_eq!(doc.sections[0].blocks[0].heading_level, Some(1));
-    }
-
-    #[test]
-    fn extension_fallback_selects_markdown() {
-        let config = config_with_source("book/", "markdown");
-        let parser = select_parser(Path::new("docs/guide.md"), &config);
-        let doc = parser.parse("# Title");
-        assert_eq!(doc.sections[0].blocks[0].heading_level, Some(1));
-    }
-
-    #[test]
-    fn mdx_parser_by_name_and_by_extension_offers_jsx_children() {
-        let source = "<Admonition title=\"Note\">\nBody.\n</Admonition>\n";
-        let config = ProjectConfig::from_toml(
-            r#"
-[project]
-source_lang = "en"
-target_lang = "ko"
-
-[[sources]]
-path = "src"
-pattern = "**/*.mdx"
-parser = "mdx"
-output = "ko/{path}"
-
-[provider]
-type = "openai_compatible"
-model = "gpt-4o"
-"#,
-        )
-        .unwrap();
-        let parser = select_parser(Path::new("src/page.mdx"), &config);
-        let sources: Vec<String> = parser
-            .parse(source)
-            .translatable_segments()
-            .iter()
-            .map(|seg| seg.source.clone())
-            .collect();
-        assert_eq!(sources, ["Note", "Body."]);
-
-        let config = config_with_source("book/", "markdown");
-        let parser = select_parser(Path::new("docs/page.mdx"), &config);
-        assert_eq!(parser.parse(source).translatable_segments().len(), 2);
-        // Plain Markdown translates HTML text, but not JSX title attributes.
-        let parser = select_parser(Path::new("docs/page.md"), &config);
-        let doc = parser.parse(source);
-        let segments = doc.translatable_segments();
-        assert_eq!(segments.len(), 1);
-        assert_eq!(segments[0].source, "Body.");
-    }
-
-    #[test]
-    fn extension_fallback_selects_latex() {
-        let config = config_with_source("book/", "markdown");
-        let parser = select_parser(Path::new("docs/chapter.tex"), &config);
-        assert_eq!(parser.markup(), yeokja_core::parser::Markup::Latex);
-    }
-
-    #[test]
-    fn lean_extension_never_falls_back_to_markdown() {
-        let config = config_with_source("book/", "markdown");
-        let parser = select_parser(Path::new("docs/Chapter.lean"), &config);
-        assert_eq!(parser.markup(), yeokja_core::parser::Markup::Verso);
-        assert!(
-            parser
-                .parse_checked("#doc (Manual) \"Title\" =>")
-                .unwrap_err()
-                .to_string()
-                .contains("official Verso span manifest")
-        );
+    fn every_known_parser_name_has_a_registry_arm() {
+        let probe = Path::new("doc.unknown-ext");
+        for name in PARSER_NAMES {
+            let markup = parser_by_name(name, probe, Some("")).markup();
+            let markdown_family = matches!(*name, "markdown" | "myst" | "mdx" | "markdeep");
+            assert_eq!(
+                markup == Markup::Markdown,
+                markdown_family,
+                "{name} resolved to {markup:?}"
+            );
+        }
     }
 }

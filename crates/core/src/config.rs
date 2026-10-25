@@ -184,6 +184,30 @@ pub struct SourceConfig {
 /// `xhtml` sources always use them.
 pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx", "xhtml"];
 
+/// Every parser name a `[[sources]].parser` may hold. Must match the registry
+/// in the `parsers` crate; an unknown name is a configuration error, since
+/// silently falling back to Markdown would translate a document with the wrong
+/// grammar (a PreTeXt book read as Markdown yields thousands of bogus segments).
+pub const PARSER_NAMES: &[&str] = &[
+    "asciidoc",
+    "markdeep",
+    "markdown",
+    "mdx",
+    "rst",
+    "pep",
+    "pep_plaintext",
+    "pep_text_block",
+    "mil",
+    "mathematics_in_lean",
+    "latex",
+    "tex",
+    "latex-extended",
+    "verso",
+    "myst",
+    "mkdocs",
+    "xhtml",
+];
+
 impl SourceConfig {
     /// Whether this source exchanges inline markup as tags.
     pub fn uses_inline_tags(&self) -> bool {
@@ -389,6 +413,16 @@ impl ProjectConfig {
 
     pub fn from_toml(content: &str) -> Result<Self, ConfigError> {
         let config: Self = toml::from_str(content)?;
+        for source in &config.sources {
+            if !PARSER_NAMES.contains(&source.parser.as_str()) {
+                return Err(ConfigError::Invalid(format!(
+                    "source {} names unknown parser {:?}; known parsers: {}",
+                    source.path,
+                    source.parser,
+                    PARSER_NAMES.join(", ")
+                )));
+            }
+        }
         for source in config.sources.iter().filter(|source| source.uses_inline_tags()) {
             if !INLINE_TAG_PARSERS.contains(&source.parser.as_str()) {
                 return Err(ConfigError::Invalid(format!(
@@ -775,6 +809,13 @@ model = "sonnet"
         }
         let error = ProjectConfig::from_toml(&inline_config("rst", "")).unwrap_err();
         assert!(error.to_string().contains("inline_tags") && error.to_string().contains("mdx"), "{error}");
+    }
+
+    #[test]
+    fn unknown_parser_name_is_a_config_error() {
+        let error = ProjectConfig::from_toml(&inline_config("pretext", "").replace("inline_tags = true\n", ""))
+            .unwrap_err();
+        assert!(error.to_string().contains("unknown parser \"pretext\""), "{error}");
     }
 
     #[test]

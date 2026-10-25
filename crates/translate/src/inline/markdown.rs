@@ -1383,11 +1383,16 @@ impl Renderer<'_> {
             && digits > 0
             && matches!(chars.get(digits), Some('.' | ')'))
             && matches!(chars.get(digits + 1), Some(' ') | None);
+        let in_url = bare_url_mask(&chars);
         for (i, &c) in chars.iter().enumerate() {
             let prev = if i > 0 { Some(chars[i - 1]) } else { out.chars().last() };
             let next = chars.get(i + 1).copied();
             let at_start = line_start && i == 0;
-            let escape = match c {
+            // A GFM autolink literal (`https://…`, `www.…`) is read verbatim up
+            // to whitespace, so an escape inside it would become part of the
+            // URL (`\~user` → a 404) and the link evaluator would see it lost.
+            let escape = !in_url[i]
+                && match c {
                 '\\' | '`' | '*' => true,
                 // MDX reads `{` as an expression and `<` as JSX wherever
                 // they stand.
@@ -1748,6 +1753,38 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
     let mut chosen: Vec<(usize, &'static str)> = strategies.iter().map(|(n, s)| (*n, s.name())).collect();
     chosen.sort_unstable();
     Rendered { markdown, strategies: chosen, verified: best == 0 }
+}
+
+
+/// Marks the characters of `chars` that lie inside a GFM autolink literal: a
+/// run starting with `http://`, `https://` or `www.` at a word boundary and
+/// ending at whitespace or `<`. Trailing punctuation (`.`, `,`, `)` …) that GFM
+/// would exclude from the link stays unmarked so it is still escaped as prose.
+fn bare_url_mask(chars: &[char]) -> Vec<bool> {
+    let mut mask = vec![false; chars.len()];
+    let mut i = 0;
+    while i < chars.len() {
+        let at_boundary = i == 0 || !(chars[i - 1].is_alphanumeric() || matches!(chars[i - 1], '/' | '.' | '_' | '-'));
+        let rest: String = chars[i..].iter().collect();
+        let starts = at_boundary
+            && (rest.starts_with("http://") || rest.starts_with("https://") || rest.starts_with("www."));
+        if !starts {
+            i += 1;
+            continue;
+        }
+        let mut end = i;
+        while end < chars.len() && !chars[end].is_whitespace() && chars[end] != '<' {
+            end += 1;
+        }
+        while end > i && matches!(chars[end - 1], '.' | ',' | ':' | ';' | '!' | '?' | '"' | '\'' | ')' | ']') {
+            end -= 1;
+        }
+        for m in &mut mask[i..end] {
+            *m = true;
+        }
+        i = end.max(i + 1);
+    }
+    mask
 }
 
 #[cfg(test)]
@@ -2163,6 +2200,16 @@ mod tests {
     fn a_tilde_that_could_strike_through_is_escaped() {
         assert_eq!(translate_in(Dialect::Mdx, "ooze \\~(++)\\~ out", "~(++)~ 흘러나옵니다"), "\\~(++)\\~ 흘러나옵니다");
         assert_eq!(translate("About ~ 10.", "약 ~ 10입니다."), "약 ~ 10입니다.");
+    }
+
+    #[test]
+    fn a_bare_url_is_never_escaped_inside() {
+        assert_eq!(
+            translate("See https://example.com/~user/a_b for details.", "자세한 내용은 https://example.com/~user/a_b 를 보십시오."),
+            "자세한 내용은 https://example.com/~user/a_b 를 보십시오."
+        );
+        // Prose around the URL is still escaped.
+        assert_eq!(translate("At www.x.org/~a it is ~4kB.", "www.x.org/~a 에서는 ~4kB입니다."), "www.x.org/~a 에서는 \\~4kB입니다.");
     }
 
     #[test]
