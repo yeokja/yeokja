@@ -65,6 +65,11 @@ yeokja의 파서는 `DocumentParser::parse(&str) -> Document`로 파일 하나�
 
 ### 3.2 번역 단위
 
+이 장의 요소 분류(블록·건너뛰기·코드·번역 속성)는 XHTML 어휘 프로필이다. 같은 파서가
+CNXML·PreTeXt 프로필도 읽으며, 프로필 구조와 어휘 공통 규칙(블록을 품은 인라인 요소,
+세그먼트 사이 공백)은 `docs/superpowers/specs/2026-10-25-xml-vocabulary-profiles-design.md`가
+정한다.
+
 번역 단위는 **블록 수준 요소 안의 인라인 구간**이다. 블록 수준 요소는 XHTML의 흐름
 요소(`p`, `h1`–`h6`, `li`, `dt`, `dd`, `td`, `th`, `caption`, `figcaption`,
 `blockquote`, `div`, `section`, `aside`, `header`, `footer`, `nav`, `ul`, `ol`, `dl`,

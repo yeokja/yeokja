@@ -574,8 +574,12 @@ pub fn audit_file(
     let Some(parser) = config
         .source_for(file_path)
         .map(|source| source.parser.clone())
-        // The audit reads Markdown; XHTML replies are only ever tag text.
-        .filter(|parser| parser != "xhtml" && yeokja_core::config::INLINE_TAG_PARSERS.contains(&parser.as_str()))
+        // The audit reads Markdown; replies in an XML vocabulary are only
+        // ever tag text.
+        .filter(|parser| {
+            Dialect::for_parser(parser).vocabulary().is_none()
+                && yeokja_core::config::INLINE_TAG_PARSERS.contains(&parser.as_str())
+        })
     else {
         return Ok(Vec::new());
     };

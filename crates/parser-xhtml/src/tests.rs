@@ -207,3 +207,93 @@ fn skeleton_allows_reordered_inline_elements_and_split_emphasis() {
     assert_ne!(skeleton(&a).unwrap(), skeleton(&dropped).unwrap());
     assert_ne!(skeleton(&a).unwrap(), skeleton(&moved_block).unwrap());
 }
+
+fn segments_in(parser: &dyn DocumentParser, source: &str) -> Vec<String> {
+    parser
+        .parse_checked(source)
+        .unwrap()
+        .all_segments()
+        .iter()
+        .map(|s| s.source.clone())
+        .collect()
+}
+
+#[test]
+fn inline_element_holding_a_block_is_walked_as_one() {
+    // Without this an element outside the block list would be one run.
+    let src = "<document><content><unknown><para>One.</para><para>Two.</para></unknown></content></document>";
+    assert_eq!(segments_in(&CnxmlParser, src), ["One.", "Two."]);
+    let src = wrap("<div><span class=\"x\"><p>One.</p><p>Two.</p></span></div>");
+    assert_eq!(segments(&src)[1..], ["One.", "Two."]);
+}
+
+#[test]
+fn source_whitespace_between_segments_survives_translation() {
+    let src = "<document><content><para>One.  Two.\n   Three.</para></content></document>";
+    let doc = CnxmlParser.parse_checked(src).unwrap();
+    let t: TranslationMap = doc
+        .all_segments()
+        .iter()
+        .map(|s| (s.id.clone(), format!("[{}]", s.source)))
+        .collect();
+    assert_eq!(
+        CnxmlParser.reconstruct(&doc, &t),
+        "<document><content><para>[One.]  [Two.]\n   [Three.]</para></content></document>"
+    );
+}
+
+#[test]
+fn pretext_restrict_version_inside_a_paragraph_stays_in_the_run() {
+    let src = "<section><p>Some text <restrict-version versions=\"1553\">for one version</restrict-version> and more.</p></section>";
+    assert_eq!(
+        segments_in(&PretextParser, src),
+        [
+            "Some text <restrict-version versions=\"1553\">for one version</restrict-version> and more."
+        ]
+    );
+}
+
+#[test]
+fn pretext_display_math_holding_the_period_ends_the_sentence() {
+    let src = "<section><p>We have\n<md><mrow>x \\amp = 1</mrow><mrow>y \\amp = 2.</mrow></md>\nThen <m>x+y=3</m>, so\n<me>z = 3,</me>\nwhich is odd.</p></section>";
+    assert_eq!(
+        segments_in(&PretextParser, src),
+        [
+            "We have\n<md><mrow>x \\amp = 1</mrow><mrow>y \\amp = 2.</mrow></md>",
+            "Then <m>x+y=3</m>, so\n<me>z = 3,</me>\nwhich is odd."
+        ]
+    );
+}
+
+#[test]
+fn pretext_code_only_and_math_only_runs_are_skipped() {
+    let src = "<section><title><m>\\R^n</m></title><p><m>x</m></p><p><c>f()</c></p><p>Real.</p></section>";
+    assert_eq!(segments_in(&PretextParser, src), ["Real."]);
+}
+
+#[test]
+fn cnxml_mtext_keeps_its_spaces() {
+    let src = "<document><content><equation><math><mn>3</mn><mtext> per year </mtext></math></equation></content></document>";
+    let doc = CnxmlParser.parse_checked(src).unwrap();
+    assert_eq!(segments_in(&CnxmlParser, src), ["per year"]);
+    let t: TranslationMap = doc
+        .all_segments()
+        .iter()
+        .map(|s| (s.id.clone(), "연간".to_string()))
+        .collect();
+    assert!(
+        CnxmlParser
+            .reconstruct(&doc, &t)
+            .contains("<mtext> 연간 </mtext>")
+    );
+}
+
+#[test]
+fn cnxml_skeleton_lets_emphasis_split() {
+    let a = "<document><content><para>A <emphasis effect=\"italics\">b c</emphasis> d <link url=\"u\">e</link>.</para></content></document>";
+    let b = "<document><content><para><link url=\"u\">마</link> <emphasis effect=\"italics\">나</emphasis> 가 <emphasis effect=\"italics\">다</emphasis>.</para></content></document>";
+    let dropped = "<document><content><para>가 <emphasis effect=\"italics\">나</emphasis>.</para></content></document>";
+    let skel = |s| skeleton_with(Vocabulary::Cnxml, s).unwrap();
+    assert_eq!(skel(a), skel(b));
+    assert_ne!(skel(a), skel(dropped));
+}

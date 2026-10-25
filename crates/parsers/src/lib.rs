@@ -25,6 +25,7 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
         Some("mdx") => Box::new(yeokja_parser_mdx::MdxParser),
         // `.html` may be HTML5, so it is read as XHTML only when a source says so.
         Some("xhtml") => Box::new(yeokja_parser_xhtml::XhtmlParser),
+        Some("cnxml") => Box::new(yeokja_parser_xhtml::CnxmlParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
@@ -52,6 +53,8 @@ fn parser_by_name(
         "myst" => Box::new(yeokja_parser_myst::MystParser),
         "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser),
         "xhtml" => Box::new(yeokja_parser_xhtml::XhtmlParser),
+        "cnxml" => Box::new(yeokja_parser_xhtml::CnxmlParser),
+        "pretext" => Box::new(yeokja_parser_xhtml::PretextParser),
         _ => Box::new(yeokja_parser_markdown::MarkdownParser),
     }
 }
@@ -299,6 +302,32 @@ model = "gpt-4o"
         let config = config_with_source("book/", "markdown");
         let parser = select_parser(Path::new("docs/chapter.tex"), &config);
         assert_eq!(parser.markup(), yeokja_core::parser::Markup::Latex);
+    }
+
+    #[test]
+    fn xml_vocabulary_parsers_by_name_and_cnxml_by_extension() {
+        let pretext = "<section><title>Vectors</title><p>A <term>vector</term> in <m>\\R^n</m>.</p></section>";
+        let config = config_with_source("book/", "pretext");
+        let parser = select_parser(Path::new("book/vectors.md"), &config);
+        assert_eq!(parser.markup(), yeokja_core::parser::Markup::Xhtml);
+        let sources: Vec<String> = parser
+            .parse(pretext)
+            .translatable_segments()
+            .iter()
+            .map(|s| s.source.clone())
+            .collect();
+        assert_eq!(
+            sources,
+            ["Vectors", "A <term>vector</term> in <m>\\R^n</m>."]
+        );
+
+        let cnxml = "<document><content><para id=\"p1\">One. Two.</para></content></document>";
+        let config = config_with_source("book/", "markdown");
+        let parser = select_parser(Path::new("modules/m1/index.cnxml"), &config);
+        assert_eq!(parser.parse(cnxml).translatable_segments().len(), 2);
+        let config = config_with_source("book/", "cnxml");
+        let parser = select_parser(Path::new("book/index.md"), &config);
+        assert_eq!(parser.parse(cnxml).translatable_segments().len(), 2);
     }
 
     #[test]

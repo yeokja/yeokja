@@ -14,6 +14,7 @@ use pulldown_cmark::{BrokenLink, CowStr, Event, LinkType, Options, Parser, Tag a
 use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
+use yeokja_parser_xhtml::Vocabulary;
 
 /// A set written in a fixed order, so a serialized request is reproducible.
 fn sorted<S: serde::Serializer>(set: &HashSet<String>, serializer: S) -> Result<S::Ok, S::Error> {
@@ -38,6 +39,10 @@ pub enum Dialect {
     /// Not Markdown: XHTML, whose tagging and serializing live in
     /// `inline::xhtml`. Only the tag reading here is shared.
     Xhtml,
+    /// Not Markdown: OpenStax CNXML, an XML vocabulary like [`Dialect::Xhtml`].
+    Cnxml,
+    /// Not Markdown: PreTeXt, an XML vocabulary like [`Dialect::Xhtml`].
+    Pretext,
 }
 
 impl Dialect {
@@ -46,8 +51,25 @@ impl Dialect {
         match parser {
             "myst" => Dialect::Myst,
             "mdx" => Dialect::Mdx,
-            "xhtml" => Dialect::Xhtml,
-            _ => Dialect::CommonMark,
+            _ => Vocabulary::for_parser(parser).map_or(Dialect::CommonMark, Dialect::for_vocabulary),
+        }
+    }
+
+    pub fn for_vocabulary(vocab: Vocabulary) -> Self {
+        match vocab {
+            Vocabulary::Xhtml => Dialect::Xhtml,
+            Vocabulary::Cnxml => Dialect::Cnxml,
+            Vocabulary::Pretext => Dialect::Pretext,
+        }
+    }
+
+    /// The XML vocabulary of a dialect that is not Markdown.
+    pub fn vocabulary(self) -> Option<Vocabulary> {
+        match self {
+            Dialect::Xhtml => Some(Vocabulary::Xhtml),
+            Dialect::Cnxml => Some(Vocabulary::Cnxml),
+            Dialect::Pretext => Some(Vocabulary::Pretext),
+            Dialect::CommonMark | Dialect::Myst | Dialect::Mdx => None,
         }
     }
 }
@@ -64,7 +86,7 @@ pub struct DocContext {
 
 impl DocContext {
     pub fn new(source: &str, dialect: Dialect) -> Self {
-        if dialect == Dialect::Xhtml {
+        if dialect.vocabulary().is_some() {
             return Self { reference_labels: HashSet::new(), dialect };
         }
         let parser = Parser::new_ext(source, options(dialect));
@@ -543,8 +565,8 @@ fn pair_inline_html(events: &[(Event, Range<usize>)]) -> HashMap<usize, usize> {
 }
 
 pub fn tagify(source: &str, ctx: &DocContext, position: Position, counter: &mut usize) -> Result<Tagged, Untaggable> {
-    if ctx.dialect == Dialect::Xhtml {
-        return super::xhtml::tagify(source, position, counter);
+    if let Some(vocab) = ctx.dialect.vocabulary() {
+        return super::xhtml::tagify(source, vocab, position, counter);
     }
     tagify_with(source, ctx, position, counter, false)
 }
@@ -952,8 +974,8 @@ fn absorb_role_names(pieces: Vec<Piece>) -> Vec<Piece> {
 /// the reply marks up words the source wrote as text. A MyST role counts as
 /// the text it shows: `` {term}`Nix` `` shows `Nix`.
 fn prose_of(tagged: &Tagged) -> String {
-    if tagged.dialect == Dialect::Xhtml {
-        return super::xhtml::prose(&tagged.source);
+    if let Some(vocab) = tagged.dialect.vocabulary() {
+        return super::xhtml::prose(&tagged.source, vocab);
     }
     let Masking { text, spans, .. } = mask(&tagged.source, tagged.dialect);
     let shown: String = split_masked(&text, &spans)
@@ -1652,7 +1674,7 @@ pub(super) fn structure(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> (S
 /// finally HTML — never an invisible character, which would linger in search,
 /// copy and diffs.
 pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
-    if tagged.dialect == Dialect::Xhtml {
+    if tagged.dialect.vocabulary().is_some() {
         return super::xhtml::render(tree, tagged);
     }
     if tagged.position == Position::Plain {
