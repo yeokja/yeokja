@@ -77,9 +77,6 @@ pandoc, TeX Live(tikz), ImageMagick·Ghostscript·poppler, gifski, python3를 �
    - 원문의 이식성 문제(Windows 파일 경로, 현재 VGAM에 없는 링크 이름 `"loge"`, 닫지 않은
      접기 상자 `<div>` 세 곳과 `<p>` 하나)를 고칩니다. 비교용 영어 원문 빌드에도
      `prepare_book.py --portability`로 똑같이 적용합니다.
-   - 번역 파일에서 knitr 청크 본문을 원문으로 되돌리고, 한 줄로 합쳐진 번호 수식의 줄 머리와
-     `(\#eq:…)` 레이블 줄을 되살리고, `[표 8.3][Table 8.3](#tab:8.3)`처럼 바뀐 링크를
-     `[표 8.3](#tab:8.3)`으로 되돌립니다(rmarkdown 파서의 한계를 메우는 손질).
    - Google Analytics 태그를 지우고, 서문의 날짜를 원문 커밋 날짜로 고정하고, 참고 문헌 장
      제목·저자 줄과 `Gloss()`를 한국어판에 맞춥니다.
 3. `scripts/check.py source`: 손질한 Rmd의 코드 청크, 인라인 R, 디스플레이 수식,
