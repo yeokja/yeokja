@@ -7,6 +7,7 @@
 이식성(원문을 Windows·옛 패키지로 knit해 생긴 문제, 영어 원문 빌드에도 똑같이 적용):
 - R 코드의 Windows 경로 "Data\\파일.csv"를 "Data/파일.csv"로 바꿉니다.
 - 현재 VGAM에 없는 링크 이름 "loge"를 "loglink"로 바꿉니다.
+- 실제 파일명이 .PNG인 그림 참조의 확장자 대소문자를 맞춥니다(Linux용).
 - 닫히지 않은 접기 상자 <div> 세 곳(손실 심도 장 2, 총손실 장 1)을 닫고, 분포표의 닫지 않은
   <p> 하나를 지웁니다(Pandoc 3이 원시 HTML <div>를 Div로 읽기 때문에 생기는 목차 붕괴).
 
@@ -104,6 +105,10 @@ PORTABILITY = [
     (re.compile(r'read\.csv\("Data\\\\'), 'read.csv("Data/'),
     # nixpkgs의 VGAM(1.1-14)에는 옛 링크 이름 "loge"가 없습니다(같은 함수의 새 이름 "loglink").
     (re.compile(r'\b(l(?:scale|shape))="loge"'), r'\1="loglink"'),
+    # 원문은 Figures/F5Iterative.PNG, FigureEvolution.PNG를 소문자 .png로 참조합니다. macOS의
+    # 대소문자 무시 파일 시스템에서는 지나가지만 Linux(CI)에서는 include_graphics()가 파일을
+    # 못 찾아 빌드가 멈춥니다.
+    (re.compile(r'Figures/(F5Iterative|FigureEvolution)\.png'), r'Figures/\1.PNG'),
     # 접기 상자(Hide*)의 <div>를 닫지 않은 곳 세 군데. Pandoc 3은 원시 HTML <div>를 Div로
     # 읽어 닫히지 않은 Div가 뒤의 모든 장을 감싸게 되고, bookdown이 5장부터 목차와 장
     # 나누기를 잃습니다. 원문의 다른 상자처럼 풀이 끝에 </div>를 넣습니다.
