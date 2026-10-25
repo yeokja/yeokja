@@ -18,6 +18,10 @@
 //! * Pandoc fenced-div lines (`::: {.note}`, `:::`) are blanked, and so are
 //!   the fences of a bookdown prose chunk (```` ```{theorem} ````), whose body
 //!   is Markdown.
+//! * A knitr chunk that opens inside a raw HTML block (`<div align="center">`
+//!   right above it) is blanked whole, so the block ends there instead of at
+//!   the chunk's first blank line, after which CommonMark read the rest of
+//!   the code as paragraphs and the closing fence as a new one.
 //!
 //! After pulldown-cmark has cut the blocks, each block is split into
 //! sentences with its math masked, so no segment boundary falls inside a
@@ -26,6 +30,13 @@
 //! bookdown text reference `(ref:label)` and a `(PART)`/`(APPENDIX)` heading
 //! prefix stay outside the span. knitr chunk captions (`fig.cap`, `fig.alt`)
 //! and configured inline-code arguments are offered as literal strings.
+//!
+//! A segment joins its lines with spaces, so a translation holds display math
+//! on one line. Reconstruction writes each display formula back as the source
+//! wrote it — its own line breaks, and the break before `$$`/`\begin` and
+//! after the closer — since Pandoc reads `\begin{equation}` as math only at
+//! the start of a line and bookdown numbers a formula only when `$$` opens a
+//! line and `(\#eq:…)` stands on one of its own.
 
 use regex::Regex;
 use std::ops::Range;
@@ -33,7 +44,7 @@ use std::sync::LazyLock;
 use yeokja_core::hash::content_hash;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
-use yeokja_parser_markdown_dialect::{Extra, parse_with};
+use yeokja_parser_markdown_dialect::{Extra, html_block_ranges, parse_with};
 use yeokja_parser_utils::{apply_splices, join_segments_with_translations, resolve_reference_links, split_sentences};
 
 /// The R Markdown parser. `captures` are the source's
@@ -70,6 +81,8 @@ impl DocumentParser for RmarkdownParser {
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
         let translations = resolve_reference_links(document, translations);
         let front = front_matter(&document.source);
+        let body = front.as_ref().map_or(0, |f| (f.end + 1).min(document.source.len()));
+        let math = scan_regions(&document.source, body).math;
         let mut splices = Vec::new();
         for block in document.sections.iter().flat_map(|s| &s.blocks) {
             let Some(span) = &block.span else { continue };
@@ -80,7 +93,7 @@ impl DocumentParser for RmarkdownParser {
             let text = if block.role == BlockRole::Literal {
                 quote_literal(&document.source, span.clone(), joined, front.clone())
             } else {
-                joined
+                restore_display_lines(&document.source, span, &math, joined)
             };
             splices.push((span.clone(), text));
         }
@@ -743,6 +756,15 @@ fn scan(source: &str) -> Layout {
     for m in &regions.math {
         fill(&mut shadow, m.clone(), b'x');
     }
+    // A knitr chunk inside a raw HTML block: blank it, so the block ends at
+    // the chunk instead of at the chunk's first blank line, after which the
+    // rest of the code read as paragraphs and the closing fence as a new one.
+    let html = html_block_ranges(std::str::from_utf8(&shadow).expect("shadow edits are ASCII over whole characters"));
+    for fence in regions.fences.iter().filter(|f| !f.prose) {
+        if html.iter().any(|h| h.contains(&fence.opener.start)) {
+            fill(&mut shadow, fence.range.clone(), b' ');
+        }
+    }
     extras.sort_by_key(|e| e.range.start);
     Layout { shadow, extras, regions }
 }
@@ -875,13 +897,18 @@ fn open_marks(text: &str) -> (bool, bool) {
     (single % 2 == 1, double % 2 == 1)
 }
 
+/// Whether a formula is display math: `$$…$$`, `\[…\]` or a `\begin{…}`
+/// environment.
+fn is_display(formula: &str) -> bool {
+    ["$$", "\\[", "\\begin"].iter().any(|open| formula.starts_with(open))
+}
+
 /// Inline R code (`` `r SolnBegin()` ``) and display math, which a block
 /// may open or close with and which are no words of its sentences.
 fn edge_atoms(source: &str, regions: &Regions) -> Vec<Range<usize>> {
     let mut atoms: Vec<Range<usize>> =
         regions.code_spans.iter().filter(|s| is_inline_r(&source[(*s).clone()])).cloned().collect();
-    let display = |m: &&Range<usize>| ["$$", "\\[", "\\begin"].iter().any(|open| source[m.start..].starts_with(open));
-    atoms.extend(regions.math.iter().filter(display).cloned());
+    atoms.extend(regions.math.iter().filter(|m| is_display(&source[(*m).clone()])).cloned());
     atoms
 }
 
@@ -1032,6 +1059,77 @@ fn refine(doc: Document, regions: &Regions, captures: &[Regex]) -> Document {
 }
 
 // ---- reconstruction ---------------------------------------------------------
+
+/// Characters that lead a line inside a block: indentation and blockquote
+/// markers, which `normalize_inline_text` drops from continuation lines.
+const LINE_LEAD: [char; 3] = [' ', '\t', '>'];
+
+/// `text`, a block's translation, with every display formula of its source
+/// span written as the source wrote it: its own line breaks, and the break
+/// (with the next line's lead) before its opener and after its closer when
+/// the source had them. The formula is found in the translation however it
+/// is spaced, since a sentence joins the source's lines with spaces.
+fn restore_display_lines(source: &str, span: &Range<usize>, math: &[Range<usize>], mut text: String) -> String {
+    let mut cursor = 0;
+    for m in math.iter().filter(|m| span.start <= m.start && m.end <= span.end) {
+        let formula = &source[m.clone()];
+        let before = &source[span.start..m.start];
+        let after = &source[m.end..span.end];
+        let opens_line = before.trim_end_matches(LINE_LEAD).ends_with('\n');
+        let closes_line = after.trim_start_matches(LINE_LEAD).starts_with('\n');
+        if !is_display(formula) || !(formula.contains('\n') || opens_line || closes_line) {
+            continue;
+        }
+        let Some((start, end)) = find_respaced(&text, formula, cursor) else { continue };
+        let mut range = start..end;
+        let mut written = formula.to_string();
+        if opens_line {
+            let lead = text[..start].trim_end().len();
+            if lead > 0 {
+                range.start = lead;
+                written.insert_str(0, &before[before.rfind('\n').map_or(0, |nl| nl + 1)..]);
+                written.insert(0, '\n');
+            }
+        }
+        if closes_line {
+            let tail = text.len() - text[end..].trim_start().len();
+            if tail < text.len() {
+                range.end = tail;
+                let next = &after.trim_start_matches(LINE_LEAD)[1..];
+                written.push('\n');
+                written.push_str(&next[..next.len() - next.trim_start_matches(LINE_LEAD).len()]);
+            }
+        }
+        text.replace_range(range.clone(), &written);
+        cursor = range.start + written.len();
+    }
+    text
+}
+
+/// Where `needle` occurs in `hay` at or after `from`, with any whitespace,
+/// none included, wherever `needle` has some.
+fn find_respaced(hay: &str, needle: &str, from: usize) -> Option<(usize, usize)> {
+    let tokens: Vec<&str> = needle.split_whitespace().collect();
+    let first = tokens.first()?;
+    let mut at = from;
+    while let Some(found) = hay[at..].find(first) {
+        let start = at + found;
+        let mut pos = start + first.len();
+        let matched = tokens[1..].iter().all(|token| {
+            let skipped = hay.len() - hay[pos..].trim_start().len();
+            let hit = hay[skipped..].starts_with(token);
+            if hit {
+                pos = skipped + token.len();
+            }
+            hit
+        });
+        if matched {
+            return Some((start, pos));
+        }
+        at = start + first.chars().next().map_or(1, char::len_utf8);
+    }
+    None
+}
 
 /// Put `\` before each `quote` the translation leaves unescaped.
 fn escape_quote(text: &str, quote: char) -> String {

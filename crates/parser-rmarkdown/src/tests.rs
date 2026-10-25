@@ -3,6 +3,8 @@ use super::*;
 /// Excerpts of OpenActTexts/LDAVer2 (Loss Data Analytics, 2nd ed., CC BY 4.0).
 const CONTINUOUS: &str = include_str!("../tests/fixtures/Continuous.Rmd");
 const FREQUENCY: &str = include_str!("../tests/fixtures/Frequency-excerpt.Rmd");
+const SIMULATION: &str = include_str!("../tests/fixtures/Simulation-excerpt.Rmd");
+const EQUATIONS: &str = include_str!("../tests/fixtures/Equations-excerpt.Rmd");
 
 fn sources_with(parser: &RmarkdownParser, source: &str) -> Vec<String> {
     parser.parse(source).translatable_segments().iter().map(|s| s.source.clone()).collect()
@@ -31,13 +33,13 @@ fn ko(s: &str) -> String {
 
 #[test]
 fn untranslated_round_trip_is_byte_identical() {
-    for source in [CONTINUOUS, FREQUENCY] {
+    for source in [CONTINUOUS, FREQUENCY, SIMULATION, EQUATIONS] {
         let parser = RmarkdownParser::default();
         let doc = parser.parse(source);
         assert_eq!(parser.reconstruct(&doc, &TranslationMap::new()), source);
-        // Translating every segment touches only the spans: the code and the
-        // math survive byte for byte.
-        // math survives too, up to the line breaks a segment joins.
+        // Translating every segment touches only the spans: the code survives
+        // byte for byte, and so does display math, lines included; inline
+        // math survives up to the line breaks a sentence joins.
         let out = translate_all(source, ko);
         for fence in scan_regions(source, 0).fences {
             assert!(out.contains(&source[fence.range]));
@@ -45,7 +47,12 @@ fn untranslated_round_trip_is_byte_identical() {
         let squash = |t: &str| t.split_whitespace().collect::<Vec<_>>().join(" ");
         let squashed = squash(&out);
         for m in math_spans(source) {
-            assert!(squashed.contains(&squash(&source[m.clone()])), "{}", &source[m]);
+            let formula = &source[m.clone()];
+            if is_display(formula) {
+                assert!(out.contains(formula), "{formula}");
+            } else {
+                assert!(squashed.contains(&squash(formula)), "{formula}");
+            }
         }
     }
 }
@@ -66,6 +73,52 @@ fn lines_inside_display_math_open_no_blocks() {
     let source = "Before.\n\n$$\n\\begin{array}{l}\n  ~~~~\\mathrm{E}[X^k] \\\\\n+ a \\\\\n# b\n\\end{array}\n$$\n\nAfter `$x$`.\n";
     assert_eq!(sources(source), ["Before.", "After `$x$`."]);
     assert_eq!(translate_all(source, ko), source.replace("Before.", "가 Before.").replace("After `$x$`.", "가 After `$x$`."));
+}
+
+/// Simulation2024.Rmd L929: a knitr chunk inside `<div align="center">`.
+/// CommonMark reads the `<div>` line as an HTML block that the chunk's first
+/// blank line ends, so the R code after it was a paragraph and the closing
+/// fence opened a code block that swallowed the next heading.
+#[test]
+fn chunks_inside_html_blocks_are_code() {
+    let segs = sources(SIMULATION);
+    assert!(segs.iter().all(|s| !s.contains("colnames(outMat)")), "{segs:?}");
+    assert!(segs.iter().any(|s| s == "Simulation and Statistical Inference"), "{segs:?}");
+    assert!(segs.iter().any(|s| s.starts_with("Simulations not only help us")), "{segs:?}");
+    let chunk = &SIMULATION[SIMULATION.find("```{r echo = FALSE}").unwrap()..SIMULATION.find("</div>").unwrap()];
+    assert!(translate_all(SIMULATION, ko).contains(chunk));
+}
+
+/// Frequency2024.Rmd L349, DataAnalytics.Rmd L468: Pandoc reads
+/// `\begin{equation}` as math only at the start of a line, and bookdown
+/// numbers a `$$` formula only when `$$` opens a line and `(\#eq:…)` stands
+/// on a line of its own.
+#[test]
+fn display_math_keeps_the_lines_of_the_source() {
+    let out = translate_all(EQUATIONS, ko);
+    assert!(out.contains("of the form\n\\begin{equation}\n"), "{out}");
+    assert!(out.contains("\\end{equation}\nthis raises"), "{out}");
+    assert!(out.contains("problem,\n$$\n\\begin{array}"), "{out}");
+    assert!(out.contains("(\\#eq:OLSSolution)\n$$\nThe *OLS*"), "{out}");
+    // A translation that respaces the formula or glues it to a word still
+    // gets the source's lines; inline math keeps the translation's spacing.
+    let source = "Formula\n$$\nF(x) = 1\n(\\#eq:f)\n$$\nholds for $x\n> 0$.\n";
+    let out = translate_all(source, |_| "공식$$F(x) = 1 (\\#eq:f)$$ $x > 0$에서 성립.".into());
+    assert_eq!(out, "공식\n$$\nF(x) = 1\n(\\#eq:f)\n$$\n$x > 0$에서 성립.\n");
+    // Inside a list item the lines keep the item's indentation.
+    let source = "- Item\n  $$\n  a = b\n  $$\n  holds.\n";
+    assert_eq!(translate_all(source, ko), "- 가 Item\n  $$\n  a = b\n  $$\n  holds.\n");
+}
+
+/// Simulation2024.Rmd L1198–1205: `[Table 8.3](#tab:8.3)` and the span
+/// `[Table 8.3]{#tab:8.3}` next to the definition `[Table 8.3]: …`. Neither is
+/// a reference link, so neither is rewritten to `[표 8.3][Table 8.3]`.
+#[test]
+fn links_and_spans_next_to_a_definition_are_not_references() {
+    let out = translate_all(SIMULATION, |s| s.replace("Table 8.3", "표 8.3"));
+    assert!(out.contains("[표 8.3](#tab:8.3) summarizes"), "{out}");
+    assert!(out.contains("[표 8.3]{#tab:8.3}. **Bootstrap"), "{out}");
+    assert!(!out.contains("][Table 8.3]"), "{out}");
 }
 
 #[test]

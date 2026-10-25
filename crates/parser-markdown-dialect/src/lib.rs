@@ -276,8 +276,16 @@ pub fn parse_with(parsed: &str, source: &str, preserve_heading_ids: bool, extras
     parse_events(parsed, source, preserve_heading_ids, extras, true)
 }
 
-fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: Vec<Extra>, translate_html: bool) -> Document {
-    debug_assert_eq!(parsed.len(), source.len());
+/// The raw HTML blocks of `parsed`, as pulldown-cmark cuts them: from the
+/// opening line to the blank line (or closing condition) that ends each.
+pub fn html_block_ranges(parsed: &str) -> Vec<Range<usize>> {
+    Parser::new_ext(parsed, options())
+        .into_offset_iter()
+        .filter_map(|(event, range)| matches!(event, Event::Start(Tag::HtmlBlock)).then_some(range))
+        .collect()
+}
+
+fn options() -> Options {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_TASKLISTS);
@@ -288,6 +296,12 @@ fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: 
     // when the translation is spliced back. A marker joined onto the prose
     // line is no longer an alert to GitHub or mdBook.
     options.insert(Options::ENABLE_GFM);
+    options
+}
+
+fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: Vec<Extra>, translate_html: bool) -> Document {
+    debug_assert_eq!(parsed.len(), source.len());
+    let options = options();
 
     let mut state = ParseState {
         source,

@@ -102,7 +102,8 @@ struct Reference {
 }
 
 /// Every reference-style link in `text`: shortcut, collapsed and full, but
-/// not inline links, images, footnotes or anything inside a code span.
+/// not inline links, bracketed spans with attributes (`[text]{#id}`), images,
+/// footnotes or anything inside a code span.
 fn find_references(text: &str) -> Vec<Reference> {
     let bytes = text.as_bytes();
     let mut found = Vec::new();
@@ -123,7 +124,7 @@ fn find_references(text: &str) -> Vec<Reference> {
                 let text_range = i + 1..close;
                 let after = close + 1;
                 match bytes.get(after) {
-                    Some(b'(') => i = after,
+                    Some(b'(' | b'{') => i = after,
                     Some(b'[') => match bracket_end(text, after) {
                         Some(label_close) if label_close == after + 1 => {
                             found.push(Reference {
@@ -305,6 +306,17 @@ mod tests {
         assert_eq!(
             rewrite_references(source, translation, &labels).as_deref(),
             Some("[문서][docs]와 [인라인](https://x)과 ![docs](img.png)과 [^1] 참고.")
+        );
+    }
+
+    /// A Pandoc bracketed span with attributes (`[Table 8.3]{#tab:8.3}`) is
+    /// no reference, even next to a definition of the same label.
+    #[test]
+    fn a_bracketed_span_with_attributes_is_not_a_reference() {
+        let labels = labels(&["Table 8.3"]);
+        assert_eq!(
+            rewrite_references("[Table 8.3]{#tab:8.3}. **Bootstrap**", "[표 8.3]{#tab:8.3}. **부트스트랩**", &labels),
+            None
         );
     }
 

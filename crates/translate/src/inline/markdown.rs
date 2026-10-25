@@ -442,7 +442,11 @@ fn mask(source: &str, dialect: Dialect) -> Masking {
             i = span.end;
             continue;
         }
-        if let Some((range, kind)) = atoms.iter().find(|(r, _)| r.start == i) {
+        // The destination of an inline link (`[Table 8.3](#tab:8.3)`) is the
+        // link's: masked as a token, the text would read as a shortcut
+        // reference and be written back as one.
+        let destination = |r: &Range<usize>| source[r.start..].starts_with('(') && source[..r.start].ends_with(']');
+        if let Some((range, kind)) = atoms.iter().find(|(r, kind)| r.start == i && !(*kind == Masked::Token && destination(r))) {
             push(&mut out, *kind, &source[range.clone()]);
             i = range.end;
             continue;
@@ -2115,6 +2119,21 @@ mod tests {
             translate("Part of [MCP] (GCI).", "<a1>MCP</a1>(GCI)의 일부입니다."),
             "[MCP][MCP](GCI)의 일부입니다."
         );
+    }
+
+    /// `[Table 8.3](#tab:8.3)` next to a definition `[Table 8.3]: …`: the
+    /// destination is the link's, not a cross-reference token to mask, or
+    /// the text reads as a shortcut reference and is written `[표 8.3][Table
+    /// 8.3](#tab:8.3)`.
+    #[test]
+    fn an_r_markdown_link_to_an_anchor_keeps_its_destination() {
+        let ctx = DocContext { reference_labels: ["table 8.3".to_string()].into_iter().collect(), dialect: Dialect::RMarkdown };
+        let mut counter = 0;
+        let tagged = tagify("[Table 8.3](#tab:8.3) summarizes these.", &ctx, Position::Inline, &mut counter).unwrap();
+        let tree = read("<a1>표 8.3</a1>은 이를 요약합니다.", &tagged).unwrap();
+        let rendered = render(&tree, &tagged, &ctx);
+        assert!(rendered.verified, "{}", rendered.markdown);
+        assert_eq!(rendered.markdown, "[표 8.3](#tab:8.3)은 이를 요약합니다.");
     }
 
     #[test]
