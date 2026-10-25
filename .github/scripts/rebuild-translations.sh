@@ -51,7 +51,7 @@ case "$project" in
     "$yeokja" translate upstream
     "$yeokja" status --check upstream
     ;;
-  cpython-devguide|learn-fpga)
+  cpython-devguide|learn-fpga|perf-ninja)
     "$yeokja" translate upstream
     "$yeokja" status --check upstream
     ;;
@@ -100,6 +100,12 @@ case "$project" in
     # 뒤 ko/를 재구성합니다. 재구성 전에 확인하므로 CI가 provider를 부르지 않습니다.
     "$yeokja" status --check source
     "$yeokja" translate source
+    ;;
+  chip8-book)
+    # src/의 9개 장 전체를 재구성 전에 확인해 CI가 provider를 부르지 않게 하고,
+    # upstream이 새로 추가한 장이 state 없이 빠지는 경우도 배포를 막습니다.
+    "$yeokja" status --check upstream/src
+    "$yeokja" translate upstream/src
     ;;
   technicalpm)
     # EPUB 콘텐츠 문서 전체(upstream/OEBPS)를 재구성 전에 확인해 CI가 provider를

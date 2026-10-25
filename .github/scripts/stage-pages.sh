@@ -157,6 +157,8 @@ overlay_site "dist-rust-api-guidelines" "site" "rust-api-guidelines"
 overlay_site "dist-write-you-a-haskell" "site" "write-you-a-haskell"
 overlay_site "dist-stephendiehl" "site" "stephendiehl"
 overlay_site "dist-technicalpm" "site" "technicalpm"
+overlay_site "dist-chip8-book" "site" "chip8-book"
+overlay_site "dist-perf-ninja" "site" "perf-ninja"
 
 prune_orphaned_site_entries
 

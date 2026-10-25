@@ -27,6 +27,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 
 | 프로젝트 | 원문 라이선스 |
 |---|---|
+| `chip8-book` | CC0 1.0 |
 | `chisel-book` | CC BY-SA 4.0 |
 | `cp-algorithms` | CC BY-SA 4.0 |
 | `cpython-devguide` | CC0 1.0 |
@@ -38,6 +39,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `mil` | 교재 텍스트 CC BY 4.0, 소스 Apache-2.0 |
 | `napkin` | 본문·PDF CC BY-SA 4.0, LaTeX 소스 GPL-3.0 |
 | `nix-dev` | CC BY-SA 4.0 |
+| `perf-ninja` | CC BY 4.0 (LICENSE 파일 없음, README 고지 기준; 제3자 코드는 각 라이선스 유지) |
 | `peps` | PEP마다 다름: 퍼블릭 도메인/CC0 1.0 또는 OPUBL-1.0만 번역 |
 | `putting-the-you-in-cpu` | MIT |
 | `pypy` | MIT |
