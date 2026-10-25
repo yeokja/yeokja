@@ -1,0 +1,50 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+state_dir = "state"
+
+# upstream/은 openstax/osbooks-principles-finance 서브모듈입니다(CNXML).
+# 모듈 131개는 modules/mNNNNN/index.cnxml이고, 장 구성과 장 제목은 컬렉션
+# 문서에 있습니다. m00088("Placeholder Text")은 컬렉션에 없는 자리 채움 모듈이라
+# 뺍니다. cnxml 소스는 언제나 인라인 태그로 주고받습니다.
+[[sources]]
+path = "upstream/modules"
+pattern = "*/index.cnxml"
+exclude = ["m00088/index.cnxml"]
+parser = "cnxml"
+output = "ko/modules/{path}"
+
+[[sources]]
+path = "upstream/collections"
+pattern = "*.collection.xml"
+parser = "cnxml"
+output = "ko/collections/{path}"
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[build.html]
+command = '''
+set -e
+python3 -I "$YEOKJA_ROOT/scripts/check.py" skeleton "$YEOKJA_ROOT/upstream" .
+python3 -I "$YEOKJA_ROOT/scripts/build_site.py" . site "$YEOKJA_ROOT/upstream"
+python3 -I "$YEOKJA_ROOT/scripts/check.py" site site
+'''
+outputs = ["site"]
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32
