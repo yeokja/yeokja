@@ -1,0 +1,53 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+state_dir = "state"
+
+# upstream/은 QBobWatson/ila(MathBook XML, PreTeXt의 전신)입니다. 책 본문은
+# src/의 XML 파일들이고 ila.xml이 xi:include로 묶습니다. gfdl.xml(라이선스 원문)은
+# GFDL 8절에 따라 영어 그대로 두고, schemas.xml은 편집기용 스키마 연결입니다.
+# pretext 소스는 언제나 인라인 태그로 주고받습니다.
+[[sources]]
+path = "upstream/src"
+pattern = "*.xml"
+exclude = ["gfdl.xml", "schemas.xml"]
+parser = "pretext"
+output = "ko/src/{path}"
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+# mathbook 서브모듈에 없는 한국어 지역화(ko-KR.xsl)와 번역판 고지 조각.
+[[derive.overlay]]
+path = "overlay"
+require_base = false
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32
+
+# 원 빌드(SCons + pretex + 패치된 Inkscape 0.92)는 재현할 수 없어, 원 XSLT로
+# HTML을 만들고 수식·TikZ는 render_latex.py가 latex → dvisvgm으로 그립니다
+# (docs/superpowers/specs/2026-10-25-ila-korean-translation-design.md).
+# 빌드 전에 upstream의 중첩 서브모듈(mathbook, mathbook-assets)이 있어야 합니다.
+[build.html]
+command = '''
+set -e
+python3 -I "$YEOKJA_ROOT/scripts/check.py" skeleton "$YEOKJA_ROOT/upstream/src" "$YEOKJA_ROOT/ko/src"
+python3 -I "$YEOKJA_ROOT/scripts/build_html.py" . site
+python3 -I "$YEOKJA_ROOT/scripts/check.py" site site
+'''
+outputs = ["site"]
