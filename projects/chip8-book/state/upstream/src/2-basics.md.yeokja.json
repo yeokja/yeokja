@@ -1,0 +1,1189 @@
+{
+  "version": 1,
+  "source_hash": 16251583699554161690,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Emulation Basics",
+      "source_hash": 10437563018002676610,
+      "context_hash": 13675533908623602261,
+      "translation": "에뮬레이션 기초",
+      "glossary_snapshot": {
+        "emulation": "에뮬레이션"
+      },
+      "translated_at": "2026-10-25T06:17:29.218738Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "This first chapter is an overview of the concepts of emulation development and the Chip-8.",
+      "source_hash": 11024231992050738389,
+      "context_hash": 2691451394420669271,
+      "translation": "이 첫 번째 장에서는 에뮬레이션 개발의 개념과 Chip-8을 개괄합니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "emulation": "에뮬레이션"
+      },
+      "translated_at": "2026-10-25T06:17:29.218739Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:1",
+      "source": "Subsequent chapters will have code implementations in Rust, if you have no interest in Rust or prefer to work without examples, this chapter will give an introduction to what steps a real system performs, what we need to emulate ourselves, and how all the moving pieces fit together.",
+      "source_hash": 5221374413225919674,
+      "context_hash": 13148990649453194736,
+      "translation": "이후의 장들에서는 Rust로 코드를 구현하지만, Rust에 관심이 없거나 예제 없이 작업하는 편을 선호한다면 이 장에서 실제 시스템이 어떤 단계를 수행하는지, 우리가 직접 에뮬레이션해야 하는 것은 무엇인지, 그리고 여러 구성 요소가 어떻게 맞물려 돌아가는지를 소개받을 수 있습니다.",
+      "glossary_snapshot": {
+        "Rust": "Rust",
+        "implementations": "구현",
+        "system": "시스템"
+      },
+      "translated_at": "2026-10-25T06:17:29.218740Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:2",
+      "source": "If you're completely new to this subject, this should provide the information you'll need to wrap your head around what you're about to implement.",
+      "source_hash": 2992475619256999979,
+      "context_hash": 12265426090496858129,
+      "translation": "이 주제를 처음 접하는 분이라면, 앞으로 구현할 내용을 이해하는 데 필요한 정보를 이 장에서 얻을 수 있을 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218740Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What's in a Chip-8 Game?",
+      "source_hash": 5264015271682924394,
+      "context_hash": 634054409986604743,
+      "translation": "Chip-8 게임에는 무엇이 들어 있습니까?",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8"
+      },
+      "translated_at": "2026-10-25T06:17:29.218740Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Let's begin with a simple question.",
+      "source_hash": 2240294360137212103,
+      "context_hash": 11290517296527913119,
+      "translation": "간단한 질문부터 시작합시다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218740Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "If I give you a Chip-8 ROM[^1] file, what exactly is in it?",
+      "source_hash": 237676528095702058,
+      "context_hash": 9618721672942596562,
+      "translation": "제가 Chip-8 ROM[^1] 파일을 하나 드린다면, 그 안에는 정확히 무엇이 들어 있습니까?",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "ROM": "ROM",
+        "file": "파일"
+      },
+      "translated_at": "2026-10-25T06:17:29.218740Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "It needs to contain all of the game logic and graphical assets needed to make a game run on a screen, but how is it all laid out?",
+      "source_hash": 1225095605550045349,
+      "context_hash": 5580085963429183630,
+      "translation": "게임이 화면에서 실행되는 데 필요한 모든 게임 로직과 그래픽 에셋이 들어 있어야 하겠지만, 그 모든 것이 어떻게 배치되어 있습니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218740Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "This is a basic, fundamental question; our goal is to read this file and make its program run.",
+      "source_hash": 9638635500208862632,
+      "context_hash": 16148653113771523252,
+      "translation": "이것은 기본적이고 근본적인 질문입니다. 우리의 목표는 이 파일을 읽어서 그 프로그램을 실행하는 것이기 때문입니다.",
+      "glossary_snapshot": {
+        "file": "파일",
+        "program": "프로그램"
+      },
+      "translated_at": "2026-10-25T06:17:29.218741Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "Well, there's only one way to find out, so let's try and open a Chip-8 game in a text editor (such as Notepad, TextEdit, or any others you prefer).",
+      "source_hash": 15683460038856933295,
+      "context_hash": 6192476936371268898,
+      "translation": "자, 알아낼 방법은 하나뿐이니 Chip-8 게임을 텍스트 편집기(메모장, TextEdit 또는 선호하는 다른 편집기)로 열어 봅시다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "text editor": "텍스트 편집기"
+      },
+      "translated_at": "2026-10-25T06:17:29.218741Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "For this example, I'm using the `roms/PONG2` game included with this guide.",
+      "source_hash": 5312374351201543062,
+      "context_hash": 17063276667140620366,
+      "translation": "이 예제에서는 이 가이드에 포함된 `roms/PONG2` 게임을 사용합니다.",
+      "glossary_snapshot": {
+        "guide": "가이드"
+      },
+      "translated_at": "2026-10-25T06:17:29.218741Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:3",
+      "source": "Unless you're using a very fancy editor, you should probably see something similar to Figure 1.",
+      "source_hash": 18128864796974369443,
+      "context_hash": 16026532548412583666,
+      "translation": "아주 특별한 편집기를 쓰는 것이 아니라면, 아마 그림 1과 비슷한 화면이 보일 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218741Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "![Raw Chip-8 ROM file](img/PONG2_raw.png)",
+      "source_hash": 11747948107024090511,
+      "context_hash": 5627585826127351960,
+      "translation": "![Raw Chip-8 ROM file](img/PONG2_raw.png)",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "ROM": "ROM",
+        "file": "파일"
+      },
+      "translated_at": "2026-10-25T06:17:29.218741Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "This doesn't seem very helpful.",
+      "source_hash": 15377787525029201400,
+      "context_hash": 5277575109475576507,
+      "translation": "별로 도움이 되어 보이지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218741Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "In fact, it seems corrupted.",
+      "source_hash": 1824556454447780857,
+      "context_hash": 5895862072202550739,
+      "translation": "사실, 파일이 손상된 것처럼 보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "Don't worry, your game is (probably) just fine.",
+      "source_hash": 8608328887537665968,
+      "context_hash": 9422244701402758670,
+      "translation": "걱정하지 마십시오. 여러분의 게임은 (아마도) 멀쩡합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:3",
+      "source": "All computer programs are, at their core, just numbers saved into a file.",
+      "source_hash": 5355297407931611979,
+      "context_hash": 6189861411847369649,
+      "translation": "모든 컴퓨터 프로그램은 근본적으로 파일에 저장된 숫자에 불과합니다.",
+      "glossary_snapshot": {
+        "file": "파일",
+        "programs": "프로그램"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:4",
+      "source": "These numbers can mean just about anything; it's only with context that a computer is able to put meaning to the values.",
+      "source_hash": 14553872718014653901,
+      "context_hash": 2420740523566917662,
+      "translation": "이 숫자들은 거의 무엇이든 의미할 수 있으며, 컴퓨터는 문맥이 있어야만 그 값에 의미를 부여할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:5",
+      "source": "Your text editor was designed to show and edit text in a language such as English, and thus will automatically try and use a language-focused context such as [ASCII](https://www.asciitable.com/).",
+      "source_hash": 8024247251503507599,
+      "context_hash": 10531597600815655124,
+      "translation": "텍스트 편집기는 영어 같은 언어로 된 텍스트를 보여 주고 편집하도록 설계되었으므로, 자동으로 [ASCII](https://www.asciitable.com/) 같은 언어 중심의 문맥을 사용하려고 합니다.",
+      "glossary_snapshot": {
+        "text editor": "텍스트 편집기"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "So we've learned that our Chip-8 file is not written in plain English, which we probably could have assumed already.",
+      "source_hash": 12729636916283721388,
+      "context_hash": 7763748947258900319,
+      "translation": "이렇게 해서 우리의 Chip-8 파일이 평범한 영어로 작성되어 있지 않다는 사실을 알게 되었지만, 이는 아마 이미 짐작할 수 있었던 일일 것입니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "file": "파일"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "So what does it look like?",
+      "source_hash": 12275232034970854500,
+      "context_hash": 7125678084880695117,
+      "translation": "그렇다면 실제로는 어떤 모습입니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "Fortunately, programs exist to display the raw contents of a file, so we will need to use one of those \"hex editors\" to display the actual contents of our file.",
+      "source_hash": 8902924633811018424,
+      "context_hash": 1899562810749685708,
+      "translation": "다행히 파일의 원시 내용을 보여 주는 프로그램이 있으므로, 이른바 \"헥스 에디터\" 중 하나를 사용해 파일의 실제 내용을 표시해야 합니다.",
+      "glossary_snapshot": {
+        "file": "파일",
+        "programs": "프로그램"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "![Chip-8 ROM file](img/PONG2.png)",
+      "source_hash": 11023651172957002146,
+      "context_hash": 13575986100405323649,
+      "translation": "![Chip-8 ROM file](img/PONG2.png)",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "ROM": "ROM",
+        "file": "파일"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "In Figure 2, the numbers on the left of the vertical line are the *offset* values, how many bytes we are away from the start of the file.",
+      "source_hash": 11136414884143665328,
+      "context_hash": 5846524965367081371,
+      "translation": "그림 2에서 세로선 왼쪽에 있는 숫자들은 *오프셋* 값으로, 파일의 시작 지점에서 몇 바이트 떨어져 있는지를 나타냅니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "file": "파일",
+        "offset": "오프셋"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "On the right hand side are the actual values stored in the file.",
+      "source_hash": 11867449602375611000,
+      "context_hash": 5161470890480285011,
+      "translation": "오른쪽에는 파일에 저장된 실제 값이 있습니다.",
+      "glossary_snapshot": {
+        "file": "파일"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "Both the offsets and data values are displayed in hexadecimal (we'll be dealing with hexadecimal quite a bit).",
+      "source_hash": 1724460250460114401,
+      "context_hash": 15979257586457627506,
+      "translation": "오프셋과 데이터 값은 모두 16진수로 표시됩니다(앞으로 16진수를 꽤 자주 다루게 될 것입니다).",
+      "glossary_snapshot": {
+        "hexadecimal": "16진수",
+        "offsets": "오프셋"
+      },
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "Okay, we have numbers now, so that's an improvement.",
+      "source_hash": 12474212430879007416,
+      "context_hash": 3612131509451242246,
+      "translation": "좋습니다. 이제 숫자가 보이니 한결 나아졌습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218742Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "If those numbers don't correspond to English letters, what do they mean?",
+      "source_hash": 2579377976787625748,
+      "context_hash": 12636916668850797778,
+      "translation": "이 숫자들이 영어 문자에 대응하지 않는다면, 무엇을 의미합니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:29.218743Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "These are the *instructions* for the Chip-8's CPU.",
+      "source_hash": 7937684650352761380,
+      "context_hash": 15175810455719824952,
+      "translation": "이것들은 Chip-8 CPU를 위한 *명령어*입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "Chip-8": "Chip-8"
+      },
+      "translated_at": "2026-10-25T06:17:29.218743Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:3",
+      "source": "Actually, each instruction is two bytes, which is why I've grouped them in pairs in the screenshot.",
+      "source_hash": 12838656069494322476,
+      "context_hash": 8815284496554099904,
+      "translation": "실제로 각 명령어는 2바이트이며, 그래서 스크린샷에서 두 개씩 묶어 놓았습니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "instruction": "명령어"
+      },
+      "translated_at": "2026-10-25T06:17:29.218743Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "What is a CPU?",
+      "source_hash": 10564798408132396798,
+      "context_hash": 3095660314506454787,
+      "translation": "CPU란 무엇입니까?",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-10-25T06:17:29.218743Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Let me take a moment to describe exactly what functionality a CPU provides, for those who aren't familiar.",
+      "source_hash": 10507719610999494652,
+      "context_hash": 15136658348132976697,
+      "translation": "익숙하지 않은 분들을 위해 CPU가 정확히 어떤 기능을 제공하는지 잠시 설명하겠습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-10-25T06:17:40.836700Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "A CPU, for our purposes, does math.",
+      "source_hash": 4003116008805842281,
+      "context_hash": 3065391503210307470,
+      "translation": "우리의 목적에서 CPU는 계산을 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-10-25T06:17:40.836700Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "That's it.",
+      "source_hash": 886435802842278738,
+      "context_hash": 7639683864368027510,
+      "translation": "그것이 전부입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836701Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:3",
+      "source": "Now, when I say it \"does math\", this includes your usual items such as addition, subtraction, and checking if two numbers are equal or not.",
+      "source_hash": 5923466640879543677,
+      "context_hash": 3943070507060173544,
+      "translation": "여기서 \"계산을 한다\"라고 말할 때는 덧셈, 뺄셈, 두 수가 같은지 다른지 확인하는 것과 같은 일반적인 항목들이 포함됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836701Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:4",
+      "source": "There are also additional operations that are needed for the game to run, such as jumping to different sections of code, or fetching and saving numbers.",
+      "source_hash": 10721629351517148322,
+      "context_hash": 6284023010062159813,
+      "translation": "또한 코드의 다른 부분으로 점프하거나 숫자를 가져오고 저장하는 것처럼 게임을 실행하는 데 필요한 추가 연산도 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836701Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:5",
+      "source": "The game file is entirely made up of mathematical operations for the CPU to preform.",
+      "source_hash": 3417786827745657305,
+      "context_hash": 15183385840103693005,
+      "translation": "게임 파일은 전부 CPU가 수행할 수학 연산으로 이루어져 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "game file": "게임 파일"
+      },
+      "translated_at": "2026-10-25T06:17:40.836701Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "All of the mathematical operations that the Chip-8 can perform have a corresponding number, called its *opcode*.",
+      "source_hash": 8179790766294245667,
+      "context_hash": 7562388870016499348,
+      "translation": "Chip-8이 수행할 수 있는 모든 수학 연산에는 각각 대응하는 숫자가 있으며, 이를 *옵코드*라고 부릅니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:40.836701Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "A full list of the Chip-8's opcodes can be seen on [this page](#ot).",
+      "source_hash": 1356681624859094683,
+      "context_hash": 8234718451297823809,
+      "translation": "Chip-8 옵코드의 전체 목록은 [이 페이지](#ot)에서 볼 수 있습니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8"
+      },
+      "translated_at": "2026-10-25T06:17:40.836701Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "Whenever it is time for the emulator to perform another instruction (also referred to as a *tick* or a *cycle*), it will grab the next opcode from the game ROM and do whatever operation is specified by the opcode table; add, subtract, update what's drawn on the screen, whatever.",
+      "source_hash": 9016501463133063037,
+      "context_hash": 3480884184117628604,
+      "translation": "에뮬레이터가 다음 명령어를 수행할 때가 될 때마다(이를 *틱* 또는 *사이클*이라고도 합니다), 에뮬레이터는 게임 ROM에서 다음 옵코드를 가져와 옵코드 표에 지정된 연산을 무엇이든 수행합니다. 덧셈, 뺄셈, 화면에 그려진 내용 갱신 등 무엇이든 말입니다.",
+      "glossary_snapshot": {
+        "ROM": "ROM",
+        "cycle": "사이클",
+        "emulator": "에뮬레이터",
+        "instruction": "명령어",
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:40.836701Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "What about parameters?",
+      "source_hash": 5305440781707942478,
+      "context_hash": 6055127847251080671,
+      "translation": "매개변수는 어떻게 할까요?",
+      "glossary_snapshot": {
+        "parameters": "매개변수"
+      },
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "It's not enough to say \"it's time to add\", you need two numbers to actually add together, plus a place to put the sum when you're done.",
+      "source_hash": 16321533895769184603,
+      "context_hash": 6311967974409844660,
+      "translation": "\"이제 더할 차례다\"라고 말하는 것만으로는 충분하지 않습니다. 실제로 더할 두 수가 필요하고, 계산이 끝났을 때 합을 넣어 둘 장소도 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "Other systems do this differently, but two bytes per operation is a lot of possible numbers, way more than the 35 operations that Chip-8 can actually do.",
+      "source_hash": 14120934732225292951,
+      "context_hash": 15017470896224047722,
+      "translation": "다른 시스템은 이를 다르게 처리하지만, 연산당 2바이트는 표현할 수 있는 수가 매우 많아서 Chip-8이 실제로 수행할 수 있는 35가지 연산보다 훨씬 많습니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "bytes": "바이트",
+        "systems": "시스템"
+      },
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:3",
+      "source": "The extra digits are used to pack in extra information into the opcode.",
+      "source_hash": 6753555443133897080,
+      "context_hash": 2215671328559024723,
+      "translation": "남는 자릿수는 옵코드에 추가 정보를 담는 데 사용됩니다.",
+      "glossary_snapshot": {
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:4",
+      "source": "The exact layout of this information varies between opcodes.",
+      "source_hash": 17565914843874543384,
+      "context_hash": 235454304060772801,
+      "translation": "이 정보의 정확한 배치는 옵코드마다 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:5",
+      "source": "The opcode table uses `N`'s to indicate literal hexadecmial numbers. `N` for single digit, `NN` for two digits, and `NNN` for three digit literal values, or for a *register* to be specified via `X` or `Y`.",
+      "source_hash": 4022022691159103482,
+      "context_hash": 47757570658011208,
+      "translation": "옵코드 표에서는 리터럴 16진수를 나타내기 위해 `N`을 사용합니다. 한 자리 리터럴 값에는 `N`, 두 자리에는 `NN`, 세 자리에는 `NNN`을 사용하며, `X`나 `Y`로 *레지스터*를 지정하기도 합니다.",
+      "glossary_snapshot": {
+        "opcode": "옵코드",
+        "register": "레지스터"
+      },
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "What are Registers?",
+      "source_hash": 4139681472563746097,
+      "context_hash": 16534781240255145976,
+      "translation": "레지스터란 무엇입니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Which brings us to our next topic.",
+      "source_hash": 14174586045345686126,
+      "context_hash": 949855458704145281,
+      "translation": "이제 다음 주제로 넘어가겠습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "What on earth is a register?",
+      "source_hash": 10844863735817199637,
+      "context_hash": 15807815113284617293,
+      "translation": "도대체 레지스터란 무엇입니까?",
+      "glossary_snapshot": {
+        "register": "레지스터"
+      },
+      "translated_at": "2026-10-25T06:17:40.836702Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "A *register* is a specially designated place to store a single byte for use in instructions.",
+      "source_hash": 10321203639924074794,
+      "context_hash": 2813884431840617948,
+      "translation": "*레지스터*는 명령어에서 사용하기 위해 1바이트를 저장하도록 특별히 지정된 장소입니다.",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "register": "레지스터"
+      },
+      "translated_at": "2026-10-25T06:17:40.836703Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:3",
+      "source": "This may sound rather similar to RAM, and in some ways it is.",
+      "source_hash": 12422161124498783339,
+      "context_hash": 13262387545676851850,
+      "translation": "RAM과 꽤 비슷하게 들릴 수 있으며, 어떤 면에서는 실제로 그렇습니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-10-25T06:17:40.836703Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:4",
+      "source": "While RAM is a large addressable place to store data, registers are usually few in number, they are all named, and they are directly used when executing an opcode.",
+      "source_hash": 2277728544884126521,
+      "context_hash": 4167729845798356194,
+      "translation": "RAM은 데이터를 저장하는 크고 주소 지정이 가능한 장소인 반면, 레지스터는 보통 개수가 적고, 모두 이름이 붙어 있으며, 옵코드를 실행할 때 직접 사용됩니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:40.836703Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:5",
+      "source": "For many computers, if you want to use a value in RAM, it has to be copied into a register first.",
+      "source_hash": 8314685604503286511,
+      "context_hash": 328013602441867962,
+      "translation": "많은 컴퓨터에서는 RAM에 있는 값을 사용하려면 먼저 그 값을 레지스터로 복사해야 합니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "register": "레지스터"
+      },
+      "translated_at": "2026-10-25T06:17:40.836703Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "The Chip-8 has sixteen registers that can be used freely by the programmer, named V0 through VF (0-15 in hexadecimal).",
+      "source_hash": 11174522988308045833,
+      "context_hash": 6165597864371353906,
+      "translation": "Chip-8에는 프로그래머가 자유롭게 사용할 수 있는 레지스터가 16개 있으며, 이름은 V0부터 VF(16진수로 0-15)까지입니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "hexadecimal": "16진수"
+      },
+      "translated_at": "2026-10-25T06:17:40.836703Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "As an example of how registers can work, let's look at one of the addition operations in our opcode table.",
+      "source_hash": 13304426036490125088,
+      "context_hash": 5143169912584725410,
+      "translation": "레지스터가 어떻게 동작하는지 보여 주는 예로, 옵코드 표에 있는 덧셈 연산 중 하나를 살펴봅시다.",
+      "glossary_snapshot": {
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:40.836703Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:2",
+      "source": "There is an operation for adding the values of two registers together, VX += VY, encoded as `8XY4`.",
+      "source_hash": 3419005885863424550,
+      "context_hash": 11245680138534558186,
+      "translation": "두 레지스터의 값을 더하는 연산 VX += VY가 있으며, 이는 `8XY4`로 인코딩됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836704Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:3",
+      "source": "The `8XY4` is used for pattern matching the opcodes.",
+      "source_hash": 3569842952303252046,
+      "context_hash": 8714060068570235692,
+      "translation": "`8XY4`는 옵코드를 패턴 매칭하는 데 사용됩니다.",
+      "glossary_snapshot": {
+        "pattern matching": "패턴 매칭"
+      },
+      "translated_at": "2026-10-25T06:17:40.836704Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:4",
+      "source": "If the current opcode begins with an 8 and ends with a 4, then this is the matching operation.",
+      "source_hash": 16046587377985975109,
+      "context_hash": 10652186229417643384,
+      "translation": "현재 옵코드가 8로 시작하고 4로 끝난다면 이것이 일치하는 연산입니다.",
+      "glossary_snapshot": {
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:40.836704Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:5",
+      "source": "The middle two digits then specify which registers we are to use.",
+      "source_hash": 5930798833078371032,
+      "context_hash": 2362123236943236955,
+      "translation": "그다음 가운데 두 자리는 어떤 레지스터를 사용할지 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836704Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:6",
+      "source": "Let's say our opcode is `8124`.",
+      "source_hash": 11882857132443272905,
+      "context_hash": 6663342989164611043,
+      "translation": "옵코드가 `8124`라고 합시다.",
+      "glossary_snapshot": {
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:40.836704Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:7",
+      "source": "It begins with an 8 and ends with a 4, so we're in the right place.",
+      "source_hash": 16143579929675852869,
+      "context_hash": 3893946960134630884,
+      "translation": "8로 시작하고 4로 끝나므로 올바른 연산을 찾은 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836704Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:8",
+      "source": "For this instruction we will be using the values stored in V1 and V2, as those match the other two digits.",
+      "source_hash": 7667844284916568399,
+      "context_hash": 8683278350182334190,
+      "translation": "이 명령어에서는 나머지 두 자리에 해당하는 V1과 V2에 저장된 값을 사용합니다.",
+      "glossary_snapshot": {
+        "instruction": "명령어"
+      },
+      "translated_at": "2026-10-25T06:17:40.836705Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:9",
+      "source": "Let's say V1 stores 5 and V2 stores 10, this operation would add those two values and replace what was in V1, thus V1 now holds 15.",
+      "source_hash": 14042949278120315708,
+      "context_hash": 5191768772566322938,
+      "translation": "V1에 5가 저장되어 있고 V2에 10이 저장되어 있다고 하면, 이 연산은 두 값을 더해 V1에 있던 값을 대체하므로 이제 V1에는 15가 들어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:17:40.836705Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Chip-8 contains a few more registers, but they serve very specific purposes.",
+      "source_hash": 18052928267474947273,
+      "context_hash": 13434186858881982794,
+      "translation": "Chip-8에는 레지스터가 몇 개 더 있지만, 이들은 매우 특정한 용도로 쓰입니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8"
+      },
+      "translated_at": "2026-10-25T06:17:45.452164Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "One of the most significant ones is the *program counter* (PC), which for Chip-8 can store a 16-bit value.",
+      "source_hash": 12396398784100746297,
+      "context_hash": 14582694755669935161,
+      "translation": "그중 가장 중요한 것 하나는 *프로그램 카운터*(PC)로, Chip-8에서는 16비트 값을 저장할 수 있습니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "program counter": "프로그램 카운터"
+      },
+      "translated_at": "2026-10-25T06:17:45.452165Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "I've made vague references to our \"current opcode\", but how do we keep track of where we are?",
+      "source_hash": 16522320421324379323,
+      "context_hash": 11850574247257832165,
+      "translation": "지금까지 \"현재 옵코드\"를 막연하게 언급해 왔는데, 우리가 어디까지 왔는지는 어떻게 추적할까요?",
+      "glossary_snapshot": {
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:45.452166Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:3",
+      "source": "Our emulator is simulating a computer running a program.",
+      "source_hash": 2735788870935513666,
+      "context_hash": 16301668408512104079,
+      "translation": "우리 에뮬레이터는 프로그램을 실행하는 컴퓨터를 시뮬레이션합니다.",
+      "glossary_snapshot": {
+        "emulator": "에뮬레이터",
+        "program": "프로그램"
+      },
+      "translated_at": "2026-10-25T06:17:45.452166Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:4",
+      "source": "It needs to start at the beginning of our game and move from opcode to opcode, executing the instructions as it's told.",
+      "source_hash": 11889804137178743545,
+      "context_hash": 6004277391385611807,
+      "translation": "에뮬레이터는 게임의 처음에서 시작하여 옵코드에서 옵코드로 이동하며, 지시받은 대로 명령어를 실행해야 합니다.",
+      "glossary_snapshot": {
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:45.452167Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:5",
+      "source": "The PC holds the index of what game instruction we're currently working on.",
+      "source_hash": 5198539852955609762,
+      "context_hash": 1509820476824333393,
+      "translation": "PC는 현재 처리 중인 게임 명령어의 인덱스를 담고 있습니다.",
+      "glossary_snapshot": {
+        "index": "인덱스",
+        "instruction": "명령어"
+      },
+      "translated_at": "2026-10-25T06:17:45.452167Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:6",
+      "source": "So it'll start at the first byte of the game, then move on to the third (remember all opcodes are two bytes), and so on and so forth.",
+      "source_hash": 9900268146339436077,
+      "context_hash": 15222561085602143666,
+      "translation": "따라서 PC는 게임의 첫 번째 바이트에서 시작하고, 그다음 세 번째 바이트로 이동하며(모든 옵코드는 2바이트라는 점을 기억하십시오), 이런 식으로 계속 진행합니다.",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-10-25T06:17:45.452167Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:7",
+      "source": "Some instructions can also tell the PC to go somewhere else in the game, but by default it will simply move forward opcode by opcode.",
+      "source_hash": 7362872657053058486,
+      "context_hash": 15513815140063288536,
+      "translation": "어떤 명령어는 PC에게 게임의 다른 곳으로 이동하라고 지시할 수도 있지만, 기본적으로 PC는 옵코드 단위로 한 칸씩 앞으로 나아갈 뿐입니다.",
+      "glossary_snapshot": {
+        "opcode": "옵코드"
+      },
+      "translated_at": "2026-10-25T06:17:45.452168Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "What is RAM?",
+      "source_hash": 655095743176487602,
+      "context_hash": 1055337250397260165,
+      "translation": "RAM이란 무엇입니까?",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-10-25T06:17:45.452168Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "We have our sixteen V registers, but even for a simple system like a Chip-8, we really would like to be able to store more than 16 numbers at a time.",
+      "source_hash": 16437709093935233704,
+      "context_hash": 15956190614366169573,
+      "translation": "V 레지스터가 16개 있기는 하지만, Chip-8 같은 단순한 시스템이라 해도 한 번에 16개보다 많은 숫자를 저장할 수 있으면 정말 좋을 것입니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "system": "시스템"
+      },
+      "translated_at": "2026-10-25T06:17:45.452168Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "This is where *random access memory* (RAM) comes in.",
+      "source_hash": 5758430579229268882,
+      "context_hash": 7435151490142039461,
+      "translation": "바로 여기서 *랜덤 액세스 메모리*(RAM)가 등장합니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-10-25T06:17:45.452168Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "You're probably familiar with it in the context of your own computer, but RAM is a large array of numbers for the CPU to do with as it pleases.",
+      "source_hash": 11310779636923499262,
+      "context_hash": 5857185178989631691,
+      "translation": "여러분의 컴퓨터를 통해 이미 익숙하시겠지만, RAM은 CPU가 원하는 대로 사용할 수 있는 커다란 숫자 배열입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "RAM": "RAM",
+        "array": "배열"
+      },
+      "translated_at": "2026-10-25T06:17:45.452168Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:3",
+      "source": "Chip-8 is not a physical system, so there is no standard amount of RAM it is supposed to have.",
+      "source_hash": 15723674545746734476,
+      "context_hash": 4789147914573997810,
+      "translation": "Chip-8은 물리적인 시스템이 아니므로, 갖추어야 할 표준 RAM 용량이 정해져 있지 않습니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "RAM": "RAM",
+        "system": "시스템"
+      },
+      "translated_at": "2026-10-25T06:17:45.452168Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:4",
+      "source": "However, emulation developers have more or less settled on 4096 bytes (4 KB), so our system will have the ability to store up to 4096 8-bit numbers in its RAM, way more than most games will use.",
+      "source_hash": 8283437570733381128,
+      "context_hash": 16043049170603897335,
+      "translation": "하지만 에뮬레이션 개발자들은 대체로 4096바이트(4 KB)로 합의했으므로, 우리 시스템은 RAM에 8비트 숫자를 최대 4096개까지 저장할 수 있으며, 이는 대부분의 게임이 사용하는 양보다 훨씬 많습니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "bytes": "바이트",
+        "emulation": "에뮬레이션",
+        "system": "시스템"
+      },
+      "translated_at": "2026-10-25T06:17:45.452169Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Now, time for an important detail: The Chip-8 CPU has free access to read and write to RAM as it pleases.",
+      "source_hash": 17511449416421126922,
+      "context_hash": 12939156509645969078,
+      "translation": "이제 중요한 세부 사항을 살펴볼 차례입니다. Chip-8 CPU는 RAM을 원하는 대로 자유롭게 읽고 쓸 수 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "Chip-8": "Chip-8",
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-10-25T06:17:45.452169Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "It does not, however, have direct access to our game's ROM.",
+      "source_hash": 7473202888795683447,
+      "context_hash": 11110423854384633616,
+      "translation": "그러나 게임의 ROM에는 직접 접근할 수 없습니다.",
+      "glossary_snapshot": {
+        "ROM": "ROM"
+      },
+      "translated_at": "2026-10-25T06:17:45.452169Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:2",
+      "source": "With a name like \"Read-Only Memory\", it's safe to assume that we weren't going to be able to overwrite it, but the CPU can't read from ROM either?",
+      "source_hash": 18154388771981075683,
+      "context_hash": 9965241896917144031,
+      "translation": "\"읽기 전용 메모리\"라는 이름을 보면 덮어쓸 수 없으리라는 것은 짐작할 수 있지만, CPU가 ROM을 읽을 수도 없다는 말입니까?",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "ROM": "ROM",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-10-25T06:17:45.452169Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:3",
+      "source": "While the CPU needs to be able to read the game ROM, it accomplishes this indirectly, by copying the entire game into RAM[^2] when the game starts up.",
+      "source_hash": 909097084797167298,
+      "context_hash": 14106625621819221666,
+      "translation": "CPU는 게임 ROM을 읽을 수 있어야 하지만, 게임이 시작될 때 게임 전체를 RAM[^2]에 복사하는 방식으로 이를 간접적으로 해결합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "RAM": "RAM",
+        "ROM": "ROM"
+      },
+      "translated_at": "2026-10-25T06:17:45.452169Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:4",
+      "source": "It is rather slow and inefficient to open our game file just to read a little bit of data over and over again.",
+      "source_hash": 2146062410481481369,
+      "context_hash": 13861695201958994162,
+      "translation": "아주 적은 양의 데이터를 읽기 위해 게임 파일을 몇 번이고 다시 여는 것은 상당히 느리고 비효율적입니다.",
+      "glossary_snapshot": {
+        "game file": "게임 파일"
+      },
+      "translated_at": "2026-10-25T06:17:45.452169Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:5",
+      "source": "Instead, we want to be able to copy as much data as we can into RAM for us to more quickly use.",
+      "source_hash": 10561902989120257025,
+      "context_hash": 1754101594241665674,
+      "translation": "그 대신 가능한 한 많은 데이터를 RAM에 복사해 두어 더 빠르게 사용할 수 있도록 하려는 것입니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-10-25T06:17:45.452169Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:6",
+      "source": "The other catch is that somewhat confusingly, the ROM data is not loaded into very start of RAM.",
+      "source_hash": 1511165543523644065,
+      "context_hash": 41444031875043783,
+      "translation": "또 하나 주의할 점은, 다소 혼란스럽게도 ROM 데이터가 RAM의 맨 처음에 적재되지 않는다는 것입니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "ROM": "ROM"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:7",
+      "source": "Instead, it's offset by 512 bytes (0x200).",
+      "source_hash": 4702755387531814529,
+      "context_hash": 13376110298450984679,
+      "translation": "대신 512바이트(0x200)만큼 오프셋을 두고 적재됩니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "offset": "오프셋"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:8",
+      "source": "This means the first byte of the game is loaded at start into RAM address 0x200.",
+      "source_hash": 1728681871641663289,
+      "context_hash": 9766688400114365643,
+      "translation": "즉 게임의 첫 번째 바이트는 시작 시 RAM 주소 0x200에 적재됩니다.",
+      "glossary_snapshot": {
+        "RAM address": "RAM 주소",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:9",
+      "source": "The second ROM byte into 0x201, etc.",
+      "source_hash": 17581670887694047653,
+      "context_hash": 4200586854724261190,
+      "translation": "ROM의 두 번째 바이트는 0x201에 적재되는 식입니다.",
+      "glossary_snapshot": {
+        "ROM": "ROM",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Why doesn't the Chip-8 simply store the game at the start of RAM and call it a day?",
+      "source_hash": 3113388578270007754,
+      "context_hash": 12772665883139702860,
+      "translation": "Chip-8은 왜 그냥 게임을 RAM의 처음에 저장하고 끝내지 않을까요?",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "Back when the Chip-8 was designed, computers had much more limited amount of RAM, and only one program could run at a given time.",
+      "source_hash": 7343516531378139474,
+      "context_hash": 3699737956815204174,
+      "translation": "Chip-8이 설계되던 당시에는 컴퓨터의 RAM 용량이 훨씬 제한적이었고, 한 번에 하나의 프로그램만 실행할 수 있었습니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "RAM": "RAM",
+        "program": "프로그램"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "The first 0x200 bytes were allocated for the Chip-8 program itself to run in.",
+      "source_hash": 7544309823004431825,
+      "context_hash": 13921627396810966479,
+      "translation": "처음 0x200바이트는 Chip-8 프로그램 자체가 실행되는 공간으로 할당되었습니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8",
+        "bytes": "바이트",
+        "program": "프로그램"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:3",
+      "source": "Thus, modern Chip-8 emulators need to keep that in mind, as games are still developed with that concept.",
+      "source_hash": 15129957474311543992,
+      "context_hash": 12976358636569491952,
+      "translation": "따라서 게임이 여전히 그 개념에 맞추어 개발되므로, 현대의 Chip-8 에뮬레이터도 이 점을 염두에 두어야 합니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8"
+      },
+      "translated_at": "2026-10-25T06:17:45.452170Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:4",
+      "source": "Our system will actually use a little bit of that empty space, but we will cover that later.",
+      "source_hash": 9407431852930024608,
+      "context_hash": 13844430103991311788,
+      "translation": "사실 우리 시스템도 그 빈 공간을 조금 사용하게 되는데, 이에 대해서는 나중에 다루겠습니다.",
+      "glossary_snapshot": {
+        "system": "시스템"
+      },
+      "translated_at": "2026-10-25T06:17:45.452171Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "'ROM' stands for \"Read-only memory\".",
+      "source_hash": 5874057124005106964,
+      "context_hash": 11839420410754328214,
+      "translation": "'ROM'은 \"읽기 전용 메모리(Read-only memory)\"를 뜻합니다.",
+      "glossary_snapshot": {
+        "ROM": "ROM",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-10-25T06:17:45.452171Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "It is a type of memory that is hard written at manufacturing time and cannot be modified by the computer system.",
+      "source_hash": 8680673932267581721,
+      "context_hash": 15280382620856555695,
+      "translation": "제조 시점에 고정적으로 기록되며 컴퓨터 시스템이 수정할 수 없는 종류의 메모리입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "system": "시스템"
+      },
+      "translated_at": "2026-10-25T06:17:45.452171Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:2",
+      "source": "For the purposes of this guide \"ROM file\" will be used interchangeably with \"game file\".",
+      "source_hash": 559398334040966189,
+      "context_hash": 109779344663162063,
+      "translation": "이 가이드에서는 \"ROM 파일\"과 \"게임 파일\"을 같은 의미로 혼용합니다.",
+      "glossary_snapshot": {
+        "ROM": "ROM",
+        "file": "파일",
+        "game file": "게임 파일",
+        "guide": "가이드"
+      },
+      "translated_at": "2026-10-25T06:23:53.990955Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Therefore, Chip-8 games have a maximum size of 4 KB, any larger and they can't be completely loaded in.",
+      "source_hash": 14996486409337270249,
+      "context_hash": 8592521265603324736,
+      "translation": "따라서 Chip-8 게임의 최대 크기는 4 KB이며, 이보다 크면 메모리에 전부 불러올 수 없습니다.",
+      "glossary_snapshot": {
+        "Chip-8": "Chip-8"
+      },
+      "translated_at": "2026-10-25T06:16:43.423544Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "\\newpage",
+      "source_hash": 1301732052639846928,
+      "context_hash": 11370881459747099989,
+      "translation": "\\\\newpage",
+      "glossary_snapshot": {},
+      "translated_at": "2026-10-25T06:16:43.423546Z",
+      "issues": []
+    }
+  ]
+}

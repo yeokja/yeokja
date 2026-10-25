@@ -1,0 +1,70 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# 원문은 pandoc(Makefile)으로 PDF/EPUB을 만드는 Markdown 9개 장입니다. 수식이
+# 없고 mdBook(CommonMark)으로 내놓으므로 인라인 태그 전송을 켭니다.
+# metadata.yaml(pandoc 표제 정보)은 overlay/ko에 손으로 쓴 한국어판을 둡니다.
+[[sources]]
+path = "upstream/src"
+pattern = "*.md"
+parser = "markdown"
+inline_tags = true
+output = "ko/src/{path}"
+
+# 원문 저장소의 code/, roms/는 조립 트리에 남지만 mdBook은 src/만 내놓으므로
+# 배포 산출물에는 들어가지 않습니다(roms/는 저작자 불명의 제3자 ROM).
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+# 원문에 없는 한국어 SUMMARY.md, 한국어 metadata.yaml, mdBook 0.5가 읽는 한국어 book.toml.
+[[derive.overlay]]
+path = "overlay/ko"
+
+# 영어 원본 빌드는 원문 src/ 사본에 overlay/en(book.toml, SUMMARY.md)을 얹고, 한국어
+# 빌드와 같은 전처리(prepare_book.py: 단독 줄 \newpage 삭제, 파일 간 #id 링크
+# 재작성)를 거쳐 두 빌드를 같은 조건에서 비교합니다.
+[build.html]
+command = '''
+set -e
+mkdir -p "$YEOKJA_ROOT/build"
+rm -rf "$YEOKJA_ROOT/build/original" "$YEOKJA_ROOT/build/original-src"
+mkdir -p "$YEOKJA_ROOT/build/original-src"
+cp -R "$YEOKJA_ROOT/upstream/src" "$YEOKJA_ROOT/build/original-src/"
+cp -R "$YEOKJA_ROOT/overlay/en/." "$YEOKJA_ROOT/build/original-src/"
+python3 "$YEOKJA_ROOT/scripts/check_opcodes.py" "$YEOKJA_ROOT/upstream/src" src
+python3 "$YEOKJA_ROOT/scripts/prepare_book.py" "$YEOKJA_ROOT/build/original-src/src"
+python3 "$YEOKJA_ROOT/scripts/prepare_book.py" src
+rm -f "$YEOKJA_ROOT/build/original-src/src/metadata.yaml" src/metadata.yaml
+mdbook build "$YEOKJA_ROOT/build/original-src" --dest-dir "$YEOKJA_ROOT/build/original" 2> "$YEOKJA_ROOT/build/mdbook-original.log" || { cat "$YEOKJA_ROOT/build/mdbook-original.log" >&2; exit 1; }
+mdbook build 2> "$YEOKJA_ROOT/build/mdbook-ko.log" || { cat "$YEOKJA_ROOT/build/mdbook-ko.log" >&2; exit 1; }
+cat "$YEOKJA_ROOT/build/mdbook-ko.log"
+# set -e는 `! cmd`의 실패를 무시하므로 if로 실패시킵니다.
+if grep -i -E 'warn|error' "$YEOKJA_ROOT/build/mdbook-original.log" "$YEOKJA_ROOT/build/mdbook-ko.log"; then exit 1; fi
+python3 "$YEOKJA_ROOT/scripts/preserve_anchors.py" "$YEOKJA_ROOT/build/original" book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" book
+python3 "$YEOKJA_ROOT/scripts/build_print.py" "$YEOKJA_ROOT/build/original"
+python3 "$YEOKJA_ROOT/scripts/check_links.py" "$YEOKJA_ROOT/build/original" book
+mv book site
+cp "$YEOKJA_ROOT/upstream/LICENSE" site/
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 8
+batch_segments = 32
