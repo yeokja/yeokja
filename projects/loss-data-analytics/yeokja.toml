@@ -1,0 +1,99 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# bookdown gitbook으로 빌드하는 Rmd 28개(_bookdown.yml rmd_files)와 child 3개
+# (DistributionTableSections). 빌드에 쓰이지 않는 옛 원고·LaTeX판·PDF 전용
+# 파일, R 코드뿐인 Packages.Rmd·Glossary.Rmd, 렌더 산출물 docs/는 뺍니다.
+# Hide*(id, label)의 두 번째 인자(접기 단추의 글)만 번역합니다.
+[[sources]]
+path = "upstream"
+pattern = "**/*.Rmd"
+exclude = ["docs/**", "GettingStarted/**", "IntermediateCalcs/**", "Chapters/SimulationSections/**",
+  "Chapters/DataResources.Rmd", "Chapters/ExpRatingBonusMalus.Rmd",
+  "Chapters/DistributionTableSections/ContinuousOLD.Rmd", "**/*Latex.Rmd",
+  "References/PdfOutput.Rmd", "References/Glossary.Rmd", "References/Packages.Rmd"]
+parser = "rmarkdown"
+output = "ko/{path}"
+inline_tags = true
+# 레이블을 감싼 따옴표와 다른 따옴표는 레이블 글자다("R Code for Kendall's Tau").
+inline_code_captures = ["^r Hide\\w+\\(\\s*['\"][^'\"]*['\"]\\s*,\\s*(?:\"(?P<dq>[^\"]+)\"|'(?P<sq>[^']+)')"]
+
+# Gloss('term') 풀이 사전. Term 열은 Gloss()의 조회 키이므로 Definition 열만 번역합니다.
+[[sources]]
+path = "upstream/References"
+pattern = "GlossFct.csv"
+parser = "csv"
+output = "ko/References/{path}"
+
+[[tables]]
+files = "upstream/References/GlossFct.csv"
+headers = ["Term", "Definition"]
+translate = ["Definition"]
+
+# Gloss() 표시어 사전(scripts/gloss_labels.py가 원문에서 뽑음). Term은 조회 키이므로
+# Label 열만 번역합니다. 조립 트리의 References/GlossLabels.csv가 됩니다.
+[[sources]]
+path = "gloss"
+pattern = "GlossLabels.csv"
+parser = "csv"
+output = "ko-gloss/References/{path}"
+
+[[tables]]
+files = "gloss/GlossLabels.csv"
+headers = ["Term", "Label"]
+translate = ["Label"]
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+# 번역한 Gloss 표시어 사전(원문에 없는 파일)
+[[derive.overlay]]
+path = "ko-gloss"
+
+# 한국어판 bookdown 설정(_bookdown.yml, _output.yml), Gloss 재정의(References/Glossary.Rmd), 한국어 CSS
+[[derive.overlay]]
+path = "overlay"
+
+# 조립 트리(build/tree)에서 원문 보존을 검사하고, knit 전 손질(prepare_book.py) 뒤
+# bookdown gitbook을 만듭니다. R이 모든 청크를 실행하므로 오래 걸립니다. 서문 날짜는
+# 원문 커밋 날짜로 고정합니다. 번호 붙은 장은 22개(본문 16, 부록 A–C, 분포표, 표기법,
+# 데이터 자료)입니다.
+[build.html]
+command = '''
+set -e
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+python3 "$YEOKJA_ROOT/scripts/gloss_labels.py" extract --check
+python3 "$YEOKJA_ROOT/scripts/prepare_book.py" . "$(git -C "$YEOKJA_ROOT/upstream" log -1 --format=%cs)" "$YEOKJA_ROOT/upstream"
+python3 "$YEOKJA_ROOT/scripts/check.py" source "$YEOKJA_ROOT/upstream" "$YEOKJA_ROOT/ko" References/GlossLabels.csv .
+rm -rf _book
+Rscript -e "bookdown::render_book('index.Rmd', 'bookdown::gitbook', quiet = TRUE)"
+# 원문은 기여자 사진과 일부 정적 그림을 원시 HTML <img>(Windows 경로)로 넣어 bookdown이
+# 산출물에 복사하지 않습니다.
+cp -RL ContributorPics _book/
+cp -RLn Figures/. _book/Figures/
+python3 "$YEOKJA_ROOT/scripts/check.py" site _book 22
+rm -rf site
+mv _book site
+cp "$YEOKJA_ROOT/upstream/LICENSE" site/
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32
