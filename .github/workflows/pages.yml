@@ -37,8 +37,9 @@
 # 부르는 .github/scripts/stage-pages.sh에 각각 항목을 추가하고, 그 프로젝트의
 # 툴체인을 nix/projects/<project>.nix에 선언합니다. 빌드 명령이 스스로
 # `nix build`를 부르는 타깃은 항목에 "nix_shell": "false"를 둡니다(문자열인 이유는
-# 아래 rebuild 잡의 조건식 주석 참고). 전체를 강제로 다시
-# 빌드하려면 workflow_dispatch의 force_rebuild를 켭니다.
+# 아래 rebuild 잡의 조건식 주석 참고). 원문 안의 submodule이 빌드에 필요하면
+# "nested_submodules": "<경로> <경로>"로 upstream 기준 경로를 적습니다. 전체를
+# 강제로 다시 빌드하려면 workflow_dispatch의 force_rebuild를 켭니다.
 #
 # 프로젝트를 뺄 때는 반대로 같은 두 파일에서 그 항목을 지우면 됩니다.
 # stage-pages.sh는 overlay_* 호출이 쓰는 최상위 디렉터리 이름을 추적해,
@@ -180,6 +181,13 @@ jobs:
       - name: Unshallow this project's submodule for the contributors table
         if: matrix.unshallow
         run: git -C projects/${{ matrix.project }}/upstream fetch --unshallow || true
+
+      # 원문이 빌드 도구를 자기 submodule로 끌어오는 프로젝트(ila의 MathBook XSLT)는
+      # 항목의 nested_submodules에 적힌 경로만 upstream 안에서 더 받습니다.
+      # --recursive로 전부 받으면 빌드에 쓰지 않는 큰 저장소까지 따라옵니다.
+      - name: Fetch the upstream's own submodules this build needs
+        if: matrix.nested_submodules
+        run: git -C projects/${{ matrix.project }}/upstream submodule update --init --depth 1 ${{ matrix.nested_submodules }}
 
       - name: Download yeokja binary
         uses: actions/download-artifact@v4

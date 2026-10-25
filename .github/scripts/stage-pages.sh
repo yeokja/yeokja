@@ -159,6 +159,8 @@ overlay_site "dist-stephendiehl" "site" "stephendiehl"
 overlay_site "dist-technicalpm" "site" "technicalpm"
 overlay_site "dist-chip8-book" "site" "chip8-book"
 overlay_site "dist-perf-ninja" "site" "perf-ninja"
+overlay_site "dist-ila" "site" "ila"
+overlay_site "dist-principles-finance" "site" "principles-finance"
 
 prune_orphaned_site_entries
 

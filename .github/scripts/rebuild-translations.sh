@@ -107,6 +107,19 @@ case "$project" in
     "$yeokja" status --check upstream/src
     "$yeokja" translate upstream/src
     ;;
+  ila)
+    # src/의 PreTeXt 파일 전체를 재구성 전에 확인해 CI가 provider를 부르지 않게 하고,
+    # upstream이 새로 추가한 장이 state 없이 빠지는 경우도 배포를 막습니다.
+    "$yeokja" status --check upstream/src
+    "$yeokja" translate upstream/src
+    ;;
+  principles-finance)
+    # CNXML 모듈과 컬렉션(두 source 규칙)을 upstream 전체로 한 번에 확인해
+    # upstream이 새로 추가한 모듈이 state 없이 빠지는 경우도 배포를 막습니다.
+    # 재구성 전에 확인하므로 CI가 번역 provider를 부르지 않습니다.
+    "$yeokja" status --check upstream
+    "$yeokja" translate upstream
+    ;;
   technicalpm)
     # EPUB 콘텐츠 문서 전체(upstream/OEBPS)를 재구성 전에 확인해 CI가 provider를
     # 부르지 않게 하고, 원문을 다시 내려받아 생긴 새 문서가 state 없이 빠지는

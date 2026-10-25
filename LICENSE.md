@@ -34,6 +34,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `fp-lean` | CC BY 4.0 |
 | `furiosa-opt` | Apache-2.0 |
 | `hott` | CC BY-SA 3.0 |
+| `ila` | 본문 GFDL-1.3-or-later(불변 부분 없음, 수정판 고지·이력은 웹 판에), 빌드용 XSLT 포크 GPL-2.0/3.0, MathBox MIT(데모는 원서 사이트를 가리킴) |
 | `jeffe-algorithms` | CC BY 4.0 (CC BY-NC-SA 4.0인 강의 노트와 허락받은 그림은 번역하지 않음) |
 | `learn-fpga` | BSD-3-Clause (하위 디렉터리별 별도 라이선스 유지) |
 | `mil` | 교재 텍스트 CC BY 4.0, 소스 Apache-2.0 |
@@ -41,6 +42,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `nix-dev` | CC BY-SA 4.0 |
 | `perf-ninja` | CC BY 4.0 (LICENSE 파일 없음, README 고지 기준; 제3자 코드는 각 라이선스 유지) |
 | `peps` | PEP마다 다름: 퍼블릭 도메인/CC0 1.0 또는 OPUBL-1.0만 번역 |
+| `principles-finance` | CC BY-NC-SA 4.0 (비상업; OpenStax 연습문제 서비스의 문제·표지·로고는 싣지 않음) |
 | `putting-the-you-in-cpu` | MIT |
 | `pypy` | MIT |
 | `raytracing` | CC0 1.0 |
