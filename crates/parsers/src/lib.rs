@@ -12,9 +12,19 @@ use yeokja_core::parser::DocumentParser;
 pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn DocumentParser> {
     let file_path = file_path.strip_prefix(".").unwrap_or(file_path);
     if let Some(source) = config.source_for(file_path) {
+        if source.parser == "rmarkdown" {
+            // The config check compiled these patterns already; a pattern
+            // that still fails leaves the source without captures.
+            return Box::new(
+                yeokja_parser_rmarkdown::RmarkdownParser::with_patterns(&source.inline_code_captures)
+                    .unwrap_or_default(),
+            );
+        }
         return parser_by_name(&source.parser, file_path, source.parser_manifest.as_deref());
     }
     match file_path.extension().and_then(|e| e.to_str()) {
+        Some("Rmd" | "rmd") => Box::new(yeokja_parser_rmarkdown::RmarkdownParser::default()),
+        Some("csv") => Box::new(yeokja_parser_csv::CsvParser),
         Some("adoc" | "asciidoc" | "asc") => Box::new(yeokja_parser_asciidoc::AsciidocParser),
         Some("rst" | "rest") => Box::new(yeokja_parser_rst::RstParser),
         Some("tex" | "latex") => Box::new(yeokja_parser_latex::LatexParser),
@@ -52,6 +62,8 @@ fn parser_by_name(
         )),
         "myst" => Box::new(yeokja_parser_myst::MystParser),
         "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser),
+        "rmarkdown" => Box::new(yeokja_parser_rmarkdown::RmarkdownParser::default()),
+        "csv" => Box::new(yeokja_parser_csv::CsvParser),
         "xhtml" => Box::new(yeokja_parser_xhtml::XhtmlParser),
         "cnxml" => Box::new(yeokja_parser_xhtml::CnxmlParser),
         "pretext" => Box::new(yeokja_parser_xhtml::PretextParser),
@@ -297,6 +309,39 @@ model = "gpt-4o"
         let segments = doc.translatable_segments();
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].source, "Body.");
+    }
+
+    #[test]
+    fn rmarkdown_by_extension_and_by_name_with_captures() {
+        let config = config_with_source("book/", "markdown");
+        let parser = select_parser(Path::new("Chapters/Intro.Rmd"), &config);
+        assert_eq!(parser.markup(), yeokja_core::parser::Markup::RMarkdown);
+        assert_eq!(select_parser(Path::new("References/GlossFct.csv"), &config).markup(), yeokja_core::parser::Markup::Plain);
+
+        let config = ProjectConfig::from_toml(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "upstream"
+pattern = "**/*.Rmd"
+parser = "rmarkdown"
+output = "ko/{path}"
+inline_code_captures = ["^r HideExample\\('[^']*',\\s*'(?P<t>[^']+)'"]
+
+[provider]
+type = "openai_compatible"
+model = "gpt-4o"
+"#,
+        )
+        .unwrap();
+        let parser = select_parser(Path::new("upstream/Chapters/Intro.Rmd"), &config);
+        let doc = parser.parse("`r HideExample('3.3.1', 'Show Example Solution')`\n");
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].source, "Show Example Solution");
     }
 
     #[test]

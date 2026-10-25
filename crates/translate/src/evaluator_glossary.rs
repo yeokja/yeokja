@@ -65,11 +65,13 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
     match markup {
         Markup::Verso => without_verso_role_headers(source),
         Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
-        Markup::Markdown | Markup::MkDocs
+        Markup::Markdown | Markup::MkDocs | Markup::RMarkdown
             if is_external_link_only(source) || is_image_only(source) || is_display_math_only(source) =>
         {
             String::new()
         }
+        // `\text{loss}` inside a formula is the formula, copied verbatim.
+        Markup::RMarkdown => yeokja_parser_rmarkdown::mask_math(source),
         _ => source.to_string(),
     }
 }

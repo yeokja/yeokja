@@ -1,0 +1,182 @@
+
+
+<!-- # Chap 1 -->
+
+<!-- #  Chap 2 -->
+
+
+# Frequency Modeling {#ChapFrequency-Modeling}
+
+*Chapter Preview.* A primary focus for insurers is estimating the magnitude of aggregate claims it must bear under its insurance contracts. `r Gloss('Aggregate claims')` are affected by both the frequency and the severity of the insured event. Decomposing aggregate claims into these two components, each of which warrant significant attention, is essential for analysis and pricing. This chapter discusses frequency distributions, summary measures, and parameter estimation techniques. 
+
+In Section \@ref(S:Sec31), we present terminology and discuss reasons why we study frequency and severity separately. The foundations of frequency distributions and measures are presented in Section \@ref(S:Sec32) along with three principal distributions: the binomial, the Poisson, and the negative binomial. These three distributions are members of what is known as the $(a,b,0)$ class of distributions, a distinguishing, identifying feature which allows for efficient calculation of probabilities, further discussed in Section \@ref(S:Sec33). When fitting a dataset with a distribution, parameter values need to be estimated and in Section \@ref(S:Sec34), the procedure for maximum likelihood estimation is explained. 
+
+For insurance datasets, the observation at zero denotes no occurrence of a particular event; this often deserves additional attention. As explained further in Section \@ref(S:Sec35), for some datasets it may be impossible to have zero of the studied event or zero events may follow a different model than other event counts. 
+In either case, direct fitting of typical count models could lead to improper estimates. Zero truncation or modification techniques allow for more appropriate distribution fit. 
+
+Noting that our insurance portfolio could consist of different sub-groups, each with its own set of individual characteristics, Section \@ref(S:Sec36) introduces mixture distributions and methodology to allow for this heterogeneity within a portfolio. In Section \@ref(S:Sec37) an example is given that demonstrates how standard frequency distributions can often provide a good fit to real data. 
+Exercises are presented in Section \@ref(S:Sec38) and Section \@ref(S:rcode) concludes the chapter with R Code for plots depicted in Section \@ref(S:Sec34).
+
+## Frequency Distributions {#S:Sec31}
+
+***
+
+In this section, you learn how to summarize the importance of frequency modeling in terms of 
+
+* contractual, 
+* behavioral, 
+* database, and 
+* regulatory/administrative motivations.
+
+***
+
+### How Frequency Augments Severity Information {#S:Sec311}
+
+#### Basic Terminology {-}
+
+In this chapter, **loss**, also referred to as ground-up loss, denotes the amount of financial loss suffered by the insured. We use **claim** to denote the indemnification upon the occurrence of an insured event, thus the amount paid by the insurer. While some texts use **loss** and **claim** interchangeably, we wish to make a distinction here to recognize how insurance contractual provisions, such as deductibles and limits, affect the size of the claim stemming from a loss. `r Gloss('Frequency')` represents how often an insured event occurs, typically within a policy contract. Here, we focus on count random variables that represent the number of claims, that is, how frequently an event occurs. `r Gloss('Severity')` denotes the amount, or size, of each payment for an insured event. In Chapter \@ref(ChapAggLossModels), the aggregate model, which combines frequency models with severity models, is examined.
+
+#### The Importance of Frequency {-}
+
+Recall from Section \@ref(S:PredModApps) that setting the price of an insurance good can be a complex problem. In manufacturing, the cost of a good is (relatively) known. In other financial service areas, market prices are available. In insurance, we can generalize the price setting as follows. Start with an expected cost, then add "margins" to account for the product's riskiness, expenses incurred in servicing the product, and a profit/surplus allowance for the insurer.
+  
+The expected cost for insurance can be determined as the expected number of claims times the amount per claim, that is, expected value of *frequency times severity*. The focus on claim count allows the insurer to consider those factors which directly affect the occurrence of a loss, thereby potentially generating a claim. 
+
+
+#### Why Examine Frequency Information? {-}
+
+Insurers and other stakeholders, including governmental organizations, have various motivations for gathering and maintaining frequency datasets. 
+
+* **Contractual.** In insurance contracts, it is common for particular deductibles and policy limits to be listed and invoked for each occurrence of an insured event. Correspondingly, the claim count data generated would indicate the number of claims which meet these criteria, offering a unique claim frequency measure. Extending this, models of total insured losses would need to account for deductibles and policy limits for each insured event.
+
+* **Behavioral.** In considering factors that influence loss frequency, the risk-taking and risk-reducing behavior of individuals and companies should be considered. Explanatory (rating) variables can have different effects on models of how often an event occurs in contrast to the size of the event.
+
+    + In healthcare, the decision to utilize healthcare by individuals, and minimize such healthcare utilization through preventive care and wellness measures, is related primarily to his or her personal characteristics. The cost per user is determined by the patient's medical condition, potential treatment measures, and decisions made by the healthcare provider (such as the physician) and the patient. While there is overlap in those factors and how they affect total healthcare costs, attention can be focused on those separate drivers of healthcare visit frequency and healthcare cost severity.
+    + In personal lines, prior claims history is an important underwriting factor. It is common to use an indicator of whether or not the insured had a claim within a certain time period prior to the contract. Also, the number of claims incurred by the insured in previous periods has predictive power.
+    + In homeowners insurance, in modeling potential loss frequency, the insurer could consider loss prevention measures that the homeowner has adopted, such as visible security systems. Separately, when modeling loss severity, the insurer would examine those factors that affect repair and replacement costs.
+
+<br>
+
+*  **Databases**. Insurers may hold separate data files that suggest developing separate frequency and severity models. For example, a policyholder file is established when a policy is written. This file records much underwriting information about the insured(s), such as age, gender, and prior claims experience, policy information such as coverage, deductibles and limitations, as well as any insurance claims event. A separate file, known as the "claims" file, records details of the claim against the insurer, including the amount. (There may also be a "payments" file that records the timing of the payments although we shall not deal with that here.) This recording process could then extend to  insurers modeling the frequency and severity as separate processes.
+
+* **Regulatory and Administrative.** Insurance is a highly regulated and monitored industry, given its importance in providing financial security to individuals and companies facing risk. As part of their duties, regulators routinely require the reporting of claims numbers as well as amounts. This may be due to the fact that there can be alternative definitions of an "amount," e.g., paid versus incurred, and there is less potential error when reporting claim numbers. This continual monitoring helps ensure financial stability of these insurance companies.
+
+
+```{r child = './Quizzes/Quiz21.html', eval = QUIZ}
+```
+
+
+## Basic Frequency Distributions {#S:Sec32}
+
+***
+
+In this section, you learn how to:
+
+- Determine quantities that summarize a distribution such as the distribution and survival function, as well as moments such as the mean and variance
+- Define and compute the moment and probability generating functions
+- Describe and understand relationships among three important frequency distributions: the binomial, Poisson, and negative binomial distributions
+
+***
+
+In this section, we introduce the distributions that are commonly used in actuarial practice to model count data. The claim count random variable is denoted by $N$; by its very nature it assumes only non-negative integer values. Hence the distributions below are all discrete distributions supported on the set of non-negative integers $\{0, 1, \ldots \}$.
+
+### Foundations {#S:Sec321}
+
+Since $N$ is a discrete random variable taking values in $\{0, 1, \ldots \}$, the most natural full description of its distribution is through the specification of the probabilities with which it assumes each of the non-negative integer values. This leads us to the concept of the `r Gloss('probability mass function (pmf)')` of $N$, denoted as $p_N(\cdot)$ and defined as follows:
+$$
+p_N(k)=\Pr(N=k), \quad \hbox{for } k=0,1,\ldots
+$$
+We note that there are alternate complete descriptions, or characterizations, of the distribution of $N$; for example, the `r Gloss('distribution function')` of $N$ defined by $F_N(x) = \Pr(N \le x)$ and determined as: 
+$$
+F_N(x)=\begin{cases}
+\sum\limits_{k=0}^{\lfloor x \rfloor } \Pr(N=k), &x\geq 0;\\
+0, & \hbox{otherwise}.
+\end{cases}
+$$
+In the above, $\lfloor \cdot \rfloor$ denotes the floor function; $\lfloor x \rfloor$ denotes the greatest integer less than or equal to $x$. This expression also suggests the descriptor *cumulative distribution function,* a commonly used alternative way of expressing the distribution function. We also note that the `r Gloss('survival function', '2.1')` of $N$, denoted by $S_N(\cdot)$, is defined as the ones'-complement of $F_N(\cdot)$, *i.e.* $S_N(\cdot)=1-F_N(\cdot)$. Clearly, the latter is another characterization of the distribution of $N$.
+
+Often one is interested in quantifying a certain aspect of the distribution and not in its complete description. This is particularly useful when comparing distributions. A *center of location* of the distribution is one such aspect, and there are many different measures that are commonly used to quantify it. Of these, the `r Gloss('mean')` is the most popular; the mean of $N$, denoted by $\mu_N$,[^1] is defined as
+
+[^1]: For convenience, we have indexed $\mu_N$ with the random variable $N$ instead of $F_N$ or $p_N$, even though it is solely a function of the distribution of the random variable.
+$$
+\mu_N=\sum_{k=0}^\infty k~p_N(k).
+$$
+We note that $\mu_N$ is the expected value of the random variable $N$, *i.e.* $\mu_N=\mathrm{E}[N]$. This leads to a general class of measures, the `r Gloss('moments')` of the distribution; the $r$-th raw moment of $N$, for $r> 0$,  is defined as $\mathrm{E}{[N^r]}$ and denoted by $\mu_N'(r)$. We remark that the prime $\prime$ here does *not* denote differentiation. Rather, it is commonly used notation to distinguish a raw from a central moment, as will be introduced in Section \@ref(S:Sec411). For $r>0$, we have  
+$$
+\mu_N'(r)= \mathrm{E}{[N^r]}= \sum_{k=0}^\infty k^r~p_N(k).
+$$
+We note that $\mu_N'(\cdot)$ is a well-defined non-decreasing function taking values in $[0,\infty]$, as $\Pr(N\in\{0, 1, \ldots \})=1$; also, note that $\mu_N=\mu_N'(1)$. In the following, when we refer to a moment it will be implicit that it is finite unless mentioned otherwise.
+
+Another basic aspect of a distribution is its dispersion, and of the various measures of dispersion studied in the literature, the `r Gloss('standard deviation')` is the most popular. Towards defining it, we first define the `r Gloss('variance')` of $N$, denoted by $\mathrm{Var}[N]$, as $\mathrm{Var}[N]=\mathrm{E}{[(N-\mu_N)^2]}$ when $\mu_N$ is finite. By basic properties of the expected value of a random variable, we see that $\mathrm{Var}[N]=\mathrm{E}[N^2]-[\mathrm{E}(N)]^2$. The standard deviation of $N$, denoted by $\sigma_N$, is defined as the square root of $\mathrm{Var}[N]$. Note that the latter is well-defined as $\mathrm{Var}[N]$, by its definition as the average squared deviation from the mean, is non-negative; $\mathrm{Var}[N]$ is denoted by $\sigma_N^2$. Note that these two measures take values in $[0,\infty]$.  
+
+### Moment and Probability Generating Functions {#S:Sec322}
+
+Now we introduce two generating functions that are found to be useful when working with count variables. For a discrete random variable, the `r Gloss('moment generating function (mgf)')` of $N$, denoted as $M_N(\cdot)$, is defined as 
+\[
+M_N(t) = \mathrm{E}~{[e^{tN}]} = \sum^{\infty}_{k=0} ~e^{tk}~ p_N(k), \quad t\in \mathbb{R}.
+\]
+We note that while $M_N(\cdot)$ is well defined as it is the expectation of a non-negative random variable ($e^{tN}$), it can assume the value $\infty$. Note that for a count random variable, $M_N(\cdot)$ is finite valued on $(-\infty,0]$ with $M_N(0)=1$. The following theorem, whose proof can be found in @billingsley (pages 285-6), encapsulates the reason for its name.  
+
+***
+**Example 3.3.1.** 
+A discrete probability distribution has the following properties 
+\[
+\begin{aligned}
+p_k&=c\left( 1+\frac{2}{k}\right) p_{k-1} \:\:\: k=1,2,3,\ldots\\
+p_1&= \frac{9}{256}
+\end{aligned}
+\] 
+Determine the expected value of this discrete random variable.
+
+`r HideExample('3.3.1', 'Show Example Solution')`
+
+`r SolnBegin()` Since the $pmf$ satisfies the $(a,b,0)$ recurrence relation we know that the underlying distribution is one among the binomial, Poisson, and negative binomial distributions. Since the ratio of the parameters (*i.e.* $b/a$) equals $2$, we know that it is negative binomial and that $r=3$. Moreover, since for a negative binomial $p_1=r(1+\beta)^{-(r+1)}\beta$, we have 
+\[
+\begin{aligned}
+&&\frac{9}{256}=&3\frac{\beta}{(1+\beta)^4}\\
+\implies &&\frac{3}{(1+3)^4}=&\frac{\beta}{(1+\beta)^4}\\
+\implies &&\beta=&3.
+\end{aligned}
+\]
+Finally, since the mean of a negative binomial is $r\beta$ we have the mean of the given distribution equals $9$.
+
+`r SolnEnd()`
+
+</div>
+
+*** 
+
+
+```{r child = './Quizzes/Quiz23.html', eval = QUIZ}
+```
+[^5]: The set of maximizers of $L(\cdot)$ are the same as the set of maximizers of any strictly increasing function of $L(\cdot)$, and hence the same as those for $l(\cdot)$.
+
+[^6]: A slight benefit of working with $l(\cdot)$ is that constant terms in $L(\cdot)$ do not appear in $l'(\cdot)$ whereas they do in $L'(\cdot)$.
+
+(ref:Fig31) **Likelihood of a $(0,1,0)$ $3$-sample from Bernoulli**
+
+```{r Fig31, echo=FALSE, fig.cap='(ref:Fig31)', out.width='45%' }
+knitr::include_graphics("Figures/figure2.1.png")
+```
+
+
+### Frequency Distributions MLE {#S:Sec342}
+
+In the following, we derive the maximum likelihood estimator, *mle*, for the three members of the $(a,b,0)$ class. We begin by summarizing the discussion above. In the setting of observing *iid*, independent and identically distributed, random variables $X_1,X_2,\ldots,X_n$ from a distribution with *pmf* $p_\theta$, where $\theta$ takes an unknown value in $\Theta\subseteq \mathbb{R}^d$,  the likelihood $L(\cdot)$, a function on $\Theta$ is defined as 
+\[
+L(\theta)=\prod_{i=1}^n p_\theta(x_i),
+\]
+where $x_1,\ldots,x_n$ are the observed values. The *mle* of $\theta$, denoted as $\hat{\theta}_{\rm MLE}$, is a function which maps the observations to an element of the set of maximizers of $L(\cdot)$, namely 
+\[
+\{\theta \vert L(\theta)=\max_{\eta\in\Theta}L(\eta)\}.
+\]
+Note the above set is a function of the observations, even though this dependence is not made explicit. In the case of the three distributions that we study, and quite generally, the above set is a singleton with probability tending to one (with increasing sample size). In other words, for many commonly used distributions and when the sample size is large, the likelihood estimate is uniquely defined with high probability.
+
+In the following, we assume that we have observed $n$ *iid* random variables $X_1,X_2,\ldots,X_n$ from the distribution under consideration, even though the parametric value is unknown. Also, $x_1,x_2,\ldots,x_n$ will denote the observed values. We note that in the case of count data, and data from discrete distributions in general, the likelihood can alternately be represented as 
+\[
+L(\theta)=\prod_{k\geq 0} \left(p_\theta(k)\right)^{m_k},
+\]
+where $m_k$ is the number of observations equal to $k$. Mathematically, we have
+\[
+m_k= \left\vert \{i\vert x_i=k, 1\leq i \leq n\} \right\vert=\sum_{i= 1}^n I(x_i=k), \quad k\geq 0.
+\]

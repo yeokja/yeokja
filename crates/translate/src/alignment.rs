@@ -69,7 +69,7 @@ fn tokens(text: &str, markup: Markup, side: Side) -> BTreeSet<String> {
     let syntax = Syntax {
         side,
         code: !matches!(markup, Markup::Latex),
-        math: matches!(markup, Markup::Latex | Markup::MkDocs | Markup::Verso),
+        math: matches!(markup, Markup::Latex | Markup::MkDocs | Markup::RMarkdown | Markup::Verso),
     };
     let mut found = BTreeSet::new();
     collect(&chars, syntax, &mut found);
