@@ -35,6 +35,9 @@ pub enum Dialect {
     /// MDX: `{…}` expressions and JSX; a `{` or a `<` that could open one
     /// must be escaped in text.
     Mdx,
+    /// R Markdown: Pandoc Markdown with `$` math, cross-references and
+    /// citations, each kept whole; `$`, `@` and `^` in text are escaped.
+    RMarkdown,
     /// Not Markdown: XHTML, whose tagging and serializing live in
     /// `inline::xhtml`. Only the tag reading here is shared.
     Xhtml,
@@ -46,6 +49,7 @@ impl Dialect {
         match parser {
             "myst" => Dialect::Myst,
             "mdx" => Dialect::Mdx,
+            "rmarkdown" => Dialect::RMarkdown,
             "xhtml" => Dialect::Xhtml,
             _ => Dialect::CommonMark,
         }
@@ -296,6 +300,9 @@ enum Masked {
     Role,
     /// An MDX expression, `{…}`.
     Expression,
+    /// An R Markdown cross-reference, text reference, citation or anchor,
+    /// which bookdown resolves by its bytes.
+    Token,
 }
 
 /// A segment with each construct it cannot read alone as one private-use
@@ -400,12 +407,36 @@ fn mask(source: &str, dialect: Dialect) -> Masking {
         out.push(MASK_EDGE);
         spans.push((kind, text.to_string()));
     };
+    // R Markdown math and tokens, found the Pandoc way.
+    let mut atoms: Vec<(Range<usize>, Masked)> = Vec::new();
+    if dialect == Dialect::RMarkdown {
+        atoms.extend(yeokja_parser_rmarkdown::math_spans(source).into_iter().map(|r| (r, Masked::Math)));
+        atoms.extend(yeokja_parser_rmarkdown::preserved_token_spans(source).into_iter().map(|r| (r, Masked::Token)));
+    }
     let mut i = 0;
     while i < source.len() {
         if let Some(span) = code.iter().find(|r| r.start == i) {
             out.push_str(&source[span.clone()]);
             i = span.end;
             continue;
+        }
+        if let Some((range, kind)) = atoms.iter().find(|(r, _)| r.start == i) {
+            push(&mut out, *kind, &source[range.clone()]);
+            i = range.end;
+            continue;
+        }
+        // A raw TeX command (`\newpage`, `\index`) is Pandoc's raw LaTeX:
+        // written back escaped it would print as text.
+        if dialect == Dialect::RMarkdown
+            && source[i..].starts_with('\\')
+            && !(source[..i].ends_with('\\') && !source[..i].ends_with("\\\\"))
+        {
+            let letters = source[i + 1..].bytes().take_while(u8::is_ascii_alphabetic).count();
+            if letters > 0 {
+                push(&mut out, Masked::Token, &source[i..i + 1 + letters]);
+                i += 1 + letters;
+                continue;
+            }
         }
         let rest = &source[i..];
         let escaped = source[..i].ends_with('\\') && !source[..i].ends_with("\\\\");
@@ -736,6 +767,7 @@ fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut
                     let n = next(counter);
                     match kind {
                         Masked::Footnote => void(&mut text, &mut tags, n, TagKind::Opaque, raw, "f", String::new()),
+                        Masked::Token => void(&mut text, &mut tags, n, TagKind::Opaque, raw, "k", String::new()),
                         Masked::Expression => void(&mut text, &mut tags, n, TagKind::Opaque, raw, "e", String::new()),
                         Masked::Math => {
                             let visible = raw.replace("\\\\", "\\");
@@ -1392,6 +1424,12 @@ impl Renderer<'_> {
                 // MDX reads `{` as an expression and `<` as JSX wherever
                 // they stand.
                 '{' | '<' if dialect == Dialect::Mdx => true,
+                // Pandoc reads `$` as math, `^x^` as a superscript and `@key`
+                // as a citation.
+                '$' | '^' if dialect == Dialect::RMarkdown => true,
+                '@' if dialect == Dialect::RMarkdown => {
+                    !prev.is_some_and(|p| p.is_alphanumeric()) && next.is_some_and(|n| n.is_alphanumeric() || n == '_')
+                }
                 '_' => !(prev.is_some_and(|p| p.is_ascii_alphanumeric()) && next.is_some_and(|n| n.is_ascii_alphanumeric())),
                 // GFM strikes through with one tilde as well as two.
                 '~' => dialect != Dialect::Myst && !(prev.is_none_or(char::is_whitespace) && next.is_none_or(char::is_whitespace)),
@@ -1445,7 +1483,18 @@ impl Renderer<'_> {
                     self.escape(t, at_start, &mut out);
                 }
                 Tok::Open(n) if self.tags[n].kind == TagKind::Role => role_open = Some(i),
-                Tok::Void(n) => out.push_str(&self.tags[n].open),
+                Tok::Void(n) => {
+                    let open = &self.tags[n].open;
+                    // A particle glued to `@key` would join the key: Pandoc
+                    // ends a key in braces where the brace does.
+                    let glued = matches!(toks.get(i + 1), Some(Tok::Text(t)) if t.starts_with(|c: char| c.is_alphanumeric() || c == '_'));
+                    match open.strip_prefix('@') {
+                        Some(key) if self.ctx.dialect == Dialect::RMarkdown && glued && !key.starts_with('{') => {
+                            out.push_str(&format!("@{{{key}}}"))
+                        }
+                        _ => out.push_str(open),
+                    }
+                }
                 Tok::Code(markdown, _, _) => out.push_str(markdown),
                 Tok::Open(n) | Tok::Close(n) => {
                     let tag = self.tags[n];
@@ -1535,6 +1584,7 @@ impl Renderer<'_> {
                         match piece {
                             Err(at) => match spans[at].0 {
                                 Masked::Footnote => shape.push('f'),
+                                Masked::Token => shape.push('k'),
                                 Masked::Expression => shape.push('e'),
                                 Masked::Math => text.push_str(&spans[at].1.replace("\\\\", "\\")),
                                 Masked::Role => {
@@ -1670,7 +1720,14 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
         tags: tagged.tags.iter().map(|t| (t.n, t)).collect(),
         position: tagged.position,
         ctx,
-        escape_brackets: tagged.source.contains("\\[") || tagged.source.contains("\\]"),
+        // R Markdown's `\[…\]` is math, not an escaped bracket.
+        escape_brackets: {
+            let text = match tagged.dialect {
+                Dialect::RMarkdown => yeokja_parser_rmarkdown::mask_math(&tagged.source),
+                _ => tagged.source.clone(),
+            };
+            text.contains("\\[") || text.contains("\\]")
+        },
     };
     let toks: Vec<Tok> = tree
         .nodes
@@ -2026,6 +2083,32 @@ mod tests {
         let rendered = render(&tree, &tagged, &ctx);
         assert!(rendered.verified, "{}", rendered.markdown);
         rendered.markdown
+    }
+
+    #[test]
+    fn rmarkdown_math_references_and_raw_tex_are_atoms() {
+        let source = "Let $a_i * b_j$ be **the** product, see \\@ref(fig:x) and @frees2009, \\newline `r Gloss('x')`.";
+        assert_eq!(
+            tag_in(Dialect::RMarkdown, source).text,
+            "Let <m1/> be <b2>the</b2> product, see <x3/> and <x4/>, <x5/> `r Gloss('x')`."
+        );
+        assert_eq!(
+            translate_in(
+                Dialect::RMarkdown,
+                source,
+                "<m1/>를 <b2>그</b2> 곱이라 하고, <x3/>과 <x4/>를 보십시오. <x5/> `r Gloss('x')`."
+            ),
+            "$a_i * b_j$를 **그** 곱이라 하고, \\@ref(fig:x)과 @{frees2009}를 보십시오. \\newline `r Gloss('x')`."
+        );
+    }
+
+    #[test]
+    fn rmarkdown_text_escapes_what_pandoc_would_read_as_markup() {
+        let source = "It costs **five** dollars.";
+        assert_eq!(
+            translate_in(Dialect::RMarkdown, source, "<b1>5</b1>$와 x^2^, 메일 a@b, 그리고 @me."),
+            "**5**\\$와 x\\^2\\^, 메일 a@b, 그리고 \\@me."
+        );
     }
 
     #[test]

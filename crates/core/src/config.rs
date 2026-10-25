@@ -177,12 +177,42 @@ pub struct SourceConfig {
     /// design). Supported by the parsers in [`INLINE_TAG_PARSERS`].
     #[serde(default)]
     pub inline_tags: bool,
+    /// `rmarkdown` only: regular expressions over the content of an inline
+    /// code span (`r HideExample('1.1', 'Show Example Solution')`). Each
+    /// capture group that matches is offered as a literal string; the rest of
+    /// the span stays verbatim. Only spans outside offered prose are read —
+    /// a span inside a translated sentence travels with the sentence.
+    #[serde(default)]
+    pub inline_code_captures: Vec<String>,
 }
 
+/// Every parser name a source may use.
+pub const PARSER_NAMES: &[&str] = &[
+    "markdown",
+    "asciidoc",
+    "markdeep",
+    "mdx",
+    "rst",
+    "pep",
+    "pep_plaintext",
+    "pep_text_block",
+    "mil",
+    "mathematics_in_lean",
+    "latex",
+    "tex",
+    "latex-extended",
+    "verso",
+    "myst",
+    "mkdocs",
+    "rmarkdown",
+    "csv",
+    "xhtml",
+];
+
 /// The parsers whose sources may set `inline_tags`: the Markdown family whose
-/// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX).
-/// `xhtml` sources always use them.
-pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx", "xhtml"];
+/// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX,
+/// Pandoc for R Markdown). `xhtml` sources always use them.
+pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx", "rmarkdown", "xhtml"];
 
 impl SourceConfig {
     /// Whether this source exchanges inline markup as tags.
@@ -389,6 +419,30 @@ impl ProjectConfig {
 
     pub fn from_toml(content: &str) -> Result<Self, ConfigError> {
         let config: Self = toml::from_str(content)?;
+        for source in &config.sources {
+            if !PARSER_NAMES.contains(&source.parser.as_str()) {
+                return Err(ConfigError::Invalid(format!(
+                    "source {} names an unknown parser {} (known: {})",
+                    source.path,
+                    source.parser,
+                    PARSER_NAMES.join(", ")
+                )));
+            }
+            if !source.inline_code_captures.is_empty() && source.parser != "rmarkdown" {
+                return Err(ConfigError::Invalid(format!(
+                    "source {} sets inline_code_captures, which only the rmarkdown parser reads",
+                    source.path
+                )));
+            }
+            for pattern in &source.inline_code_captures {
+                if let Err(error) = regex::Regex::new(pattern) {
+                    return Err(ConfigError::Invalid(format!(
+                        "source {} has an invalid inline_code_captures pattern {pattern:?}: {error}",
+                        source.path
+                    )));
+                }
+            }
+        }
         for source in config.sources.iter().filter(|source| source.uses_inline_tags()) {
             if !INLINE_TAG_PARSERS.contains(&source.parser.as_str()) {
                 return Err(ConfigError::Invalid(format!(
@@ -795,6 +849,48 @@ model = "sonnet"
         let error = ProjectConfig::from_toml(&inline_config("xhtml", "prompt_template = \"{segments}\"").replace("inline_tags = true\n", ""))
             .unwrap_err();
         assert!(error.to_string().contains("{inline_tags}"), "{error}");
+    }
+
+    fn source_config(parser: &str, extra: &str) -> String {
+        format!(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "upstream"
+pattern = "**/*.Rmd"
+parser = "{parser}"
+output = "ko/{{path}}"
+{extra}
+
+[provider]
+type = "claude_code"
+model = "sonnet"
+"#
+        )
+    }
+
+    #[test]
+    fn unknown_parser_names_are_rejected() {
+        let error = ProjectConfig::from_toml(&source_config("rmd", "")).unwrap_err();
+        assert!(error.to_string().contains("unknown parser rmd"), "{error}");
+        for parser in PARSER_NAMES {
+            ProjectConfig::from_toml(&source_config(parser, "")).unwrap();
+        }
+    }
+
+    #[test]
+    fn inline_code_captures_are_for_rmarkdown_and_must_compile() {
+        let captures = r#"inline_code_captures = ["^r Hide\\w+\\(\\s*\\S+,\\s*['\"](?P<t>[^'\"]+)['\"]"]"#;
+        let config = ProjectConfig::from_toml(&source_config("rmarkdown", captures)).unwrap();
+        assert_eq!(config.sources[0].inline_code_captures.len(), 1);
+        let error = ProjectConfig::from_toml(&source_config("mkdocs", captures)).unwrap_err();
+        assert!(error.to_string().contains("only the rmarkdown parser"), "{error}");
+        let error =
+            ProjectConfig::from_toml(&source_config("rmarkdown", "inline_code_captures = ['(unclosed']")).unwrap_err();
+        assert!(error.to_string().contains("invalid inline_code_captures"), "{error}");
     }
 
     #[test]

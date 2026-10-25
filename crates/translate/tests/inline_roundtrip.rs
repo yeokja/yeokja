@@ -1,5 +1,5 @@
 //! Corpus round trip for inline tag transport: every segment of every
-//! `markdown`, `myst` and `mdx` source is tagged, read back untranslated and
+//! `markdown`, `myst`, `mdx` and `rmarkdown` source is tagged, read back untranslated and
 //! rendered, and must render to the same HTML as its source (plain strings,
 //! to the same text).
 //!

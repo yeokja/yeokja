@@ -42,6 +42,23 @@ impl FormatEvaluator {
             issues.extend(Self::markup_issues(&masked, false));
             return issues;
         }
+        if context.markup == Markup::RMarkdown {
+            let mut issues = rmarkdown_issues(&context.source, &context.translation);
+            // Pandoc closes `*` against a following letter the way
+            // Python-Markdown does, so emphasis is checked the lenient way.
+            let masked = EvaluationContext {
+                source: yeokja_parser_rmarkdown::mask_math(&context.source),
+                translation: yeokja_parser_rmarkdown::mask_math(&context.translation),
+                markup: Markup::Markdown,
+                ..context.clone()
+            };
+            issues.extend(Self::markup_issues(&masked, false));
+            return issues;
+        }
+        // A CSV field is text: nothing in it is markup.
+        if context.markup == Markup::Plain {
+            return Vec::new();
+        }
 
         let mut issues = Vec::new();
         let mut told_about_emphasis = false;
@@ -533,6 +550,12 @@ fn parenthesis_issues(context: &EvaluationContext) -> Vec<EvaluationIssue> {
             yeokja_parser_mkdocs::mask_math(&context.translation),
             Markup::Markdown,
         )
+    } else if context.markup == Markup::RMarkdown {
+        (
+            yeokja_parser_rmarkdown::mask_math(&context.source),
+            yeokja_parser_rmarkdown::mask_math(&context.translation),
+            Markup::Markdown,
+        )
     } else {
         (context.source.clone(), context.translation.clone(), context.markup)
     };
@@ -908,10 +931,10 @@ fn backtick_spans(chars: &[char], markup: Markup) -> BacktickSpans {
             continue;
         };
         let code = match markup {
-            Markup::Markdown | Markup::MkDocs => i == 0 || chars[i - 1] != '}',
+            Markup::Markdown | Markup::MkDocs | Markup::RMarkdown => i == 0 || chars[i - 1] != '}',
             Markup::Asciidoc => true,
             Markup::Rst => literal,
-            Markup::Verso | Markup::Latex | Markup::Xhtml => false,
+            Markup::Verso | Markup::Latex | Markup::Xhtml | Markup::Plain => false,
         };
         // RST does not nest inline markup, but a translation that moves a
         // literal into link text keeps the literal's content; count it there.
@@ -1121,11 +1144,11 @@ fn parentheses_balance(text: &str, markup: Markup) -> bool {
 fn constrained_marks(markup: Markup) -> &'static [(char, &'static str)] {
     match markup {
         Markup::Asciidoc => &[('`', "``code``"), ('*', "**bold**"), ('_', "__italic__")],
-        Markup::Markdown | Markup::MkDocs | Markup::Verso => &[('_', "*italic*")],
+        Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Verso => &[('_', "*italic*")],
         // reStructuredText pairs are checked by `rst_broken_pairs`: every one
         // of its marker forms is constrained, so the doubled-form advice these
         // entries carry would be wrong there.
-        Markup::Rst | Markup::Latex | Markup::Xhtml => &[],
+        Markup::Rst | Markup::Latex | Markup::Xhtml | Markup::Plain => &[],
     }
 }
 
@@ -1374,6 +1397,76 @@ fn mkdocs_issues(source: &str, translation: &str) -> Vec<EvaluationIssue> {
         }
     }
     issues
+}
+
+/// Checks only R Markdown needs: math copied verbatim (read the Pandoc way)
+/// and every cross-reference, text reference, citation, footnote reference
+/// and anchor kept, as a multiset — bookdown resolves them by their bytes.
+fn rmarkdown_issues(source: &str, translation: &str) -> Vec<EvaluationIssue> {
+    let spans = |text: &str| -> Vec<String> {
+        let mut v: Vec<String> =
+            yeokja_parser_rmarkdown::math_spans(text).into_iter().map(|r| text[r].to_string()).collect();
+        v.sort_unstable();
+        v
+    };
+    let (required, available) = (spans(source), spans(translation));
+    let mut issues = Vec::new();
+    if !is_multiset_subset(&required, &available) {
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: format!(
+                "Math changed: copy every $...$, $$...$$, \\(...\\), \\[...\\] and \\begin{{..}}...\\end{{..}} \
+                 expression byte-for-byte and translate nothing inside it; put Korean particles after the \
+                 closing delimiter. Source math: {required:?}; translation math: {available:?}"
+            ),
+        });
+    }
+    let added: Vec<&String> = available.iter().filter(|m| !required.contains(m)).collect();
+    if !added.is_empty() {
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: format!(
+                "Math added: the translation has formulas the source sentence does not have {added:?}. \
+                 Do not turn plain text into math, and never write a bare $ the source does not have."
+            ),
+        });
+    }
+    let (want, got) =
+        (yeokja_parser_rmarkdown::preserved_tokens(source), yeokja_parser_rmarkdown::preserved_tokens(translation));
+    if want != got {
+        let missing: Vec<&String> = multiset_difference(&want, &got);
+        let extra: Vec<&String> = multiset_difference(&got, &want);
+        issues.push(EvaluationIssue {
+            severity: IssueSeverity::Error,
+            kind: IssueKind::FormatLost,
+            message: format!(
+                "References changed: copy every cross-reference (\\@ref(...), (\\#eq:...), (#tab:...)), text \
+                 reference (ref:...), citation (@key, [@a; @b]), footnote marker [^n] and anchor <a id=...></a> \
+                 exactly once and byte-for-byte, with Korean particles after it. Missing: {missing:?}; \
+                 added: {extra:?}"
+            ),
+        });
+    }
+    issues
+}
+
+/// The items of `a` left once each item of `b` has cancelled one equal item.
+fn multiset_difference<'a>(a: &'a [String], b: &[String]) -> Vec<&'a String> {
+    let mut counts = std::collections::HashMap::<&str, usize>::new();
+    for token in b {
+        *counts.entry(token).or_default() += 1;
+    }
+    a.iter()
+        .filter(|token| match counts.get_mut(token.as_str()) {
+            Some(count) if *count > 0 => {
+                *count -= 1;
+                false
+            }
+            _ => true,
+        })
+        .collect()
 }
 
 fn is_multiset_subset(required: &[String], available: &[String]) -> bool {
@@ -3521,6 +3614,46 @@ mod tests {
         assert!(!added.passed);
         let repeated = FormatEvaluator.evaluate(&mkdocs_ctx("For each vertex $v$ in $V$.", "$V$의 각 정점 $v$에 대해 $v$를 봅니다.")).await.unwrap();
         assert!(repeated.passed, "{:?}", repeated.issues);
+    }
+
+    fn rmd_ctx(source: &str, translation: &str) -> EvaluationContext {
+        context_in(Markup::RMarkdown, source, translation)
+    }
+
+    #[tokio::test]
+    async fn rmarkdown_references_and_citations_must_survive_as_a_multiset() {
+        let source = "In Section \\@ref(S:Sec31), see @billingsley and [@a; @b] for (\\#eq:mle)[^1].";
+        let ok = FormatEvaluator
+            .evaluate(&rmd_ctx(source, "\\@ref(S:Sec31)절에서 @{billingsley}와 [@a; @b]의 (\\#eq:mle)[^1]를 보십시오."))
+            .await
+            .unwrap();
+        assert!(ok.passed, "{:?}", ok.issues);
+        for broken in [
+            "\\@ref(S:Sec3)절에서 @billingsley와 [@a; @b]의 (\\#eq:mle)[^1]를 보십시오.",
+            "\\@ref(S:Sec31)절에서 billingsley와 [@a; @b]의 (\\#eq:mle)[^1]를 보십시오.",
+            "\\@ref(S:Sec31)절에서 @billingsley와 [@a; @b]의 (\\#eq:mle)[^1]를 보십시오.",
+            "\\@ref(S:Sec31)절과 \\@ref(S:Sec31)에서 @billingsley와 [@a; @b]의 (\\#eq:mle)[^1]를 보십시오.",
+            "\\@ref(S:Sec31)절에서 @billingsley와 [@a; @b]의 (#eq:mle)[^1]를 보십시오.",
+        ] {
+            let result = FormatEvaluator.evaluate(&rmd_ctx(source, broken)).await.unwrap();
+            assert!(!result.passed, "{broken}");
+        }
+    }
+
+    #[tokio::test]
+    async fn rmarkdown_math_is_read_the_pandoc_way() {
+        let ok = FormatEvaluator.evaluate(&rmd_ctx("It costs $20,000 for $x_1$.", "$x_1$에 $20,000이 듭니다.")).await.unwrap();
+        assert!(ok.passed, "{:?}", ok.issues);
+        let changed = FormatEvaluator.evaluate(&rmd_ctx("Let $a_i$ be.", "$a_{i}$라 하자.")).await.unwrap();
+        assert!(!changed.passed);
+        let added = FormatEvaluator.evaluate(&rmd_ctx("Let x be.", "$x$라 하자.")).await.unwrap();
+        assert!(!added.passed);
+    }
+
+    #[tokio::test]
+    async fn plain_text_has_no_markup_to_check() {
+        let ok = FormatEvaluator.evaluate(&context_in(Markup::Plain, "A *b* c", "에이 *비 씨")).await.unwrap();
+        assert!(ok.passed, "{:?}", ok.issues);
     }
 
     #[tokio::test]

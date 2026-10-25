@@ -161,8 +161,23 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              each translation on its one [N] line: an inline <br> stays inline, with the text \
              after it on the same line.\n"
         }
-        // XHTML always travels as tags, whose rules replace this one.
-        Markup::Xhtml => "",
+        Markup::RMarkdown => {
+            "A closing _ that a letter follows does not close the pair. When the translation \
+             puts a suffix straight after an italicised term, use * instead: _arity_ → \
+             *arity*는. Copy every math expression between $...$, $$...$$, \\(...\\), \\[...\\] \
+             and \\begin{...}...\\end{...} byte-for-byte — never translate, respace or rewrite \
+             anything inside it — and attach Korean particles after the closing delimiter \
+             ($n$개, $O(n)$의). Never add math, and never write a bare $ the source does not \
+             have. Keep inline R code `r ...` exactly as written. Copy every cross-reference \
+             \\@ref(label), equation or table label (\\#eq:label) (#tab:label), text reference \
+             (ref:label), citation @key or [@key; @key2], footnote marker [^n] and anchor \
+             <a id=...></a> unchanged, exactly once, with particles after it: \
+             \\@ref(fig:x)에서. A particle glued to a bare citation would join its key, so \
+             write that citation in braces: @frees2009 → @{frees2009}는.\n"
+        }
+        // XHTML always travels as tags, whose rules replace this one; a CSV
+        // field has no markup.
+        Markup::Xhtml | Markup::Plain => "",
         Markup::Rst => {
             "A closing `, ``, * or ** that a letter follows is not recognized: \
              reStructuredText requires whitespace or punctuation after it, and doubling the \
