@@ -129,6 +129,13 @@ case "$project" in
     "$yeokja" translate upstream
     "$yeokja" translate gloss
     ;;
+  algorithmica)
+    # 초안 목록(exclude)이 원문과 맞는지 먼저 보고, 러시아어판 전체를 재구성 전에
+    # 확인해 CI가 provider를 부르지 않게 하고 새 문서가 state 없이 빠지는 것도 막습니다.
+    python3 scripts/scope.py check
+    "$yeokja" status --check upstream/content/russian
+    "$yeokja" translate upstream/content/russian
+    ;;
   technicalpm)
     # EPUB 콘텐츠 문서 전체(upstream/OEBPS)를 재구성 전에 확인해 CI가 provider를
     # 부르지 않게 하고, 원문을 다시 내려받아 생긴 새 문서가 state 없이 빠지는

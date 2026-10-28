@@ -162,6 +162,7 @@ overlay_site "dist-perf-ninja" "site" "perf-ninja"
 overlay_site "dist-ila" "site" "ila"
 overlay_site "dist-principles-finance" "site" "principles-finance"
 overlay_site "dist-loss-data-analytics" "site" "loss-data-analytics"
+overlay_site "dist-algorithmica" "site" "algorithmica"
 
 prune_orphaned_site_entries
 

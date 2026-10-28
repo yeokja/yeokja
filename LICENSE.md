@@ -27,6 +27,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 
 | 프로젝트 | 원문 라이선스 |
 |---|---|
+| `algorithmica` | CC BY-SA 4.0 (러시아어판만; 이용 허락이 없는 영어판은 번역하지 않음), 테마 MIT |
 | `chip8-book` | CC0 1.0 |
 | `chisel-book` | CC BY-SA 4.0 |
 | `cp-algorithms` | CC BY-SA 4.0 |
