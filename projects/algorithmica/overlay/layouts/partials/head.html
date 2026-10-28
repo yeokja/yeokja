@@ -1,0 +1,141 @@
+{{- /* 원문 테마의 head.html을 바탕으로 한 번역 사이트용 판.
+  - 방문 통계(analytics.html)는 빈 파일로 덮어 씁니다.
+  - 쓰지 않는 TikZJax(본문에 '@@' 블록이 없음)를 싣지 않습니다.
+  - lunr(영어·러시아어 형태소 분석)는 한국어를 나누지 못하므로, 제목과 본문에서
+    검색어를 그대로 찾는 부분 문자열 검색으로 바꿉니다.
+  - 하위 경로(/algorithmica/)에서도 동작하도록 스크립트 속 경로에 absURL을 씁니다(canonifyURLs를 켜면 relURL은 하위 경로를 붙이지 않고, 스크립트 문자열은 canonify 대상이 아닙니다). */ -}}
+<head>
+  {{- partial "analytics.html" -}}
+
+  <meta charset="utf-8">
+
+  {{ $style := resources.Get "style.sass" | toCSS | minify | fingerprint }}
+  <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
+  <link rel="stylesheet" href="{{ "syntax.css" | absURL }}" id="syntax-theme">
+
+  {{ $dark := resources.Get "dark.sass" | toCSS | minify | fingerprint }}
+  <link rel="stylesheet" id="theme">
+
+  <script>
+    function toggleSidebar() {
+      var sidebar = document.getElementById('sidebar')
+      var wrapper = document.getElementById('wrapper')
+      if (sidebar.classList.contains('sidebar-toggled') || window.getComputedStyle(sidebar).display == 'block') {
+        sidebar.classList.toggle('sidebar-hidden')
+        wrapper.classList.toggle('sidebar-hidden')
+      }
+      sidebar.classList.add('sidebar-toggled')
+      wrapper.classList.add('sidebar-toggled')
+    }
+
+    function switchTheme(theme) {
+      document.getElementById('theme').href = (theme == 'dark' ? "{{ $dark.Permalink }}" : "")
+      document.getElementById('syntax-theme').href = (theme == 'dark' ? '{{ "syntax-dark.css" | absURL }}' : '{{ "syntax.css" | absURL }}')
+      localStorage.setItem('theme', theme)
+    }
+
+    var articles = undefined
+
+    async function toggleSearch() {
+      var searchDiv = document.getElementById('search')
+      if (window.getComputedStyle(searchDiv).display == 'none') {
+        searchDiv.style.display = 'block'
+        window.scrollTo({ top: 0 });
+        document.getElementById('search-bar').focus()
+      } else {
+        searchDiv.style.display = 'none'
+      }
+
+      if (!articles) {
+        const response = await fetch('{{ "searchindex.json" | absURL }}')
+        articles = (await response.json()).filter(function(doc) { return doc.title })
+        search()
+      }
+    }
+
+    function escapeHTML(text) {
+      return text.replace(/[&<>"']/g, function(c) {
+        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]
+      })
+    }
+
+    function search() {
+      var query = document.getElementById('search-bar').value.trim()
+      var resultsDiv = document.getElementById('search-results')
+      var countDiv = document.getElementById('search-count')
+
+      if (query == '' || !articles) {
+        resultsDiv.innerHTML = ''
+        countDiv.innerHTML = ''
+        return
+      }
+
+      var needle = query.toLowerCase()
+      var inTitle = [], inContent = []
+      articles.forEach(function(doc) {
+        if (doc.title.toLowerCase().includes(needle)) inTitle.push(doc)
+        else if (doc.content.toLowerCase().includes(needle)) inContent.push(doc)
+      })
+      var results = inTitle.concat(inContent)
+
+      countDiv.innerHTML = '{{ T "searchCountPrefix" }} <b>' + results.length + '</b>{{ T "searchCountSuffix" }}'
+
+      const contextLimit = 80
+      let resultList = ''
+      results.forEach(function(item) {
+        resultList += '<li><a href="' + item.path + '">' + escapeHTML(item.title) + '</a> <p>'
+        const text = item.content
+        const start = text.toLowerCase().indexOf(needle)
+        if (start >= 0) {
+          if (start > contextLimit) resultList += '…'
+          resultList += escapeHTML(text.substring(Math.max(0, start - contextLimit), start))
+                      + '<b>' + escapeHTML(text.substring(start, start + query.length)) + '</b>'
+                      + escapeHTML(text.substring(start + query.length, start + query.length + contextLimit))
+        } else {
+          resultList += escapeHTML(text.substring(0, contextLimit * 2))
+        }
+        resultList += '…</p></li>'
+      })
+
+      resultsDiv.innerHTML = resultList
+    }
+
+    if (localStorage.getItem('theme') == 'dark') {
+      switchTheme('dark')
+    }
+
+    window.addEventListener('load', function() {
+      var el = document.getElementById("active-element")
+      if (el) {
+        el.scrollIntoView({block: "center"})
+      }
+    })
+
+    window.addEventListener('scroll', function() {
+      var menu = document.getElementById('menu')
+      if (window.scrollY < 120) {
+        menu.classList.remove('scrolled')
+      } else {
+        menu.classList.add('scrolled')
+      }
+    })
+
+    window.addEventListener('keydown', function(e) {
+      if (e.altKey) { return }
+      if (document.activeElement.tagName == 'INPUT') { return }
+      if (e.key == 'ArrowLeft') {
+        var prev = document.getElementById('prev-article')
+        if (prev) prev.click()
+      } else if (e.key == 'ArrowRight') {
+        var next = document.getElementById('next-article')
+        if (next) next.click()
+      }
+    })
+  </script>
+
+  {{- partial "katex.html" . -}}
+
+  {{ $title := print .Title " - " .Site.Title }}
+  {{ if .IsHome }}{{ $title = .Site.Title }}{{ end }}
+  <title>{{ $title }}</title>
+</head>
