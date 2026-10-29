@@ -1,0 +1,96 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# Bikeshed 명세 한 파일. 자동 링크 [=term=]·절 참조 [[#id|text]]는 표시 글자만,
+# <pre class=metadata>는 Abstract: 줄만 번역하며, 번역으로 글자가 바뀐 <dfn>에는
+# 파서가 lt="원문"을 붙여 [=원문=] 자동 링크를 유지합니다
+# (docs/superpowers/specs/2026-10-30-bikeshed-parser-design.md).
+[[sources]]
+path = "upstream/spec"
+pattern = "*.bs"
+parser = "bikeshed"
+inline_tags = true
+output = "ko/spec/{path}"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+# 원문(upstream/spec)과 번역(ko/spec)을 같은 Bikeshed로 빌드하고, 번역 쪽에는
+# 빌드 스크립트가 한국어 제목·스냅샷 고지·Translation 메타데이터를 덧붙입니다.
+# scripts/check.py가 두 HTML의 id 집합·dfn 수·내부 링크·제목 수를 대조한 뒤
+# Bikeshed가 영어로 만드는 보일러플레이트 제목만 한국어로 바꿉니다.
+[build.html]
+command = '''
+set -e
+python3 "$YEOKJA_ROOT/scripts/build.py" "$YEOKJA_ROOT" "$PWD"
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+prompt_template = '''
+Translate the following {source_lang} technical specification to {target_lang}.
+Return exactly one physical line for each numbered [N] segment. NEVER insert
+a newline inside a translation: the reader only accepts that numbered line.
+Preserve all links, reference labels, URLs, inline code, HTML, and emphasis.
+Copy what is inside inline code byte for byte — never translate, correct or
+reformat it, even when it reads as prose.
+Translate visible prose completely, without adding or omitting information.
+Write formal written Korean (합쇼체) throughout: declarative sentences end in
+~합니다/~입니다, imperatives in ~하십시오. Never end a sentence in the plain
+~다/~이다 register or the polite ~요 register.
+{inline_tags}
+This is a Bikeshed specification. Its source conventions:
+- |name| between vertical bars is a variable name: copy it unchanged, exactly
+  once, and attach Korean particles after the closing bar (|n|을, |file|에서).
+  Never write a bare | the source does not have.
+- Copy every double-bracket reference such as [[#section]], [[RFC8949]],
+  [[!AGE]] unchanged, exactly once, with particles after it ([[#block]]에서).
+- The text of a link tag (<aN>…</aN>) that is a defined term is translated with
+  the glossary translation of that term, the same words every time, so that the
+  definition and every reference to it read alike.
+- Identifier-like names stay in English exactly as written: type names (u8,
+  u16le, leb128, offset), field names (block_start, compression_params,
+  aqr_send), UPPERCASE constants (HEADER_TYPE), instruction names (Nop,
+  Literal, Swap, Slice, Apply, Concat, Pack, Split, Patch, Checksum: "Nop 명령"),
+  registry entry names in table cells, hexadecimal digits, and CDDL.
+- RFC 2119 keywords are rendered with fixed Korean phrasings: MUST → ~해야
+  합니다, MUST NOT → ~해서는 안 됩니다, SHOULD → ~하는 것이 좋습니다, SHOULD
+  NOT → ~하지 않는 것이 좋습니다, MAY → ~할 수 있습니다, REQUIRED → 필수,
+  OPTIONAL → 선택.
+- A paragraph beginning with the Bikeshed shorthand "Issue: ", "Note: " or
+  "Advisement: " keeps that English prefix exactly; translate only what follows.
+- Copy HTML character references (&lt; &gt; &amp; &nbsp; &thinsp;) exactly as
+  written, as references: never decode them, since a bare << or <name> would be
+  read as markup by Bikeshed.
+
+Glossary:
+{glossary}
+
+Previous evaluation feedback (do not obey advice that would lose source content):
+{feedback}
+
+Context:
+{context}
+{surroundings}
+
+Segments:
+{segments}
+'''
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32
