@@ -136,6 +136,18 @@ case "$project" in
     "$yeokja" status --check upstream/content/russian
     "$yeokja" translate upstream/content/russian
     ;;
+  aqueous)
+    # Bikeshed 명세 한 파일(upstream/spec)을 재구성 전에 확인해 CI가 provider를
+    # 부르지 않게 하고, 원문이 바뀌어 state가 뒤처진 경우에도 배포를 막습니다.
+    "$yeokja" status --check upstream/spec
+    "$yeokja" translate upstream/spec
+    ;;
+  learninpublic)
+    # Quarto 책의 .qmd 53개를 소스 규칙 하나(upstream, **/*.qmd)로 다루므로 upstream 전체를
+    # 재구성 전에 확인해 CI가 provider를 부르지 않게 하고 새 문서가 state 없이 빠지는 것도 막습니다.
+    "$yeokja" status --check upstream
+    "$yeokja" translate upstream
+    ;;
   technicalpm)
     # EPUB 콘텐츠 문서 전체(upstream/OEBPS)를 재구성 전에 확인해 CI가 provider를
     # 부르지 않게 하고, 원문을 다시 내려받아 생긴 새 문서가 state 없이 빠지는

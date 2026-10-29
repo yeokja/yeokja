@@ -163,6 +163,8 @@ overlay_site "dist-ila" "site" "ila"
 overlay_site "dist-principles-finance" "site" "principles-finance"
 overlay_site "dist-loss-data-analytics" "site" "loss-data-analytics"
 overlay_site "dist-algorithmica" "site" "algorithmica"
+overlay_site "dist-aqueous" "site" "aqueous"
+overlay_site "dist-learninpublic" "site" "learninpublic"
 
 prune_orphaned_site_entries
 
