@@ -14,6 +14,9 @@ spec-driven 워크플로(design spec → implementation plan)를 따릅니다. �
 프로젝트를 계획할 때는 먼저 `docs/translation-project-checklist.md`를 확인하세요
 — 반복되는 단계(서브모듈 고정, `yeokja.toml`, 용어집, README 출처 표기, Pages
 배포 배선)를 정리한 체크리스트입니다.
+번역 이슈 여러 건을 조사부터 배포·이슈 닫기까지 한 번에 처리할 때는
+`.claude/skills/translating-issues-in-batch/`(병렬 조사, 코어 결함 선행 수정, 공유 파일 통합,
+CI 함정)를 따릅니다.
 
 ## 번역 프로젝트 README의 출처 표기 규칙 (필수)
 
