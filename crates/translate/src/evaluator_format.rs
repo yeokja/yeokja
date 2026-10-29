@@ -9,7 +9,8 @@ impl TranslationEvaluator for FormatEvaluator {
         &self,
         context: &EvaluationContext,
     ) -> Result<EvaluationResult, EvaluationError> {
-        let mut issues = Self::markup_issues(context, context.markup == Markup::Markdown);
+        let mut issues =
+            Self::markup_issues(context, matches!(context.markup, Markup::Markdown | Markup::Bikeshed));
         issues.extend(parenthesis_issues(context));
         let passed = !issues.iter().any(|i| i.severity == IssueSeverity::Error);
         Ok(EvaluationResult { passed, issues })
@@ -66,7 +67,7 @@ impl FormatEvaluator {
         // A full reference link keeps the source text as its label so the
         // text can be translated, `[*단형화*][_monomorphized_]`. The label is
         // not rendered, and its marks are no emphasis of the translation.
-        let (visible_source, visible_translation) = if context.markup == Markup::Markdown {
+        let (visible_source, visible_translation) = if matches!(context.markup, Markup::Markdown | Markup::Bikeshed) {
             (
                 without_reference_labels(&context.source),
                 without_reference_labels(&context.translation),
@@ -241,7 +242,7 @@ impl FormatEvaluator {
                 continue;
             }
             let (in_source, in_translation) =
-                if mark == '_' && matches!(context.markup, Markup::Markdown | Markup::Verso) {
+                if mark == '_' && matches!(context.markup, Markup::Markdown | Markup::Bikeshed | Markup::Verso) {
                     (
                         markdown_emphasis_pairs(&visible_source),
                         markdown_emphasis_pairs(&visible_translation),
@@ -931,7 +932,7 @@ fn backtick_spans(chars: &[char], markup: Markup) -> BacktickSpans {
             continue;
         };
         let code = match markup {
-            Markup::Markdown | Markup::MkDocs | Markup::RMarkdown => i == 0 || chars[i - 1] != '}',
+            Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Bikeshed => i == 0 || chars[i - 1] != '}',
             Markup::Asciidoc => true,
             Markup::Rst => literal,
             Markup::Verso | Markup::Latex | Markup::Xhtml | Markup::Plain => false,
@@ -1144,7 +1145,7 @@ fn parentheses_balance(text: &str, markup: Markup) -> bool {
 fn constrained_marks(markup: Markup) -> &'static [(char, &'static str)] {
     match markup {
         Markup::Asciidoc => &[('`', "``code``"), ('*', "**bold**"), ('_', "__italic__")],
-        Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Verso => &[('_', "*italic*")],
+        Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Bikeshed | Markup::Verso => &[('_', "*italic*")],
         // reStructuredText pairs are checked by `rst_broken_pairs`: every one
         // of its marker forms is constrained, so the doubled-form advice these
         // entries carry would be wrong there.

@@ -77,7 +77,7 @@ impl TranslationEvaluator for LinkEvaluator {
         // read as "Fetch" — leaves no URL behind to miss. Neither does dropping
         // the brackets of a reference link whose label is code, which resolves
         // against a definition elsewhere on the page and cannot be translated.
-        if matches!(context.markup, Markup::Markdown | Markup::MkDocs | Markup::RMarkdown) {
+        if matches!(context.markup, Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Bikeshed) {
             let mut left = markdown_destinations(&context.translation);
             for destination in markdown_destinations(&context.source) {
                 match left.iter().position(|d| *d == destination) {

@@ -154,12 +154,12 @@ pub fn tagify(source: &str, vocab: Vocabulary, position: Position, counter: &mut
         for c in decoded.chars() {
             escape(c, &mut text);
         }
-        return Ok(Tagged { source: source.to_string(), text, tags: Vec::new(), position, dialect });
+        return Ok(Tagged { source: source.to_string(), text, tags: Vec::new(), position, dialect, references: Vec::new() });
     }
     let nodes = xml::parse(source).map_err(|e| Untaggable(e.to_string()))?;
     let mut tagger = Tagger { vocab, source, text, tags: Vec::new(), counter };
     tagger.nodes(&nodes)?;
-    Ok(Tagged { source: source.to_string(), text: tagger.text, tags: tagger.tags, position, dialect })
+    Ok(Tagged { source: source.to_string(), text: tagger.text, tags: tagger.tags, position, dialect, references: Vec::new() })
 }
 
 /// Text written into the document: `&`, `<`, `>` escaped, a no-break space

@@ -65,13 +65,15 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
     match markup {
         Markup::Verso => without_verso_role_headers(source),
         Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
-        Markup::Markdown | Markup::MkDocs | Markup::RMarkdown
+        Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Bikeshed
             if is_external_link_only(source) || is_image_only(source) || is_display_math_only(source) =>
         {
             String::new()
         }
         // `\text{loss}` inside a formula is the formula, copied verbatim.
         Markup::RMarkdown => yeokja_parser_rmarkdown::mask_math(source),
+        // `|node|` is a variable name, kept as written in the translation.
+        Markup::Bikeshed => crate::evaluator_bikeshed::without_variables(source),
         _ => source.to_string(),
     }
 }
@@ -281,6 +283,23 @@ translation = "예"
         let result = GlossaryEvaluator.evaluate(&context("예시는 다음과 같습니다:")).await.unwrap();
         assert!(!result.passed);
         assert!(result.issues[0].message.contains("exactly '예'"));
+    }
+
+    #[tokio::test]
+    async fn bikeshed_variables_are_not_glossary_prose() {
+        let mut ctx = make_context(
+            "Let |node| be the node of |entry|, unless `|node|` is written.",
+            "|node|를 |entry|의 노드라 하자, `|node|`라고 쓰지 않는 한.",
+            vec![("node", "노드"), ("entry", "항목")],
+        );
+        ctx.markup = Markup::Bikeshed;
+        let result = GlossaryEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+        ctx.translation = "|node|를 |entry|의 정점이라 하자.".to_string();
+        let result = GlossaryEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(!result.passed, "the prose word `node` still needs the glossary");
+        assert_eq!(result.issues.len(), 1);
+        assert!(result.issues[0].message.contains("'node'"));
     }
 
     #[tokio::test]

@@ -50,19 +50,36 @@ use yeokja_parser_utils::{apply_splices, join_segments_with_translations, resolv
 /// The R Markdown parser. `captures` are the source's
 /// `inline_code_captures`: regular expressions over the content of an inline
 /// code span whose capture groups are offered as literal strings.
+/// `front_matter_keys` are the source's `front_matter_keys`: dotted key paths
+/// (`summary.sentence`) whose front matter values are offered as paragraphs,
+/// each split into its segments.
 #[derive(Default)]
 pub struct RmarkdownParser {
     captures: Vec<Regex>,
+    front_matter_keys: Vec<Vec<String>>,
 }
 
 impl RmarkdownParser {
     pub fn new(captures: Vec<Regex>) -> Self {
-        Self { captures }
+        Self { captures, front_matter_keys: Vec::new() }
     }
 
     /// A parser for the given capture patterns, or the first pattern's error.
     pub fn with_patterns<S: AsRef<str>>(patterns: &[S]) -> Result<Self, regex::Error> {
-        patterns.iter().map(|p| Regex::new(p.as_ref())).collect::<Result<Vec<_>, _>>().map(Self::new)
+        Self::configured::<S, &str>(patterns, &[])
+    }
+
+    /// A parser for the given capture patterns and front matter key paths,
+    /// or the first pattern's error. An empty path or path segment is
+    /// skipped; the config check rejects those before they get here.
+    pub fn configured<S: AsRef<str>, K: AsRef<str>>(patterns: &[S], keys: &[K]) -> Result<Self, regex::Error> {
+        let captures = patterns.iter().map(|p| Regex::new(p.as_ref())).collect::<Result<Vec<_>, _>>()?;
+        let front_matter_keys = keys
+            .iter()
+            .map(|k| k.as_ref().split('.').map(str::to_string).collect::<Vec<_>>())
+            .filter(|path| !path.is_empty() && path.iter().all(|k| !k.is_empty()))
+            .collect();
+        Ok(Self { captures, front_matter_keys })
     }
 }
 
@@ -72,7 +89,7 @@ impl DocumentParser for RmarkdownParser {
     }
 
     fn parse(&self, source: &str) -> Document {
-        let layout = scan(source);
+        let layout = scan(source, &self.front_matter_keys);
         let shadow = String::from_utf8(layout.shadow).expect("shadow edits are ASCII over whole characters");
         let doc = parse_with(&shadow, source, true, layout.extras);
         refine(doc, &layout.regions, &self.captures)
@@ -552,65 +569,144 @@ fn front_matter(source: &str) -> Option<Range<usize>> {
 const YAML_TEXT_KEYS: &[(&str, BlockType)] =
     &[("title", BlockType::Heading), ("subtitle", BlockType::Heading), ("description", BlockType::Paragraph)];
 
-/// The value ranges of the visible-text keys of the front matter, without
-/// their quotes. A quoted value may run over several lines; a plain one takes
-/// the following more-indented lines along.
-fn yaml_values(source: &str, front: Range<usize>) -> Vec<(Range<usize>, BlockType)> {
-    let b = source.as_bytes();
-    let all = lines(&source[..front.end]);
-    let mut out = Vec::new();
-    for (k, line) in all.iter().enumerate() {
-        let text = &source[line.clone()];
-        let Some(&(key, block_type)) = YAML_TEXT_KEYS.iter().find(|(key, _)| {
-            text.strip_prefix(key).is_some_and(|rest| rest.starts_with(':'))
-        }) else {
-            continue;
-        };
-        let after = line.start + key.len() + 1;
-        let lead = source[after..line.end].len() - source[after..line.end].trim_start().len();
-        let start = after + lead;
-        if start >= line.end {
-            continue;
+/// A `key:` mapping entry of the front matter: the line's indentation, its
+/// key (which may be quoted: `"og:title":`) and the offset of the colon.
+fn yaml_key(line: &str) -> Option<(usize, &str, usize)> {
+    let indent = line.len() - line.trim_start_matches(' ').len();
+    let rest = &line[indent..];
+    if rest.starts_with(['#', '-', ' ', '\t']) || rest.is_empty() {
+        return None;
+    }
+    let (key, colon) = match rest.as_bytes()[0] {
+        q @ (b'"' | b'\'') => {
+            let close = rest[1..].find(q as char)? + 1;
+            (&rest[1..close], close + 1)
         }
-        let value = match b[start] {
-            q @ (b'"' | b'\'') => {
-                let mut j = start + 1;
-                let mut close = None;
-                while j < front.end {
-                    if q == b'"' && b[j] == b'\\' {
+        _ => {
+            let end = rest.find(':')?;
+            (rest[..end].trim_end(), end)
+        }
+    };
+    let after = rest[colon..].strip_prefix(':')?;
+    (after.is_empty() || after.starts_with([' ', '\t'])).then_some((indent, key, indent + colon))
+}
+
+/// The value of the mapping entry on line `k` of `all`, as a range without
+/// its quotes, or nothing when the entry has no value to translate: a block
+/// scalar (`|`, `>`), an alias (`*name`), or an empty value. An `&anchor`
+/// before the value stays outside the range. A quoted value may run over
+/// several lines; a plain one takes the following more-indented lines along.
+fn yaml_scalar(source: &str, front: &Range<usize>, all: &[Range<usize>], k: usize) -> Option<Range<usize>> {
+    let b = source.as_bytes();
+    let line = &all[k];
+    let text = &source[line.clone()];
+    let (indent, _, colon) = yaml_key(text)?;
+    let after_colon = &text[colon + 1..];
+    let mut start = line.start + colon + 1 + (after_colon.len() - after_colon.trim_start().len());
+    if b.get(start) == Some(&b'&') {
+        let name_end = source[start..line.end].find([' ', '\t']).map_or(line.end, |n| start + n);
+        let rest = &source[name_end..line.end];
+        start = name_end + (rest.len() - rest.trim_start().len());
+    }
+    if start >= line.end {
+        return None;
+    }
+    let value = match b[start] {
+        q @ (b'"' | b'\'') => {
+            let mut j = start + 1;
+            let mut close = None;
+            while j < front.end {
+                if q == b'"' && b[j] == b'\\' {
+                    j += 2;
+                    continue;
+                }
+                if b[j] == q {
+                    if q == b'\'' && b.get(j + 1) == Some(&b'\'') {
                         j += 2;
                         continue;
                     }
-                    if b[j] == q {
-                        if q == b'\'' && b.get(j + 1) == Some(&b'\'') {
-                            j += 2;
-                            continue;
-                        }
-                        close = Some(j);
-                        break;
-                    }
-                    j += 1;
+                    close = Some(j);
+                    break;
                 }
-                let Some(close) = close else { continue };
-                start + 1..close
+                j += 1;
             }
-            b'|' | b'>' => continue,
-            _ => {
-                let mut end = line.start + text.trim_end().len();
-                for next in &all[k + 1..] {
-                    let t = &source[next.clone()];
-                    if t.trim().is_empty() || !t.starts_with([' ', '\t']) {
-                        break;
-                    }
-                    end = next.start + t.trim_end().len();
+            start + 1..close?
+        }
+        b'|' | b'>' | b'*' => return None,
+        _ => {
+            let mut end = line.start + text.trim_end().len();
+            for next in &all[k + 1..] {
+                let t = &source[next.clone()];
+                if t.trim().is_empty() || t.len() - t.trim_start().len() <= indent {
+                    break;
                 }
-                start..end
+                end = next.start + t.trim_end().len();
             }
-        };
-        if !source[value.clone()].trim().is_empty() {
+            start..end
+        }
+    };
+    (!source[value.clone()].trim().is_empty()).then_some(value)
+}
+
+/// The line of `all` that a dotted key path names: each segment is a `key:`
+/// line nested one level deeper than the previous one, found before the
+/// previous mapping ends (a line indented no deeper than its key).
+fn yaml_path_line(source: &str, all: &[Range<usize>], path: &[String]) -> Option<usize> {
+    let mut from = 0;
+    let mut parent: Option<usize> = None;
+    let mut found = None;
+    for segment in path {
+        let mut level = None;
+        found = None;
+        for (k, line) in all.iter().enumerate().skip(from) {
+            let text = &source[line.clone()];
+            if text.trim().is_empty() || text.trim_start().starts_with('#') {
+                continue;
+            }
+            let indent = text.len() - text.trim_start_matches(' ').len();
+            if parent.is_some_and(|p| indent <= p) {
+                break;
+            }
+            if level.is_none() {
+                level = Some(indent);
+            }
+            if Some(indent) != level {
+                continue;
+            }
+            if yaml_key(text).is_some_and(|(_, key, _)| key == segment) {
+                found = Some((k, indent));
+                break;
+            }
+        }
+        let (k, indent) = found?;
+        from = k + 1;
+        parent = Some(indent);
+    }
+    found.map(|(k, _)| k)
+}
+
+/// The value ranges of the visible-text keys of the front matter, without
+/// their quotes: the built-in top-level keys, then the configured key paths
+/// as paragraphs. A value is offered once, by the first rule that finds it.
+fn yaml_values(source: &str, front: Range<usize>, keys: &[Vec<String>]) -> Vec<(Range<usize>, BlockType)> {
+    let all = lines(&source[..front.end]);
+    let mut out: Vec<(Range<usize>, BlockType)> = Vec::new();
+    for (k, line) in all.iter().enumerate() {
+        let Some((0, key, _)) = yaml_key(&source[line.clone()]) else { continue };
+        let Some(&(_, block_type)) = YAML_TEXT_KEYS.iter().find(|(name, _)| *name == key) else { continue };
+        if let Some(value) = yaml_scalar(source, &front, &all, k) {
             out.push((value, block_type));
         }
     }
+    for path in keys {
+        let Some(k) = yaml_path_line(source, &all, path) else { continue };
+        if let Some(value) = yaml_scalar(source, &front, &all, k)
+            && !out.iter().any(|(r, _)| *r == value)
+        {
+            out.push((value, BlockType::Paragraph));
+        }
+    }
+    out.sort_by_key(|(r, _)| r.start);
     out
 }
 
@@ -704,12 +800,12 @@ fn chunk_captions(source: &str, opener: Range<usize>) -> Vec<Range<usize>> {
     out
 }
 
-fn scan(source: &str) -> Layout {
+fn scan(source: &str, front_matter_keys: &[Vec<String>]) -> Layout {
     let mut shadow = source.as_bytes().to_vec();
     let mut extras = Vec::new();
     let mut body = 0;
     if let Some(front) = front_matter(source) {
-        for (value, block_type) in yaml_values(source, front.clone()) {
+        for (value, block_type) in yaml_values(source, front.clone(), front_matter_keys) {
             extras.push(Extra { range: value, block_type, literal: true });
         }
         fill(&mut shadow, front.clone(), b' ');
@@ -903,12 +999,30 @@ fn is_display(formula: &str) -> bool {
     ["$$", "\\[", "\\begin"].iter().any(|open| formula.starts_with(open))
 }
 
-/// Inline R code (`` `r SolnBegin()` ``) and display math, which a block
-/// may open or close with and which are no words of its sentences.
+/// The attribute block Pandoc's `link_attributes` reads after a captioned
+/// image (`![cap](x.png){fig-alt="…"}`), as its range after the `)`. An
+/// image without a caption has no prose of its own, so its attributes stay
+/// with it.
+static IMAGE_ATTRS: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r#"!\[[^\[\]\n]+\]\([^()\n]*\)(\{\s*(?:(?:#[^\s{}]+|\.[^\s{}]+|-|[\w.-]+=(?:"[^"]*"|'[^']*'|[^\s"'{}]+))\s*)+\})"#,
+    )
+    .expect("attribute pattern")
+});
+
+/// Inline R code (`` `r SolnBegin()` ``), display math and the attribute
+/// block of a captioned image, which a block may open or close with and
+/// which are no words of its sentences.
 fn edge_atoms(source: &str, regions: &Regions) -> Vec<Range<usize>> {
     let mut atoms: Vec<Range<usize>> =
         regions.code_spans.iter().filter(|s| is_inline_r(&source[(*s).clone()])).cloned().collect();
     atoms.extend(regions.math.iter().filter(|m| is_display(&source[(*m).clone()])).cloned());
+    let hidden = |at: usize| {
+        regions.code_spans.iter().chain(&regions.math).chain(&regions.comments).any(|r| r.contains(&at))
+    };
+    atoms.extend(
+        IMAGE_ATTRS.captures_iter(source).map(|c| c.get(1).expect("group").range()).filter(|r| !hidden(r.start)),
+    );
     atoms
 }
 

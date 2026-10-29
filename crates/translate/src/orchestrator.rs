@@ -514,6 +514,7 @@ pub fn evaluators_for(
     let mut evaluators: Vec<Box<dyn TranslationEvaluator>> = vec![
         Box::new(GlossaryEvaluator),
         Box::new(LinkEvaluator),
+        Box::new(crate::evaluator_bikeshed::BikeshedEvaluator),
         format,
         Box::new(EndingEvaluator),
     ];

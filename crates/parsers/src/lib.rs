@@ -14,10 +14,13 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
     if let Some(source) = config.source_for(file_path) {
         if source.parser == "rmarkdown" {
             // The config check compiled these patterns already; a pattern
-            // that still fails leaves the source without captures.
+            // that still fails leaves the source without captures or keys.
             return Box::new(
-                yeokja_parser_rmarkdown::RmarkdownParser::with_patterns(&source.inline_code_captures)
-                    .unwrap_or_default(),
+                yeokja_parser_rmarkdown::RmarkdownParser::configured(
+                    &source.inline_code_captures,
+                    &source.front_matter_keys,
+                )
+                .unwrap_or_default(),
             );
         }
         return parser_by_name(&source.parser, file_path, source.parser_manifest.as_deref());
@@ -25,6 +28,7 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
     match file_path.extension().and_then(|e| e.to_str()) {
         Some("Rmd" | "rmd") => Box::new(yeokja_parser_rmarkdown::RmarkdownParser::default()),
         Some("csv") => Box::new(yeokja_parser_csv::CsvParser),
+        Some("bs") => Box::new(yeokja_parser_bikeshed::BikeshedParser),
         Some("adoc" | "asciidoc" | "asc") => Box::new(yeokja_parser_asciidoc::AsciidocParser),
         Some("rst" | "rest") => Box::new(yeokja_parser_rst::RstParser),
         Some("tex" | "latex") => Box::new(yeokja_parser_latex::LatexParser),
@@ -63,6 +67,7 @@ fn parser_by_name(
         "myst" => Box::new(yeokja_parser_myst::MystParser),
         "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser),
         "rmarkdown" => Box::new(yeokja_parser_rmarkdown::RmarkdownParser::default()),
+        "bikeshed" => Box::new(yeokja_parser_bikeshed::BikeshedParser),
         "csv" => Box::new(yeokja_parser_csv::CsvParser),
         "xhtml" => Box::new(yeokja_parser_xhtml::XhtmlParser),
         "cnxml" => Box::new(yeokja_parser_xhtml::CnxmlParser),
@@ -330,6 +335,7 @@ pattern = "**/*.Rmd"
 parser = "rmarkdown"
 output = "ko/{path}"
 inline_code_captures = ["^r HideExample\\('[^']*',\\s*'(?P<t>[^']+)'"]
+front_matter_keys = ["summary.sentence"]
 
 [provider]
 type = "openai_compatible"
@@ -342,6 +348,10 @@ model = "gpt-4o"
         let segments = doc.translatable_segments();
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].source, "Show Example Solution");
+        let doc = parser.parse("---\nsummary:\n  sentence: &s \"One line.\"\ndescription: *s\n---\n");
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].source, "One line.");
     }
 
     #[test]

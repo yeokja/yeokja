@@ -1,0 +1,161 @@
+<h1>Aqueous Archive Format</h1>
+<pre class=metadata>
+Shortname: aqueous
+Status: LD
+Text Macro: LONGSTATUS Editor's Draft
+Boilerplate: omit feedback-header, omit conformance
+Editor: Kang Seonghoon, https://mearie.org/
+Repository: https://github.com/lifthrasiir/aqueous/
+Abstract: This specification defines the Aqueous archive format, a compressed archive format designed for efficient storage and lossless recompression.
+Markup Shorthands: markdown yes
+</pre>
+
+<style>
+td:has(+td>a[href="#type-offset"])>dfn {
+  &::before { content: "("; }
+  &::after { content: ")"; }
+}
+</style>
+
+<pre class=link-defaults>
+spec:infra; type:dfn; text:list
+</pre>
+
+<pre class=anchors>
+urlPrefix: https://www.rfc-editor.org/rfc/rfc9581.html; spec: RFC9581; type: cddl-type
+    text: etime; url: #section-6
+</pre>
+
+<h2 id=introduction>
+Introduction</h2>
+
+<em>This section is non-normative.</em>
+
+The Aqueous archive format stores a directory tree, or a single file, as a sequence of blocks.
+This section gives an overview of how the parts of the format fit together;
+each paragraph points to the chapter defining the part it describes.
+
+An archive is a header, a sequence of blocks and a footer ([[#container]]).
+Every block starts with its type and its size, so a decompressor can skip any block without understanding it,
+and the type tells whether the block can be ignored when it is not understood ([[#block-types]]).
+
+* The data **type** of the field (e.g. [=leb128=], [=u8=][[=block/size=]]), with an optional constraint.
+* Whether the [=mirror blocks=] ([[#mirror-block|mirror blocks]]) follow.
+
+<table class=data dfn-for=const>
+  <thead>
+    <tr>
+      <th>Name
+      <th>Value
+  </thead>
+  <tbody>
+    <tr>
+      <td><dfn noexport>HEADER_TYPE</dfn>
+      <td>278<sub>16</sub>
+    <tr>
+      <td><dfn noexport>FOOTER_MAGIC</dfn>
+      <td>(FD&nbsp;AA&nbsp;AE&nbsp;DE&nbsp;85&nbsp;12)<sub>16</sub>
+</table>
+
+<table class=data>
+  <thead>
+    <tr>
+      <th>Name
+      <th>Type
+      <th>Conditions
+  </thead>
+  <tbody>
+    <tr>
+      <td><dfn>block_start</dfn>
+      <td>[=offset=]
+      <td>
+    <tr>
+      <td><dfn>type</dfn>
+      <td>[=leb128=] ∉ {[=FOOTER_TYPE=], [=OVERLAY_FOOTER_TYPE=]}
+      <td>
+    <tr>
+      <td><dfn>module_offsets</dfn>
+      <td>[=u=]([=meta/previous_metadata_offset=])[[=meta/num_modules=]]
+    <tr>
+      <td><dfn>entry_parents</dfn>
+      <td>[=u=]([=meta/num_directories=])[[=meta/num_directories=] + [=meta/num_files=] + [=meta/num_specials=] - 1]
+</table>
+
+A header magic and a footer magic <dfn>match</dfn> when they are
+[=const/HEADER_MAGIC=] and [=const/FOOTER_MAGIC=], or [=const/OVERLAY_HEADER_MAGIC=] and [=const/OVERLAY_FOOTER_MAGIC=].
+
+To <dfn>locate an archive</dfn> in a [=byte sequence=] |file|:
+
+<ol class=algorithm>
+    1. If |file| starts with [=const/ENCRYPTED_HEADER_MAGIC=] or [=const/ENCRYPTED_MIRRORED_HEADER_MAGIC=], return |file|.
+    2. Let |back| be null.
+        Let |n| be the last 2 bytes of |file| as [=u16le=], and let |f| be the length of |file| − |n| − 10.
+        If |f| ≥ 0, the bytes of |file| from |f| are [=const/FOOTER_MAGIC=] or [=const/OVERLAY_FOOTER_MAGIC=] followed by |n| as [=u16le=],
+        and the bytes of |file| from |h| are the header magic [=match|matching=] that footer magic, set |back| to |h|.
+    3. If |file| starts with [=const/HEADER_MAGIC=] or [=const/OVERLAY_HEADER_MAGIC=]:
+        1. If |back| is 0, return |file|.
+        2. Read blocks from the offset 6 by the generic structure ([[#block]]),
+            with [=block/data=] of every block taken as a [=byte sequence=] without parsing,
+            until the bytes at the current offset |e| start with [=const/FOOTER_MAGIC=] or [=const/OVERLAY_FOOTER_MAGIC=].
+    4. If |back| is not null, return the bytes of |file| from |back|.
+    5. Return failure.
+</ol>
+
+The located archive is then [=interpret an archive|interpreted=], which may still fail.
+A decompressor SHOULD warn the user when |file| has bytes outside the located archive.
+
+<div class=note>
+  The checksum is optional for leaf blocks to allow the following:
+
+    * An uncompressed leaf block without a checksum holds the file content verbatim and nothing derived from it,
+        so the file can be memory-mapped from the archive and modified in place.
+    * A compressed leaf block without a checksum can be made from an existing Zstandard frame by copying its Zstandard blocks,
+        without decompressing them to compute the checksum over the decoded data.
+
+  Neither is a concern for long-term preservation, where the [=archival profile=] requires the checksum.
+</div>
+
+<h3 id=profiles>
+Archival profile</h3>
+
+The optional metadata is described by the following CDDL [[RFC8610]] definitions:
+
+<pre class=cddl>
+aqr-opt-metadata = {
+  aqr-archive-comment
+  ? &(entry-extras: -2) => [* aqr-entry-extra / null]  ; Indexed by entry numbers, starting from the root directory
+
+    * $$aqr-opt-metadata-member  ; For future extensions
+}
+
+$$aqr-opt-metadata-member = ()  ; No extension is defined by this specification
+</pre>
+
+The following are possible encodings, depending on the source: `[121(848878577)]` and `[=not a link=]`.
+
+<dl>
+<dt>Type name</dt>
+<dd>application</dd>
+<dt>Security considerations</dt>
+<dd>See [[#security-considerations]].</dd>
+<dt>Interoperability considerations</dt>
+<dd>
+  <p>An unencrypted archive may be preceded and followed by arbitrary bytes, e.g. a self-extracting executable stub;
+  its extent is determined by [=archive/header_magic=] and the footer ([[#locating-an-archive]]).
+  An [=overlay archive=] has its own media type `application/aqo` ([[#overlay-media-type]]);
+  see also [[!AGE]] and [[#encrypted-archive|encrypted archive]].
+</dd>
+</dl>
+
+    Four spaces after a blank line outside any element is code.
+
+<div class=note>
+  Some extra fields are preserved only in particular cases.
+  The local and central header versions are considered separately.
+
+    * 0x756e (ASi UNIX) is absorbed like 0x000d:
+        the permission bits of its mode go to `unix-mode`, the user and group IDs go to `unix-uid` and `unix-gid`,
+        and the symbolic link target goes to a [=link node=].
+    * 0x4b46 (FWKCS MD5) and 0x1a51 (minizip hash) hold digests of the uncompressed content.
+        They are only preserved when they match the actual content.
+</div>

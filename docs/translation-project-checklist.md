@@ -22,7 +22,11 @@
   열을 고릅니다. bookdown/R Markdown은 `parser = "rmarkdown"`이고, 인라인 R 인자
   (`` `r HideExample('1.1', 'Show Example Solution')` ``)는 `inline_code_captures`
   정규식의 캡처 그룹만 번역합니다(설계는
-  `docs/superpowers/specs/2026-10-25-rmarkdown-parser-design.md`).
+  `docs/superpowers/specs/2026-10-25-rmarkdown-parser-design.md`). Bikeshed 명세
+  (`Markup Shorthands: markdown yes`)는 `parser = "bikeshed"`이고 자동 링크
+  `[=term=]`·절 참조 `[[#id|text]]`는 표시 글자만, `<pre class=metadata>`는
+  `Abstract:`만 번역하며, 바뀐 `<dfn>`에는 `lt=`가 붙습니다(설계는
+  `docs/superpowers/specs/2026-10-30-bikeshed-parser-design.md`).
 - `[provider]`에 실제로 쓸 provider/model을 명시합니다. 나중에 provider를
   다른 프로젝트와 통일하려고 바꾸더라도, **이미 번역된 세그먼트는 재번역되지
   않는 한 원래 모델의 결과물로 남는다**는 점을 감안해 README 출처 표기 시점에
@@ -31,7 +35,7 @@
   `docs/superpowers/specs/2026-09-22-inline-tag-transport-design.md`와 같은 날짜의 1b
   문서)을 켭니다. 켤 수 있는 소스: mdBook처럼 `$` 수식이 없는 CommonMark 렌더러로
   빌드하는 `markdown` 소스, `dollarmath`·`amsmath`를 켜지 않은 `myst` 소스, remark-math
-  없이 빌드하는 `mdx` 소스, `rmarkdown` 소스(수식·참조·인용은 원자로 간다). 강조·링크·MyST 역할의 레이블은 태그로 주고받고 문법은
+  없이 빌드하는 `mdx` 소스, `rmarkdown` 소스(수식·참조·인용은 원자로 간다), `bikeshed` 소스(자동 링크는 링크 태그, `[[…]]`·`|var|`는 글자). 강조·링크·MyST 역할의 레이블은 태그로 주고받고 문법은
   직렬화기가 쓰므로 조사 앞 강조·코드 스팬 변경·링크 손실 같은 결함이 구조적으로 생기지
   않습니다. XML 어휘 파서(`xhtml`, `cnxml`, `pretext`;
   `docs/superpowers/specs/2026-10-25-xml-vocabulary-profiles-design.md`)는 설정 없이

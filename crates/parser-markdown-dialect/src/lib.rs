@@ -24,6 +24,18 @@ pub struct Extra {
     pub literal: bool,
 }
 
+/// How a flavour reads its source.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ParseOptions {
+    /// Preserve explicit heading ids outside translated title spans.
+    pub preserve_heading_ids: bool,
+    /// Keep phrasing-level HTML tags (`<sub>`, `<dfn>`, `<a>`, …) inside the
+    /// prose of an HTML block instead of cutting the prose at every tag, so
+    /// that a Markdown list item holding one is read whole. Off by default:
+    /// it changes the segments of a document that writes such tags.
+    pub inline_html: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Frame {
     Heading(u8),
@@ -41,8 +53,7 @@ struct ParseState<'a> {
     /// it, so a flavour may parse a shadow of the source as long as the two
     /// have the same length.
     source: &'a str,
-    /// Preserve explicit heading ids outside translated title spans.
-    preserve_heading_ids: bool,
+    options: ParseOptions,
     /// Flavour-found blocks not yet emitted, in document order.
     extras: VecDeque<Extra>,
     sections: Vec<Section>,
@@ -170,7 +181,7 @@ impl ParseState<'_> {
     /// Close the current inline run and emit it as a translatable block.
     fn flush_run(&mut self) {
         let Some(mut span) = self.run.take() else { return };
-        if self.preserve_heading_ids && matches!(self.stack.last(), Some(Frame::Heading(_))) {
+        if self.options.preserve_heading_ids && matches!(self.stack.last(), Some(Frame::Heading(_))) {
             span = self.strip_heading_id(span);
         }
         let raw = &self.source[span.clone()];
@@ -202,21 +213,11 @@ impl ParseState<'_> {
     fn push_html_block(&mut self, range: Range<usize>) {
         let raw = &self.source[range.clone()];
         let mut found_prose = false;
-        for prose in html::prose_ranges(raw) {
-            let untrimmed = &raw[prose.clone()];
-            let text = untrimmed.trim();
-            let leading = untrimmed.len() - untrimmed.trim_start().len();
-            let nested = parse_events(text, text, self.preserve_heading_ids, Vec::new(), false);
-            for block in nested.sections.into_iter().flat_map(|section| section.blocks) {
-                if let Some(span) = block.span {
-                    let offset = range.start + prose.start + leading;
-                    self.push_extra(Extra {
-                        range: offset + span.start..offset + span.end,
-                        block_type: block.block_type,
-                        literal: false,
-                    });
-                    found_prose = true;
-                }
+        for prose in html::prose_ranges(raw, self.options.inline_html) {
+            let prose = range.start + prose.start..range.start + prose.end;
+            for extra in prose_extras_with(self.source, prose, self.options) {
+                self.push_extra(extra);
+                found_prose = true;
             }
         }
         if !found_prose {
@@ -273,7 +274,99 @@ fn heading_level_num(level: HeadingLevel) -> u8 {
 /// `source`, which must have the same length (a flavour blanks the regions
 /// it handles itself and lists them as `extras`).
 pub fn parse_with(parsed: &str, source: &str, preserve_heading_ids: bool, extras: Vec<Extra>) -> Document {
-    parse_events(parsed, source, preserve_heading_ids, extras, true)
+    parse_with_options(parsed, source, ParseOptions { preserve_heading_ids, inline_html: false }, extras)
+}
+
+/// [`parse_with`] with every option spelled out.
+pub fn parse_with_options(parsed: &str, source: &str, options: ParseOptions, extras: Vec<Extra>) -> Document {
+    parse_events(parsed, source, options, extras, true)
+}
+
+/// The prose of `source[range]` read as Markdown on its own, as the blocks a
+/// flavour hands to [`parse_with`] as extras: ranges index `source`.
+///
+/// Prose inside an HTML element is usually indented as a whole. Read with
+/// that indentation, a line four spaces deeper than the first is an indented
+/// code block, so the common indentation of the non-blank lines is removed
+/// from every line first (the first prose line loses all of its leading
+/// whitespace, as before), and the spans found are mapped back through a
+/// per-line offset table. A span that crosses lines keeps the continuation
+/// lines' indentation in the source bytes it covers; `normalize_inline_text`
+/// folds it away in the segment text.
+pub fn prose_extras(source: &str, range: Range<usize>, preserve_heading_ids: bool) -> Vec<Extra> {
+    prose_extras_with(source, range, ParseOptions { preserve_heading_ids, inline_html: false })
+}
+
+/// [`prose_extras`] with every option spelled out.
+pub fn prose_extras_with(source: &str, range: Range<usize>, options: ParseOptions) -> Vec<Extra> {
+    let dedented = dedent(&source[range.clone()]);
+    let nested = parse_events(&dedented.text, &dedented.text, options, Vec::new(), false);
+    nested
+        .sections
+        .into_iter()
+        .flat_map(|section| section.blocks)
+        .filter_map(|block| {
+            let span = block.span?;
+            Some(Extra {
+                range: range.start + dedented.source_offset(span.start)..range.start + dedented.source_offset(span.end),
+                block_type: block.block_type,
+                literal: false,
+            })
+        })
+        .collect()
+}
+
+struct Dedented {
+    text: String,
+    /// `(start in text, start in the original)` of each line kept.
+    lines: Vec<(usize, usize)>,
+}
+
+impl Dedented {
+    fn source_offset(&self, at: usize) -> usize {
+        let i = self.lines.partition_point(|&(text_start, _)| text_start <= at).saturating_sub(1);
+        let (text_start, source_start) = self.lines[i];
+        source_start + (at - text_start)
+    }
+}
+
+/// `raw` without the common leading whitespace of its non-blank lines, the
+/// leading blank lines, all leading whitespace of the first prose line and
+/// trailing whitespace.
+fn dedent(raw: &str) -> Dedented {
+    let indent_of = |line: &str| line.len() - line.trim_start().len();
+    let common = raw
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(indent_of)
+        .min()
+        .unwrap_or(0);
+    let mut text = String::with_capacity(raw.len());
+    let mut lines = Vec::new();
+    let mut first = true;
+    let mut source_start = 0;
+    for line in raw.split_inclusive('\n') {
+        let is_blank = line.trim().is_empty();
+        if first && is_blank {
+            source_start += line.len();
+            continue;
+        }
+        let strip = if first { indent_of(line) } else { common.min(indent_of(line)) };
+        first = false;
+        lines.push((text.len(), source_start + strip));
+        text.push_str(&line[strip..]);
+        source_start += line.len();
+    }
+    let trimmed = text.trim_end().len();
+    text.truncate(trimmed);
+    Dedented { text, lines }
+}
+
+/// The byte ranges of `source` that a Markdown parser treats as raw HTML
+/// to keep: literal elements (`<pre>`, `<code>`, `<style>`, …) with their
+/// content, comments, CDATA sections and processing instructions.
+pub fn html_opaque_ranges(source: &str) -> Vec<Range<usize>> {
+    html::opaque_ranges(source, options())
 }
 
 /// The raw HTML blocks of `parsed`, as pulldown-cmark cuts them: from the
@@ -283,6 +376,12 @@ pub fn html_block_ranges(parsed: &str) -> Vec<Range<usize>> {
         .into_offset_iter()
         .filter_map(|(event, range)| matches!(event, Event::Start(Tag::HtmlBlock)).then_some(range))
         .collect()
+}
+
+/// The pulldown-cmark options every Markdown-family parser reads with, for a
+/// flavour that inspects the event stream itself.
+pub fn markdown_options() -> Options {
+    options()
 }
 
 fn options() -> Options {
@@ -299,13 +398,13 @@ fn options() -> Options {
     options
 }
 
-fn parse_events(parsed: &str, source: &str, preserve_heading_ids: bool, extras: Vec<Extra>, translate_html: bool) -> Document {
+fn parse_events(parsed: &str, source: &str, parse_options: ParseOptions, extras: Vec<Extra>, translate_html: bool) -> Document {
     debug_assert_eq!(parsed.len(), source.len());
     let options = options();
 
     let mut state = ParseState {
         source,
-        preserve_heading_ids,
+        options: parse_options,
         extras: extras.into(),
         sections: vec![Section { blocks: Vec::new() }],
         section_idx: 0,
@@ -480,5 +579,84 @@ mod tests {
     #[test]
     fn braces_without_an_id_are_title_text() {
         assert_eq!(heading_sources("## Sets {a, b}\n"), ["Sets {a, b}"]);
+    }
+
+    /// Bikeshed notes indent their prose by two spaces and a list inside by
+    /// four. Read with the first line's indentation only, the list lines
+    /// keep four spaces and become an indented code block.
+    #[test]
+    fn html_prose_loses_its_common_indentation_before_the_nested_parse() {
+        let source = "<div class=note>\n  Note text\n  on two lines.\n    * First bullet with |n|.\n    * Second bullet.\n</div>\n";
+        let doc = parse_with(source, source, true, Vec::new());
+        assert_eq!(
+            doc.translatable_segments().iter().map(|s| s.source.as_str()).collect::<Vec<_>>(),
+            ["Note text on two lines.", "First bullet with |n|.", "Second bullet."]
+        );
+        for block in doc.sections.iter().flat_map(|s| &s.blocks) {
+            if let Some(span) = &block.span {
+                assert_eq!(&source[span.clone()], block.raw_content, "span indexes the source");
+            }
+        }
+        assert_eq!(yeokja_parser_utils::splice_reconstruct(&doc, &Default::default()), source);
+        let translations = doc
+            .translatable_segments()
+            .iter()
+            .map(|s| (s.id.clone(), "번역".to_string()))
+            .collect();
+        assert_eq!(
+            yeokja_parser_utils::splice_reconstruct(&doc, &translations),
+            "<div class=note>\n  번역\n    * 번역\n    * 번역\n</div>\n"
+        );
+    }
+
+    /// Inside an `<ol class=algorithm>` a list item holds `<sub>` tags.
+    /// Cut at every tag, the items after the first tag collapse into one
+    /// paragraph; with `inline_html` the tags stay in the prose and the
+    /// nested parse sees whole items.
+    #[test]
+    fn inline_html_keeps_tags_inside_list_items() {
+        let source = "<ol class=algorithm>\n    1. If |b|[0] is C1<sub>16</sub>, let |n| be a name\n        whose bytes are |b|.\n    2. Let |e|<sub>|i|</sub> be `x<sub>1</sub>` for each |i|.\n    3. Return |n| as <code>n<sub>0</sub></code>.\n</ol>\n";
+        let cut = parse_with(source, source, true, Vec::new());
+        assert!(cut.translatable_segments().iter().any(|s| s.source == "16"), "cut at the tag by default");
+        let options = ParseOptions { preserve_heading_ids: true, inline_html: true };
+        let doc = parse_with_options(source, source, options, Vec::new());
+        assert_eq!(
+            doc.translatable_segments().iter().map(|s| s.source.as_str()).collect::<Vec<_>>(),
+            [
+                "If |b|[0] is C1<sub>16</sub>, let |n| be a name whose bytes are |b|.",
+                "Let |e|<sub>|i|</sub> be `x<sub>1</sub>` for each |i|.",
+                "Return |n| as",
+                "."
+            ],
+            "a code span stays whole; <code> content is literal and cuts the prose"
+        );
+        assert!(doc.translatable_segments()[..2].iter().all(|s| s.block_type == BlockType::ListItem));
+        assert_eq!(yeokja_parser_utils::splice_reconstruct(&doc, &Default::default()), source);
+        let identity = doc.translatable_segments().iter().map(|s| (s.id.clone(), s.source.clone())).collect();
+        assert_eq!(yeokja_parser_utils::splice_reconstruct(&doc, &identity), source.replace("a name\n        whose", "a name whose"));
+    }
+
+    /// A phrasing tag alone on its line would read as an HTML block in the
+    /// nested parse, so it still cuts the prose; so does an element that
+    /// opens its chunk (`<td><dfn>name</dfn>`), whose text was a segment of
+    /// its own before.
+    #[test]
+    fn an_inline_tag_alone_on_its_line_or_opening_its_chunk_still_cuts() {
+        let source = "<div>\n<span class=x>\nText here.\n</span>\n</div>\n<table>\n<tr>\n  <td><dfn for=type>u8</dfn>\n  <td>Base 2<sup>8</sup>\n  <td>\n    <a href=x>Only a link</a>\n</table>\n";
+        let options = ParseOptions { preserve_heading_ids: true, inline_html: true };
+        let doc = parse_with_options(source, source, options, Vec::new());
+        assert_eq!(
+            doc.translatable_segments().iter().map(|s| s.source.as_str()).collect::<Vec<_>>(),
+            ["Text here.", "u8", "Base 2<sup>8</sup>", "Only a link"]
+        );
+        assert_eq!(yeokja_parser_utils::splice_reconstruct(&doc, &Default::default()), source);
+    }
+
+    #[test]
+    fn prose_extras_map_dedented_spans_back_to_the_source() {
+        let source = "x\n    1. One.\n        Still one.\n    2. Two.\n";
+        let extras = prose_extras(source, 2..source.len(), true);
+        let texts: Vec<&str> = extras.iter().map(|e| &source[e.range.clone()]).collect();
+        assert_eq!(texts, ["One.\n        Still one.", "Two."]);
     }
 }

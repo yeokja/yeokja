@@ -175,6 +175,16 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              \\@ref(fig:x)에서. A particle glued to a bare citation would join its key, so \
              write that citation in braces: @frees2009 → @{frees2009}는.\n"
         }
+        Markup::Bikeshed => {
+            "A closing _ that a letter follows does not close the pair. When the translation \
+             puts a suffix straight after an italicised term, use * instead: _arity_ → \
+             *arity*는. A link whose destination starts with bikeshed: is a Bikeshed \
+             autolink: translate only the text in brackets and copy the destination exactly. \
+             Copy every double-bracket reference [[#section]], [[RFC8949]], [[!AGE]] and every \
+             variable |name| between vertical bars unchanged, exactly once, with Korean \
+             particles after the closing bar: |n|을, [[#block]]에서. Never write a bare | the \
+             source does not have.\n"
+        }
         // XHTML always travels as tags, whose rules replace this one; a CSV
         // field has no markup.
         Markup::Xhtml | Markup::Plain => "",

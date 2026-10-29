@@ -269,3 +269,75 @@ fn a_glued_citation_is_written_in_braces() {
     );
     assert_eq!(preserved_tokens("@{billingsley}가"), preserved_tokens("@billingsley"));
 }
+
+#[test]
+fn dollar_signs_in_prose_are_not_math() {
+    let source = "We work at $FAMOUS_COMPANY on $HYPED_TECHNOLOGY.\n\nThey raised at $60m then $800m.\n\nAnd $x$ is math.\n";
+    let found: Vec<&str> = math_spans(source).into_iter().map(|r| &source[r]).collect();
+    assert_eq!(found, ["$x$"]);
+    assert_eq!(
+        sources(source),
+        ["We work at $FAMOUS_COMPANY on $HYPED_TECHNOLOGY.", "They raised at $60m then $800m.", "And $x$ is math."]
+    );
+}
+
+#[test]
+fn image_attributes_stay_outside_the_caption() {
+    let source = "Intro.\n\n![A caption](../assets/images/x.png){fig-alt=\"Alt text\"}\n\nAfter.\n";
+    assert_eq!(sources(source), ["Intro.", "![A caption](../assets/images/x.png)", "After."]);
+    let out = translate_all(source, ko);
+    assert!(out.contains("가 ![A caption](../assets/images/x.png){fig-alt=\"Alt text\"}\n\n가 After."), "{out}");
+    // An attribute block inside a sentence travels with it, and an image
+    // without a caption keeps its shape.
+    let inline = "See [the chart](x.png){.cls} here.\n\n![](Figures\\IABA.png){width=25%}\n";
+    assert_eq!(sources(inline), ["See [the chart](x.png){.cls} here.", "![](Figures\\IABA.png){width=25%}"]);
+}
+
+const QUARTO_FRONT: &str = "---\ntitle: \"Learn in Public\"\nsummary:\n  sentence: &chapter_summary \"The fastest way to learn is to learn in public.\"\n  paragraph: \"A longer paragraph.\n    It may continue over several lines inside the quotes.\"\n  note: plain words\n    that continue\n  folded: >\n    not offered\n  copy: *chapter_summary\ndescription: *chapter_summary\nopen-graph:\n  description: *chapter_summary\n---\n\nBody.\n";
+
+fn with_keys(keys: &[&str]) -> RmarkdownParser {
+    RmarkdownParser::configured::<&str, &str>(&[], keys).unwrap()
+}
+
+#[test]
+fn front_matter_key_paths_offer_nested_values() {
+    let parser = with_keys(&[
+        "summary.sentence",
+        "summary.paragraph",
+        "summary.note",
+        "summary.folded",
+        "summary.copy",
+        "open-graph.description",
+    ]);
+    assert_eq!(
+        sources_with(&parser, QUARTO_FRONT),
+        [
+            "Learn in Public",
+            "The fastest way to learn is to learn in public.",
+            "A longer paragraph.",
+            "It may continue over several lines inside the quotes.",
+            "plain words that continue",
+            "Body."
+        ]
+    );
+    let doc = parser.parse(QUARTO_FRONT);
+    let blocks: Vec<_> = doc.sections.iter().flat_map(|s| &s.blocks).filter(|b| b.translatable).collect();
+    assert_eq!(blocks[0].block_type, BlockType::Heading);
+    assert_eq!(blocks[1].block_type, BlockType::Paragraph);
+    let out = translate_with(&parser, QUARTO_FRONT, ko);
+    assert!(out.contains("sentence: &chapter_summary \"가 The fastest way to learn is to learn in public.\""), "{out}");
+    assert!(out.contains("paragraph: \"가 A longer paragraph. 가 It may continue over several lines inside the quotes.\""), "{out}");
+    assert!(out.contains("note: 가 plain words that continue\n  folded: >\n    not offered\n"), "{out}");
+    assert!(out.contains("copy: *chapter_summary\ndescription: *chapter_summary\n"), "{out}");
+}
+
+#[test]
+fn front_matter_key_paths_do_not_change_the_built_in_keys() {
+    assert_eq!(sources(QUARTO_FRONT), ["Learn in Public", "Body."]);
+    // A path that names a built-in key or a mapping offers nothing new.
+    assert_eq!(sources_with(&with_keys(&["description", "title", "summary"]), QUARTO_FRONT), ["Learn in Public", "Body."]);
+    // The top-level reader takes an anchor too, and a built-in key is not offered twice.
+    let top = "---\ntitle: &t Top title\ndescription: \"Desc.\"\n---\n";
+    assert_eq!(sources_with(&with_keys(&["description"]), top), ["Top title", "Desc."]);
+    assert_eq!(sources(top), ["Top title", "Desc."]);
+}

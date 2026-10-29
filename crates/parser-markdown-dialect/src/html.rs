@@ -5,6 +5,14 @@ use std::ops::Range;
 
 const LITERAL: &[&str] = &["pre", "code", "script", "style", "textarea", "svg", "math"];
 
+/// Phrasing-level elements a dialect may keep inside a prose chunk (see
+/// [`prose_ranges`]). `code` is literal and never among them.
+const INLINE: &[&str] = &[
+    "a", "abbr", "b", "bdi", "bdo", "br", "cite", "data", "del", "dfn", "em", "i", "img", "ins",
+    "kbd", "l", "mark", "q", "s", "samp", "small", "span", "strong", "sub", "sup", "time", "u",
+    "var", "wbr",
+];
+
 /// End and name of a syntactically complete tag. Respect quoted `>` in
 /// attributes, and reject autolinks such as `<https://example.com>`.
 fn tag(source: &str, start: usize) -> Option<(usize, &str, bool)> {
@@ -44,8 +52,16 @@ fn tag(source: &str, start: usize) -> Option<(usize, &str, bool)> {
     None
 }
 
-pub(super) fn prose_ranges(source: &str) -> Vec<Range<usize>> {
-    scan(source, None).0
+/// The prose chunks of a raw HTML block: the text between its tags. With
+/// `inline_html`, a phrasing-level element (`<sub>`, `<dfn>`, `<a>`, …) that
+/// opens after prose of its chunk stays inside the chunk with its closing
+/// tag, so a list item such as `1. If |b| is C1<sub>16</sub>, let …` reaches
+/// the nested Markdown parse whole and the tag travels as inline HTML. An
+/// element that opens a chunk (`<td><dfn>name</dfn>`) still cuts, as does
+/// a tag alone on its line, which CommonMark would read as an HTML block:
+/// the chunks of such a document do not change.
+pub(super) fn prose_ranges(source: &str, inline_html: bool) -> Vec<Range<usize>> {
+    scan(source, None, inline_html).0
 }
 
 /// Literal elements may span several CommonMark HTML blocks (blank lines end
@@ -58,18 +74,29 @@ pub(super) fn opaque_ranges(source: &str, options: Options) -> Vec<Range<usize>>
             matches!(event, Event::Html(_) | Event::InlineHtml(_)).then_some(range)
         })
         .collect();
-    scan(source, Some(&candidates)).1
+    scan(source, Some(&candidates), false).1
+}
+
+/// Whether only whitespace separates the tag at `start..end` from the ends
+/// of its line.
+fn alone_on_line(source: &str, start: usize, end: usize) -> bool {
+    let before = source[..start].rsplit('\n').next().unwrap_or("");
+    let after = source[end..].split('\n').next().unwrap_or("");
+    before.trim().is_empty() && after.trim().is_empty()
 }
 
 fn scan(
     source: &str,
     candidates: Option<&[Range<usize>]>,
+    inline_html: bool,
 ) -> (Vec<Range<usize>>, Vec<Range<usize>>) {
     let bytes = source.as_bytes();
     let lower = source.to_ascii_lowercase();
     let mut ranges = Vec::new();
     let mut opaque = Vec::new();
     let mut candidate_index = 0;
+    // Open phrasing elements and whether each stays inside its chunk.
+    let mut phrasing: Vec<(String, bool)> = Vec::new();
     let (mut start, mut i) = (0, 0);
     while i < bytes.len() {
         // Markup-looking text inside Markdown code is not an HTML tag. Keep
@@ -151,6 +178,27 @@ fn scan(
                     search = at + needle.len();
                 }
                 Some(close.unwrap_or(bytes.len()))
+            } else if inline_html && INLINE.contains(&name.to_ascii_lowercase().as_str()) {
+                let name = name.to_ascii_lowercase();
+                let keep = if closing {
+                    phrasing
+                        .iter()
+                        .rposition(|(open, _)| *open == name)
+                        .map(|at| phrasing.remove(at).1)
+                        .unwrap_or(false)
+                } else {
+                    let keep = !source[start..i].trim().is_empty() && !alone_on_line(source, i, end);
+                    if !matches!(name.as_str(), "br" | "wbr" | "img") && !source[..end].ends_with("/>") {
+                        phrasing.push((name, keep));
+                    }
+                    keep
+                };
+                if keep {
+                    i = end;
+                    continue;
+                }
+                is_opaque = false;
+                Some(end)
             } else {
                 is_opaque = false;
                 Some(end)

@@ -420,6 +420,18 @@ mod tests {
         assert_eq!(parser.reconstruct(&doc, &translations), "\\[ x^2 \\]는 식입니다.\n");
     }
 
+    /// `YEOKJA_DUMP_FILE=path cargo test -p yeokja-parser-markdown -- --ignored --nocapture`
+    /// prints every segment of a file, one per line, to compare parser builds.
+    #[test]
+    #[ignore]
+    fn dump_segments_of_a_file() {
+        let path = std::env::var("YEOKJA_DUMP_FILE").expect("YEOKJA_DUMP_FILE");
+        let doc = MarkdownParser.parse(&std::fs::read_to_string(path).unwrap());
+        for segment in doc.translatable_segments() {
+            println!("{}\t{}", segment.id, segment.source);
+        }
+    }
+
     #[test]
     fn escaped_backslash_before_text_is_not_pulled_in_twice() {
         let parser = MarkdownParser;

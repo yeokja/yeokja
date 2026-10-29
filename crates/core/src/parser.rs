@@ -30,6 +30,10 @@ pub enum Markup {
     /// MkDocs its spans carry math to copy verbatim, read the Pandoc way, and
     /// also cross-references, citations and inline R code.
     RMarkdown,
+    /// Bikeshed (`Markup Shorthands: markdown yes`): Markdown mixed with HTML
+    /// blocks, read with its autolinks and section references rewritten to
+    /// `bikeshed:` links, and whose `[[ref]]` and `|var|` tokens stay verbatim.
+    Bikeshed,
     /// XHTML, read as XML. Inline markup always travels as tags.
     Xhtml,
     /// Text with no markup at all: a CSV field.

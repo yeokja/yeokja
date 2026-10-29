@@ -210,6 +210,13 @@ pub struct Tagged {
     pub tags: Vec<Tag>,
     pub position: Position,
     pub dialect: Dialect,
+    /// The character references the source wrote for single characters
+    /// (`&lt;` for `<`, `&nbsp;` for U+00A0): the model sees the character,
+    /// and the rendering writes the reference back wherever the character
+    /// occurs. A source that writes `&lt;&lt;` means the text `<<`, which
+    /// Bikeshed would otherwise read as a grammar production.
+    #[serde(default)]
+    pub references: Vec<(char, String)>,
 }
 
 /// A segment the tags cannot represent: its source leaves a mark open, as
@@ -619,7 +626,7 @@ fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut
         for c in source.chars() {
             xml_escape(c, &mut text);
         }
-        return Ok(Tagged { source: source.to_string(), text, tags: Vec::new(), position, dialect: ctx.dialect });
+        return Ok(Tagged { source: source.to_string(), text, tags: Vec::new(), position, dialect: ctx.dialect, references: Vec::new() });
     }
     let Masking { text: masked, spans, open_expression } = mask(source, ctx.dialect);
     if open_expression {
@@ -642,6 +649,7 @@ fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut
     }
     let mut text = String::new();
     let mut tags: Vec<Tag> = Vec::new();
+    let mut references: Vec<(char, String)> = Vec::new();
     let mut stack: Vec<Open> = Vec::new();
     let mut html_tag_of: HashMap<usize, usize> = HashMap::new();
     let mut skip = 0usize;
@@ -783,6 +791,16 @@ fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut
                 {
                     return Err(Untaggable("the source leaves a code span open".into()));
                 }
+                // A character reference is its own text event, decoded.
+                if let Some(c) = t.chars().next()
+                    && t.chars().count() == 1
+                    && raw_text.starts_with('&')
+                    && raw_text.ends_with(';')
+                    && raw_text.len() > 2
+                    && !references.iter().any(|(ch, _)| *ch == c)
+                {
+                    references.push((c, raw_text.to_string()));
+                }
                 let t = t.strip_prefix(GUARD).map(|r| r.strip_prefix(' ').unwrap_or(r)).unwrap_or(t);
                 for piece in split_masked(t, &spans) {
                     let Err(at) = piece else {
@@ -846,7 +864,7 @@ fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut
             _ => {}
         }
     }
-    Ok(Tagged { source: source.to_string(), text, tags, position, dialect: ctx.dialect })
+    Ok(Tagged { source: source.to_string(), text, tags, position, dialect: ctx.dialect, references })
 }
 
 // ---- reading ---------------------------------------------------------------
@@ -1291,6 +1309,8 @@ struct Renderer<'a> {
     tags: HashMap<usize, &'a Tag>,
     position: Position,
     ctx: &'a DocContext,
+    /// Characters the source wrote as references, written back that way.
+    references: &'a [(char, String)],
     /// The source escaped a bracket, so a bracket in the translation might
     /// otherwise resolve as a reference link the source kept from forming.
     escape_brackets: bool,
@@ -1446,6 +1466,12 @@ impl Renderer<'_> {
             let prev = if i > 0 { Some(chars[i - 1]) } else { out.chars().last() };
             let next = chars.get(i + 1).copied();
             let at_start = line_start && i == 0;
+            if !in_url[i]
+                && let Some((_, written)) = self.references.iter().find(|(ch, _)| *ch == c)
+            {
+                out.push_str(written);
+                continue;
+            }
             // A GFM autolink literal (`https://…`, `www.…`) is read verbatim up
             // to whitespace, so an escape inside it would become part of the
             // URL (`\~user` → a 404) and the link evaluator would see it lost.
@@ -1718,6 +1744,7 @@ pub(super) fn structure(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> (S
         tags: tagged.tags.iter().map(|t| (t.n, t)).collect(),
         position: tagged.position,
         ctx,
+        references: &tagged.references,
         escape_brackets: false,
     };
     renderer.read_back(markdown)
@@ -1751,6 +1778,7 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
         tags: tagged.tags.iter().map(|t| (t.n, t)).collect(),
         position: tagged.position,
         ctx,
+        references: &tagged.references,
         // R Markdown's `\[…\]` is math, not an escaped bracket.
         escape_brackets: {
             let text = match tagged.dialect {
@@ -1913,6 +1941,19 @@ mod tests {
         );
     }
 
+    /// The Bikeshed parser rewrites `[=entry name=]` to a link under the
+    /// reserved scheme; the codec treats it as any other link and writes the
+    /// destination back around the translated text.
+    #[test]
+    fn bikeshed_links_are_links_with_their_destination_kept() {
+        let source = "An [entry name](bikeshed:=entry%20name=) in [block](bikeshed:[[#block]]) with |n|.";
+        assert_eq!(tag(source).text, "An <a1>entry name</a1> in <a2>block</a2> with |n|.");
+        assert_eq!(
+            translate(source, "<a2>블록</a2>의 <a1>항목 이름</a1>에 |n|을."),
+            "[블록](bikeshed:[[#block]])의 [항목 이름](bikeshed:=entry%20name=)에 |n|을."
+        );
+    }
+
     #[test]
     fn opaque_constructs_become_empty_tags() {
         assert_eq!(
@@ -1956,6 +1997,24 @@ mod tests {
         assert_eq!(tag("Use a < b & friends.").text, "Use a &lt; b &amp; friends.");
         // `<T>` is raw HTML to CommonMark, so it is copied as is.
         assert_eq!(tag("Use Vec<T> here.").text, "Use Vec<x1/> here.");
+    }
+
+    /// `|a| &lt;&lt; |b|` means the text `<<`; written back as `<<` it
+    /// would be a Bikeshed grammar production. The model sees the character
+    /// and the reference comes back wherever the character is used.
+    #[test]
+    fn character_references_the_source_wrote_come_back() {
+        let tagged = tag("|a| &lt;&lt; |b| equals |a| &times; 2<sup>|b|</sup>.");
+        assert_eq!(tagged.text, "|a| &lt;&lt; |b| equals |a| × 2<h1>|b|</h1>.");
+        assert_eq!(tagged.references, [('<', "&lt;".to_string()), ('×', "&times;".to_string())]);
+        assert_eq!(
+            translate("|a| &lt;&lt; |b| equals |a| &times; 2<sup>|b|</sup>.", "|a| &lt;&lt; |b|는 |a| × 2<h1>|b|</h1>이며 x &lt; y."),
+            "|a| &lt;&lt; |b|는 |a| &times; 2<sup>|b|</sup>이며 x &lt; y."
+        );
+        // A source without references keeps writing the character.
+        assert_eq!(translate("a < b", "b &gt; a"), "b > a");
+        assert_eq!(tag("a&nbsp;b").references, [('\u{a0}', "&nbsp;".to_string())]);
+        assert_eq!(translate("a&nbsp;b", "b\u{a0}a"), "b&nbsp;a");
     }
 
     #[test]

@@ -46,7 +46,7 @@ pub fn repair_reply(markup: Markup, source: &str, translation: &str) -> String {
     match markup {
         Markup::Verso => crate::evaluator_format::restore_verso_code_whitespace(source, translation),
         Markup::Rst => crate::evaluator_format::repair_rst_boundaries(source, translation),
-        Markup::Markdown => crate::evaluator_format::repair_markdown_emphasis(source, translation),
+        Markup::Markdown | Markup::Bikeshed => crate::evaluator_format::repair_markdown_emphasis(source, translation),
         Markup::Asciidoc => crate::evaluator_format::repair_asciidoc_boundaries(source, translation),
         Markup::RMarkdown => yeokja_parser_rmarkdown::brace_glued_citations(source, translation),
         _ => translation.to_string(),

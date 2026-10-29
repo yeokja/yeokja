@@ -184,13 +184,23 @@ pub struct SourceConfig {
     /// a span inside a translated sentence travels with the sentence.
     #[serde(default)]
     pub inline_code_captures: Vec<String>,
+    /// `rmarkdown` only: dotted key paths into the YAML front matter
+    /// (`summary.sentence`) whose values are offered as paragraphs, next to
+    /// the built-in `title`, `subtitle` and `description`. A path is matched
+    /// against the indentation structure: a top-level key, then a
+    /// more-indented child key. An `&anchor` before the value stays outside
+    /// the offered text; a block scalar (`|`, `>`) or an alias (`*name`) is
+    /// not offered.
+    #[serde(default)]
+    pub front_matter_keys: Vec<String>,
 }
 
 /// The parsers whose sources may set `inline_tags`: the Markdown family whose
 /// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX, Pandoc
 /// for R Markdown), and the XML vocabularies in [`XML_PARSERS`], which always
 /// use them.
-pub const INLINE_TAG_PARSERS: &[&str] = &["markdown", "myst", "mdx", "rmarkdown", "xhtml", "cnxml", "pretext"];
+pub const INLINE_TAG_PARSERS: &[&str] =
+    &["markdown", "myst", "mdx", "rmarkdown", "bikeshed", "xhtml", "cnxml", "pretext"];
 
 /// The parsers that read an XML vocabulary (XHTML, OpenStax CNXML, PreTeXt).
 /// Their sources always exchange inline markup as tags.
@@ -218,6 +228,7 @@ pub const PARSER_NAMES: &[&str] = &[
     "myst",
     "mkdocs",
     "rmarkdown",
+    "bikeshed",
     "csv",
     "xhtml",
     "cnxml",
@@ -448,6 +459,20 @@ impl ProjectConfig {
                 if let Err(error) = regex::Regex::new(pattern) {
                     return Err(ConfigError::Invalid(format!(
                         "source {} has an invalid inline_code_captures pattern {pattern:?}: {error}",
+                        source.path
+                    )));
+                }
+            }
+            if !source.front_matter_keys.is_empty() && source.parser != "rmarkdown" {
+                return Err(ConfigError::Invalid(format!(
+                    "source {} sets front_matter_keys, which only the rmarkdown parser reads",
+                    source.path
+                )));
+            }
+            for path in &source.front_matter_keys {
+                if path.split('.').any(str::is_empty) {
+                    return Err(ConfigError::Invalid(format!(
+                        "source {} has an invalid front_matter_keys path {path:?}: expected dotted keys like summary.sentence",
                         source.path
                     )));
                 }
@@ -905,6 +930,22 @@ model = "sonnet"
         let error =
             ProjectConfig::from_toml(&source_config("rmarkdown", "inline_code_captures = ['(unclosed']")).unwrap_err();
         assert!(error.to_string().contains("invalid inline_code_captures"), "{error}");
+    }
+
+    #[test]
+    fn front_matter_keys_are_for_rmarkdown_and_name_dotted_paths() {
+        let keys = r#"front_matter_keys = ["summary.sentence", "summary.paragraph"]"#;
+        let config = ProjectConfig::from_toml(&source_config("rmarkdown", keys)).unwrap();
+        assert_eq!(config.sources[0].front_matter_keys, ["summary.sentence", "summary.paragraph"]);
+        let config = ProjectConfig::from_toml(&source_config("markdown", "")).unwrap();
+        assert!(config.sources[0].front_matter_keys.is_empty());
+        let error = ProjectConfig::from_toml(&source_config("markdown", keys)).unwrap_err();
+        assert!(error.to_string().contains("only the rmarkdown parser"), "{error}");
+        for bad in ["\"\"", "\"summary.\"", "\".sentence\"", "\"a..b\""] {
+            let error =
+                ProjectConfig::from_toml(&source_config("rmarkdown", &format!("front_matter_keys = [{bad}]"))).unwrap_err();
+            assert!(error.to_string().contains("invalid front_matter_keys"), "{bad}: {error}");
+        }
     }
 
     #[test]
