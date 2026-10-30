@@ -78,7 +78,8 @@ nix develop path:../../nix#learninpublic -c ../../target/release/yeokja build ht
   `lang: ko-KR`, 검색 자리표시자, `site-url`(`https://yeokja.moreal.dev/learninpublic/`),
   하단 출처·번역 고지. 원문의 `include-in-header`·`include-after-body`(JavaScript 셸)는
   두지 않습니다.
-- `overlay/styles/korean.scss`: 한글 글꼴·줄바꿈, 그림·표지 대체 안내 상자.
+- `overlay/styles/korean.scss`: 한글 글꼴·줄바꿈, 그림·표지 대체 안내 상자, 홈 본문 폭(원문은
+  리더 셸이 사이드바를 숨긴다고 보고 폭을 고정하는데, 셸 없이는 표지 레일이 사이드바에 가림).
   `overlay/assets/ko/page-classes.html`: 원문 셸이 붙이던 쪽 클래스(`book-home` 등)를
   하위 경로에서도 맞게 붙이는 인라인 스크립트. `patches/magazine-fonts.patch`: 글꼴
   `url(/assets/fonts/…)`을 상대 경로로.
