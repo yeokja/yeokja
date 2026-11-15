@@ -39,6 +39,10 @@ pub enum Dialect {
     /// R Markdown: Pandoc Markdown with `$` math, cross-references and
     /// citations, each kept whole; `$`, `@` and `^` in text are escaped.
     RMarkdown,
+    /// MkDocs without arithmatex: Python-Markdown, read here by CommonMark's
+    /// inline rules. It has no strikethrough and no MathJax, and unescapes
+    /// only its own punctuation, so `~`, `<` and `&` are written as they are.
+    MkDocs,
     /// Not Markdown: XHTML, whose tagging and serializing live in
     /// `inline::xhtml`. Only the tag reading here is shared.
     Xhtml,
@@ -55,6 +59,7 @@ impl Dialect {
             "myst" => Dialect::Myst,
             "mdx" => Dialect::Mdx,
             "rmarkdown" => Dialect::RMarkdown,
+            "mkdocs" => Dialect::MkDocs,
             _ => Vocabulary::for_parser(parser).map_or(Dialect::CommonMark, Dialect::for_vocabulary),
         }
     }
@@ -73,7 +78,7 @@ impl Dialect {
             Dialect::Xhtml => Some(Vocabulary::Xhtml),
             Dialect::Cnxml => Some(Vocabulary::Cnxml),
             Dialect::Pretext => Some(Vocabulary::Pretext),
-            Dialect::CommonMark | Dialect::Myst | Dialect::Mdx | Dialect::RMarkdown => None,
+            Dialect::CommonMark | Dialect::Myst | Dialect::Mdx | Dialect::RMarkdown | Dialect::MkDocs => None,
         }
     }
 }
@@ -263,7 +268,7 @@ const MASK_EDGE: char = '\u{2E3A}';
 
 fn options(dialect: Dialect) -> Options {
     let mut options = Options::empty();
-    if dialect != Dialect::Myst {
+    if !matches!(dialect, Dialect::Myst | Dialect::MkDocs) {
         options.insert(Options::ENABLE_STRIKETHROUGH);
     }
     options.insert(Options::ENABLE_FOOTNOTES);
@@ -1314,6 +1319,10 @@ struct Renderer<'a> {
     /// The source escaped a bracket, so a bracket in the translation might
     /// otherwise resolve as a reference link the source kept from forming.
     escape_brackets: bool,
+    /// MkDocs: which of `~`, `<` and `&` the source wrote behind a backslash.
+    /// Python-Markdown does not unescape them, so a backslash is written
+    /// only where the source had one.
+    source_escapes: Vec<char>,
 }
 
 impl Renderer<'_> {
@@ -1489,6 +1498,10 @@ impl Renderer<'_> {
                 }
                 '_' => !(prev.is_some_and(|p| p.is_ascii_alphanumeric()) && next.is_some_and(|n| n.is_ascii_alphanumeric())),
                 // GFM strikes through with one tilde as well as two.
+                // Python-Markdown prints a backslash it does not know: `\~`,
+                // `\<` and `\&` are not escapes there. The source's own are
+                // written back, whatever its renderer makes of them.
+                '~' | '<' | '&' if dialect == Dialect::MkDocs => self.source_escapes.contains(&c),
                 '~' => dialect != Dialect::Myst && !(prev.is_none_or(char::is_whitespace) && next.is_none_or(char::is_whitespace)),
                 '<' => next.is_some_and(|n| n.is_ascii_alphabetic() || matches!(n, '/' | '!' | '?')),
                 '&' => {
@@ -1746,6 +1759,7 @@ pub(super) fn structure(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> (S
         ctx,
         references: &tagged.references,
         escape_brackets: false,
+        source_escapes: Vec::new(),
     };
     renderer.read_back(markdown)
 }
@@ -1787,6 +1801,7 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
             };
             text.contains("\\[") || text.contains("\\]")
         },
+        source_escapes: ['~', '<', '&'].into_iter().filter(|c| tagged.source.contains(&format!("\\{c}"))).collect(),
     };
     let toks: Vec<Tok> = tree
         .nodes
@@ -2262,6 +2277,29 @@ mod tests {
         let common = tag("Run {ref}`install-nix` now.");
         assert_eq!(common.text, "Run {ref}`install-nix` now.");
         assert!(common.tags.iter().all(|t| t.role.is_none()));
+    }
+
+    /// Python-Markdown has no strikethrough and unescapes only its own
+    /// punctuation: a backslash written before `~`, `<` or `&` would print.
+    #[test]
+    fn mkdocs_writes_no_escape_python_markdown_would_print() {
+        assert_eq!(Dialect::for_parser("mkdocs"), Dialect::MkDocs);
+        assert_eq!(tag_in(Dialect::MkDocs, "It ~~was~~ is.").text, "It ~~was~~ is.");
+        let source = "About ~4KB when a<b & c costs $5, see **this** and `x`.";
+        assert_eq!(
+            tag_in(Dialect::MkDocs, source).text,
+            "About ~4KB when a&lt;b &amp; c costs $5, see <b1>this</b1> and `x`."
+        );
+        assert_eq!(
+            translate_in(Dialect::MkDocs, source, "a&lt;b &amp; c가 $5일 때 약 ~4KB이며 <b1>이것</b1>과 `x`를 보십시오."),
+            "a<b & c가 $5일 때 약 ~4KB이며 **이것**과 `x`를 보십시오."
+        );
+        assert_eq!(
+            translate_in(Dialect::MkDocs, "Read /proc/PID/fdinfo/\\<ring_fd\\> now.", "지금 /proc/PID/fdinfo/&lt;ring_fd>를 읽습니다."),
+            "지금 /proc/PID/fdinfo/\\<ring_fd>를 읽습니다."
+        );
+        // The marks Python-Markdown does unescape are still escaped.
+        assert_eq!(translate_in(Dialect::MkDocs, "Use a star.", "별표 * 하나와 2 * 3."), "별표 \\* 하나와 2 \\* 3.");
     }
 
     #[test]

@@ -23,6 +23,12 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
                 .unwrap_or_default(),
             );
         }
+        if source.parser == "mkdocs" {
+            return Box::new(yeokja_parser_mkdocs::MkdocsParser::configured(
+                source.mkdocs_math(),
+                source.mkdocs_definition_lists(),
+            ));
+        }
         return parser_by_name(&source.parser, file_path, source.parser_manifest.as_deref());
     }
     match file_path.extension().and_then(|e| e.to_str()) {
@@ -65,7 +71,7 @@ fn parser_by_name(
             parser_manifest.unwrap_or_default(),
         )),
         "myst" => Box::new(yeokja_parser_myst::MystParser),
-        "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser),
+        "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser::default()),
         "rmarkdown" => Box::new(yeokja_parser_rmarkdown::RmarkdownParser::default()),
         "bikeshed" => Box::new(yeokja_parser_bikeshed::BikeshedParser),
         "csv" => Box::new(yeokja_parser_csv::CsvParser),
@@ -352,6 +358,41 @@ model = "gpt-4o"
         let segments = doc.translatable_segments();
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].source, "One line.");
+    }
+
+    #[test]
+    fn mkdocs_by_name_reads_math_and_definition_list_options() {
+        let source = "Cost\n:   $5 now, $6 later.\n";
+        let config = config_with_source("docs/", "mkdocs");
+        let parser = select_parser(Path::new("docs/page.md"), &config);
+        assert_eq!(parser.markup(), yeokja_core::parser::Markup::MkDocs);
+        assert_eq!(parser.parse(source).translatable_segments().len(), 1);
+
+        let config = ProjectConfig::from_toml(
+            r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "docs"
+pattern = "**/*.md"
+parser = "mkdocs"
+output = "ko/{path}"
+math = false
+definition_lists = true
+
+[provider]
+type = "openai_compatible"
+model = "gpt-4o"
+"#,
+        )
+        .unwrap();
+        let parser = select_parser(Path::new("docs/page.md"), &config);
+        assert_eq!(parser.markup(), yeokja_core::parser::Markup::MkDocsNoMath);
+        let sources: Vec<String> =
+            parser.parse(source).translatable_segments().iter().map(|seg| seg.source.clone()).collect();
+        assert_eq!(sources, ["Cost", "$5 now, $6 later."]);
     }
 
     #[test]

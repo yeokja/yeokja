@@ -26,6 +26,9 @@ pub enum Markup {
     /// MkDocs (Python-Markdown + pymdown-extensions): Markdown whose spans may
     /// carry `$`/`$$`/`\(`/`\[` math that must survive translation verbatim.
     MkDocs,
+    /// MkDocs without pymdownx.arithmatex: the same Markdown, in which a `$`
+    /// is a dollar sign and no span is math.
+    MkDocsNoMath,
     /// R Markdown (knitr over Pandoc Markdown, as bookdown renders it): like
     /// MkDocs its spans carry math to copy verbatim, read the Pandoc way, and
     /// also cross-references, citations and inline R code.

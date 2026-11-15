@@ -9,7 +9,6 @@ use pulldown_cmark::{BrokenLink, CowStr, Options, Parser};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use yeokja_core::config::ProjectConfig;
-use yeokja_core::config::INLINE_TAG_PARSERS;
 use yeokja_core::model::{BlockRole, BlockType};
 use yeokja_translate::inline::markdown::{self, Dialect, DocContext, Position};
 
@@ -19,7 +18,7 @@ fn html(text: &str, labels: &[String], dialect: Dialect) -> String {
         labels.contains(&label).then(|| (CowStr::from(""), CowStr::from("")))
     };
     let mut options = Options::empty();
-    if dialect != Dialect::Myst {
+    if !matches!(dialect, Dialect::Myst | Dialect::MkDocs) {
         options.insert(Options::ENABLE_STRIKETHROUGH);
     }
     options.insert(Options::ENABLE_TABLES);
@@ -32,11 +31,11 @@ fn html(text: &str, labels: &[String], dialect: Dialect) -> String {
 
 fn markdown_files(project: &Path, config: &ProjectConfig) -> Vec<(PathBuf, Dialect)> {
     let mut files = Vec::new();
-    for source in config.sources.iter().filter(|s| INLINE_TAG_PARSERS.contains(&s.parser.as_str())) {
+    for source in config.sources.iter().filter(|s| s.supports_inline_tags()) {
         let pattern = project.join(&source.path).join(&source.pattern);
         for entry in glob::glob(&pattern.to_string_lossy()).into_iter().flatten().flatten() {
             if let Ok(rel) = entry.strip_prefix(project)
-                && let Some(chosen) = config.source_for(rel).filter(|s| INLINE_TAG_PARSERS.contains(&s.parser.as_str()))
+                && let Some(chosen) = config.source_for(rel).filter(|s| s.supports_inline_tags())
             {
                 files.push((rel.to_path_buf(), Dialect::for_parser(&chosen.parser)));
             }

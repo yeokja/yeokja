@@ -30,6 +30,13 @@ impl FormatEvaluator {
     /// rules. MkDocs checks its masked text as Markdown, but Python-Markdown
     /// closes `*` wherever it finds one.
     fn markup_issues(context: &EvaluationContext, commonmark: bool) -> Vec<EvaluationIssue> {
+        if context.markup == Markup::MkDocsNoMath {
+            // No formulas to copy or hide: a `$` is text.
+            let mut issues = jinja_issues(&context.source, &context.translation);
+            let markdown = EvaluationContext { markup: Markup::Markdown, ..context.clone() };
+            issues.extend(Self::markup_issues(&markdown, false));
+            return issues;
+        }
         if context.markup == Markup::MkDocs {
             let mut issues = mkdocs_issues(&context.source, &context.translation);
             // Formulas are copied verbatim (checked above); hide them so their
@@ -557,6 +564,8 @@ fn parenthesis_issues(context: &EvaluationContext) -> Vec<EvaluationIssue> {
             yeokja_parser_rmarkdown::mask_math(&context.translation),
             Markup::Markdown,
         )
+    } else if context.markup == Markup::MkDocsNoMath {
+        (context.source.clone(), context.translation.clone(), Markup::Markdown)
     } else {
         (context.source.clone(), context.translation.clone(), context.markup)
     };
@@ -932,7 +941,9 @@ fn backtick_spans(chars: &[char], markup: Markup) -> BacktickSpans {
             continue;
         };
         let code = match markup {
-            Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Bikeshed => i == 0 || chars[i - 1] != '}',
+            Markup::Markdown | Markup::MkDocs | Markup::MkDocsNoMath | Markup::RMarkdown | Markup::Bikeshed => {
+                i == 0 || chars[i - 1] != '}'
+            }
             Markup::Asciidoc => true,
             Markup::Rst => literal,
             Markup::Verso | Markup::Latex | Markup::Xhtml | Markup::Plain => false,
@@ -1145,7 +1156,12 @@ fn parentheses_balance(text: &str, markup: Markup) -> bool {
 fn constrained_marks(markup: Markup) -> &'static [(char, &'static str)] {
     match markup {
         Markup::Asciidoc => &[('`', "``code``"), ('*', "**bold**"), ('_', "__italic__")],
-        Markup::Markdown | Markup::MkDocs | Markup::RMarkdown | Markup::Bikeshed | Markup::Verso => &[('_', "*italic*")],
+        Markup::Markdown
+        | Markup::MkDocs
+        | Markup::MkDocsNoMath
+        | Markup::RMarkdown
+        | Markup::Bikeshed
+        | Markup::Verso => &[('_', "*italic*")],
         // reStructuredText pairs are checked by `rst_broken_pairs`: every one
         // of its marker forms is constrained, so the doubled-form advice these
         // entries carry would be wrong there.
@@ -1385,6 +1401,14 @@ fn mkdocs_issues(source: &str, translation: &str) -> Vec<EvaluationIssue> {
             ),
         });
     }
+    issues.extend(jinja_issues(source, translation));
+    issues
+}
+
+/// No new Jinja delimiters: the macros plugin renders every page as a
+/// template.
+fn jinja_issues(source: &str, translation: &str) -> Vec<EvaluationIssue> {
+    let mut issues = Vec::new();
     for delimiter in ["{{", "{%", "{#"] {
         if translation.matches(delimiter).count() > source.matches(delimiter).count() {
             issues.push(EvaluationIssue {
@@ -2535,6 +2559,22 @@ mod tests {
 
     fn make_context(source: &str, translation: &str) -> EvaluationContext {
         context_in(Markup::Asciidoc, source, translation)
+    }
+
+    /// MkDocs reads `$1 billion … $` as a formula to copy; a site without
+    /// arithmatex has none, but keeps the Jinja and emphasis checks.
+    #[tokio::test]
+    async fn mkdocs_without_math_reads_dollars_as_text() {
+        let (source, translation) = ("It cost $5/line—$10,000 in all.", "한 줄에 5달러, 모두 1만 달러가 들었습니다.");
+        let with_math = FormatEvaluator.evaluate(&context_in(Markup::MkDocs, source, translation)).await.unwrap();
+        assert!(with_math.issues.iter().any(|i| i.message.contains("Math changed")), "{:?}", with_math.issues);
+        let without = FormatEvaluator.evaluate(&context_in(Markup::MkDocsNoMath, source, translation)).await.unwrap();
+        assert!(without.passed, "{:?}", without.issues);
+
+        let jinja = FormatEvaluator.evaluate(&context_in(Markup::MkDocsNoMath, "Use braces.", "{{ 중괄호 }}를 씁니다.")).await.unwrap();
+        assert!(jinja.issues.iter().any(|i| i.message.contains("Jinja")), "{:?}", jinja.issues);
+        let lost = FormatEvaluator.evaluate(&context_in(Markup::MkDocsNoMath, "Call `foo()` now.", "지금 foo()를 호출합니다.")).await.unwrap();
+        assert!(!lost.passed);
     }
 
     fn context_in(markup: Markup, source: &str, translation: &str) -> EvaluationContext {
@@ -4021,6 +4061,12 @@ mod tests {
                 Markup::MkDocs,
                 "only nodes on layer $1$ (with length $O(\\sqrt{n}$) can be lazy.",
                 "레이어 $1$(길이가 $O(\\sqrt{n}$)인)의 노드만 lazy가 될 수 있습니다.",
+            ),
+            // Without arithmatex the dollars are prices, not delimiters.
+            (
+                Markup::MkDocsNoMath,
+                "It cost $1 billion (about $10,000 per line) to fix.",
+                "고치는 데 10억 달러(한 줄에 약 $10,000)가 들었습니다.",
             ),
             // Math moves with Korean word order, brackets and all.
             (

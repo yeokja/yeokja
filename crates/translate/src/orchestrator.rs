@@ -497,7 +497,7 @@ pub fn standard_evaluators(
 /// Whether `file`'s source exchanges inline markup as tags.
 pub fn inline_tags_for(config: &ProjectConfig, file: &Path) -> bool {
     config.source_for(file).is_some_and(|source| {
-        source.uses_inline_tags() && yeokja_core::config::INLINE_TAG_PARSERS.contains(&source.parser.as_str())
+source.uses_inline_tags() && source.supports_inline_tags()
     })
 }
 
@@ -574,13 +574,10 @@ pub fn audit_file(
 ) -> Result<Vec<AuditFinding>, OrchestratorError> {
     let Some(parser) = config
         .source_for(file_path)
-        .map(|source| source.parser.clone())
         // The audit reads Markdown; replies in an XML vocabulary are only
         // ever tag text.
-        .filter(|parser| {
-            Dialect::for_parser(parser).vocabulary().is_none()
-                && yeokja_core::config::INLINE_TAG_PARSERS.contains(&parser.as_str())
-        })
+        .filter(|source| Dialect::for_parser(&source.parser).vocabulary().is_none() && source.supports_inline_tags())
+        .map(|source| source.parser.clone())
     else {
         return Ok(Vec::new());
     };

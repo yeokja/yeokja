@@ -157,7 +157,10 @@ fn default_terms_path() -> String {
     "terms.toml".to_string()
 }
 
+// `deny_unknown_fields`: a misspelt option (`definition_list = true`) must
+// fail the load rather than leave the source read with the defaults.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SourceConfig {
     pub path: String,
     pub pattern: String,
@@ -193,12 +196,25 @@ pub struct SourceConfig {
     /// not offered.
     #[serde(default)]
     pub front_matter_keys: Vec<String>,
+    /// `mkdocs` only: whether the site enables pymdownx.arithmatex, so that
+    /// `$..$`, `$$..$$`, `\(..\)`, `\[..\]` and `\begin{..}..\end{..}` hold
+    /// formulas. Absent means `true`. Set `false` for a site without it: a
+    /// `$` is then a dollar sign, and neither the parser nor the checks look
+    /// for math.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub math: Option<bool>,
+    /// `mkdocs` only: whether the site enables Python-Markdown's `def_list`,
+    /// so that a `:   definition` line under a term line is a definition
+    /// list. Absent means `false`: the lines are one paragraph.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub definition_lists: Option<bool>,
 }
 
 /// The parsers whose sources may set `inline_tags`: the Markdown family whose
 /// inline syntax the tag codec knows (CommonMark for mdBook, MyST, MDX, Pandoc
 /// for R Markdown), and the XML vocabularies in [`XML_PARSERS`], which always
-/// use them.
+/// use them. A `mkdocs` source may too, when it reads no math (see
+/// [`SourceConfig::supports_inline_tags`]).
 pub const INLINE_TAG_PARSERS: &[&str] =
     &["markdown", "myst", "mdx", "rmarkdown", "bikeshed", "xhtml", "cnxml", "pretext"];
 
@@ -239,6 +255,23 @@ impl SourceConfig {
     /// Whether this source exchanges inline markup as tags.
     pub fn uses_inline_tags(&self) -> bool {
         self.inline_tags || XML_PARSERS.contains(&self.parser.as_str())
+    }
+
+    /// Whether the inline tag codec reads this source: a parser in
+    /// [`INLINE_TAG_PARSERS`], or `mkdocs` with `math = false` (the codec
+    /// does not know arithmatex math).
+    pub fn supports_inline_tags(&self) -> bool {
+        INLINE_TAG_PARSERS.contains(&self.parser.as_str()) || (self.parser == "mkdocs" && !self.mkdocs_math())
+    }
+
+    /// Whether a `mkdocs` source reads math (`math`, on unless set `false`).
+    pub fn mkdocs_math(&self) -> bool {
+        self.math.unwrap_or(true)
+    }
+
+    /// Whether a `mkdocs` source reads definition lists (`definition_lists`).
+    pub fn mkdocs_definition_lists(&self) -> bool {
+        self.definition_lists.unwrap_or(false)
     }
 }
 
@@ -469,6 +502,14 @@ impl ProjectConfig {
                     source.path
                 )));
             }
+            for (name, set) in [("math", source.math.is_some()), ("definition_lists", source.definition_lists.is_some())] {
+                if set && source.parser != "mkdocs" {
+                    return Err(ConfigError::Invalid(format!(
+                        "source {} sets {name}, which only the mkdocs parser reads",
+                        source.path
+                    )));
+                }
+            }
             for path in &source.front_matter_keys {
                 if path.split('.').any(str::is_empty) {
                     return Err(ConfigError::Invalid(format!(
@@ -479,7 +520,13 @@ impl ProjectConfig {
             }
         }
         for source in config.sources.iter().filter(|source| source.uses_inline_tags()) {
-        if !INLINE_TAG_PARSERS.contains(&source.parser.as_str()) {
+        if source.parser == "mkdocs" && !source.supports_inline_tags() {
+            return Err(ConfigError::Invalid(format!(
+                "source {} sets inline_tags, which a mkdocs source supports only with math = false",
+                source.path
+            )));
+        }
+        if !source.supports_inline_tags() {
             return Err(ConfigError::Invalid(format!(
                 "source {} sets inline_tags, which supports the {} parsers only (not {})",
                 source.path,
@@ -866,6 +913,19 @@ model = "sonnet"
         assert!(error.to_string().contains("inline_tags") && error.to_string().contains("mdx"), "{error}");
     }
 
+    /// The tag codec does not read math, so a `mkdocs` source may use it
+    /// only when it has none.
+    #[test]
+    fn mkdocs_inline_tags_need_math_off() {
+        let error = ProjectConfig::from_toml(&inline_config("mkdocs", "")).unwrap_err();
+        assert!(error.to_string().contains("math = false"), "{error}");
+        let toml = inline_config("mkdocs", "").replace("inline_tags = true\n", "inline_tags = true\nmath = false\n");
+        let config = ProjectConfig::from_toml(&toml).unwrap();
+        assert!(config.sources[0].supports_inline_tags() && config.sources[0].uses_inline_tags());
+        let plain = ProjectConfig::from_toml(&toml.replace("math = false\n", "").replace("inline_tags = true\n", "")).unwrap();
+        assert!(!plain.sources[0].supports_inline_tags());
+    }
+
     #[test]
     fn inline_tags_need_their_placeholder_in_a_custom_template() {
         let error =
@@ -930,6 +990,36 @@ model = "sonnet"
         let error =
             ProjectConfig::from_toml(&source_config("rmarkdown", "inline_code_captures = ['(unclosed']")).unwrap_err();
         assert!(error.to_string().contains("invalid inline_code_captures"), "{error}");
+    }
+
+    #[test]
+    fn mkdocs_options_default_to_math_on_and_definition_lists_off() {
+        let config = ProjectConfig::from_toml(&source_config("mkdocs", "")).unwrap();
+        assert!(config.sources[0].mkdocs_math());
+        assert!(!config.sources[0].mkdocs_definition_lists());
+        let config = ProjectConfig::from_toml(&source_config("mkdocs", "math = false\ndefinition_lists = true")).unwrap();
+        assert!(!config.sources[0].mkdocs_math());
+        assert!(config.sources[0].mkdocs_definition_lists());
+    }
+
+    #[test]
+    fn mkdocs_options_are_for_the_mkdocs_parser() {
+        for option in ["math = false", "math = true", "definition_lists = true", "definition_lists = false"] {
+            let error = ProjectConfig::from_toml(&source_config("markdown", option)).unwrap_err();
+            let name = option.split(' ').next().unwrap();
+            assert!(error.to_string().contains(name) && error.to_string().contains("mkdocs"), "{option}: {error}");
+        }
+    }
+
+    /// A misspelt option would otherwise be dropped and the source read with
+    /// the defaults.
+    #[test]
+    fn unknown_source_keys_are_rejected() {
+        for typo in ["definition_list = true", "maths = false", "inline_tag = true"] {
+            let error = ProjectConfig::from_toml(&source_config("mkdocs", typo)).unwrap_err();
+            let name = typo.split(' ').next().unwrap();
+            assert!(error.to_string().contains(name), "{typo}: {error}");
+        }
     }
 
     #[test]

@@ -161,6 +161,15 @@ fn closing_rule(markup: yeokja_core::parser::Markup) -> &'static str {
              each translation on its one [N] line: an inline <br> stays inline, with the text \
              after it on the same line.\n"
         }
+        Markup::MkDocsNoMath => {
+            "A closing _ that a letter follows does not close the pair. When the translation \
+             puts a suffix straight after an italicised term, use * instead: _arity_ → \
+             *arity*는. This site renders no math: a $ is a dollar sign, so keep each one the \
+             source has as text and never wrap anything in $...$. Never add {{, {% or {#. A \
+             list item that is only a link [label](page.md) must stay exactly one link with \
+             only the label translated. Keep each translation on its one [N] line: an inline \
+             <br> stays inline, with the text after it on the same line.\n"
+        }
         Markup::RMarkdown => {
             "A closing _ that a letter follows does not close the pair. When the translation \
              puts a suffix straight after an italicised term, use * instead: _arity_ → \
@@ -395,6 +404,14 @@ mod tests {
         let rule = closing_rule(yeokja_core::parser::Markup::MkDocs);
         assert!(rule.contains("$...$"));
         assert!(rule.contains("{%"));
+    }
+
+    #[test]
+    fn mkdocs_rule_without_math_calls_the_dollar_text() {
+        let rule = closing_rule(yeokja_core::parser::Markup::MkDocsNoMath);
+        assert!(rule.contains("dollar sign"));
+        assert!(!rule.contains("byte-for-byte"));
+        assert!(rule.contains("{%") && rule.contains("<br>") && rule.contains("*arity*는"));
     }
 
     /// cp-algorithms pilot: plain "O(N)" in a link label came back as

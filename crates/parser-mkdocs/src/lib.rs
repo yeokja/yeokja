@@ -10,6 +10,11 @@
 //! * Math (`$..$`, `$$..$$`, `\(..\)`, `\[..\]`, `\begin{..}..\end{..}`) is
 //!   filled with `x`, so nothing inside it reads as Markdown. Inline math
 //!   stays in the segment text; a block that is only math is not offered.
+//!   A source whose site has no pymdownx.arithmatex turns this off
+//!   (`math = false`): a `$` is then a dollar sign.
+//! * With `definition_lists = true` (Python-Markdown's `def_list`), each term
+//!   line is a block of its own and a `:   definition` line becomes a list
+//!   item (see `scan_definition_lists`).
 //! * An admonition, details or tab header becomes a list item whose content
 //!   column is the body indentation (see `scan_block_header`).
 //! * YAML front matter is blanked (its closing `---` may carry trailing
@@ -24,15 +29,37 @@ use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_markdown_dialect::{Extra, parse_with};
 use yeokja_parser_utils::{resolve_reference_links, splice_reconstruct};
 
-pub struct MkdocsParser;
+/// The MkDocs parser, set up for what a site's `markdown_extensions` change
+/// about the way a page is read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MkdocsParser {
+    math: bool,
+    definition_lists: bool,
+}
+
+impl Default for MkdocsParser {
+    /// Math on (pymdownx.arithmatex), definition lists off.
+    fn default() -> Self {
+        Self { math: true, definition_lists: false }
+    }
+}
+
+impl MkdocsParser {
+    /// `math`: the site enables pymdownx.arithmatex, so `$..$` and the other
+    /// delimiters hold formulas; off, a `$` is a dollar sign.
+    /// `definition_lists`: the site enables Python-Markdown's `def_list`.
+    pub fn configured(math: bool, definition_lists: bool) -> Self {
+        Self { math, definition_lists }
+    }
+}
 
 impl DocumentParser for MkdocsParser {
     fn markup(&self) -> Markup {
-        Markup::MkDocs
+        if self.math { Markup::MkDocs } else { Markup::MkDocsNoMath }
     }
 
     fn parse(&self, source: &str) -> Document {
-        let layout = scan(source);
+        let layout = scan(source, *self);
         let shadow = String::from_utf8(layout.shadow).expect("shadow edits are ASCII over whole characters");
         let mut doc = parse_with(&shadow, source, true, layout.extras);
         drop_math_only_blocks(&mut doc, &layout.math);
@@ -136,9 +163,22 @@ fn unspaced_atx(line: &str) -> Option<usize> {
     ((1..=6).contains(&hashes) && !next.is_whitespace() && next != '#').then(|| indent + hashes - 1)
 }
 
-fn scan(source: &str) -> Layout {
+/// What the line scan made of a line, for the definition-list pass.
+#[derive(Clone, Copy, PartialEq)]
+enum LineKind {
+    Blank,
+    /// A fence line or a line inside a fence.
+    Code,
+    /// A line the scan read as structure: front matter, a block header, a
+    /// Jinja statement, an ATX heading.
+    Structure,
+    Text,
+}
+
+fn scan(source: &str, options: MkdocsParser) -> Layout {
     let mut layout = Layout { shadow: source.as_bytes().to_vec(), extras: Vec::new(), math: Vec::new() };
     let lines = lines(source);
+    let mut kinds = vec![LineKind::Structure; lines.len()];
     let mut first = 0;
     if let Some(end) = front_matter_end(source, &lines) {
         for line in &lines[..=end] {
@@ -150,18 +190,22 @@ fn scan(source: &str) -> Layout {
         first = end + 1;
     }
     let body_start = lines.get(first).map_or(source.len(), |l| l.start);
-    layout.math = math_spans_from(source, body_start);
+    if options.math {
+        layout.math = math_spans_from(source, body_start);
+    }
     let mut fence = None;
-    for line in &lines[first..] {
+    for (line, kind) in lines.iter().zip(&mut kinds).skip(first) {
         let text = &source[line.clone()];
         if let Some(open) = fence {
             if fence_closes(text, open) {
                 fence = None;
             }
+            *kind = LineKind::Code;
             continue;
         }
         if let Some(open) = fence_open(text) {
             fence = Some(open);
+            *kind = LineKind::Code;
             continue;
         }
         if scan_block_header(source, line.clone(), &mut layout) {
@@ -175,12 +219,163 @@ fn scan(source: &str) -> Layout {
             layout.shadow[line.start + hash] = b' ';
         }
         scan_heading_attr_list(source, line.clone(), &mut layout);
+        *kind = match text.trim() {
+            "" => LineKind::Blank,
+            _ if is_atx_heading(text) => LineKind::Structure,
+            _ => LineKind::Text,
+        };
     }
     for m in &layout.math {
         fill(&mut layout.shadow, m.clone(), b'x');
     }
+    if options.definition_lists {
+        scan_definition_lists(source, &lines, &kinds, &mut layout);
+    }
     layout.extras.sort_by_key(|e| e.range.start);
     layout
+}
+
+fn indent_of(line: &str) -> usize {
+    line.len() - line.trim_start_matches([' ', '\t']).len()
+}
+
+/// The offset of the text after a definition marker — a colon and at least
+/// one space (Python-Markdown's `def_list`: `[ ]{0,3}:[ ]{1,3}(.*?)`, read at
+/// any indentation because a container's body is dedented first).
+fn definition_text(line: &str) -> Option<usize> {
+    let indent = indent_of(line);
+    let rest = line[indent..].strip_prefix(':')?;
+    let spaces = rest.len() - rest.trim_start_matches(' ').len();
+    (spaces > 0).then_some(indent + 1 + spaces)
+}
+
+/// A line that opens a block of its own, which Python-Markdown reads before
+/// it looks for a definition: a list item, quote, table row, HTML, a setext
+/// underline or thematic break, a link or footnote definition.
+fn opens_other_block(line: &str) -> bool {
+    let t = line.trim();
+    let b = t.as_bytes();
+    let bullet = matches!(b, [b'-' | b'*' | b'+'] | [b'-' | b'*' | b'+', b' ' | b'\t', ..]);
+    let digits = b.iter().take_while(|c| c.is_ascii_digit()).count();
+    let ordered =
+        digits > 0 && matches!(b.get(digits), Some(b'.' | b')')) && matches!(b.get(digits + 1), None | Some(b' ' | b'\t'));
+    let rule = t.chars().all(|c| matches!(c, '-' | '=' | '*' | '_' | ' '));
+    bullet || ordered || rule || t.starts_with(['>', '|', '<']) || (t.starts_with('[') && t.contains("]:"))
+}
+
+/// Python-Markdown `def_list`: term lines, then `:   definition` lines.
+///
+/// ```text
+/// Term
+/// :   Definition, which may continue
+///     on lines indented four columns.
+/// ```
+///
+/// In the shadow the marker's colon becomes a bullet, so the definition is a
+/// list item: its text is a block of its own and the lines indented under it
+/// are the item's content, as Python-Markdown reads them after dedenting.
+/// Each term line is blanked and offered as a paragraph of its own — every
+/// line above a definition is one `<dt>`, and a line after a definition that
+/// is not indented starts the next term rather than continuing the item.
+/// The marker and the line structure are outside every span, so they come
+/// back verbatim.
+///
+/// A colon line is a definition when term lines sit right above it, or when
+/// it follows a blank line or another definition. Under a line that opens
+/// another block (a list item, a quote, a table row, a heading) it is not:
+/// Python-Markdown gives those lines to their own processors first.
+fn scan_definition_lists(source: &str, lines: &[Range<usize>], kinds: &[LineKind], layout: &mut Layout) {
+    #[derive(PartialEq)]
+    enum Above {
+        Blank,
+        Terms,
+        Definition,
+        Other,
+    }
+    let in_math = |layout: &Layout, range: &Range<usize>| layout.math.iter().any(|m| m.start < range.end && range.start < m.end);
+    let mut above = Above::Blank;
+    // Text lines right above the current one that may be terms.
+    let mut terms: Vec<usize> = Vec::new();
+    // Indentation of the definition whose body the lines may still belong to.
+    let mut body_of: Option<usize> = None;
+    for (i, line) in lines.iter().enumerate() {
+        let text = &source[line.clone()];
+        let indent = indent_of(text);
+        match kinds[i] {
+            LineKind::Blank => {
+                terms.clear();
+                if above != Above::Definition {
+                    above = Above::Blank;
+                }
+                continue;
+            }
+            // A fenced block inside a definition body leaves the body open.
+            LineKind::Code => {
+                terms.clear();
+                if !body_of.is_some_and(|d| indent >= d + 4) {
+                    body_of = None;
+                    above = Above::Other;
+                }
+                continue;
+            }
+            LineKind::Structure => {
+                terms.clear();
+                body_of = None;
+                above = Above::Other;
+                continue;
+            }
+            LineKind::Text => {}
+        }
+        if let Some(text_at) = definition_text(text)
+            && !in_math(layout, &(line.start + indent..line.start + text_at))
+        {
+            // Terms share the definition's block level: within three columns.
+            let from = terms
+                .iter()
+                .rposition(|&t| indent_of(&source[lines[t].clone()]).abs_diff(indent) > 3)
+                .map_or(0, |p| p + 1);
+            if from < terms.len() || matches!(above, Above::Blank | Above::Definition) {
+                for &t in &terms[from..] {
+                    let term = lines[t].clone();
+                    let raw = &source[term.clone()];
+                    let start = term.start + indent_of(raw);
+                    fill(&mut layout.shadow, term, b' ');
+                    layout.extras.push(Extra {
+                        range: start..start + raw.trim().len(),
+                        block_type: BlockType::Paragraph,
+                        literal: false,
+                    });
+                }
+                // `-` and up to four spaces open a list item; more would make
+                // its text indented code, so a wider gap is bridged by nested
+                // bullets two columns apart.
+                let (colon, text_start) = (line.start + indent, line.start + text_at);
+                layout.shadow[colon] = b'-';
+                if text_start - colon > 5 {
+                    for bullet in (colon + 2..=text_start - 2).step_by(2) {
+                        layout.shadow[bullet] = b'-';
+                    }
+                }
+                terms.clear();
+                body_of = Some(indent);
+                above = Above::Definition;
+                continue;
+            }
+        }
+        if body_of.is_some_and(|d| indent >= d + 4) {
+            terms.clear();
+            above = Above::Definition;
+            continue;
+        }
+        body_of = None;
+        if opens_other_block(text) || in_math(layout, line) {
+            terms.clear();
+            above = Above::Other;
+        } else {
+            terms.push(i);
+            above = Above::Terms;
+        }
+    }
 }
 
 /// Whether `line` is an ATX heading, at any indentation (headings inside an
@@ -462,16 +657,32 @@ mod tests {
     use super::*;
 
     fn sources(source: &str) -> Vec<String> {
-        MkdocsParser.parse(source).translatable_segments().iter().map(|s| s.source.clone()).collect()
+        sources_with(MkdocsParser::default(), source)
     }
 
     fn translate_all(source: &str, f: impl Fn(&str) -> String) -> String {
-        let doc = MkdocsParser.parse(source);
+        translate_all_with(MkdocsParser::default(), source, f)
+    }
+
+    fn sources_with(parser: MkdocsParser, source: &str) -> Vec<String> {
+        parser.parse(source).translatable_segments().iter().map(|s| s.source.clone()).collect()
+    }
+
+    fn translate_all_with(parser: MkdocsParser, source: &str, f: impl Fn(&str) -> String) -> String {
+        let doc = parser.parse(source);
         let mut map = TranslationMap::new();
         for seg in doc.translatable_segments() {
             map.insert(seg.id.clone(), f(&seg.source));
         }
-        MkdocsParser.reconstruct(&doc, &map)
+        parser.reconstruct(&doc, &map)
+    }
+
+    fn def_lists() -> MkdocsParser {
+        MkdocsParser::configured(true, true)
+    }
+
+    fn no_math() -> MkdocsParser {
+        MkdocsParser::configured(false, false)
     }
 
     fn ko(s: &str) -> String {
@@ -619,5 +830,111 @@ mod tests {
     #[test]
     fn admonition_without_title_offers_only_body() {
         assert_eq!(sources("!!! warning\n    Careful.\n"), ["Careful."]);
+    }
+
+    /// Python-Markdown's `def_list`: a term line and the `:   ` line under
+    /// it. Read as CommonMark the two are one paragraph, so the translation
+    /// would come back on one line and stop being a definition list.
+    #[test]
+    fn definition_list_term_and_definition_are_separate_and_keep_their_lines() {
+        let source = "Intro.\n\nLanded\n:   Linux, January 2026 (CVE-2026-23089)\n\nDriver\n:   `snd-usb-audio` (`sound/usb/mixer.c`)\n\nAfter.\n";
+        assert_eq!(
+            sources_with(def_lists(), source),
+            ["Intro.", "Landed", "Linux, January 2026 (CVE-2026-23089)", "Driver", "`snd-usb-audio` (`sound/usb/mixer.c`)", "After."]
+        );
+        assert_eq!(
+            translate_all_with(def_lists(), source, ko),
+            "가 Intro.\n\n가 Landed\n:   가 Linux, January 2026 (CVE-2026-23089)\n\n가 Driver\n:   가 `snd-usb-audio` (`sound/usb/mixer.c`)\n\n가 After.\n"
+        );
+        assert_eq!(translate_all_with(def_lists(), source, str::to_string), source);
+    }
+
+    #[test]
+    fn definition_lists_are_off_unless_the_source_enables_them() {
+        assert_eq!(sources("Landed\n:   Linux, January 2026\n"), ["Landed :   Linux, January 2026"]);
+    }
+
+    #[test]
+    fn a_term_takes_several_definitions_and_terms_follow_without_a_blank_line() {
+        let source = "Apple\n:   A fruit.\n:   A company.\nOrange\n:   Another fruit.\n";
+        assert_eq!(sources_with(def_lists(), source), ["Apple", "A fruit.", "A company.", "Orange", "Another fruit."]);
+        assert_eq!(
+            translate_all_with(def_lists(), source, ko),
+            "가 Apple\n:   가 A fruit.\n:   가 A company.\n가 Orange\n:   가 Another fruit.\n"
+        );
+    }
+
+    /// Every line above the definition is a term of its own (`<dt>`).
+    #[test]
+    fn several_term_lines_stay_one_per_line() {
+        let source = "Term one\nTerm two\n:   Shared definition.\n";
+        assert_eq!(sources_with(def_lists(), source), ["Term one", "Term two", "Shared definition."]);
+        assert_eq!(translate_all_with(def_lists(), source, ko), "가 Term one\n가 Term two\n:   가 Shared definition.\n");
+    }
+
+    #[test]
+    fn definition_body_continues_on_indented_lines_and_paragraphs() {
+        let source = "Term\n:   First line\n    continues here.\n\n    Second paragraph.\n\n    ```c\n    int x;\n    ```\n\nAfter.\n";
+        assert_eq!(sources_with(def_lists(), source), ["Term", "First line continues here.", "Second paragraph.", "After."]);
+        assert_eq!(
+            translate_all_with(def_lists(), source, ko),
+            "가 Term\n:   가 First line continues here.\n\n    가 Second paragraph.\n\n    ```c\n    int x;\n    ```\n\n가 After.\n"
+        );
+    }
+
+    #[test]
+    fn definition_after_a_blank_line_and_inside_an_admonition() {
+        let source = "Term\n\n:   Loose definition.\n\n!!! note \"Fields\"\n    Name\n    :   The name.\n";
+        assert_eq!(sources_with(def_lists(), source), ["Term", "Loose definition.", "Fields", "Name", "The name."]);
+        assert_eq!(
+            translate_all_with(def_lists(), source, ko),
+            "가 Term\n\n:   가 Loose definition.\n\n!!! note \"가 Fields\"\n    가 Name\n    :   가 The name.\n"
+        );
+    }
+
+    /// A colon line under a list item or a quote is not a definition to
+    /// Python-Markdown (those block processors run first), a colon line in a
+    /// fence is code, and `:::` opens a mkdocstrings block.
+    #[test]
+    fn colon_lines_that_are_not_definitions_are_left_alone() {
+        for source in ["- item\n:   text\n", "```\nFoo(int a)\n: v(a) {}\n```\n", "> quote\n: text\n", "::: module.path\n"] {
+            assert_eq!(sources_with(def_lists(), source), sources(source), "{source:?}");
+        }
+    }
+
+    #[test]
+    fn term_markup_and_colon_spacing_survive() {
+        let source = "**Bold** `term`\n: One space.\n";
+        assert_eq!(sources_with(def_lists(), source), ["**Bold** `term`", "One space."]);
+        assert_eq!(translate_all_with(def_lists(), source, ko), "가 **Bold** `term`\n: 가 One space.\n");
+    }
+
+    /// More than four spaces after the bullet would make the text indented
+    /// code, so the shadow bridges the gap with nested bullets.
+    #[test]
+    fn a_wide_gap_after_the_colon_is_still_a_definition() {
+        let source = "Term\n:      Far text.\n";
+        assert_eq!(sources_with(def_lists(), source), ["Term", "Far text."]);
+        assert_eq!(translate_all_with(def_lists(), source, ko), "가 Term\n:      가 Far text.\n");
+    }
+
+    /// Without pymdownx.arithmatex a `$` is a dollar sign. Read as math, the
+    /// span from one item's `$` to the next item's hides the second bullet.
+    #[test]
+    fn without_math_a_dollar_is_text() {
+        let source = "- [Turning into 10000$](https://a.example/x) — the writeup\n- [LWN: Turning into 10000$](https://b.example/y) — the brief\n";
+        assert_eq!(sources(source).len(), 1, "math on: the two items read as one");
+        assert_eq!(
+            sources_with(no_math(), source),
+            ["[Turning into 10000$](https://a.example/x) — the writeup", "[LWN: Turning into 10000$](https://b.example/y) — the brief"]
+        );
+        assert_eq!(translate_all_with(no_math(), source, str::to_string), source);
+    }
+
+    #[test]
+    fn without_math_dollars_are_prose_and_the_markup_says_so() {
+        assert_eq!(sources_with(no_math(), "Costs $5 and *$6*.\n\n$$\nx\n$$\n"), ["Costs $5 and *$6*.", "$$ x $$"]);
+        assert_eq!(no_math().markup(), Markup::MkDocsNoMath);
+        assert_eq!(MkdocsParser::default().markup(), Markup::MkDocs);
     }
 }

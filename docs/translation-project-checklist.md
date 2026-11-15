@@ -27,6 +27,13 @@
   `[=term=]`·절 참조 `[[#id|text]]`는 표시 글자만, `<pre class=metadata>`는
   `Abstract:`만 번역하며, 바뀐 `<dfn>`에는 `lt=`가 붙습니다(설계는
   `docs/superpowers/specs/2026-10-30-bikeshed-parser-design.md`).
+- MkDocs 사이트(`parser = "mkdocs"`)는 `mkdocs.yml`의 `markdown_extensions`를 보고 소스
+  옵션을 맞춥니다. `pymdownx.arithmatex`가 없으면 `math = false`(기본값 `true`; 끄면
+  `$`가 수식 구분자가 아니라 글자로 읽히고 수식 보존 검사도 돌지 않습니다), `def_list`가
+  있으면 `definition_lists = true`(기본값 `false`; 용어 줄과 `:   ` 정의가 따로
+  세그먼트가 되고 표시와 줄 구조는 원문 그대로 남습니다). 두 옵션은 `mkdocs` 전용이며,
+  `[[sources]]`의 모르는 키는 설정 오류입니다(설계는
+  `docs/superpowers/specs/2026-11-15-mkdocs-def-list-and-math-option-design.md`).
 - `[provider]`에 실제로 쓸 provider/model을 명시합니다. 나중에 provider를
   다른 프로젝트와 통일하려고 바꾸더라도, **이미 번역된 세그먼트는 재번역되지
   않는 한 원래 모델의 결과물로 남는다**는 점을 감안해 README 출처 표기 시점에
@@ -35,7 +42,7 @@
   `docs/superpowers/specs/2026-09-22-inline-tag-transport-design.md`와 같은 날짜의 1b
   문서)을 켭니다. 켤 수 있는 소스: mdBook처럼 `$` 수식이 없는 CommonMark 렌더러로
   빌드하는 `markdown` 소스, `dollarmath`·`amsmath`를 켜지 않은 `myst` 소스, remark-math
-  없이 빌드하는 `mdx` 소스, `rmarkdown` 소스(수식·참조·인용은 원자로 간다), `bikeshed` 소스(자동 링크는 링크 태그, `[[…]]`·`|var|`는 글자). 강조·링크·MyST 역할의 레이블은 태그로 주고받고 문법은
+  없이 빌드하는 `mdx` 소스, `rmarkdown` 소스(수식·참조·인용은 원자로 간다), `bikeshed` 소스(자동 링크는 링크 태그, `[[…]]`·`|var|`는 글자), `math = false`인 `mkdocs` 소스(수식을 켠 `mkdocs` 소스에는 켤 수 없습니다). 강조·링크·MyST 역할의 레이블은 태그로 주고받고 문법은
   직렬화기가 쓰므로 조사 앞 강조·코드 스팬 변경·링크 손실 같은 결함이 구조적으로 생기지
   않습니다. XML 어휘 파서(`xhtml`, `cnxml`, `pretext`;
   `docs/superpowers/specs/2026-10-25-xml-vocabulary-profiles-design.md`)는 설정 없이

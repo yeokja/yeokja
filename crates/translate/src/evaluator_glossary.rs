@@ -70,6 +70,7 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
         {
             String::new()
         }
+        Markup::MkDocsNoMath if is_external_link_only(source) || is_image_only(source) => String::new(),
         // `\text{loss}` inside a formula is the formula, copied verbatim.
         Markup::RMarkdown => yeokja_parser_rmarkdown::mask_math(source),
         // `|node|` is a variable name, kept as written in the translation.
