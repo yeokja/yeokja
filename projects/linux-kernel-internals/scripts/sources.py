@@ -1,4 +1,4 @@
-"""Derive the two translation sources that are not upstream files as they are.
+"""Derive the translation source that is not an upstream file as it is.
 
 nav/nav.md
     The labels of upstream mkdocs.yml's `nav:` as a nested Markdown list, one
@@ -6,24 +6,15 @@ nav/nav.md
     nothing to translate and are left out. prepare_site.py puts the translated
     labels back into mkdocs.yml in the same order.
 
-normalized/docs/<page>.md
-    Pages that write an admonition header without the space (`!!!note`).
-    Python-Markdown accepts that spelling, the mkdocs parser does not: it reads
-    header and body as one paragraph. The copy here has the space (`!!! note`)
-    and nothing else changed, and yeokja.toml translates it in place of the
-    upstream page.
-
 usage: sources.py extract [--check]
 
-`extract` rewrites both; `extract --check` fails when what is committed differs
-from what the pinned upstream gives, or when yeokja.toml does not exclude
-exactly the normalized pages from the upstream source rule.
+`extract` rewrites it; `extract --check` fails when what is committed differs
+from what the pinned upstream gives.
 """
 import json
 from pathlib import Path
 import re
 import sys
-import tomllib
 
 ROOT = Path(__file__).resolve().parent.parent
 LABEL = r'''"(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^\s:"'][^:]*?'''
@@ -32,8 +23,6 @@ PAGE = re.compile(r'^(?P<indent> +)- (?P<path>\S+\.md)$')
 # Characters that would make a label something other than plain text in the
 # nav list. Upstream uses none of them; a new one fails here, not in the nav.
 MARKUP = re.compile(r'[\\`*\[\]<>]|(?<![A-Za-z0-9])_|_(?![A-Za-z0-9])')
-HEADER = re.compile(r'^(\s*)!!!(?=\w)')
-FENCE = re.compile(r'^\s*(```|~~~)')
 
 
 def nav_lines(config_text):
@@ -91,45 +80,14 @@ def nav_markdown(config_text):
     return ''.join(out)
 
 
-def normalize(text):
-    """Give `!!!type` headers their space; None when the page has none."""
-    out, fenced, changed = [], False, False
-    for line in text.split('\n'):
-        if FENCE.match(line):
-            fenced = not fenced
-        elif not fenced and HEADER.match(line):
-            line = HEADER.sub(r'\1!!! ', line)
-            changed = True
-        out.append(line)
-    return '\n'.join(out) if changed else None
-
-
 def derive(upstream):
     """Every derived file as {path relative to the project: content}."""
-    files = {'nav/nav.md': nav_markdown((upstream / 'mkdocs.yml').read_text())}
-    docs = upstream / 'docs'
-    for page in sorted(docs.rglob('*.md')):
-        fixed = normalize(page.read_text())
-        if fixed is not None:
-            files[f'normalized/docs/{page.relative_to(docs).as_posix()}'] = fixed
-    return files
+    return {'nav/nav.md': nav_markdown((upstream / 'mkdocs.yml').read_text())}
 
 
 def committed(root):
-    found = {}
-    for directory in ('nav', 'normalized'):
-        for item in sorted((root / directory).rglob('*')):
-            if item.is_file():
-                found[item.relative_to(root).as_posix()] = item.read_text()
-    return found
-
-
-def excluded_pages(root):
-    config = tomllib.loads((root / 'yeokja.toml').read_text())
-    for source in config['sources']:
-        if source['path'] == 'upstream/docs':
-            return set(source.get('exclude', []))
-    raise ValueError('yeokja.toml has no upstream/docs source')
+    return {item.relative_to(root).as_posix(): item.read_text()
+            for item in sorted((root / 'nav').rglob('*')) if item.is_file()}
 
 
 def check(root, files):
@@ -142,12 +100,6 @@ def check(root, files):
             problems.append(f'{name}: no longer derived from upstream (run sources.py extract)')
         elif have[name] != files[name]:
             problems.append(f'{name}: differs from upstream (run sources.py extract)')
-    normalized = {name.removeprefix('normalized/docs/') for name in files if name.startswith('normalized/')}
-    excluded = excluded_pages(root)
-    for page in sorted(normalized - excluded):
-        problems.append(f'{page}: normalized but not excluded from the upstream/docs source in yeokja.toml')
-    for page in sorted(page for page in excluded - normalized if (root / 'normalized/docs' / page).exists()):
-        problems.append(f'{page}: excluded for normalization but upstream no longer needs it')
     return problems
 
 

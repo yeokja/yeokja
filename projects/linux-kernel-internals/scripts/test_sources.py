@@ -1,6 +1,6 @@
 import unittest
 
-from sources import nav_markdown, normalize, parse_nav
+from sources import nav_markdown, parse_nav
 
 CONFIG = '''site_name: X
 nav:
@@ -42,21 +42,6 @@ class NavTests(unittest.TestCase):
 
     def test_intraword_underscore_is_text(self):
         self.assertEqual(nav_markdown('nav:\n  - io_uring vs epoll: a.md\n'), '- io_uring vs epoll\n')
-
-
-class NormalizeTests(unittest.TestCase):
-    def test_header_gets_its_space(self):
-        self.assertEqual(normalize('a\n\n!!!note\n    body\n\n!!!tip "T"\n    - x\n'),
-                         'a\n\n!!! note\n    body\n\n!!! tip "T"\n    - x\n')
-
-    def test_indented_header(self):
-        self.assertEqual(normalize('- a\n\n    !!!warning\n        b\n'), '- a\n\n    !!! warning\n        b\n')
-
-    def test_page_without_such_headers_is_not_derived(self):
-        self.assertIsNone(normalize('!!! note\n    body\n\nWow!!! Really.\n'))
-
-    def test_fenced_code_is_left_alone(self):
-        self.assertIsNone(normalize('```\n!!!note\n```\n'))
 
 
 if __name__ == '__main__':

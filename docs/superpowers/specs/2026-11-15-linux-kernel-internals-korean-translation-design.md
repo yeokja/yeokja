@@ -10,13 +10,15 @@ Laveesh Bansal의 *Linux Kernel Internals*(<https://kernel-internals.org/>, 저�
 이 사이트의 `markdown_extensions`에 맞춘 소스 옵션(`math = false`,
 `definition_lists = true`, `inline_tags = true`)은
 `docs/superpowers/specs/2026-11-15-mkdocs-def-list-and-math-option-design.md`가 더한 것이다.
+용어 검사·복수형·인라인 태그 재시도·번역할 글자가 없는 세그먼트의 동작은
+`docs/superpowers/specs/2026-11-15-translation-robustness-core-fixes-design.md`를 따른다.
 
 완료 상태는 다음 조건을 모두 만족해야 한다.
 
 - 원문이 `projects/linux-kernel-internals/upstream` 서브모듈로 커밋
   `6ee74a0b2e5f49c75d107ac4935369f73a004546`(2026-10-23)에 고정되어 있다.
 - 번역 대상(본문 498쪽과 nav 레이블 목록)의 모든 세그먼트가 번역 상태이고 소스 규칙
-  셋(`upstream/docs`, `normalized/docs`, `nav`)의 `yeokja status --check`가 통과한다.
+  둘(`upstream/docs`, `nav`)의 `yeokja status --check`가 통과한다.
   `evaluate --mechanical-only`가 0건이다.
 - `mkdocs build --strict`로 만든 사이트가 같은 툴체인으로 만든 영어 원문 사이트와 쪽 목록,
   쪽별 블록 구조(제목·제목 ID·정의 목록·admonition·mermaid·코드 블록·표·목록 수)가 같고,
@@ -33,17 +35,17 @@ Laveesh Bansal의 *Linux Kernel Internals*(<https://kernel-internals.org/>, 저�
 - **규모.** `docs/` 아래 Markdown 499개(산문 약 58만 단어, 줄 기준 57%가 코드 블록).
   `contributing.md`를 뺀 498쪽이 `mkdocs` 파서로 51,454 세그먼트, nav 레이블이 580
   세그먼트다. 세그먼트 길이는 중앙값 51자, 최대 1,648자이며 짧은 표 칸이 많다. 코드 스팬
-  하나뿐이거나 글자가 없는 세그먼트가 약 3,000개 있다.
+  하나뿐이거나 글자가 없는 세그먼트가 약 3,000개 있다(provider를 부르지 않고 원문 그대로
+  기록된다).
 - **쓰이는 구문.** admonition 232개(warning·note·tip·info; `???`·탭 없음), 정의 목록 54쪽
   290줄(war-stories 머리의 "Landed", "Fixed in", "CVSS" 같은 메타데이터), mermaid 94개, 표
   718개, 프런트매터는 `index.md` 하나(`hide: [navigation]`). 원시 HTML 블록·각주·이미지·
   스니펫 포함·GFM alert는 없다.
 - **공백 없는 admonition 머리.** `mm/numa-reclaim.md`(4곳)와 `mm/tlb-optimization.md`
   (6곳)는 `!!!note`, `!!!tip "Performance tip"`처럼 `!!!` 뒤에 공백 없이 쓴다.
-  Python-Markdown의 admonition 정규식은 `!!! ?`이므로 원문 사이트에서 이 10곳은 **정상
-  admonition으로 렌더링된다**(영어 빌드에서 두 쪽의 admonition이 8개·12개). `mkdocs` 파서는
-  공백이 있는 머리만 알아서, 머리와 본문(목록 포함)을 한 문단으로 읽는다. 그대로 번역하면
-  한 줄로 되돌아가 admonition이 문단으로 바뀐다.
+  Python-Markdown의 admonition 정규식은 `!!! ?`이므로 원문 사이트에서 이 10곳은 정상
+  admonition으로 렌더링된다(영어 빌드에서 두 쪽의 admonition이 8개·12개). `mkdocs` 파서도
+  같은 범위를 머리로 읽고 재구성 때 머리 줄을 원문 그대로 남기므로 따로 다룰 것이 없다.
 - **nav.** `mkdocs.yml`의 `nav:`에 589줄이 영어로 하드코딩되어 있다(레이블 있는 줄 580,
   레이블 없이 쪽만 적은 줄 9). 일부 레이블은 YAML 따옴표로 묶여 있다(`"vDSO: Fast …"`,
   `'The Cost of Asking "Is There …" Too Often'`). nav에 없는 쪽은 없다.
@@ -78,16 +80,7 @@ Laveesh Bansal의 *Linux Kernel Internals*(<https://kernel-internals.org/>, 저�
 [[sources]]
 path = "upstream/docs"
 pattern = "**/*.md"
-exclude = ["contributing.md", "mm/numa-reclaim.md", "mm/tlb-optimization.md"]
-parser = "mkdocs"
-output = "ko/docs/{path}"
-math = false
-definition_lists = true
-inline_tags = true
-
-[[sources]]
-path = "normalized/docs"
-pattern = "**/*.md"
+exclude = ["contributing.md"]
 parser = "mkdocs"
 output = "ko/docs/{path}"
 math = false
@@ -109,23 +102,17 @@ inline_tags = true
   원문 그대로 남는다.
 - `inline_tags = true`: 이 원문은 코드 스팬과 링크가 매우 많다. 강조·링크를 태그로
   주고받아 조사 앞 강조, 링크 목적지 변경·손실이 구조적으로 생기지 않게 한다. 직렬화기가
-  쓰는 이스케이프(`### 1\. 선제적 회수`)는 Python-Markdown에서 글자로 보인다. 태그 모드는
-  Format·Link 평가 대신 괄호 평가만 돌리므로, 번역이 원문에서 떨어져 있던 `[59:56]`과
-  `(…)`를 붙여 써서 링크 문법이 되는 경우는 평가가 아니라 `mkdocs build --strict`의
-  링크 검사가 잡는다(이 원문에서 1곳. state에서 번역을 고친다).
+  쓰는 이스케이프(`### 1\. 선제적 회수`)는 Python-Markdown에서 글자로 보인다. 직렬화기가
+  확인하지 못한 응답(글자 대괄호가 링크가 되는 `[59:56](…)` 꼴, 태그 잔재)은 저장되지 않고
+  재시도되며, 저장된 번역에 원문보다 많은 링크·인라인 HTML이 있으면
+  `evaluate --mechanical-only`의 `InlineStructure`가 낸다.
 
-**파생 소스(`scripts/sources.py extract [--check]`).** upstream 파일 그대로가 아닌 두
-소스를 원문에서 만들어 커밋해 둔다. `--check`는 커밋된 파일이 고정된 원문에서 만든 것과
-같은지, 그리고 `yeokja.toml`의 `exclude`가 정규화한 쪽과 정확히 맞는지 검사한다. 빌드와
-CI 재구성이 가장 먼저 이 검사를 돌리므로, 원문 nav가 바뀌었거나 공백 없는 머리가 다른 쪽에
-새로 생기면 배포가 멈춘다. 스크립트는 표준 라이브러리만 쓴다(CI의 재구성 단계는 nix 셸
+**파생 소스(`scripts/sources.py extract [--check]`).** upstream 파일 그대로가 아닌 소스
+하나(nav 레이블 목록)를 원문에서 만들어 커밋해 둔다. `--check`는 커밋된 파일이 고정된
+원문에서 만든 것과 같은지 검사한다. 빌드와 CI 재구성이 가장 먼저 이 검사를 돌리므로, 원문
+nav가 바뀌면 배포가 멈춘다. 스크립트는 표준 라이브러리만 쓴다(CI의 재구성 단계는 nix 셸
 밖에서 돈다).
 
-- `normalized/docs/<쪽>.md` — 공백 없는 admonition 머리(`!!!note`)가 있는 쪽의 사본으로,
-  펜스 밖의 그 머리에 공백을 넣은 것(`!!! note`) 말고는 원문과 같다. 번역은 이 사본에서
-  만들어 `ko/docs/`의 같은 경로로 나간다. 원문 표기를 바이트 그대로 두면 파서가 구조를
-  잃으므로 표기를 정규화하되, 렌더링 결과는 원문과 같다(영어 빌드와 admonition 수를
-  비교해 확인한다). 파서가 `!!! ?`를 읽게 되면 이 소스를 없애고 `reconcile`로 옮긴다.
 - `nav/nav.md` — `mkdocs.yml`의 nav 레이블을 nav 순서대로, nav 깊이만큼 들여쓴 Markdown
   목록으로 적은 것. 레이블 없는 줄은 번역할 것이 없어 뺀다. 레이블에 Markdown 문법이 될
   글자(`` \ ` * [ ] < > ``, 낱말 경계의 `_`)가 있으면 실패한다(지금 원문에는 없다).
@@ -151,8 +138,9 @@ max_retries = 3`. 커스텀 `prompt_template`을 쓴다. 기본 템플릿에 없
 여럿이기 때문이다. 템플릿은 `{inline_tags}` 자리표시자와 AGENTS.md의 GFM alert 마커 보존
 문장, 합쇼체 규칙을 직접 담고, 다음을 더한다.
 
-- 번역할 글자가 없는 세그먼트(코드 스팬 하나, 식별자·숫자·경로·해시·CVE 번호·이름·`—`)는
-  원문 그대로 낸다. 이런 세그먼트도 provider로 간다(코어에 통과 경로가 없다).
+- 식별자·버전·경로·명령·해시·CVE 번호·사람 이름뿐인 세그먼트는 원문 그대로 낸다. 글자가
+  있어 provider로 가는 세그먼트이기 때문에 규칙으로 둔다. 코드 스팬·숫자와 단위·문장부호
+  뿐인 세그먼트는 코어가 provider 없이 원문 그대로 기록하므로 프롬프트에 적지 않는다.
 - 코드 스팬 안은 바이트 그대로이고, 원문에 없는 백틱을 붙이거나 있는 백틱을 떼지 않는다.
 - 커널 식별자, 사람·회사·제품 이름은 원문 그대로다.
 - 커밋·패치·패치 시리즈의 제목과 글·발표·메일링 리스트 스레드의 제목은 고유명사로 보고
@@ -163,6 +151,7 @@ max_retries = 3`. 커스텀 `prompt_template`을 쓴다. 기본 템플릿에 없
   하나로 남는다. 인라인 `<br>`과 HTML 문자 참조는 그대로 둔다.
 - 짧은 표 칸·정의 목록 용어는 짧게(Yes → 예, No → 아니요), 값·단위는 그대로.
 - 제목·표 칸·nav 레이블은 문장이 아닌 명사구로 쓴다.
+- huge page와 transparent huge page는 옮기지 않고 영어 단수형으로 쓴다(3절).
 
 ### 3. 용어
 
@@ -170,7 +159,7 @@ max_retries = 3`. 커스텀 `prompt_template`을 쓴다. 기본 템플릿에 없
 system call·syscall(시스템 콜), scheduler(스케줄러), preemption(선점), interrupt
 (인터럽트), context switch(컨텍스트 스위치), runqueue(런큐), load balancing(부하 분산),
 page table·page fault·page cache(페이지 테이블·폴트·캐시), folio(폴리오), reclaim(회수),
-huge page(대형 페이지), allocator(할당자), memory leak(메모리 누수), OOM killer(OOM
+allocator(할당자), memory leak(메모리 누수), OOM killer(OOM
 킬러), spinlock(스핀락), mutex(뮤텍스), race condition(경쟁 상태), deadlock(교착 상태),
 reference count·refcount(참조 카운트), file descriptor(파일 디스크립터), block layer
 (블록 계층), device driver(디바이스 드라이버), namespace(네임스페이스), mainline
@@ -182,6 +171,26 @@ vulnerability(취약점), privilege escalation(권한 상승), war story(실전 
 
 - 한국 커널 개발자가 영어로 쓰는 말은 번역어를 원어와 같게 두어 음차를 막는다:
   use-after-free, copy-on-write, softirq, tasklet, workqueue, cgroup.
+- **huge page는 옮기지 않는다.** `huge page`·`huge-page`의 번역어는 `huge page`,
+  `transparent huge page`의 번역어는 `transparent huge page`다. 근거:
+  - 한국어 커널 문서와 개발자 글은 "huge page"를 그대로 쓰고, 번역어("대형 페이지", "거대
+    페이지", "큰 페이지")는 하나로 굳지 않았다. 같은 원문이 `large page`(x86 PS 비트가
+    매핑하는 페이지, "큰 페이지")와 `large folio`("대형 폴리오")를 따로 쓰므로, 번역어를
+    쓰면 서로 다른 세 개념이 비슷한 말로 겹친다.
+  - 독자가 마주치는 이름(`HugePages_Total`, `nr_hugepages`, `MAP_HUGETLB`, hugetlbfs,
+    khugepaged, THP)이 모두 이 낱말에서 나왔다. 본문이 같은 낱말을 써야 식별자와 설명이
+    이어진다.
+  - `transparent huge page`는 약어 THP와 한 쌍으로 쓰이는 기능 이름이다. "투명"만 옮기면
+    약어와 풀이가 어긋나므로 통째로 원어로 둔다.
+  - 한국어 문장 안에서는 단수형으로 쓰고(huge page를 할당합니다), 대소문자는 원문을
+    따른다(제목의 "Transparent Huge Page(THP)"). `glossary_plurals`가 복수형 출현을 같은
+    항목으로 읽고, 검사는 대소문자를 가리지 않는다.
+  - 붙여 쓴 `hugepage`(커널 문서·커밋 제목의 철자)와 `hugetlb`·`hugetlbfs`는 식별자에
+    가까운 이름이라 용어로 강제하지 않고 원문 철자 그대로 둔다. `huge`가 페이지가 아닌
+    것을 꾸미는 경우(huge machines, huge vmalloc buffers)는 보통 낱말로 옮긴다.
+- **복수형.** `[project] glossary_plurals = true`로 영어 규칙 복수형을 단수형 항목이 함께
+  맞게 한다. 용어집과 `terms.toml`에는 단수형만 둔다. 번역어가 단수형과 다른 복수형이
+  생기면 그 복수형만 따로 항목으로 둔다(긴 항목이 먼저 맞는다).
 - "War Stories"는 버그·CVE·성능 회귀의 경위를 다루는 글 묶음이다. 장애가 아닌 설계 논쟁과
   회귀 사례도 있어 "장애 사례"보다 넓은 "실전 사례"로 옮긴다.
 - 세그먼트 전체가 그 글자인 경우의 번역(`[whole]`)으로 반복되는 제목·레이블·표 칸을
@@ -190,14 +199,26 @@ vulnerability(취약점), privilege escalation(권한 상승), war story(실전 
 - lock, swap, slab, kernel처럼 동사·복합어로도 흔한 짧은 단어는 두지 않는다. 용어 검사는
   번역어가 들어 있는지만 보므로 "swap two pointers" 같은 문장에서 수렴하지 않는 재시도를
   부른다.
-- **원문 그대로 두는 제목과 용어 검사.** 용어 검사는 링크 글자와 따옴표 안도 읽으므로,
-  옮기지 않는 커밋·글·책 제목 속의 용어(`"…: fix deadlock in …"`, `[Per-node reclaim and
-  kswapd](url)`)가 제목 밖에 다시 나오지 않는 세그먼트는 검사에 걸리고 재시도해도 수렴하지
-  않는다. 그런 제목은 그 용어의 `except`에 적어 검사에서 뺀다(`glossary.toml`과
-  `terms.toml` 모두). 대상은 "용어가 원문의 링크 글자·따옴표·강조 안에만 있고, 그 글자가
-  번역에 그대로 들어 있는" 세그먼트이며, 용어 자체와 같은 구절은 `except`에 넣지 않는다
-  (용어가 통째로 꺼진다). 동사로 읽힌 경우(`entry points to`, `objects to this`)도
-  `except`로 뺀다.
+- **원문 그대로 두는 제목과 용어 검사.** 옮기지 않는 커밋·글·책 제목 속의 용어
+  (`"…: fix deadlock in …"`, `[Per-node reclaim and kswapd](url)`)는 따로 다루지 않는다.
+  용어의 출현이 모두 링크 글자·큰따옴표·강조 구간 안에 있고 용어보다 긴 그 구간이 번역에
+  그대로 있으면 용어 검사가 번역어를 요구하지 않는다.
+- **`except`.** 구분 기호가 없어 위 규칙이 닿지 않는 자리에만 쓴다(`terms.toml`).
+  - 괄호 안의 약어 풀이와 고유한 이름: `GIC (Generic Interrupt Controller)`, `KASLR
+    (Kernel Address Space Layout Randomization)`, `SRAT (System Resource Affinity Table)`,
+    `BDI (backing device info)`, `Linux Kernel Memory Model`, `Memory Latency Checker`,
+    `Device Mapper`. 약어가 어느 낱말에서 왔는지 보이도록 풀이는 영어로 둔다.
+  - 괄호 안에 영어 이름을 나열한 곳: `(hash, array, ring buffer…)`, `(descriptor table,
+    avail ring, used ring)`, `(SQE, CQE, SQPOLL, io-wq, fixed buffer, multishot)`. 맵
+    종류·영역·용어집 표제어의 이름이다.
+  - 명령 이름: `perf sched latency`.
+  - 따옴표 짝이 세그먼트 경계에서 어긋나는 문장 속의 커밋 제목 한 곳
+    (`drm/etnaviv: hook up DRM GPU scheduler`).
+  - 동사이거나 다른 낱말인 경우: `entry points to`·`entry points directly`(entry point),
+    `Nothing in the kernel objects to this`(kernel object), `(VFs) from a single physical
+    function`(VFS).
+  - 용어를 영어로 남긴 번역을 `except`로 덮지 않는다. 쪽 제목·nav 레이블·그 쪽을 가리키는
+    링크 글자가 같은 용어를 다르게 옮겼으면 번역을 고친다.
 
 첫 번역 뒤 `yeokja terms build`(먼저 `--dry-run`)로 반복 용어와 제목·레이블을 고정하고,
 `terms.toml`을 검토한 뒤 `glossary adopt --prefer HEAD`, 남은 세그먼트만 다시 번역한다.
@@ -279,8 +300,8 @@ treeprocessor가 쪽(`src_uri`)마다 제목 ID를 문서 순서대로 기록해
 
 1. 골격: 설정, 용어집, 파생 소스, 스크립트, 오버레이, nix 셸, `.gitignore`(루트 고정 패턴
    `/ko/`, `/ko-nav/`, `/build/`, `/dist/` — `overlay/` 아래가 가려지지 않게).
-2. 시험 번역: 정의 목록이 있는 war-stories 한 편, 표·admonition이 많은 한 편, 정규화한
-   쪽, nav. 재구성 diff, 재시도율, 문체, 정의 목록이 `<dl>`로 렌더링되는지, 인라인 태그
+2. 시험 번역: 정의 목록이 있는 war-stories 한 편, 표·admonition이 많은 한 편, 공백 없는
+   admonition 머리가 있는 쪽, nav. 재구성 diff, 재시도율, 문체, 정의 목록이 `<dl>`로 렌더링되는지, 인라인 태그
    직렬화기의 이스케이프(`1\.` 등)가 Python-Markdown에서 글자로 보이는지 확인한다.
 3. 전체 번역(백그라운드) → `evaluate --mechanical-only` 0건 → `terms build --dry-run` →
    `terms build` → `terms.toml` 검토 → `glossary adopt --prefer HEAD` → 남은 세그먼트 번역
@@ -312,16 +333,22 @@ treeprocessor가 쪽(`src_uri`)마다 제목 ID를 문서 순서대로 기록해
 `artifact = "dist-linux-kernel-internals"`, `artifact_path =
 "projects/linux-kernel-internals/dist"`를 더하고 `stage-pages.sh`에 `overlay_site
 "dist-linux-kernel-internals" "site" "linux-kernel-internals"`을 더한다.
-`rebuild-translations.sh`의 분기는 `scripts/sources.py extract --check` → 세 소스의
-`status --check` → 세 소스의 `translate`다. 재구성 전에 확인하므로 CI가 provider를 부르지
+`rebuild-translations.sh`의 분기는 `scripts/sources.py extract --check` → 두 소스의
+`status --check` → 두 소스의 `translate`다. 재구성 전에 확인하므로 CI가 provider를 부르지
 않고, 원문이 새로 더한 쪽이 state 없이 빠지는 경우도 배포를 막는다.
 
 ## 되짚을 수 있는 결정
 
-- **공백 없는 admonition 머리의 정규화.** 파서가 Python-Markdown처럼 `!!! ?`를 읽게 되면
-  `normalized/` 소스와 `exclude` 두 줄을 없앤다.
+- **huge page를 옮기지 않음.** 번역어를 쓰려면 `glossary.toml`의 `huge page`·`huge-page`와
+  `terms.toml`의 `transparent huge page`를 고치고 프롬프트의 해당 규칙을 뺀 뒤
+  `glossary adopt` → `translate`를 돌린다.
+- **쪽 사이 링크의 글자.** 다른 쪽을 가리키는 링크의 글자가 그 쪽의 영어 제목 그대로 남은
+  곳이 있다(프롬프트의 "글 제목은 옮기지 않는다" 규칙이 사이트 안의 쪽 제목에도 적용된
+  경우). 용어 검사는 이를 원문 그대로 둔 구간으로 읽어 지나간다. 번역된 쪽 제목으로
+  맞추려면 프롬프트에 "같은 사이트의 `.md` 쪽을 가리키는 링크의 글자는 번역한다"를 더하고
+  해당 세그먼트를 다시 번역한다.
 - **커밋·글 제목을 옮기지 않음.** 제목까지 한국어로 읽히길 원하면 프롬프트 규칙을 빼고
-  해당 세그먼트를 다시 번역한다. 용어 검사와의 충돌도 함께 사라진다.
+  해당 세그먼트를 다시 번역한다.
 - **"War Stories" = "실전 사례".** 바꾸려면 `glossary.toml`의 `terms`·`whole` 두 항목을
   고치고 `glossary adopt`로 다시 받아들인다.
 - **mermaid·코드 주석·ASCII 다이어그램.** 영어로 남는다. 파서가 mermaid 레이블이나 코드

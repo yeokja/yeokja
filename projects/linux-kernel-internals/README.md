@@ -35,10 +35,8 @@ git submodule update --init projects/linux-kernel-internals/upstream
 cd projects/linux-kernel-internals
 python3 scripts/sources.py extract --check
 ../../target/release/yeokja translate upstream/docs
-../../target/release/yeokja translate normalized/docs
 ../../target/release/yeokja translate nav
 ../../target/release/yeokja status --check upstream/docs
-../../target/release/yeokja status --check normalized/docs
 ../../target/release/yeokja status --check nav
 nix develop path:../../nix#linux-kernel-internals -c ../../target/release/yeokja build html   # dist/site
 ```
@@ -53,13 +51,13 @@ nix develop path:../../nix#linux-kernel-internals -c ../../target/release/yeokja
 - 파서: `mkdocs`(`crates/parser-mkdocs`). 이 사이트의 `markdown_extensions`에 맞춰 `math = false`
   (`$`는 글자), `definition_lists = true`(war-stories 머리의 정의 목록), `inline_tags = true`(강조·링크를
   태그로 주고받음)로 읽습니다.
-- 파생 소스: `scripts/sources.py extract`가 원문에서 두 가지를 만들어 커밋해 둡니다.
-  `extract --check`는 커밋된 것이 고정된 원문과 맞는지 검사합니다.
-  - `nav/nav.md`: `mkdocs.yml`의 nav 레이블을 nav 순서대로 적은 목록. 번역(`ko-nav/nav.md`)은
-    `scripts/prepare_site.py`가 원문 nav의 같은 줄에 되돌려 넣으므로 쪽 목록과 순서는 원문 그대로입니다.
-  - `normalized/docs/`: admonition 머리를 공백 없이 쓴 쪽(`!!!note`; `mm/numa-reclaim.md`,
-    `mm/tlb-optimization.md`)에 공백을 넣은 사본. Python-Markdown은 두 표기를 모두 admonition으로 읽지만
-    파서는 공백 있는 표기만 읽으므로, 이 두 쪽은 사본에서 번역합니다.
+- 파생 소스: `scripts/sources.py extract`가 원문에서 `nav/nav.md`를 만들어 커밋해 둡니다.
+  `extract --check`는 커밋된 것이 고정된 원문과 맞는지 검사합니다. `nav/nav.md`는 `mkdocs.yml`의
+  nav 레이블을 nav 순서대로 적은 목록이며, 번역(`ko-nav/nav.md`)은 `scripts/prepare_site.py`가 원문
+  nav의 같은 줄에 되돌려 넣으므로 쪽 목록과 순서는 원문 그대로입니다.
+- 용어: `glossary.toml`(손으로 정한 용어)과 `terms.toml`(`yeokja terms build`가 고정한 반복 용어와
+  제목·레이블). `glossary_plurals = true`라 영어 규칙 복수형은 단수형 항목이 함께 맞습니다.
+  huge page, transparent huge page(THP)처럼 한국어 커널 문서가 영어로 쓰는 말은 옮기지 않습니다.
 - 빌드: 같은 툴체인으로 영어 원문을 먼저 빌드하면서 `overlay/hooks/anchors.py`가 쪽마다 제목 ID를
   기록하고, 한국어 빌드에서 같은 hook이 번역된 제목에 그 ID를 입힙니다. 제목 수가 다르면 빌드가
   실패합니다. `scripts/prepare_site.py`가 원문 `mkdocs.yml`의 사이트 이름·언어·검색·푸터·nav 레이블을
