@@ -40,6 +40,7 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `jeffe-algorithms` | CC BY 4.0 (CC BY-NC-SA 4.0인 강의 노트와 허락받은 그림은 번역하지 않음) |
 | `learn-fpga` | BSD-3-Clause (하위 디렉터리별 별도 라이선스 유지) |
 | `learninpublic` | 원고 CC BY 4.0(`LICENSE-CONTENT`), 코드 MIT; 권리 미확인 그림 24점은 싣지 않음, 번역물 CC BY 4.0 |
+| `linux-kernel-internals` | 문서 CC BY-SA 4.0, 코드 스니펫 GPL-2.0(원문 표기 그대로; `-only`/`-or-later` 미지정); 번역물 CC BY-SA 4.0 |
 | `loss-data-analytics` | 본문 CC BY 4.0(서문 라이선스 표기, GettingStarted/LICENSE.md), 저장소 LICENSE CC0 1.0; 번역물 CC BY 4.0 |
 | `mil` | 교재 텍스트 CC BY 4.0, 소스 Apache-2.0 |
 | `napkin` | 본문·PDF CC BY-SA 4.0, LaTeX 소스 GPL-3.0 |

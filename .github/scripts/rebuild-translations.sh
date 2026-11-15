@@ -148,6 +148,18 @@ case "$project" in
     "$yeokja" status --check upstream
     "$yeokja" translate upstream
     ;;
+  linux-kernel-internals)
+    # 파생 소스(nav 레이블 목록, 공백 없는 admonition 머리를 정규화한 쪽)가 고정된 원문과
+    # 맞는지 먼저 보고, 세 소스를 재구성 전에 확인해 CI가 provider를 부르지 않게 하고
+    # 원문이 새로 더한 쪽이 state 없이 빠지는 것도 막습니다.
+    python3 scripts/sources.py extract --check
+    "$yeokja" status --check upstream/docs
+    "$yeokja" status --check normalized/docs
+    "$yeokja" status --check nav
+    "$yeokja" translate upstream/docs
+    "$yeokja" translate normalized/docs
+    "$yeokja" translate nav
+    ;;
   technicalpm)
     # EPUB 콘텐츠 문서 전체(upstream/OEBPS)를 재구성 전에 확인해 CI가 provider를
     # 부르지 않게 하고, 원문을 다시 내려받아 생긴 새 문서가 state 없이 빠지는

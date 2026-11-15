@@ -165,6 +165,7 @@ overlay_site "dist-loss-data-analytics" "site" "loss-data-analytics"
 overlay_site "dist-algorithmica" "site" "algorithmica"
 overlay_site "dist-aqueous" "site" "aqueous"
 overlay_site "dist-learninpublic" "site" "learninpublic"
+overlay_site "dist-linux-kernel-internals" "site" "linux-kernel-internals"
 
 prune_orphaned_site_entries
 
