@@ -216,7 +216,7 @@ pub fn render(tree: &Tree, tagged: &Tagged) -> Rendered {
             Node::Code { tag: None, written } => write_text(written.trim_matches('`'), attribute, &mut out),
         }
     }
-    Rendered { markdown: out, strategies: Vec::new(), verified: true }
+    Rendered { markdown: out, strategies: Vec::new(), verified: true, mismatch: Vec::new() }
 }
 
 /// The source's text without its markup, for telling whether a code span of

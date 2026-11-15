@@ -254,6 +254,55 @@ pub struct Rendered {
     pub strategies: Vec<(usize, &'static str)>,
     /// Whether the Markdown reads back as the tags meant.
     pub verified: bool,
+    /// When it does not: how what it reads back as differs.
+    pub mismatch: Vec<String>,
+}
+
+/// How many of each construct `shape` (see `structure`) holds: emphasis and
+/// links by kind, the opaque ones by letter. Code is left to the code rules,
+/// which allow a translation to shed a plural.
+pub(super) fn constructs(shape: &str) -> HashMap<String, usize> {
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    let chars: Vec<char> = shape.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '(' => {
+                if let Some(kind) = chars.get(i + 1) {
+                    *counts.entry(format!("({kind}")).or_default() += 1;
+                }
+                i += 2;
+            }
+            'c' | 'r' if chars.get(i + 1) == Some(&':') => {
+                while i < chars.len() && chars[i] != '|' {
+                    i += 1;
+                }
+                i += 1;
+            }
+            ')' => i += 1,
+            c => {
+                *counts.entry(c.to_string()).or_default() += 1;
+                i += 1;
+            }
+        }
+    }
+    counts
+}
+
+pub(super) fn construct_name(key: &str) -> &str {
+    match key {
+        "(i" => "italic",
+        "(b" => "bold",
+        "(s" => "strikethrough",
+        "(a" => "link",
+        "h" => "inline HTML",
+        "f" => "footnote reference",
+        "g" => "image",
+        "u" => "autolink",
+        "e" => "expression",
+        "n" => "line break",
+        other => other,
+    }
 }
 
 /// Parsed alone, a segment such as `1.` or `- same -` reads as a block
@@ -942,6 +991,9 @@ fn split_code_spans(text: &str) -> Vec<Piece> {
 
 enum Token {
     Text(String),
+    /// Tag syntax without a number where one is needed (`<b>`, `<b/>`): not
+    /// a tag of any segment. Held as written.
+    Bare(String),
     Open(char, Option<usize>),
     Close(char, Option<usize>),
     Void(char, usize),
@@ -982,6 +1034,7 @@ fn tokenize(pieces: Vec<Piece>) -> Vec<Token> {
                         (Some(b'>'), false, false, Some(n)) => Some(Token::Open(letter, Some(n))),
                         (Some(b'>'), true, false, n) => Some(Token::Close(letter, n)),
                         (Some(b'>'), false, true, Some(n)) => Some(Token::Void(letter, n)),
+                        (Some(b'>'), false, _, None) => Some(Token::Bare(text[i..=end].to_string())),
                         _ => None,
                     };
                     if let Some(token) = token {
@@ -1063,7 +1116,7 @@ pub fn read(reply: &str, tagged: &Tagged) -> Result<Tree, Vec<String>> {
         let mut text = String::new();
         for token in tokenize(vec![Piece::Text(reply.to_string())]) {
             match token {
-                Token::Text(t) => text.push_str(&t),
+                Token::Text(t) | Token::Bare(t) => text.push_str(&t),
                 _ => notes.push("dropped a tag from plain text".to_string()),
             }
         }
@@ -1084,6 +1137,22 @@ pub fn read(reply: &str, tagged: &Tagged) -> Result<Tree, Vec<String>> {
     for token in tokenize(pieces) {
         match token {
             Token::Text(t) => nodes.push(Node::Text(t)),
+            // Tag text shows a literal `<` as `&lt;`, so a bare `<b>` is the
+            // model's own markup — unless the source's text has it and the
+            // reply merely wrote the character itself.
+            Token::Bare(raw) => {
+                let shown: String = raw.chars().fold(String::new(), |mut out, c| {
+                    xml_escape(c, &mut out);
+                    out
+                });
+                if tagged.text.contains(&shown) || tagged.text.contains(&shown.replace("&gt;", ">")) {
+                    nodes.push(Node::Text(raw));
+                } else {
+                    problems.push(format!(
+                        "{raw} is not a tag of this segment — use only the numbered tags the source has, add no markup of your own, and write a literal < as &lt;"
+                    ));
+                }
+            }
             Token::Code { written, content, role } => {
                 codes.push((nodes.len(), content, role));
                 nodes.push(Node::Code { tag: None, written });
@@ -1461,9 +1530,50 @@ impl Renderer<'_> {
         t
     }
 
-    fn escape(&self, text: &str, line_start: bool, out: &mut String) {
+    /// Write `text` to `out`, escaping what would read as markup.
+    ///
+    /// `following` is the first character written after this text, `in_link`
+    /// whether it stands inside a link's text. A `]` this writes unescaped
+    /// is noted in `closes` (its byte offset in `out`) for `unsafe_closes`.
+    fn escape(
+        &self,
+        text: &str,
+        line_start: bool,
+        following: Option<char>,
+        in_link: bool,
+        out: &mut String,
+        closes: &mut Vec<usize>,
+    ) {
         let dialect = self.ctx.dialect;
         let chars: Vec<char> = text.chars().collect();
+        let peek = |at: usize| if at == chars.len() { following } else { chars.get(at).copied() };
+        // `[label]` of a defined reference is a link on its own: the `]`
+        // that closes one. `[^note]` is a footnote reference, whose label
+        // would take a backslash before the `]` into itself: its `[`.
+        let mut reference_closes: HashSet<usize> = HashSet::new();
+        let mut footnote_opens: HashSet<usize> = HashSet::new();
+        let mut opened: Option<usize> = None;
+        for (i, &c) in chars.iter().enumerate() {
+            match c {
+                '[' => opened = Some(i),
+                ']' => {
+                    if let Some(open) = opened.take() {
+                        let label: String = chars[open + 1..i].iter().collect();
+                        if label.starts_with('^') {
+                            footnote_opens.insert(open);
+                        } else if self.ctx.reference_labels.contains(&normalize_label(&label)) {
+                            reference_closes.insert(i);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        // `[label]: …` at the start of a line defines a reference.
+        let definition_close = (line_start && out.is_empty() && chars.first() == Some(&'['))
+            .then(|| chars.iter().position(|c| *c == ']'))
+            .flatten()
+            .filter(|&at| peek(at + 1) == Some(':'));
         // `1. ` at the start of a line opens a list.
         let digits = chars.iter().take_while(|c| c.is_ascii_digit()).count();
         let list_marker = line_start
@@ -1510,21 +1620,105 @@ impl Renderer<'_> {
                             && chars[i + 1..].iter().find(|c| !c.is_ascii_alphanumeric()) == Some(&';'))
                 }
                 '|' => self.position == Position::TableCell,
-                '[' | ']' => self.escape_brackets,
+                // A bracket inside a link's text would close the link early
+                // or open another.
+                '[' => self.escape_brackets || in_link || footnote_opens.contains(&i),
+                // A `]` the text wrote must not complete a link, a reference
+                // or a definition with what follows. Python-Markdown and
+                // Pandoc take `[a](b c)` for a link, which CommonMark does
+                // not, so the destination is not looked at; Python-Markdown
+                // also reads `[a] [b]`.
+                ']' => {
+                    self.escape_brackets
+                        || in_link
+                        || matches!(peek(i + 1), Some('(' | '['))
+                        || (dialect == Dialect::MkDocs
+                            && peek(i + 1).is_some_and(char::is_whitespace)
+                            && peek(i + 2) == Some('['))
+                        || reference_closes.contains(&i)
+                        || definition_close == Some(i)
+                }
+                // `![` before a link is an image.
+                '!' => i + 1 == chars.len() && following == Some('['),
                 '#' | '-' | '+' => at_start && matches!(next, Some(' ') | None),
                 '>' => at_start,
                 '.' | ')' => list_marker && chars[..i].iter().all(|c| c.is_ascii_digit()),
                 _ => false,
             };
+            // R Markdown reads `\[…\]` as display math, so a `[` it must
+            // not read as a bracket is written as a character reference.
+            if escape && c == '[' && dialect == Dialect::RMarkdown && !self.escape_brackets {
+                out.push_str("&#91;");
+                continue;
+            }
             if escape {
                 out.push('\\');
+            } else if c == ']' && !in_url[i] {
+                closes.push(out.len());
             }
             out.push(c);
         }
     }
 
+    /// The first character `tok` writes, as far as a bracket before it is
+    /// concerned: exact for what could complete a link (`(`, `[`), a stand-in
+    /// for emphasis marks.
+    fn first_char(&self, tok: &Tok) -> Option<char> {
+        match tok {
+            Tok::Text(t) => t.chars().next(),
+            Tok::Code(markdown, _, _) => markdown.chars().next(),
+            Tok::Void(n) => self.tags[n].open.chars().next(),
+            Tok::Open(n) => match self.tags[n].kind {
+                TagKind::Link => Some('['),
+                TagKind::Html | TagKind::Role => self.tags[n].open.chars().next(),
+                _ => Some('*'),
+            },
+            Tok::Close(n) => match self.tags[n].kind {
+                TagKind::Link => Some(']'),
+                TagKind::Html => self.tags[n].close.chars().next(),
+                TagKind::Role => None,
+                _ => Some('*'),
+            },
+        }
+    }
+
     fn render(&self, toks: &[Tok], strategies: &HashMap<usize, Strategy>, line_start: bool) -> String {
+        self.render_noting(toks, strategies, line_start, None, false).0
+    }
+
+    /// The literal `]` of `markdown` (see `escape`) that what follows would
+    /// complete into a link or a reference in some renderer of the family.
+    /// The escapes make this none; it is counted on the finished string so
+    /// that no later rewrite can bring one back.
+    fn unsafe_closes(&self, markdown: &str, closes: &[usize]) -> usize {
+        closes
+            .iter()
+            .filter(|&&at| {
+                let mut rest = markdown[at + 1..].chars();
+                match rest.next() {
+                    Some('(' | '[') => true,
+                    Some(c) if c.is_whitespace() && self.ctx.dialect == Dialect::MkDocs => rest.next() == Some('['),
+                    _ => false,
+                }
+            })
+            .count()
+    }
+
+    /// [`Renderer::render`] with the offsets of the literal `]` it wrote.
+    /// `after` is the first character that follows `toks`, `in_link` whether
+    /// they are a link's text.
+    fn render_noting(
+        &self,
+        toks: &[Tok],
+        strategies: &HashMap<usize, Strategy>,
+        line_start: bool,
+        after: Option<char>,
+        in_link: bool,
+    ) -> (String, Vec<usize>) {
         let mut out = String::new();
+        let mut closes: Vec<usize> = Vec::new();
+        let mut links_open = usize::from(in_link);
+        let following = |i: usize| toks[i + 1..].iter().find_map(|t| self.first_char(t)).or(after);
         let mut role_open: Option<usize> = None;
         for (i, tok) in toks.iter().enumerate() {
             // A role's label is written whole when the role closes.
@@ -1550,7 +1744,7 @@ impl Renderer<'_> {
             match tok {
                 Tok::Text(t) => {
                     let at_start = line_start && out.is_empty();
-                    self.escape(t, at_start, &mut out);
+                    self.escape(t, at_start, following(i), links_open > 0, &mut out, &mut closes);
                 }
                 Tok::Open(n) if self.tags[n].kind == TagKind::Role => role_open = Some(i),
                 Tok::Void(n) => {
@@ -1570,21 +1764,27 @@ impl Renderer<'_> {
                     let tag = self.tags[n];
                     let opening = matches!(tok, Tok::Open(_));
                     match tag.kind {
-                        TagKind::Link if opening => out.push('['),
-                        TagKind::Link => match &tag.label {
-                            Some(label) => {
-                                let start = toks[..i].iter().rposition(|t| *t == Tok::Open(*n)).unwrap_or(i);
-                                let inner = self.render(&toks[start + 1..i], strategies, false);
-                                // `[label](GCI)` would read as an inline link.
-                                let next_opens = matches!(toks.get(i + 1), Some(Tok::Text(t)) if t.starts_with(['(', '[']));
-                                if normalize_label(&inner) == normalize_label(label) && !next_opens {
-                                    out.push_str(&tag.close);
-                                } else {
-                                    out.push_str(&format!("][{label}]"));
+                        TagKind::Link if opening => {
+                            links_open += 1;
+                            out.push('[');
+                        }
+                        TagKind::Link => {
+                            links_open = links_open.saturating_sub(1);
+                            match &tag.label {
+                                Some(label) => {
+                                    let start = toks[..i].iter().rposition(|t| *t == Tok::Open(*n)).unwrap_or(i);
+                                    let inner = self.render_noting(&toks[start + 1..i], strategies, false, Some(']'), true).0;
+                                    // `[label](GCI)` would read as an inline link.
+                                    let next_opens = matches!(following(i), Some('(' | '['));
+                                    if normalize_label(&inner) == normalize_label(label) && !next_opens {
+                                        out.push_str(&tag.close);
+                                    } else {
+                                        out.push_str(&format!("][{label}]"));
+                                    }
                                 }
+                                None => out.push_str(&tag.close),
                             }
-                            None => out.push_str(&tag.close),
-                        },
+                        }
                         TagKind::Html => out.push_str(if opening { &tag.open } else { &tag.close }),
                         _ => match strategies.get(n) {
                             Some(Strategy::Html) => {
@@ -1604,7 +1804,7 @@ impl Renderer<'_> {
                 }
             }
         }
-        out
+        (out, closes)
     }
 
     /// How `markdown` reads back: a shape of constructs and the text.
@@ -1764,6 +1964,50 @@ pub(super) fn structure(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> (S
     renderer.read_back(markdown)
 }
 
+/// How many times `markdown` writes a literal `](` that Python-Markdown and
+/// Pandoc read as an inline link although CommonMark does not: they take
+/// `[59:56](top-byte ignore 영역)` for one, spaces in the destination and
+/// all. A `]` that ends a link, a reference or a footnote reference
+/// CommonMark reads is that construct's, in those renderers too. Nothing in
+/// a dialect whose renderer reads links the CommonMark way.
+pub(super) fn lax_inline_links(markdown: &str, ctx: &DocContext) -> usize {
+    if !matches!(ctx.dialect, Dialect::MkDocs | Dialect::RMarkdown) {
+        return 0;
+    }
+    let Masking { text: masked, .. } = mask(markdown, ctx.dialect);
+    let guarded = format!("{GUARD_PREFIX}{masked}");
+    let taken: Vec<Range<usize>> = events(&guarded, ctx)
+        .into_iter()
+        .filter(|(event, _)| {
+            matches!(
+                event,
+                Event::Start(MdTag::Link { .. } | MdTag::Image { .. })
+                    | Event::Code(_)
+                    | Event::FootnoteReference(_)
+                    | Event::Html(_)
+                    | Event::InlineHtml(_)
+            )
+        })
+        .map(|(_, range)| range)
+        .collect();
+    let b = guarded.as_bytes();
+    (1..b.len())
+        .filter(|&i| {
+            b[i - 1] == b']'
+                && b[i] == b'('
+                && !taken.iter().any(|r| r.contains(&(i - 1)))
+                && b[..i - 1].iter().rev().take_while(|c| **c == b'\\').count() % 2 == 0
+        })
+        .count()
+}
+
+/// Whether the serializer can confirm the source's own tags, written back
+/// untranslated. Where it cannot, an unconfirmed rendering of a translation
+/// says nothing about the translation.
+pub fn source_verifies(tagged: &Tagged, ctx: &DocContext) -> bool {
+    read(&tagged.text, tagged).is_ok_and(|tree| render(&tree, tagged, ctx).verified)
+}
+
 /// Write the tree as Markdown, choosing for each emphasis a form CommonMark
 /// closes where the translation put it.
 ///
@@ -1786,7 +2030,7 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
                 _ => None,
             })
             .collect();
-        return Rendered { markdown, strategies: Vec::new(), verified: true };
+        return Rendered { markdown, strategies: Vec::new(), verified: true, mismatch: Vec::new() };
     }
     let renderer = Renderer {
         tags: tagged.tags.iter().map(|t| (t.n, t)).collect(),
@@ -1875,10 +2119,36 @@ pub fn render(tree: &Tree, tagged: &Tagged, ctx: &DocContext) -> Rendered {
         best = renderer.score(&toks, &strategies);
     }
     let moved = renderer.transformed(&toks, &strategies);
-    let markdown = renderer.render(&moved, &strategies, true);
+    let (markdown, closes) = renderer.render_noting(&moved, &strategies, true, None, false);
     let mut chosen: Vec<(usize, &'static str)> = strategies.iter().map(|(n, s)| (*n, s.name())).collect();
     chosen.sort_unstable();
-    Rendered { markdown, strategies: chosen, verified: best == 0 }
+    let mut mismatch = Vec::new();
+    if best > 0 {
+        let (got_shape, got_text) = renderer.read_back(&markdown);
+        let (want_shape, want_text) = renderer.intended(&moved);
+        let (got, want) = (constructs(&got_shape), constructs(&want_shape));
+        let mut keys: Vec<&String> = got.keys().chain(want.keys()).collect();
+        keys.sort();
+        keys.dedup();
+        for key in keys {
+            let (g, w) = (got.get(key).copied().unwrap_or(0), want.get(key).copied().unwrap_or(0));
+            if g != w {
+                mismatch.push(format!("{} reads back {g} time(s), the tags mean {w}", construct_name(key)));
+            }
+        }
+        let norm = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+        if norm(&got_text) != norm(&want_text) {
+            mismatch.push("the text reads back differently".to_string());
+        }
+        if mismatch.is_empty() {
+            mismatch.push("the marks nest differently when read back".to_string());
+        }
+    }
+    let lax = renderer.unsafe_closes(&markdown, &closes);
+    if lax > 0 {
+        mismatch.push("a literal ] would read as a link".to_string());
+    }
+    Rendered { markdown, strategies: chosen, verified: best == 0 && lax == 0, mismatch }
 }
 
 
@@ -2219,6 +2489,147 @@ mod tests {
         let tagged = tagify("a or b", &ctx(&[]), Position::TableCell, &mut counter).unwrap();
         let tree = read("a | b", &tagged).unwrap();
         assert_eq!(render(&tree, &tagged, &ctx(&[])).markdown, "a \\| b");
+    }
+
+    #[test]
+    fn tag_syntax_without_a_number_is_a_problem_unless_the_source_wrote_it() {
+        let tagged = tag("It does NOT guarantee `mmap()` is complete.");
+        let problems = read("`mmap()`의 완료를 보장하지는 <b>않습니다.", &tagged).unwrap_err();
+        assert!(problems[0].starts_with("<b> is not a tag of this segment"), "{problems:?}");
+        assert!(read("보장하지 <u>않습니다</u>.", &tagged).is_err());
+        assert!(read("줄을 <br/> 바꿉니다.", &tagged).is_err());
+        // Text the source has: the reply wrote the character for `&lt;`.
+        let tagged = tag("Use the \\<b> element.");
+        assert_eq!(tagged.text, "Use the &lt;b&gt; element.");
+        assert!(read("<b> 요소를 씁니다.", &tagged).is_ok());
+        // A string with no markup keeps it as text.
+        let mut counter = 0;
+        let plain = tagify("The <i> tag", &ctx(&[]), Position::Plain, &mut counter).unwrap();
+        let tree = read("<i> 태그", &plain).unwrap();
+        assert_eq!(tree.nodes, vec![Node::Text("<i> 태그".into())]);
+    }
+
+    #[test]
+    fn the_source_of_every_test_segment_verifies() {
+        let doc = ctx(&[]);
+        for source in ["Plain.", "The **bold** and [link](x.md).", "a <em>b</em> c"] {
+            let tagged = tagify(source, &doc, Position::Inline, &mut 0).unwrap();
+            assert!(source_verifies(&tagged, &doc), "{source}");
+        }
+    }
+
+    // --- literal brackets ---------------------------------------------------
+
+    /// How many links and images `markdown` reads back as, and how many a
+    /// laxer renderer would add: an unescaped `](` or `][` outside code.
+    fn links_read(dialect: Dialect, labels: &[&str], markdown: &str) -> (usize, usize) {
+        let ctx = DocContext { reference_labels: labels.iter().map(|l| normalize_label(l)).collect(), dialect };
+        let tagged = tagify("x", &ctx, Position::Inline, &mut 0).unwrap();
+        let shape = structure(markdown, &tagged, &ctx).0;
+        let strict = shape.matches("(a").count() + shape.matches('g').count();
+        let code = code_span_ranges(markdown);
+        let b = markdown.as_bytes();
+        let lax = (1..b.len())
+            .filter(|&i| {
+                b[i - 1] == b']'
+                    && matches!(b[i], b'(' | b'[')
+                    && !code.iter().any(|r| r.contains(&i))
+                    && b[..i - 1].iter().rev().take_while(|c| **c == b'\\').count() % 2 == 0
+            })
+            .count();
+        (strict, lax)
+    }
+
+    const MARKDOWN_DIALECTS: [Dialect; 5] =
+        [Dialect::CommonMark, Dialect::Myst, Dialect::Mdx, Dialect::RMarkdown, Dialect::MkDocs];
+
+    /// Render `reply` against `source` in every Markdown dialect: verified,
+    /// and read back with exactly `links` links, by CommonMark and by the
+    /// lax reading alike.
+    fn renders_with_links(source: &str, reply: &str, labels: &[&str], links: usize) -> Vec<String> {
+        renders_reading(source, reply, labels, (links, links))
+    }
+
+    fn renders_reading(source: &str, reply: &str, labels: &[&str], links: (usize, usize)) -> Vec<String> {
+        MARKDOWN_DIALECTS
+            .into_iter()
+            .map(|dialect| {
+                let ctx = DocContext { reference_labels: labels.iter().map(|l| normalize_label(l)).collect(), dialect };
+                let tagged = tagify(source, &ctx, Position::Inline, &mut 0).unwrap();
+                let tree = read(reply, &tagged).unwrap_or_else(|p| panic!("{reply}: {p:?}"));
+                let rendered = render(&tree, &tagged, &ctx);
+                assert!(rendered.verified, "{dialect:?}: {} ({:?})", rendered.markdown, rendered.mismatch);
+                assert_eq!(links_read(dialect, labels, &rendered.markdown), links, "{dialect:?}: {}", rendered.markdown);
+                rendered.markdown
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_literal_bracket_before_a_parenthesis_is_not_a_link() {
+        // Python-Markdown and Pandoc take `[59:56](top-byte ignore 영역)` for a
+        // link even though CommonMark does not (a space in the destination).
+        let source = "Uses pointer bits [59:56] (top-byte ignore region) for tags.";
+        for markdown in renders_with_links(source, "태그에 포인터 비트 [59:56](top-byte ignore 영역)을 씁니다.", &[], 0) {
+            assert_eq!(markdown, "태그에 포인터 비트 [59:56\\](top-byte ignore 영역)을 씁니다.");
+        }
+        renders_with_links("Bits [7:0] (low) and [15:8] (high).", "비트 [7:0](low)와 [15:8](high)입니다.", &[], 0);
+    }
+
+    #[test]
+    fn a_literal_bracket_before_another_bracket_is_not_a_reference() {
+        for markdown in renders_with_links("See a and b here.", "여기서 [a][b]를 보십시오.", &["b"], 0) {
+            assert_eq!(markdown, "여기서 [a\\][b\\]를 보십시오.");
+        }
+        // Python-Markdown reads `[a] [b]` as a reference too.
+        let ctx = DocContext { reference_labels: ["b".to_string()].into_iter().collect(), dialect: Dialect::MkDocs };
+        let tagged = tagify("See a and c here.", &ctx, Position::Inline, &mut 0).unwrap();
+        let rendered = render(&read("여기서 [a] [c]를 보십시오.", &tagged).unwrap(), &tagged, &ctx);
+        assert!(rendered.verified);
+        assert_eq!(rendered.markdown, "여기서 [a\\] [c]를 보십시오.");
+    }
+
+    #[test]
+    fn a_literal_bracket_is_not_a_shortcut_reference_a_footnote_or_a_definition() {
+        for markdown in renders_with_links("The n and the note.", "[n]과 [^note]입니다.", &["n"], 0) {
+            assert_eq!(markdown.replace("&#91;", "\\[").replace("\\^", "^"), "[n\\]과 \\[^note]입니다.");
+        }
+        for markdown in renders_with_links("Note that it holds.", "[참고]: 성립합니다.", &[], 0) {
+            assert_eq!(markdown, "[참고\\]: 성립합니다.");
+        }
+    }
+
+    #[test]
+    fn a_literal_bracket_next_to_a_link_tag_stays_text() {
+        // Text `]` right before a link, text `!` right before one, and
+        // brackets inside a link's text.
+        for markdown in renders_with_links("See [docs](d.md) for [x].", "[x]<a1>문서</a1>를 보십시오.", &[], 1) {
+            assert_eq!(markdown, "[x\\][문서](d.md)를 보십시오.");
+        }
+        for markdown in renders_with_links("Careful! See [docs](d.md).", "주의!<a1>문서</a1>", &[], 1) {
+            assert_eq!(markdown, "주의\\![문서](d.md)");
+        }
+        for markdown in renders_with_links("See [the docs](d.md) on a[i].", "<a1>a[i] 문서</a1>를 보십시오.", &[], 1) {
+            assert_eq!(markdown.replace("&#91;", "\\["), "[a\\[i\\] 문서](d.md)를 보십시오.");
+        }
+    }
+
+    #[test]
+    fn a_reference_tag_before_a_bracket_is_written_in_full() {
+        // The next thing written is a link's `[`, not text.
+        // (`][` three times: the reference's own, the join, the link's.)
+        for markdown in
+            renders_reading("Part of [MCP] and [docs](d.md).", "<a1>MCP</a1><a2>문서</a2>의 일부입니다.", &["mcp"], (2, 3))
+        {
+            assert_eq!(markdown, "[MCP][MCP][문서](d.md)의 일부입니다.");
+        }
+    }
+
+    #[test]
+    fn brackets_that_cannot_form_a_link_are_not_escaped() {
+        for markdown in renders_with_links("Index a[i] and [x] (y).", "a[i]와 [x] (y)를 색인합니다.", &[], 0) {
+            assert_eq!(markdown, "a[i]와 [x] (y)를 색인합니다.");
+        }
     }
 
     // --- MyST, MDX, plain text --------------------------------------------------

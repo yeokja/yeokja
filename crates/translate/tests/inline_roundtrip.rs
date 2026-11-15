@@ -52,6 +52,9 @@ fn stored_markdown_sources_survive_the_round_trip() {
     let mut counts: HashMap<String, (usize, usize, usize)> = HashMap::new();
     let mut failures = Vec::new();
     let mut untaggable_examples = Vec::new();
+    // Sources whose own tags the serializer cannot confirm.
+    let mut unverified = 0usize;
+    let mut unverified_examples = Vec::new();
     // Pairs whose bytes changed, for checking with each dialect's own renderer.
     let mut dump = std::env::var("YEOKJA_ROUNDTRIP_DUMP").ok().map(|path| std::fs::File::create(path).unwrap());
     let mut entries: Vec<_> = std::fs::read_dir(&root).unwrap().flatten().map(|e| e.path()).collect();
@@ -96,8 +99,24 @@ fn stored_markdown_sources_survive_the_round_trip() {
                         continue;
                     }
                 };
-                let tree = markdown::read(&tagged.text, &tagged).unwrap_or_else(|p| panic!("{}: {p:?}", segment.source));
+                // A source the tags cannot carry back (an escaped backtick
+                // pair read as code) is a failure to count, not to stop at.
+                let tree = match markdown::read(&tagged.text, &tagged) {
+                    Ok(tree) => tree,
+                    Err(problems) => {
+                        if failures.len() < 40 {
+                            failures.push(format!("{}\n  src: {}\n  unreadable: {problems:?}", rel.display(), segment.source));
+                        }
+                        continue;
+                    }
+                };
                 let rendered = markdown::render(&tree, &tagged, &ctx);
+                if !rendered.verified {
+                    unverified += 1;
+                    if unverified_examples.len() < 15 {
+                        unverified_examples.push(format!("{dialect:?} {} -> {} ({:?})", segment.source, rendered.markdown, rendered.mismatch));
+                    }
+                }
                 let same = if position == Position::Plain {
                     rendered.markdown == segment.source
                 } else {
@@ -131,6 +150,10 @@ fn stored_markdown_sources_survive_the_round_trip() {
     }
     for u in &untaggable_examples {
         println!("untaggable: {u}");
+    }
+    println!("unverified identity renderings: {unverified}");
+    for u in &unverified_examples {
+        println!("unverified: {u}");
     }
     for f in &failures {
         println!("{f}");

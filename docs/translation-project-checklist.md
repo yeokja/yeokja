@@ -34,6 +34,8 @@
   세그먼트가 되고 표시와 줄 구조는 원문 그대로 남습니다). 두 옵션은 `mkdocs` 전용이며,
   `[[sources]]`의 모르는 키는 설정 오류입니다(설계는
   `docs/superpowers/specs/2026-11-15-mkdocs-def-list-and-math-option-design.md`).
+  admonition·details 머리는 Python-Markdown이 받는 대로 공백 없이 쓴 꼴(`!!!note`,
+  `???+tip "제목"`)도 읽으므로 원문을 정규화한 사본을 둘 필요가 없습니다.
 - `[provider]`에 실제로 쓸 provider/model을 명시합니다. 나중에 provider를
   다른 프로젝트와 통일하려고 바꾸더라도, **이미 번역된 세그먼트는 재번역되지
   않는 한 원래 모델의 결과물로 남는다**는 점을 감안해 README 출처 표기 시점에
@@ -65,8 +67,31 @@
   `yeokja translate`로 다시 번역합니다. `glossary.toml`을 손으로 고친 뒤에도
   `glossary adopt`를 먼저 돌립니다. 설계는
   `docs/superpowers/specs/2026-10-06-project-term-base-design.md`를 따릅니다.
+- 옮기지 않는 제목(커밋 제목, 글·책 제목) 속의 용어는 `except`로 뺄 필요가 없습니다.
+  용어의 출현이 모두 링크 글자·큰따옴표·강조 구간 안에 있고, 용어보다 긴 그 구간이
+  번역에 그대로 남아 있으면 용어 검사는 번역어를 요구하지 않습니다. `except`는 다른
+  뜻으로 쓰인 낱말(`in the future`, `entry points to`)과, 구분 기호 없이 영어로 남기는
+  이름(괄호 안의 약어 풀이, 영어 그대로 두는 제목 세그먼트)에 씁니다.
+- 용어는 낱말 단위로 맞습니다. `[project]`에 `glossary_plurals = true`를 두면 용어의
+  영어 규칙 복수형(`-s`, `-es`, `-ies`)도 그 용어로 읽으므로 복수형 항목을 따로 둘
+  필요가 없고, `terms build`도 복수형 항목을 따로 쓰지 않습니다. 기본값은 `false`입니다.
+  이미 번역한 프로젝트에서 켜면 복수형이 새로 맞는 세그먼트가 Glossary stale이 되므로
+  `yeokja glossary adopt`로 받아들인 뒤 남은 것만 다시 번역합니다.
+- 용어집을 바꾼 뒤 어느 세그먼트가 어긋나는지는 `yeokja glossary adopt` 다음에
+  `yeokja evaluate --mechanical-only`로 봅니다. `evaluate`는 Glossary stale·Context
+  changed 세그먼트도 현재 용어집으로 평가하고 로그 줄의 `status`로 구분해 줍니다.
+- 번역어를 원어 그대로 두는 쪽으로 바꿀 때는 `glossary adopt`가 이전 번역어에 원어를
+  병기한 번역("대형 페이지(huge page)")도 받아들입니다. adopt 뒤 state에서 이전 번역어를
+  찾아 남은 세그먼트를 다시 번역합니다.
 - `[evaluation]`에서 `auto_evaluate`를 켜고, 필요하면 `style_evaluate`,
   `max_retries`를 조정합니다.
+- 번역할 글자가 없는 세그먼트(코드 스팬·URL·숫자와 단위·문장부호뿐인 것)는 provider를
+  부르지 않고 원문 그대로 기록됩니다. 프롬프트에 "그대로 복사하라"는 규칙을 둘 필요가
+  없습니다.
+- 인라인 태그 소스에서 태그가 깨진 응답과 직렬화기가 확인하지 못한 응답은 저장되지
+  않고 재시도되며, `max_retries` 뒤에도 남으면 그 세그먼트는 Pending으로 남습니다.
+  `translate`를 다시 돌려도 남는 세그먼트는 로그의 "Inline tags rendered unverified"와
+  "Inline tags never held"에서 이유를 봅니다.
 
 ## 4. README
 
@@ -107,7 +132,11 @@
   `evaluator="Format"`의 코드 스팬 변경·괄호 두 겹·괄호 짝 오류와
   `evaluator="Link"`의 Markdown 링크 목적지·코드 참조 링크 누락은 번역 중에는
   자동 재시도 대상이지만, 검사 도입 전에 저장된 번역에는 남아 있을 수 있으므로
-  같은 방법으로 지우고 다시 번역합니다.
+  같은 방법으로 지우고 다시 번역합니다. 인라인 태그 소스의
+  `evaluator="InlineStructure"`는 번역에 원문보다 많은 인라인 HTML(태그 잔재 `<b>`,
+  `</a2>` 포함)·링크·이미지·각주 참조가 있거나, `mkdocs`·`rmarkdown` 소스에서 글자
+  대괄호가 링크로 읽히는 경우(`[59:56](top-byte ignore 영역)`)이며, 같은 방법으로 다시
+  번역합니다. 번역이 맨 URL에 링크를 건 경우처럼 해롭지 않은 추가도 여기에 나옵니다.
 - 빌드 산출물(HTML/PDF/EPUB)의 링크·앵커·경고를 프로젝트별 검증 스크립트나
   빌드 도구의 엄격 모드(예: `--fail-on-warning`)로 확인합니다.
 

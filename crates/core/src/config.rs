@@ -147,6 +147,12 @@ pub struct ProjectSettings {
     /// Lets the source tree (e.g. a git submodule) stay pristine.
     #[serde(default)]
     pub state_dir: Option<String>,
+    /// Whether a glossary term also matches its regular English plural
+    /// (`huge page` for "huge pages"; see `glossary::plural_forms`). Off by
+    /// default: turning it on makes more segments use a term, and each of
+    /// those is glossary-stale until adopted or retranslated.
+    #[serde(default)]
+    pub glossary_plurals: bool,
 }
 
 fn default_glossary_path() -> String {
@@ -560,6 +566,18 @@ impl ProjectConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn glossary_plurals_is_off_unless_the_project_asks() {
+        let config = |project: &str| {
+            ProjectConfig::from_toml(&format!(
+                "[project]\nsource_lang = \"en\"\ntarget_lang = \"ko\"\n{project}\n[[sources]]\npath = \"book/\"\npattern = \"**/*.md\"\nparser = \"markdown\"\noutput = \"{{dir}}/{{stem}}.ko{{ext}}\"\n\n[provider]\ntype = \"anthropic\"\nmodel = \"m\"\n"
+            ))
+            .unwrap()
+        };
+        assert!(!config("").project.glossary_plurals);
+        assert!(config("glossary_plurals = true\n").project.glossary_plurals);
+    }
 
     #[test]
     fn parse_full_config() {

@@ -65,6 +65,7 @@ pub async fn build(dry_run: bool, min_count: usize, limit: usize) -> Result<()> 
         source_lang: ctx.config.project.source_lang.clone(),
         target_lang: ctx.config.project.target_lang.clone(),
         concurrency: ctx.config.translation.as_ref().map_or(yeokja_core::config::default_concurrency(), |t| t.concurrency),
+        plurals: ctx.config.project.glossary_plurals,
     };
     let outcome = decide(llm, &corpus, candidates, &mut file, &ctx.glossary, &options).await;
     file.save(terms_path)?;

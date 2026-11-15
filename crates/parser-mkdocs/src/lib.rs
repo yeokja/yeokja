@@ -451,7 +451,7 @@ fn scan_block_header(source: &str, line: Range<usize>, layout: &mut Layout) -> b
     let marker = ["???+", "!!!", "???", "==="].into_iter().find(|m| rest.starts_with(m));
     let Some(marker) = marker else { return false };
     let after = &rest[marker.len()..];
-    if !after.starts_with([' ', '\t']) {
+    if !after.starts_with([' ', '\t']) && !(marker != "===" && is_unspaced_header_tail(after)) {
         return false;
     }
     if let (Some(open), Some(close)) = (after.find('"'), after.rfind('"'))
@@ -462,9 +462,39 @@ fn scan_block_header(source: &str, line: Range<usize>, layout: &mut Layout) -> b
     }
     let start = line.start + indent;
     fill(&mut layout.shadow, start..line.end, b' ');
-    let item: &[u8] = if line.end - start >= 7 { b"-   ***" } else { b"- ***" };
+    // `!!!a` leaves four columns: a bullet holding an empty nested bullet.
+    let item: &[u8] = match line.end - start {
+        7.. => b"-   ***",
+        5 | 6 => b"- ***",
+        _ => b"-  -",
+    };
     layout.shadow[start..start + item.len()].copy_from_slice(item);
     true
+}
+
+/// Whether `tail`, what follows `!!!`, `???` or `???+` with no space between,
+/// completes an admonition or details header.
+///
+/// Python-Markdown's admonition reads `!!! ?([\w\-]+(?: +[\w\-]+)*)(?: +"(.*?)")? *$`
+/// and pymdownx.details the same after `\?{3}(\+)? ?`: the space after the
+/// marker is optional, so `!!!note` and `???+tip "Title"` are headers. Without
+/// the space the type has to follow at once, which keeps `!!!!` and
+/// `???` followed by prose punctuation as text. (pymdownx.tabbed's `===`
+/// requires the space.)
+fn is_unspaced_header_tail(tail: &str) -> bool {
+    let tail = tail.trim_end_matches(' ');
+    let classes = match tail.find('"') {
+        Some(open) => {
+            if !tail.ends_with('"') || tail.len() < open + 2 || !tail[..open].ends_with(' ') {
+                return false;
+            }
+            tail[..open].trim_end_matches(' ')
+        }
+        None => tail,
+    };
+    !classes.is_empty()
+        && classes.split(' ').all(|word| word.is_empty() || word.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-'))
+        && !classes.starts_with(' ')
 }
 
 /// Math spans as pymdownx.arithmatex (generic mode) finds them, skipping code.
@@ -772,6 +802,33 @@ mod tests {
             translate_all(source, ko),
             "가 Before.\n\n!!! info \"가 Lemma\"\n    가 The body is prose. 가 It spans lines.\n\n가 After.\n"
         );
+    }
+
+    #[test]
+    fn a_header_without_the_space_is_a_header() {
+        // Python-Markdown: `!!! ?type`; pymdownx.details: `\?{3}(\+)? ?type`.
+        let source = "Before.\n\n!!!note\n    The body is prose.\n\n    - one\n    - two\n\n!!!tip \"Performance tip\"\n    Batch them.\n\n???info\n    Folded.\n\n???+warning \"Open\"\n    Shown.\n\nAfter.\n";
+        assert_eq!(
+            sources(source),
+            ["Before.", "The body is prose.", "one", "two", "Performance tip", "Batch them.", "Folded.", "Open", "Shown.", "After."]
+        );
+        assert_eq!(
+            translate_all("!!!tip \"Performance tip\"\n    Batch them.\n", ko),
+            "!!!tip \"가 Performance tip\"\n    가 Batch them.\n"
+        );
+        assert_eq!(sources("Intro\n???a\n    Short type.\n\nAfter.\n"), ["Intro", "Short type.", "After."]);
+        // The same segments as the spelling with the space.
+        assert_eq!(sources(source), sources(&source.replace("!!!", "!!! ").replace("???info", "??? info").replace("???+w", "???+ w")));
+    }
+
+    #[test]
+    fn marks_that_no_header_pattern_accepts_stay_text() {
+        // No type right after the marker, a quote without the space before it,
+        // punctuation in the type, and a tab set without its space.
+        for line in ["!!!!", "???what is this?", "!!!\"Title\"", "!!!note\"Title\"", "!!!note: text", "===\"Tab\"", "!!!note \"open"] {
+            let source = format!("{line}\n    body\n");
+            assert_eq!(sources(&source).len(), 1, "{line}");
+        }
     }
 
     #[test]

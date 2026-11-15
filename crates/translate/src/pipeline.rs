@@ -145,7 +145,12 @@ pub async fn translate_with_evaluation_observed(
 
         // Tag text becomes Markdown before anything else reads it. A reply
         // whose tags do not hold is dropped here and retried with the
-        // problems named; tag text is never stored as a translation.
+        // problems named; tag text is never stored as a translation. Markdown
+        // the serializer cannot confirm reads back as the tags meant goes
+        // the same way: it would be stored with markup the source does not
+        // have (a stray `<b>`, a citation glued to a word). Only where the
+        // serializer cannot confirm the source's own tags either is the
+        // doubt its own, and the translation is kept with a warning.
         let mut tag_problems: HashMap<usize, Vec<String>> = HashMap::new();
         let mut unverified: Vec<usize> = Vec::new();
         if let Some(batch) = inline {
@@ -157,7 +162,19 @@ pub async fn translate_with_evaluation_observed(
                         let rendered = crate::inline::markdown::render(&tree, tagged, &batch.ctx);
                         tracing::debug!(idx, strategies = ?rendered.strategies, notes = ?tree.notes, "Rendered inline tags");
                         if !rendered.verified {
-                            tracing::warn!(idx, markdown = %rendered.markdown, "Inline tags rendered unverified");
+                            tracing::warn!(idx, markdown = %rendered.markdown, mismatch = ?rendered.mismatch, "Inline tags rendered unverified");
+                            if crate::inline::markdown::source_verifies(tagged, &batch.ctx) {
+                                tag_problems.insert(
+                                    idx,
+                                    vec![format!(
+                                        "the tags could not be written as Markdown that reads back the same ({}) — \
+                                         put each tag around whole words, add no Markdown or HTML marks of your \
+                                         own, and write a literal < as &lt;",
+                                        rendered.mismatch.join("; ")
+                                    )],
+                                );
+                                continue;
+                            }
                             unverified.push(idx);
                         }
                         response.translations.insert(idx, rendered.markdown);
@@ -996,6 +1013,79 @@ mod tests {
         let requests = provider.requests.lock().unwrap();
         assert_eq!(requests[1].segments, vec![(1, "The <b1>first</b1> one.".to_string())]);
         assert!(requests[1].feedback.as_deref().unwrap().contains("<b1>"), "{:?}", requests[1].feedback);
+    }
+
+    /// A request in the MkDocs dialect, where a `<` in text is written as it
+    /// is: a reply's `&lt;br&gt;` becomes raw HTML the source does not have.
+    fn mkdocs_request(source: &str) -> (TranslateRequest, InlineBatch) {
+        use crate::inline::markdown::{Dialect, DocContext, Position, tagify};
+        let (mut request, _) = inline_request(&[source]);
+        let ctx = DocContext::new("", Dialect::MkDocs);
+        let tagged = tagify(source, &ctx, Position::Inline, &mut 0).unwrap();
+        request.segments = vec![(1, tagged.text.clone())];
+        (request, InlineBatch { tagged: [(1, tagged)].into(), ctx })
+    }
+
+    #[tokio::test]
+    async fn an_unconfirmed_rendering_is_retried_with_what_differed() {
+        let (request, batch) = mkdocs_request("It does not guarantee that.");
+        let provider = RecordingProvider {
+            responses: std::sync::Mutex::new(vec![
+                [(1, "보장하지는 &lt;b&gt;않습니다.".to_string())].into(),
+                [(1, "보장하지는 않습니다.".to_string())].into(),
+            ]),
+            requests: std::sync::Mutex::new(Vec::new()),
+        };
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![];
+        let results = translate_with_evaluation_inline(
+            &provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::MkDocsNoMath, 3, Some(&batch),
+        )
+        .await
+        .unwrap();
+        assert_eq!(results[&1].translation, "보장하지는 않습니다.");
+        assert!(results[&1].evaluation.as_ref().unwrap().issues.is_empty());
+        let requests = provider.requests.lock().unwrap();
+        let feedback = requests[1].feedback.as_deref().unwrap();
+        assert!(feedback.contains("inline HTML reads back 1 time(s), the tags mean 0"), "{feedback}");
+    }
+
+    #[tokio::test]
+    async fn a_rendering_never_confirmed_is_not_stored() {
+        let (request, batch) = mkdocs_request("It does not guarantee that.");
+        let provider = RecordingProvider {
+            responses: std::sync::Mutex::new(vec![
+                [(1, "보장하지는 &lt;b&gt;않습니다.".to_string())].into(),
+                [(1, "보장하지는 &lt;b&gt;않습니다.".to_string())].into(),
+            ]),
+            requests: std::sync::Mutex::new(Vec::new()),
+        };
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![];
+        let results = translate_with_evaluation_inline(
+            &provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::MkDocsNoMath, 1, Some(&batch),
+        )
+        .await
+        .unwrap();
+        assert!(!results.contains_key(&1), "{results:?}");
+    }
+
+    #[tokio::test]
+    async fn a_bare_tag_in_a_reply_is_a_tag_problem() {
+        let (request, batch) = mkdocs_request("It does not guarantee that.");
+        let provider = RecordingProvider {
+            responses: std::sync::Mutex::new(vec![
+                [(1, "보장하지는 <b>않습니다.".to_string())].into(),
+                [(1, "보장하지는 않습니다.".to_string())].into(),
+            ]),
+            requests: std::sync::Mutex::new(Vec::new()),
+        };
+        let evaluators: Vec<&dyn TranslationEvaluator> = vec![];
+        let results = translate_with_evaluation_inline(
+            &provider, &evaluators, request, &Glossary::empty(), "en", "ko", Markup::MkDocsNoMath, 3, Some(&batch),
+        )
+        .await
+        .unwrap();
+        assert_eq!(results[&1].translation, "보장하지는 않습니다.");
+        assert!(provider.requests.lock().unwrap()[1].feedback.as_deref().unwrap().contains("<b> is not a tag"));
     }
 
     #[tokio::test]

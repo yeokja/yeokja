@@ -680,6 +680,9 @@ pub struct DecideOptions {
     pub source_lang: String,
     pub target_lang: String,
     pub concurrency: usize,
+    /// The project's `glossary_plurals`: a term matches its regular plural,
+    /// so the plural spellings are not written as entries of their own.
+    pub plurals: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -832,7 +835,13 @@ async fn decide_wave(
             match (item, decisions.get(&(i + 1))) {
                 (_, None) => {}
                 (DecideItem::Term(term, _), Some(Decision::Render(rendering))) => {
-                    for form in std::iter::once(&term.term).chain(&term.forms) {
+                    let matched_anyway = if options.plurals {
+                        yeokja_core::glossary::plural_forms(&term.term.to_lowercase())
+                    } else {
+                        Vec::new()
+                    };
+                    file.terms.insert(term.term.clone(), entry(rendering));
+                    for form in term.forms.iter().filter(|form| !matched_anyway.contains(&form.to_lowercase())) {
                         file.terms.insert(form.clone(), entry(rendering));
                     }
                     outcome.terms_added += 1;
@@ -1174,7 +1183,19 @@ mod tests {
         };
         let llm = Arc::new(Scripted(Mutex::new(Vec::new())));
         let mut file = TermsFile::default();
-        let options = DecideOptions { source_lang: "en".into(), target_lang: "ko".into(), concurrency: 2 };
+        let options = DecideOptions { source_lang: "en".into(), target_lang: "ko".into(), concurrency: 2, plurals: false };
+        // With plural matching the singular entry covers "sponsors".
+        let mut with_plurals = TermsFile::default();
+        decide(
+            Arc::new(Scripted(Mutex::new(Vec::new()))),
+            &corpus,
+            candidates.clone(),
+            &mut with_plurals,
+            &Glossary::empty(),
+            &DecideOptions { plurals: true, ..options.clone() },
+        )
+        .await;
+        assert!(with_plurals.terms.contains_key("sponsor") && !with_plurals.terms.contains_key("sponsors"));
         let outcome = decide(llm.clone(), &corpus, candidates, &mut file, &Glossary::empty(), &options).await;
         assert_eq!(file.terms["sponsor"].translation, "스폰서");
         assert_eq!(file.terms["sponsors"].translation, "스폰서");
@@ -1209,7 +1230,7 @@ mod tests {
             }
         }
         let mut file = TermsFile::default();
-        let options = DecideOptions { source_lang: "en".into(), target_lang: "ko".into(), concurrency: 1 };
+        let options = DecideOptions { source_lang: "en".into(), target_lang: "ko".into(), concurrency: 1, plurals: false };
         decide(Arc::new(Reply), &corpus, candidates, &mut file, &Glossary::empty(), &options).await;
         assert_eq!(file.whole["System specificity"].translation, "시스템 특정성");
         assert!(!file.terms.contains_key("System specificity"));

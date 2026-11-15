@@ -10,8 +10,8 @@
 //! `docs/superpowers/specs/2026-09-22-markup-audit-design.md`.
 
 use super::markdown::{
-    DocContext, Position, Tag, TagKind, Tagged, code_span_ranges, normalize_label, read, render, structure,
-    tagify_lenient,
+    DocContext, Position, Tag, TagKind, Tagged, code_span_ranges, construct_name, constructs, lax_inline_links,
+    normalize_label, read, render, structure, tagify_lenient,
 };
 use crate::evaluator_format::commonmark_emphasis;
 use std::collections::{HashMap, HashSet};
@@ -48,53 +48,6 @@ pub fn audit(translation: &str, tagged: &Tagged, ctx: &DocContext) -> Audit {
     }
 }
 
-/// How many of each construct `shape` (see `structure`) holds: emphasis and
-/// links by kind, the opaque ones by letter. Code is left to the code rules,
-/// which allow a translation to shed a plural.
-fn constructs(shape: &str) -> HashMap<String, usize> {
-    let mut counts: HashMap<String, usize> = HashMap::new();
-    let chars: Vec<char> = shape.chars().collect();
-    let mut i = 0;
-    while i < chars.len() {
-        match chars[i] {
-            '(' => {
-                if let Some(kind) = chars.get(i + 1) {
-                    *counts.entry(format!("({kind}")).or_default() += 1;
-                }
-                i += 2;
-            }
-            'c' | 'r' if chars.get(i + 1) == Some(&':') => {
-                while i < chars.len() && chars[i] != '|' {
-                    i += 1;
-                }
-                i += 1;
-            }
-            ')' => i += 1,
-            c => {
-                *counts.entry(c.to_string()).or_default() += 1;
-                i += 1;
-            }
-        }
-    }
-    counts
-}
-
-fn construct_name(key: &str) -> &str {
-    match key {
-        "(i" => "italic",
-        "(b" => "bold",
-        "(s" => "strikethrough",
-        "(a" => "link",
-        "h" => "inline HTML",
-        "f" => "footnote reference",
-        "g" => "image",
-        "u" => "autolink",
-        "e" => "expression",
-        "n" => "line break",
-        other => other,
-    }
-}
-
 /// What the source has that `markdown` lost.
 fn defects(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> Vec<String> {
     let want = constructs(&structure(&tagged.source, tagged, ctx).0);
@@ -109,6 +62,38 @@ fn defects(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> Vec<String> {
         found.push("emphasis marks printed as text".to_string());
     }
     found.sort();
+    found
+}
+
+/// The constructs a translation must not have more of than its source:
+/// each is markup the translator has no business adding. Emphasis is left
+/// out — Korean word order may split a bold phrase in two.
+const NOT_TO_GAIN: [&str; 6] = ["h", "(a", "g", "f", "e", "k"];
+
+/// What a stored `translation` reads back with that its source does not
+/// have: inline HTML (a tag left over from tag text, `<b>` or `</a2>`, reads
+/// as one), a link or an image made of literal brackets, a footnote
+/// reference. Markup the source itself has is counted on both sides, so a
+/// source that writes a literal `<b>` is not a finding. What the translation
+/// *lost* is the audit's business (see [`audit`]).
+pub fn gained(translation: &str, tagged: &Tagged, ctx: &DocContext) -> Vec<String> {
+    if tagged.position == Position::Plain {
+        return Vec::new();
+    }
+    let want = constructs(&structure(&tagged.source, tagged, ctx).0);
+    let got = constructs(&structure(translation, tagged, ctx).0);
+    let count = |counts: &HashMap<String, usize>, key: &str| counts.get(key).copied().unwrap_or(0);
+    let mut found: Vec<String> = NOT_TO_GAIN
+        .iter()
+        .filter(|key| count(&got, key) > count(&want, key))
+        .map(|key| format!("{} {} where the source has {}", construct_name(key), count(&got, key), count(&want, key)))
+        .collect();
+    let (lax_got, lax_want) = (lax_inline_links(translation, ctx), lax_inline_links(&tagged.source, ctx));
+    if lax_got > lax_want {
+        found.push(format!(
+            "a literal `](` {lax_got} time(s) where the source has {lax_want}: Python-Markdown and Pandoc read a link there"
+        ));
+    }
     found
 }
 
@@ -454,6 +439,63 @@ fn permutations(n: usize) -> Vec<Vec<usize>> {
         all = next;
     }
     all
+}
+
+#[cfg(test)]
+mod gained_tests {
+    use super::*;
+    use crate::inline::markdown::{Dialect, tagify};
+
+    fn gains(source: &str, translation: &str) -> Vec<String> {
+        let ctx = DocContext::new("", Dialect::MkDocs);
+        let tagged = tagify(source, &ctx, Position::Inline, &mut 0).unwrap();
+        gained(translation, &tagged, &ctx)
+    }
+
+    #[test]
+    fn leftover_tag_text_reads_as_inline_html_the_source_lacks() {
+        let source = "It does NOT guarantee `mmap()` is complete.";
+        assert_eq!(gains(source, "`mmap()`의 완료를 보장하지는 <b>않습니다."), ["inline HTML 1 where the source has 0"]);
+        assert_eq!(gains(source, "`mmap()`의 완료를 <b1>보장</b1>하지 않습니다."), ["inline HTML 2 where the source has 0"]);
+        assert_eq!(gains(source, "`mmap()`의 완료를 보장</b>하지 않습니다."), ["inline HTML 1 where the source has 0"]);
+        assert!(gains(source, "`mmap()`의 완료를 보장하지는 않습니다.").is_empty());
+    }
+
+    #[test]
+    fn markup_the_source_has_is_not_a_gain() {
+        assert!(gains("Press <b>Enter</b> now.", "지금 <b>Enter</b>를 누르십시오.").is_empty());
+        assert!(gains("The \\<b> element and `<b>`.", "\\<b> 요소와 `<b>`입니다.").is_empty());
+        assert!(gains("See [docs](d.md) and **this**.", "**이것**과 **저것**, [문서](d.md)를 보십시오.").is_empty());
+    }
+
+    #[test]
+    fn a_link_made_of_literal_brackets_is_a_gain() {
+        let source = "Uses pointer bits [59:56] (top-byte ignore region) for tags.";
+        let found = gains(source, "포인터 비트 [59:56](top-byte ignore 영역)을 씁니다.");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found[0].starts_with("a literal `](` 1 time(s) where the source has 0"), "{found:?}");
+        assert_eq!(gains(source, "포인터 비트 [59:56](tbi)를 씁니다."), ["link 1 where the source has 0"]);
+        assert!(gains(source, "포인터 비트 [59:56\\](top-byte ignore 영역)을 씁니다.").is_empty());
+        assert!(gains(source, "포인터 비트 [59:56] (top-byte ignore 영역)을 씁니다.").is_empty());
+    }
+
+    #[test]
+    fn a_parenthesis_after_a_real_link_or_in_a_strict_dialect_is_not_a_gain() {
+        // The `]` closes a reference link, a link or a footnote reference:
+        // every renderer takes that first and the parenthesis is text.
+        let doc = "[rla]: https://x.y\n[^auth]: note\n";
+        let ctx = DocContext::new(doc, Dialect::MkDocs);
+        let tagged = tagify("A bot called [Rust Log Analyzer][rla] (RLA), see [docs](d.md) (old).", &ctx, Position::Inline, &mut 0).unwrap();
+        assert!(gained("[Rust Log Analyzer][rla](RLA)라는 봇, [문서](d.md)(옛 것)를 보십시오.", &tagged, &ctx).is_empty());
+        // CommonMark, MyST and MDX want a destination without spaces, and
+        // read the link themselves when there is one.
+        for dialect in [Dialect::CommonMark, Dialect::Myst, Dialect::Mdx] {
+            let ctx = DocContext::new("", dialect);
+            let tagged = tagify("Bits [59:56] (top-byte ignore region).", &ctx, Position::Inline, &mut 0).unwrap();
+            assert!(gained("비트 [59:56](top-byte ignore 영역).", &tagged, &ctx).is_empty(), "{dialect:?}");
+            assert_eq!(gained("비트 [59:56](tbi).", &tagged, &ctx), ["link 1 where the source has 0"], "{dialect:?}");
+        }
+    }
 }
 
 #[cfg(test)]

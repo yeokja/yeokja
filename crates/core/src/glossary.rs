@@ -34,6 +34,9 @@ pub struct Glossary {
     except: HashMap<String, Vec<String>>,
     /// [`normalize_whole`] key → (entry as written, translation).
     whole: HashMap<String, (String, String)>,
+    /// Whether a term also matches its regular English plural (see
+    /// [`plural_forms`]): the project's `glossary_plurals`.
+    plurals: bool,
 }
 
 /// A segment as whole-segment entries compare it: without surrounding
@@ -63,19 +66,50 @@ pub fn normalize_whole(text: &str) -> String {
 /// and fails again. Of the 229 segments theBeamBook's glossary check rejected,
 /// 204 were this.
 pub fn find_terms_in_text(terms: &HashMap<String, String>, text: &str) -> HashMap<String, String> {
-    find_terms_except(terms, &HashMap::new(), text)
+    let chars: Vec<char> = text.to_lowercase().chars().collect();
+    term_uses(terms, &HashMap::new(), &chars, false).into_iter().map(|u| (u.term, u.translation)).collect()
 }
 
-/// [`find_terms_in_text`], passing over occurrences that stand inside one of
-/// the term's `except` phrases.
-fn find_terms_except(
+/// The regular English plurals of `term` (lowercased), which inflects in its
+/// last word: `huge page` → `huge pages`, `patch` → `patches`, `policy` →
+/// `policies`. Nothing for a term that does not end in an ASCII letter
+/// (`C++`). Irregular plurals and verb endings are not guessed.
+pub fn plural_forms(term: &str) -> Vec<String> {
+    let chars: Vec<char> = term.chars().collect();
+    let Some(&last) = chars.last() else { return Vec::new() };
+    if !last.is_ascii_alphabetic() {
+        return Vec::new();
+    }
+    let before = chars.len().checked_sub(2).map(|at| chars[at]);
+    let mut forms = vec![format!("{term}s")];
+    if matches!(last, 's' | 'x' | 'z' | 'o') || (last == 'h' && matches!(before, Some('c' | 's'))) {
+        forms.push(format!("{term}es"));
+    }
+    if last == 'y' && before.is_some_and(|c| c.is_ascii_alphabetic() && !"aeiou".contains(c)) {
+        let stem: String = chars[..chars.len() - 1].iter().collect();
+        forms.push(format!("{stem}ies"));
+    }
+    forms
+}
+
+/// A term the text uses as prose, and where: char ranges of the lowercased
+/// text, a plural ending included.
+struct TermUse {
+    term: String,
+    translation: String,
+    spans: Vec<Range<usize>>,
+}
+
+/// The terms `chars` (lowercased text) uses as prose, passing over
+/// occurrences that stand inside one of the term's `except` phrases. With
+/// `plurals`, a term's [`plural_forms`] are occurrences of it too.
+fn term_uses(
     terms: &HashMap<String, String>,
     except: &HashMap<String, Vec<String>>,
-    text: &str,
-) -> HashMap<String, String> {
-    let text_lower = text.to_lowercase();
-    let chars: Vec<char> = text_lower.chars().collect();
-    let verbatim = verbatim_spans(&chars);
+    chars: &[char],
+    plurals: bool,
+) -> Vec<TermUse> {
+    let verbatim = verbatim_spans(chars);
 
     // Longest match wins: a term nested in a longer one ("tensor" inside
     // "Tensor Unit") is not a term of its own where the longer one stands.
@@ -85,39 +119,124 @@ fn find_terms_except(
     ordered.sort_by(|(a, _), (b, _)| b.chars().count().cmp(&a.chars().count()).then(a.cmp(b)));
 
     let mut claimed: Vec<Range<usize>> = Vec::new();
-    let mut found = HashMap::new();
+    let mut found = Vec::new();
     for (term, translation) in ordered {
-        let term_chars: Vec<char> = term.to_lowercase().chars().collect();
+        let lowered = term.to_lowercase();
         let ordinary: Vec<Range<usize>> = except
             .get(term)
             .into_iter()
             .flatten()
             .flat_map(|phrase| {
                 let phrase: Vec<char> = phrase.to_lowercase().chars().collect();
-                occurrences(&chars, &phrase)
+                occurrences(chars, &phrase)
                     .map(|at| at..at + phrase.len())
                     .collect::<Vec<_>>()
             })
             .collect();
-        let mut spans = Vec::new();
-        for start in occurrences(&chars, &term_chars) {
-            let end = start + term_chars.len();
-            let standalone = (start == 0 || !is_word_char(chars[start - 1]))
-                && (end >= chars.len() || !is_word_char(chars[end]))
-                && !joined_into_a_name(&chars, start, end);
-            let hidden = verbatim.iter().any(|s| s.start < end && start < s.end);
-            let inside_longer = claimed.iter().any(|c| c.start <= start && end <= c.end);
-            let as_ordinary_word = ordinary.iter().any(|o| o.start <= start && end <= o.end);
-            if standalone && !hidden && !inside_longer && !as_ordinary_word {
-                spans.push(start..end);
+        let mut forms = vec![lowered.clone()];
+        if plurals {
+            forms.extend(plural_forms(&lowered));
+        }
+        let mut spans: Vec<Range<usize>> = Vec::new();
+        for form in forms {
+            let form: Vec<char> = form.chars().collect();
+            for start in occurrences(chars, &form) {
+                let end = start + form.len();
+                let standalone = (start == 0 || !is_word_char(chars[start - 1]))
+                    && (end >= chars.len() || !is_word_char(chars[end]))
+                    && !joined_into_a_name(chars, start, end);
+                let hidden = verbatim.iter().any(|s| s.start < end && start < s.end);
+                let inside_longer = claimed.iter().any(|c| c.start <= start && end <= c.end);
+                let as_ordinary_word = ordinary.iter().any(|o| o.start <= start && end <= o.end);
+                if standalone && !hidden && !inside_longer && !as_ordinary_word {
+                    spans.push(start..end);
+                }
             }
         }
         if !spans.is_empty() {
-            claimed.extend(spans);
-            found.insert(term.clone(), translation.clone());
+            claimed.extend(spans.iter().cloned());
+            found.push(TermUse { term: term.clone(), translation: translation.clone(), spans });
         }
     }
     found
+}
+
+/// Char ranges of the *delimited* stretches of `chars`: the inside of a
+/// bracket pair (a link's text), of a pair of double quotation marks, and of
+/// an emphasis. These are where a document quotes a title — a commit
+/// subject, an article, a book — that a translation copies as it stands.
+fn delimited_spans(chars: &[char]) -> Vec<Range<usize>> {
+    let mut spans = Vec::new();
+    // Brackets nest; quotation marks and emphasis runs pair in order.
+    let mut brackets: Vec<usize> = Vec::new();
+    let mut straight: Option<usize> = None;
+    let mut curly: Option<usize> = None;
+    let mut emphasis: Vec<(char, usize, usize)> = Vec::new(); // mark, run length, content start
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '\\' => i += 1,
+            '[' => brackets.push(i + 1),
+            ']' => {
+                if let Some(start) = brackets.pop() {
+                    spans.push(start..i);
+                }
+            }
+            '"' => match straight.take() {
+                Some(start) => spans.push(start..i),
+                None => straight = Some(i + 1),
+            },
+            '“' => curly = Some(i + 1),
+            '”' => {
+                if let Some(start) = curly.take() {
+                    spans.push(start..i);
+                }
+            }
+            mark @ ('*' | '_') => {
+                let run = chars[i..].iter().take_while(|c| **c == mark).count();
+                // `snake_case` is a word, not an emphasis.
+                let inside_word = mark == '_'
+                    && i > 0
+                    && chars[i - 1].is_alphanumeric()
+                    && chars.get(i + run).is_some_and(|c| c.is_alphanumeric());
+                if !inside_word {
+                    match emphasis.iter().rposition(|(m, len, _)| *m == mark && *len == run) {
+                        Some(at) => {
+                            spans.push(emphasis[at].2..i);
+                            emphasis.truncate(at);
+                        }
+                        None => emphasis.push((mark, run, i + run)),
+                    }
+                }
+                i += run - 1;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    spans
+}
+
+/// Whether the occurrence `at` of a term stands in a stretch of the source
+/// that the translation kept as written: a delimited span (see
+/// [`delimited_spans`]) that holds more words than the term and whose text
+/// is in `translation` (lowercased) unchanged. A title left untranslated
+/// cannot show the term's rendering, and asking for it starts a retry that
+/// never converges. A span that is the term and nothing else (`**huge
+/// page**`) is the term left in English, which is still unmet.
+fn kept_as_written(chars: &[char], delimited: &[Range<usize>], at: &Range<usize>, translation: &str) -> bool {
+    delimited.iter().any(|span| {
+        span.start <= at.start
+            && at.end <= span.end
+            && (chars[span.start..at.start].iter().any(|c| is_word_char(*c))
+                || chars[at.end..span.end].iter().any(|c| is_word_char(*c)))
+            && {
+                // English puts a comma inside the closing quotation mark
+                // ("mm: fix …," the commit); Korean puts it outside.
+                let text: String = chars[span.clone()].iter().collect();
+                translation.contains(text.trim_matches(|c: char| c.is_whitespace() || ",.;:".contains(c)))
+            }
+    })
 }
 
 /// Every position in `haystack` where `needle` starts.
@@ -334,7 +453,14 @@ impl Glossary {
             .into_iter()
             .map(|(text, entry)| (normalize_whole(&text), (text, entry.translation)))
             .collect();
-        Self { terms, except, whole }
+        Self { terms, except, whole, plurals: false }
+    }
+
+    /// The same glossary, matching each term's regular English plural as
+    /// well (or not).
+    pub fn with_plurals(mut self, plurals: bool) -> Self {
+        self.plurals = plurals;
+        self
     }
 
     /// The project's glossary: the curated `glossary` file with the generated
@@ -353,7 +479,7 @@ impl Glossary {
         };
         let terms_path = dir.join(&settings.terms);
         let generated = if terms_path.exists() { TermsFile::load(&terms_path)? } else { TermsFile::default() };
-        Ok(Self::merged(curated, generated))
+        Ok(Self::merged(curated, generated).with_plurals(settings.glossary_plurals))
     }
 
     /// `curated` over `generated`: an entry in both keeps the curated one.
@@ -399,20 +525,33 @@ impl Glossary {
     /// whole-segment entry only when the translation, normalized the same
     /// way, is its rendering. The glossary evaluator and snapshot adoption
     /// share this judgement.
+    ///
+    /// A term is also met where the translation could not have rendered it:
+    /// every occurrence stands in a stretch of the source the translation
+    /// kept as written (see [`kept_as_written`]) — the text of a link, a
+    /// quotation or an emphasis that is a title rather than prose.
     pub fn unmet_terms(&self, source: &str, translation: &str) -> Vec<(String, String)> {
-        let whole = self.whole_match(source).map(|(text, _)| text.to_string());
         let lowered = translation.to_lowercase();
-        let mut unmet: Vec<(String, String)> = self
-            .find_matching_terms(source)
-            .into_iter()
-            .filter(|(term, expected)| {
-                if whole.as_deref() == Some(term.as_str()) {
-                    normalize_whole(translation) != normalize_whole(expected)
-                } else {
-                    !lowered.contains(&expected.to_lowercase())
-                }
-            })
-            .collect();
+        let chars: Vec<char> = source.to_lowercase().chars().collect();
+        let delimited = delimited_spans(&chars);
+        let mut unmet: Vec<(String, String)> = Vec::new();
+        let whole = self.whole_match(source);
+        if let Some((entry, expected)) = whole
+            && normalize_whole(translation) != normalize_whole(expected)
+        {
+            unmet.push((entry.to_string(), expected.to_string()));
+        }
+        for used in term_uses(&self.terms, &self.except, &chars, self.plurals) {
+            // The whole-segment entry replaces an ordinary term spelled the same.
+            if whole.is_some_and(|(entry, _)| entry == used.term) {
+                continue;
+            }
+            if !lowered.contains(&used.translation.to_lowercase())
+                && !used.spans.iter().all(|at| kept_as_written(&chars, &delimited, at, &lowered))
+            {
+                unmet.push((used.term, used.translation));
+            }
+        }
         unmet.sort();
         unmet
     }
@@ -430,7 +569,11 @@ impl Glossary {
     /// A segment that is a whole-segment entry also matches that entry, under
     /// the entry's own spelling; it replaces an ordinary term spelled the same.
     pub fn find_matching_terms(&self, text: &str) -> HashMap<String, String> {
-        let mut found = find_terms_except(&self.terms, &self.except, text);
+        let chars: Vec<char> = text.to_lowercase().chars().collect();
+        let mut found: HashMap<String, String> = term_uses(&self.terms, &self.except, &chars, self.plurals)
+            .into_iter()
+            .map(|used| (used.term, used.translation))
+            .collect();
         if let Some((entry, translation)) = self.whole_match(text) {
             found.insert(entry.to_string(), translation.to_string());
         }
@@ -511,6 +654,7 @@ impl FromIterator<(String, String)> for Glossary {
             terms: pairs.into_iter().collect(),
             except: HashMap::new(),
             whole: HashMap::new(),
+            plurals: false,
         }
     }
 }
@@ -609,6 +753,110 @@ note = "Git 저장소"
 translation = "커밋"
 "#;
         Glossary::from_toml(toml).unwrap()
+    }
+
+    fn kernel_glossary() -> Glossary {
+        Glossary::from_toml(
+            r#"
+[terms."huge page"]
+translation = "huge page"
+[terms.scheduler]
+translation = "스케줄러"
+[terms.patch]
+translation = "패치"
+[terms.policy]
+translation = "정책"
+[terms."C++"]
+translation = "C++"
+[terms.preemption]
+translation = "선점"
+"#,
+        )
+        .unwrap()
+    }
+
+    fn unmet(glossary: &Glossary, source: &str, translation: &str) -> Vec<String> {
+        glossary.unmet_terms(source, translation).into_iter().map(|(term, _)| term).collect()
+    }
+
+    #[test]
+    fn a_term_inside_a_title_the_translation_kept_is_met() {
+        let g = kernel_glossary();
+        // Link text, a quotation and an emphasis, each kept as written.
+        assert!(unmet(&g, "[sched: fix scheduler wakeup race](https://x.y/1) — a fix.", "[sched: fix scheduler wakeup race](https://x.y/1) — 수정입니다.").is_empty());
+        assert!(unmet(&g, "See \"The extensible scheduler class\" on LWN.", "LWN의 \"The extensible scheduler class\"를 보십시오.").is_empty());
+        assert!(unmet(&g, "See “The extensible scheduler class” on LWN.", "LWN의 “The extensible scheduler class”를 보십시오.").is_empty());
+        assert!(unmet(&g, "Read *Realtime preemption end game* first.", "먼저 *Realtime preemption end game*을 읽으십시오.").is_empty());
+        assert!(unmet(&g, "Read [the scheduler docs][sched] first.", "먼저 [the scheduler docs][sched]를 읽으십시오.").is_empty());
+        // Punctuation English keeps inside the closing quotation mark.
+        assert!(unmet(&g, "Fixed by \"sched: make the scheduler fair,\" in 2023.", "2023년의 \"sched: make the scheduler fair\"로 수정되었습니다.").is_empty());
+        // The comparison ignores case, as term matching does.
+        assert!(unmet(&g, "See \"The Scheduler Class\".", "\"The scheduler class\"를 보십시오.").is_empty());
+    }
+
+    #[test]
+    fn a_term_left_in_english_is_still_unmet() {
+        let g = kernel_glossary();
+        // Outside any delimited stretch.
+        assert_eq!(unmet(&g, "The scheduler picks a task.", "scheduler가 태스크를 고릅니다."), ["scheduler"]);
+        // The stretch is the term and nothing else.
+        assert_eq!(unmet(&g, "The **scheduler** picks a task.", "**scheduler**가 태스크를 고릅니다."), ["scheduler"]);
+        assert_eq!(unmet(&g, "The \"scheduler\" picks.", "\"scheduler\"가 고릅니다."), ["scheduler"]);
+        // The title was translated, without the rendering.
+        assert_eq!(
+            unmet(&g, "See \"The extensible scheduler class\".", "\"확장 가능한 스케쥴러 클래스\"를 보십시오."),
+            ["scheduler"]
+        );
+        // Kept in the title, but used in the prose around it as well.
+        assert_eq!(
+            unmet(&g, "[The scheduler class](u) changed the scheduler.", "[The scheduler class](u)가 scheduler를 바꿨습니다."),
+            ["scheduler"]
+        );
+        // A snake_case name is not an emphasis.
+        assert_eq!(unmet(&g, "Set a_x and the scheduler b_y.", "a_x and the scheduler b_y를 설정합니다."), ["scheduler"]);
+    }
+
+    #[test]
+    fn a_kept_title_does_not_change_what_a_snapshot_records() {
+        let g = kernel_glossary();
+        let source = "See \"The extensible scheduler class\" on LWN.";
+        assert!(g.find_matching_terms(source).contains_key("scheduler"));
+        assert!(g.is_snapshot_stale(&HashMap::new(), source));
+    }
+
+    #[test]
+    fn plurals_match_only_when_the_project_asks() {
+        let source = "Huge pages need patches and policies; C++s and schedulers too.";
+        let plain = kernel_glossary();
+        assert!(plain.find_matching_terms(source).is_empty());
+        let g = kernel_glossary().with_plurals(true);
+        let mut found: Vec<String> = g.find_matching_terms(source).into_keys().collect();
+        found.sort();
+        assert_eq!(found, ["huge page", "patch", "policy", "scheduler"]);
+        // Not a plural: another word that merely starts the same.
+        assert!(g.find_matching_terms("The patched policymaker schedulerx.").is_empty());
+        assert_eq!(plural_forms("patch"), ["patchs", "patches"]);
+        assert_eq!(plural_forms("policy"), ["policys", "policies"]);
+        assert_eq!(plural_forms("key"), ["keys"]);
+        assert!(plural_forms("c++").is_empty());
+    }
+
+    #[test]
+    fn a_plural_entry_of_its_own_wins_over_the_singular() {
+        let g = Glossary::from_toml(
+            "[terms.\"huge page\"]\ntranslation = \"거대 페이지\"\n[terms.\"huge pages\"]\ntranslation = \"거대 페이지들\"\n",
+        )
+        .unwrap()
+        .with_plurals(true);
+        let found = g.find_matching_terms("Use huge pages.");
+        assert_eq!(found.keys().collect::<Vec<_>>(), ["huge pages"]);
+    }
+
+    #[test]
+    fn a_plural_that_is_the_whole_emphasis_is_the_term_left_in_english() {
+        let g = kernel_glossary().with_plurals(true);
+        assert_eq!(unmet(&g, "Use **schedulers** here.", "여기서 **schedulers**를 씁니다."), ["scheduler"]);
+        assert!(unmet(&g, "See \"Pluggable schedulers\".", "\"Pluggable schedulers\"를 보십시오.").is_empty());
     }
 
     #[test]

@@ -599,6 +599,71 @@ pub fn audit_file(
     Ok(findings)
 }
 
+/// A stored translation with inline markup its source does not have (see
+/// `inline::audit::gained`): the segment and what it gained.
+pub type StructureFinding = (String, Vec<String>);
+
+/// Compare the inline structure of the stored translations in `reconciled`
+/// (segments of `doc`, a file of `file_path`) with their sources'. Only a
+/// source that exchanges inline tags is read: there the markup is the
+/// serializer's, so anything more than the source has is a defect. Sources
+/// the tags cannot represent are left out.
+pub fn structure_findings(
+    file_path: &Path,
+    config: &ProjectConfig,
+    doc: &Document,
+    reconciled: &[ReconciledSegment],
+) -> Vec<StructureFinding> {
+    if !inline_tags_for(config, file_path) {
+        return Vec::new();
+    }
+    let dialect = config.source_for(file_path).map(|source| Dialect::for_parser(&source.parser)).unwrap_or_default();
+    if dialect.vocabulary().is_some() {
+        return Vec::new();
+    }
+    let inline = InlineFile::new(doc, dialect);
+    let mut findings = Vec::new();
+    for rs in reconciled.iter().filter(|rs| rs.status.has_current_translation()) {
+        let Some(translation) = &rs.state.translation else { continue };
+        let position = inline.positions.get(&rs.state.id.0).copied().unwrap_or_default();
+        let mut counter = 0;
+        let Ok(tagged) = crate::inline::markdown::tagify(&rs.state.source, &inline.ctx, position, &mut counter) else {
+            continue;
+        };
+        let gained = crate::inline::audit::gained(translation, &tagged, &inline.ctx);
+        if !gained.is_empty() {
+            findings.push((rs.state.id.0.clone(), gained));
+        }
+    }
+    findings
+}
+
+/// Settle, without a request, the segments awaiting translation that hold
+/// nothing to translate (see `untranslatable`): a segment with no
+/// translation yet takes its source as one; one whose translation only
+/// waits on a context change keeps it. A segment the glossary has a say
+/// about is left to the model. Returns how many were settled.
+fn settle_untranslatable(markup: Markup, glossary: &Glossary, reconciled: &mut [ReconciledSegment]) -> usize {
+    let mut settled = 0;
+    for rs in reconciled.iter_mut().filter(|rs| rs.status.needs_translation()) {
+        if !crate::untranslatable::nothing_to_translate(markup, &rs.state.source)
+            || !glossary.find_matching_terms(&rs.state.source).is_empty()
+        {
+            continue;
+        }
+        if rs.state.translation.is_none() {
+            rs.state.translation = Some(rs.state.source.clone());
+            rs.state.translated_at = Some(Utc::now());
+            rs.state.issues.clear();
+        }
+        rs.state.glossary_snapshot = HashMap::new();
+        rs.state.context_hash = rs.context_hash;
+        rs.status = yeokja_core::change::SegmentStatus::Translated;
+        settled += 1;
+    }
+    settled
+}
+
 /// Group segments needing translation by their containing block.
 /// Returns `(block_raw_content, [(flat_segment_index, segment_state)])` pairs.
 /// A request as tag text: its context, its numbered segments, and their tags.
@@ -877,7 +942,8 @@ pub fn plan_requests(
         let parser = config.source_for(file_path).map(|source| source.parser.as_str()).unwrap_or_default();
         InlineFile::new(&doc, Dialect::for_parser(parser))
     });
-    let reconciled = reconcile_with_status(&doc, &StateFile::new(0), glossary);
+    let mut reconciled = reconcile_with_status(&doc, &StateFile::new(0), glossary);
+    settle_untranslatable(parser.markup(), glossary, &mut reconciled);
     let groups = batch_block_groups(
         group_by_block(&doc, &reconciled),
         config
@@ -1331,7 +1397,25 @@ impl FileTranslator {
             StateFile::new(0)
         };
 
-        let reconciled = reconcile_with_status(&doc, &existing, &self.glossary);
+        let mut reconciled = reconcile_with_status(&doc, &existing, &self.glossary);
+        // Segments with nothing to translate never reach the provider. They
+        // are saved at once: the state writer below saves only when a block
+        // comes back, and there may be no block left to send.
+        let settled = settle_untranslatable(parser.markup(), &self.glossary, &mut reconciled);
+        if settled > 0 {
+            tracing::info!(file = %file_path.display(), segments = settled, "Nothing to translate; kept as written");
+            let mut state = StateFile::new(content_hash(&source));
+            state.segments = reconciled
+                .iter()
+                .map(|rs| {
+                    let mut segment = rs.state.clone();
+                    // As the state writer does: the hashes are the current ones.
+                    segment.context_hash = rs.context_hash;
+                    segment
+                })
+                .collect();
+            state.save(&state_path)?;
+        }
         let block_groups = batch_block_groups(
             group_by_block(&doc, &reconciled),
             self.config
@@ -2470,6 +2554,64 @@ model = "test"
             stored,
             [Some("2 * 3 flakes".to_string()), Some("A *플레이크* has {year} outputs.".to_string())]
         );
+    }
+
+    #[tokio::test]
+    async fn segments_with_nothing_to_translate_are_kept_without_a_request() {
+        let source = "| Call | Size |\n|---|---|\n| `kmalloc()` | 4 KB |\n\nIt returns `x`.\n\n—\n";
+        let (sent, stored) = translate_with_parser("markdown", "a.md", source, vec![("It returns", "반환값은")]).await;
+        assert_eq!(sent, ["Call", "Size", "It returns `x`."]);
+        let stored: Vec<String> = stored.into_iter().map(Option::unwrap).collect();
+        assert_eq!(stored, ["Call", "Size", "`kmalloc()`", "4 KB", "반환값은 `x`.", "—"]);
+        // Nothing but such segments: no request at all, and the state is saved.
+        let (sent, stored) = translate_with_parser("markdown", "b.md", "`foo()`\n\n—\n", vec![]).await;
+        assert!(sent.is_empty(), "{sent:?}");
+        assert_eq!(stored, [Some("`foo()`".to_string()), Some("—".to_string())]);
+    }
+
+    #[test]
+    fn settling_leaves_glossary_segments_and_stored_translations_alone() {
+        use yeokja_core::change::SegmentStatus;
+        let segment = |n: usize, source: &str, translation: Option<&str>, status| ReconciledSegment {
+            state: SegmentState {
+                id: yeokja_core::model::SegmentId::new(0, n, 0),
+                source: source.to_string(),
+                source_hash: content_hash(source),
+                context_hash: 1,
+                translation: translation.map(str::to_string),
+                glossary_snapshot: HashMap::new(),
+                translated_at: None,
+                issues: vec!["old".to_string()],
+            },
+            status,
+            context_hash: 2,
+        };
+        let glossary = Glossary::from_toml("[whole.\"N/A\"]\ntranslation = \"해당 없음\"\n[whole.\"—\"]\ntranslation = \"없음\"\n").unwrap();
+        let mut reconciled = vec![
+            segment(0, "`a`", None, SegmentStatus::Pending),
+            // The glossary renders this segment: the model's business.
+            segment(1, "—", None, SegmentStatus::Pending),
+            // A translation that only waits on its context stays as it is.
+            segment(2, "4 KB", Some("4KB"), SegmentStatus::ContextChanged),
+            // Done already: not looked at.
+            segment(3, "`b`", Some("`B`"), SegmentStatus::Translated),
+            segment(4, "Prose.", None, SegmentStatus::Pending),
+        ];
+        assert_eq!(settle_untranslatable(Markup::Markdown, &glossary, &mut reconciled), 2);
+        let seen: Vec<(Option<&str>, SegmentStatus, u64)> =
+            reconciled.iter().map(|rs| (rs.state.translation.as_deref(), rs.status, rs.state.context_hash)).collect();
+        assert_eq!(
+            seen,
+            [
+                (Some("`a`"), SegmentStatus::Translated, 2),
+                (None, SegmentStatus::Pending, 1),
+                (Some("4KB"), SegmentStatus::Translated, 2),
+                (Some("`B`"), SegmentStatus::Translated, 1),
+                (None, SegmentStatus::Pending, 1),
+            ]
+        );
+        assert!(reconciled[0].state.translated_at.is_some() && reconciled[0].state.issues.is_empty());
+        assert!(reconciled[2].state.translated_at.is_none());
     }
 
     #[tokio::test]

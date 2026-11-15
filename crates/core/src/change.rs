@@ -53,6 +53,16 @@ impl SegmentStatus {
         )
     }
 
+    /// Whether a translation of the *current* source is stored: one that
+    /// can be evaluated. A glossary or context change leaves the translation
+    /// standing until it is redone; a changed source (`Stale`) does not.
+    pub fn has_current_translation(&self) -> bool {
+        matches!(
+            self,
+            SegmentStatus::Translated | SegmentStatus::GlossaryStale | SegmentStatus::ContextChanged
+        )
+    }
+
     pub fn is_high_priority(&self) -> bool {
         matches!(
             self,
@@ -64,6 +74,16 @@ impl SegmentStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_translation_of_the_current_source_can_be_evaluated() {
+        for status in [SegmentStatus::Translated, SegmentStatus::GlossaryStale, SegmentStatus::ContextChanged] {
+            assert!(status.has_current_translation(), "{status:?}");
+        }
+        for status in [SegmentStatus::Pending, SegmentStatus::Stale] {
+            assert!(!status.has_current_translation(), "{status:?}");
+        }
+    }
     use crate::model::SegmentId;
     use std::collections::HashMap;
 

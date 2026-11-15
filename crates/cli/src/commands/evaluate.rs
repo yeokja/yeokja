@@ -5,7 +5,9 @@ use yeokja_core::project::ProjectContext;
 use yeokja_translate::evaluator::{EvaluationContext, IssueSeverity};
 use yeokja_translate::factory::create_evaluator_provider;
 use yeokja_translate::inline::audit::Audit;
-use yeokja_translate::orchestrator::{audit_file, collect_files, evaluators_for, inline_tags_for, scan_file};
+use yeokja_translate::orchestrator::{
+    audit_file, collect_files, evaluators_for, inline_tags_for, scan_file, structure_findings,
+};
 
 /// Audit the inline markup of stored translations (see `inline::audit`),
 /// printing every finding; with `repair`, write the confirmed repairs to the
@@ -102,6 +104,11 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
 
     let mut total_segments = 0usize;
     let mut total_issues = 0usize;
+    // Checked segments whose translation waits to be redone after a glossary
+    // or context change: they are evaluated against the glossary as it is
+    // now, which is how to list what a glossary change left unmet.
+    let mut glossary_stale = 0usize;
+    let mut context_changed = 0usize;
 
     tracing::info!(files = files.len(), "Evaluating translations");
 
@@ -113,7 +120,7 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
             continue;
         }
 
-        let (_, reconciled) = scan_file(file_path, &ctx.config, &ctx.glossary, &parser_factory)?;
+        let (doc, reconciled) = scan_file(file_path, &ctx.config, &ctx.glossary, &parser_factory)?;
         let markup = parser_factory(file_path, &ctx.config).markup();
         let file_evaluators =
             if inline_tags_for(&ctx.config, file_path) { &inline_evaluators } else { &evaluators };
@@ -121,10 +128,17 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
         let mut file_issues = 0usize;
 
         for rs in &reconciled {
-            // Only evaluate translated segments
-            if !matches!(rs.status, SegmentStatus::Translated) {
+            // Every stored translation of the current source, whether or
+            // not a glossary or context change has marked it to be redone.
+            if !rs.status.has_current_translation() {
                 continue;
             }
+            match rs.status {
+                SegmentStatus::GlossaryStale => glossary_stale += 1,
+                SegmentStatus::ContextChanged => context_changed += 1,
+                _ => {}
+            }
+            let status = status_name(rs.status);
 
             let translation = match &rs.state.translation {
                 Some(t) => t,
@@ -156,6 +170,7 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
                                 segment = %rs.state.id,
                                 evaluator = evaluator.name(),
                                 level,
+                                status,
                                 "{}", issue.message
                             );
                         }
@@ -171,12 +186,28 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
             }
         }
 
+        // With inline tags the markup of a translation is the serializer's:
+        // anything it reads back with beyond the source's — a leftover
+        // `<b>`, a link made of literal brackets — is a defect.
+        for (segment, gained) in structure_findings(file_path, &ctx.config, &doc, &reconciled) {
+            for message in gained {
+                file_issues += 1;
+                tracing::info!(
+                    file = %file_path.display(),
+                    segment = %segment,
+                    evaluator = "InlineStructure",
+                    level = "ERROR",
+                    "Translation reads back with {message}"
+                );
+            }
+        }
+
         // A slipped batch leaves translations that are each fine on their own,
         // so the per-segment evaluators above cannot see it. Compare every
         // stored translation with its neighbours' sources instead.
         let stored: Vec<(String, (String, String))> = reconciled
             .iter()
-            .filter(|rs| matches!(rs.status, SegmentStatus::Translated))
+            .filter(|rs| rs.status.has_current_translation())
             .filter_map(|rs| {
                 let translation = rs.state.translation.clone()?;
                 Some((rs.state.id.to_string(), (rs.state.source.clone(), translation)))
@@ -213,5 +244,21 @@ pub async fn run(path: &str, mechanical_only: bool) -> Result<()> {
     }
 
     println!("\nEvaluation complete: {} segments checked, {} issues found", total_segments, total_issues);
+    if glossary_stale + context_changed > 0 {
+        println!(
+            "  of those, {glossary_stale} glossary-stale and {context_changed} context-changed \
+             (awaiting retranslation; checked against the current glossary)"
+        );
+    }
     Ok(())
+}
+
+fn status_name(status: SegmentStatus) -> &'static str {
+    match status {
+        SegmentStatus::Translated => "translated",
+        SegmentStatus::Pending => "pending",
+        SegmentStatus::Stale => "stale",
+        SegmentStatus::ContextChanged => "context-changed",
+        SegmentStatus::GlossaryStale => "glossary-stale",
+    }
 }
