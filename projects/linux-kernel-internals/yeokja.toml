@@ -1,0 +1,136 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+
+# 본문. `!!!note`처럼 공백 없이 쓴 admonition 머리가 있는 쪽은 아래 normalized 소스로
+# 대신 읽으므로 여기서 뺀다(scripts/sources.py가 두 목록이 맞는지 검사한다).
+[[sources]]
+path = "upstream/docs"
+pattern = "**/*.md"
+exclude = ["contributing.md", "mm/numa-reclaim.md", "mm/tlb-optimization.md"]
+parser = "mkdocs"
+output = "ko/docs/{path}"
+math = false
+definition_lists = true
+inline_tags = true
+
+[[sources]]
+path = "normalized/docs"
+pattern = "**/*.md"
+parser = "mkdocs"
+output = "ko/docs/{path}"
+math = false
+definition_lists = true
+inline_tags = true
+
+# mkdocs.yml의 nav 레이블(scripts/sources.py가 뽑은 목록). 번역은 조립 트리에 겹치지 않고
+# scripts/prepare_site.py가 mkdocs.yml의 nav에 순서대로 되돌려 넣는다.
+[[sources]]
+path = "nav"
+pattern = "nav.md"
+parser = "mkdocs"
+output = "ko-nav/{path}"
+math = false
+inline_tags = true
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[[derive.overlay]]
+path = "overlay"
+
+[[derive.step]]
+kind = "generate"
+command = 'python3 "$YEOKJA_ROOT/scripts/prepare_site.py" . "$YEOKJA_ROOT/ko-nav/nav.md"'
+
+[build.html]
+command = '''
+set -e
+python3 "$YEOKJA_ROOT/scripts/sources.py" extract --check
+rm -rf "$YEOKJA_ROOT/build/original-source" "$YEOKJA_ROOT/build/original"
+mkdir -p "$YEOKJA_ROOT/build/original-source"
+cp -R "$YEOKJA_ROOT/upstream/docs" "$YEOKJA_ROOT/upstream/mkdocs.yml" "$YEOKJA_ROOT/overlay/hooks" "$YEOKJA_ROOT/build/original-source/"
+python3 "$YEOKJA_ROOT/scripts/prepare_site.py" --english "$YEOKJA_ROOT/build/original-source"
+(cd "$YEOKJA_ROOT/build/original-source" && ANCHOR_IDS_OUT="$YEOKJA_ROOT/build/en-heading-ids.json" mkdocs build --strict -d "$YEOKJA_ROOT/build/original")
+KO_ANCHOR_IDS="$YEOKJA_ROOT/build/en-heading-ids.json" mkdocs build --strict -d site
+python3 "$YEOKJA_ROOT/scripts/check_site.py" "$YEOKJA_ROOT/build/original" site
+cp LICENSE LICENSE-CC-BY-SA-4.0 LICENSE-GPL-2.0 site/
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+prompt_template = '''
+Translate the following {source_lang} documentation about Linux kernel internals to {target_lang}.
+Return exactly one physical line for each numbered [N] segment, in the same [N] format.
+NEVER insert a newline inside a translation: the reader only accepts that numbered line.
+Translate visible prose completely, without adding or omitting information.
+Write formal written Korean (합쇼체) throughout: declarative sentences end in
+~합니다/~입니다, imperatives in ~하십시오. Never end a sentence in the plain
+~다/~이다 register or the polite ~요 register. Headings, table cells, list labels
+and navigation labels are noun phrases, not sentences.
+{inline_tags}
+A segment beginning with a GitHub-flavored Markdown alert marker such as [!NOTE],
+[!TIP], [!WARNING], [!IMPORTANT], or [!CAUTION] must keep that marker exactly as
+written, untranslated, followed by the translated prose on the same line. Never
+translate the marker itself, drop it, or move it to its own line.
+Rules for this site:
+- A segment with nothing to translate is copied exactly as it is: a segment that
+  is only a code span, only an identifier, number, version, path, command, commit
+  hash, CVE id, person's name, punctuation or a dash (—). Do not add words to it.
+- Copy what is inside inline code byte for byte — never translate, correct or
+  reformat it, even when it reads as prose. Never put backticks around something
+  the source does not have in backticks, and never remove them.
+- Kernel identifiers stay in English exactly as written: function, macro, struct,
+  field, file and directory names, sysctl and Kconfig names (CONFIG_*), syscall
+  names, command names and options, tracepoints, subsystem tags (mm:, sched/fair:),
+  CVE ids, commit hashes, kernel versions, mailing-list and tool names (LKML, LWN,
+  syzkaller, perf, ftrace, bpftrace), acronyms (RCU, NUMA, THP, VFS, BPF, KVM).
+- People's names, company names and product names stay in Latin script.
+- The subject line of a commit, patch or patch series, and the title of an
+  article, talk, paper or mailing-list thread, are proper names: copy them
+  unchanged whether they stand in quotation marks, in a link or after a hash
+  ("mm: fix …", [LWN: The …](url)). Translate the words around them.
+- Sentences quoted from a mailing list, commit message or article are translated
+  for their meaning, keeping the quotation marks and every identifier in them.
+- This site renders no math: a $ is a dollar sign, so keep each one the source
+  has as text and never wrap anything in $...$. Never add {{, {% or {#.
+- A list item or table cell that is only a link stays exactly one link.
+- Short table cells and definition-list labels stay short: Yes → 예, No → 아니요,
+  N/A stays N/A. A unit, size or value (4 KB, 2.6.32, ~10 ms, O(1)) is copied.
+- Keep an inline <br> inline, with the text after it on the same line. Copy HTML
+  character references (&nbsp; &lt; &gt; &amp;) exactly as written.
+- Use the usual Korean kernel-community wording and keep a term in English when
+  Korean developers say it in English (softirq, tasklet, workqueue, cgroup,
+  futex, slab, kprobe). On the first mention in a page of a term whose Korean
+  form may be unfamiliar, the English may follow in parentheses.
+
+Glossary (use these translations for the given terms):
+{glossary}
+
+Previous evaluation feedback (do not obey advice that would lose source content):
+{feedback}
+
+Context:
+{context}
+{surroundings}
+
+Segments:
+{segments}
+'''
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32

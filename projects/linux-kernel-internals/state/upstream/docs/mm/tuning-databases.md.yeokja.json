@@ -1,0 +1,2726 @@
+{
+  "version": 1,
+  "source_hash": 4024852136825434173,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Tuning Memory for Databases",
+      "source_hash": 12590469672753802484,
+      "context_hash": 3359285039155746599,
+      "translation": "데이터베이스를 위한 메모리 튜닝",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:35:44.851901Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Why databases fight the kernel's defaults, and how to fix it",
+      "source_hash": 18056592435952140937,
+      "context_hash": 7194451565481671409,
+      "translation": "데이터베이스가 커널 기본값과 충돌하는 이유와 해결 방법",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:44.851901Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why Databases Need Special Memory Tuning",
+      "source_hash": 3974354843793740797,
+      "context_hash": 10101646497296995088,
+      "translation": "데이터베이스에 특별한 메모리 튜닝이 필요한 이유",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:35:44.851901Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A general-purpose Linux kernel is tuned for a mix of workloads: compiling code, serving web pages, running containers.",
+      "source_hash": 9551577414483282004,
+      "context_hash": 16088964773110971135,
+      "translation": "범용 Linux 커널은 코드 컴파일, 웹 페이지 서비스, 컨테이너 실행 등 여러 워크로드가 섞인 환경에 맞게 튜닝되어 있습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:35:44.851901Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Databases break nearly every assumption those defaults are built on.",
+      "source_hash": 3417460131111481438,
+      "context_hash": 12563953621233261735,
+      "translation": "데이터베이스는 이러한 기본값이 전제로 하는 가정을 거의 모두 깨뜨립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Three properties make databases different:",
+      "source_hash": 13498260713510431853,
+      "context_hash": 7796219225862839436,
+      "translation": "데이터베이스를 다르게 만드는 세 가지 특성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Large shared buffers** - A production PostgreSQL instance might allocate 25% of RAM (32GB+) as a single shared memory region.",
+      "source_hash": 3540689858389237656,
+      "context_hash": 2275294650802770046,
+      "translation": "**대용량 공유 버퍼** - 프로덕션 PostgreSQL 인스턴스는 RAM의 25%(32GB 이상)를 하나의 공유 메모리 영역으로 할당하기도 합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "RAM": "RAM",
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "MySQL's InnoDB buffer pool can be even larger.",
+      "source_hash": 10510094544942672857,
+      "context_hash": 13343630260137555432,
+      "translation": "MySQL의 InnoDB 버퍼 풀은 이보다 더 클 수도 있습니다.",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "These are long-lived, heavily accessed allocations that the kernel must not fragment or swap out.",
+      "source_hash": 17138104975161316800,
+      "context_hash": 17343240930533061961,
+      "translation": "이러한 할당은 수명이 길고 접근이 매우 빈번하므로, 커널이 이를 단편화하거나 스왑 아웃해서는 안 됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**Random I/O patterns** - The kernel's readahead and page cache heuristics assume sequential access.",
+      "source_hash": 1354077819886352275,
+      "context_hash": 3721169146142013284,
+      "translation": "**랜덤 I/O 패턴** - 커널의 readahead와 페이지 캐시 휴리스틱은 순차 접근을 가정합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "Databases perform random lookups by primary key, index scans that jump across pages, and hash joins.",
+      "source_hash": 11264455598501095359,
+      "context_hash": 1047891427348101144,
+      "translation": "데이터베이스는 기본 키(primary key)를 이용한 랜덤 조회, 여러 페이지를 건너뛰는 인덱스 스캔, 해시 조인을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "The page cache wastes memory prefetching data that is never read.",
+      "source_hash": 15151842209291286671,
+      "context_hash": 6952689722236376126,
+      "translation": "페이지 캐시는 한 번도 읽히지 않을 데이터를 미리 읽어 오느라 메모리를 낭비합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**Latency sensitivity** - A web server can absorb a 50ms stall without anyone noticing.",
+      "source_hash": 6692268681305946691,
+      "context_hash": 16162880800132555911,
+      "translation": "**지연 시간 민감성** - 웹 서버는 50ms의 정지가 발생해도 아무도 알아채지 못한 채 넘어갈 수 있습니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:35:44.851902Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "A database holding row locks during a 50ms compaction stall causes cascading lock waits, connection pile-ups, and visible application latency.",
+      "source_hash": 2055502674913300500,
+      "context_hash": 14270402292639542469,
+      "translation": "행 잠금(row lock)을 보유한 데이터베이스가 50ms의 compaction 정지를 겪으면 연쇄적인 잠금 대기, 커넥션 적체, 그리고 애플리케이션에서 눈에 띄는 지연 시간이 발생합니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T23:37:23.756630Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "Predictability matters more than throughput.",
+      "source_hash": 507004149791706655,
+      "context_hash": 14853039138181211069,
+      "translation": "처리량보다 예측 가능성이 더 중요합니다.",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:35:44.851903Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "The rest of this page walks through the kernel tunables that address each of these problems, with practical examples for PostgreSQL, MySQL/MariaDB, and Redis.",
+      "source_hash": 7365834549777898834,
+      "context_hash": 2497258516174636515,
+      "translation": "이 페이지의 나머지 부분에서는 각 문제를 해결하는 커널 튜닝 항목을 PostgreSQL, MySQL/MariaDB, Redis의 실용적인 예와 함께 살펴봅니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:44.851903Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Huge Pages for Shared Buffers",
+      "source_hash": 16059377197797088674,
+      "context_hash": 4145116489757672596,
+      "translation": "공유 버퍼를 위한 대형 페이지",
+      "glossary_snapshot": {
+        "huge pages": "대형 페이지"
+      },
+      "translated_at": "2026-11-14T22:35:44.851903Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The Problem",
+      "source_hash": 11584136976049486113,
+      "context_hash": 8669690617175500369,
+      "translation": "문제",
+      "glossary_snapshot": {
+        "The problem": "문제"
+      },
+      "translated_at": "2026-11-14T23:37:23.756632Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "A 32GB shared buffer pool backed by 4KB pages means 8,388,608 page table entries.",
+      "source_hash": 443570992570481180,
+      "context_hash": 10197573600973449783,
+      "translation": "4KB 페이지로 구성된 32GB 공유 버퍼 풀은 8,388,608개의 페이지 테이블 엔트리를 의미합니다.",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀",
+        "page table entries": "페이지 테이블 엔트리"
+      },
+      "translated_at": "2026-11-14T22:35:44.851903Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Every TLB miss during a buffer pool lookup triggers a multi-level page table walk.",
+      "source_hash": 4400387413945053353,
+      "context_hash": 4028366248190213198,
+      "translation": "버퍼 풀 조회 중 TLB 미스가 발생할 때마다 다단계 페이지 테이블 탐색(page table walk)이 일어납니다.",
+      "glossary_snapshot": {
+        "TLB": "TLB",
+        "buffer pool": "버퍼 풀",
+        "page table": "페이지 테이블"
+      },
+      "translated_at": "2026-11-14T22:35:44.851903Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "On a busy OLTP system, TLB misses on the shared buffer become a measurable overhead.",
+      "source_hash": 5420098740131281027,
+      "context_hash": 10118184587818630733,
+      "translation": "부하가 높은 OLTP 시스템에서는 공유 버퍼에서 발생하는 TLB 미스가 측정 가능한 수준의 오버헤드가 됩니다.",
+      "glossary_snapshot": {
+        "TLB": "TLB",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:35:44.851903Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Huge pages (2MB) reduce the page table entry count by 512x.",
+      "source_hash": 13472843963125061030,
+      "context_hash": 13982180426922289363,
+      "translation": "대형 페이지(2MB)는 페이지 테이블 엔트리 수를 512분의 1로 줄입니다.",
+      "glossary_snapshot": {
+        "huge pages": "대형 페이지",
+        "page table entry": "페이지 테이블 엔트리"
+      },
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "For a 32GB buffer pool, that is 16,384 entries instead of 8 million.",
+      "source_hash": 4084547472942181637,
+      "context_hash": 878563290109278716,
+      "translation": "32GB 버퍼 풀의 경우 800만 개가 아닌 16,384개의 엔트리가 됩니다.",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "hugetlbfs: Static Huge Pages",
+      "source_hash": 2437869075769116191,
+      "context_hash": 13600374019792743838,
+      "translation": "hugetlbfs: 정적 대형 페이지",
+      "glossary_snapshot": {
+        "huge pages": "대형 페이지",
+        "hugetlbfs": "hugetlbfs"
+      },
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Unlike [THP](thp.md), hugetlbfs pages are pre-allocated at boot and never fragmented or reclaimed.",
+      "source_hash": 6953683476727994581,
+      "context_hash": 14646655211717795331,
+      "translation": "[THP](thp.md)와 달리 hugetlbfs 페이지는 부팅 시 미리 할당되며 단편화되거나 회수되지 않습니다.",
+      "glossary_snapshot": {
+        "THP": "THP",
+        "hugetlbfs": "hugetlbfs"
+      },
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "This is exactly what databases want: guaranteed, stable huge page backing for their shared buffers.",
+      "source_hash": 17040518333002463378,
+      "context_hash": 4722252180909763511,
+      "translation": "이것이 바로 데이터베이스가 원하는 것, 즉 공유 버퍼를 위해 보장되고 안정적인 대형 페이지 기반입니다.",
+      "glossary_snapshot": {
+        "huge page": "대형 페이지"
+      },
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Reserve Huge Pages",
+      "source_hash": 416964230306082683,
+      "context_hash": 4113106986163940333,
+      "translation": "대형 페이지 예약",
+      "glossary_snapshot": {
+        "huge pages": "대형 페이지"
+      },
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Reserve early",
+      "source_hash": 3324220225753966527,
+      "context_hash": 3522534416194399030,
+      "translation": "조기 예약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Huge page reservation can fail after the system has been running because physical memory becomes fragmented.",
+      "source_hash": 4238955074431458663,
+      "context_hash": 16148764717476846492,
+      "translation": "시스템이 한동안 실행된 후에는 물리 메모리가 단편화되어 대형 페이지 예약이 실패할 수 있습니다.",
+      "glossary_snapshot": {
+        "huge page": "대형 페이지",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:35:44.851904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "For production databases, reserve at boot via the kernel command line or via a systemd unit that runs before the database starts.",
+      "source_hash": 10232896269536045177,
+      "context_hash": 15819915987359800344,
+      "translation": "프로덕션 데이터베이스의 경우 커널 명령줄을 통해 부팅 시 예약하거나, 데이터베이스가 시작되기 전에 실행되는 systemd 유닛을 통해 예약하십시오.",
+      "glossary_snapshot": {
+        "command line": "명령줄",
+        "kernel": "커널",
+        "systemd": "systemd"
+      },
+      "translated_at": "2026-11-14T22:35:44.851905Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "The kernel's hugetlb subsystem is implemented in [mm/hugetlb.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/hugetlb.c).",
+      "source_hash": 18271698674869086499,
+      "context_hash": 8984581144036482079,
+      "translation": "커널의 hugetlb 서브시스템은 [mm/hugetlb.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/hugetlb.c)에 구현되어 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:35:44.851905Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:1",
+      "source": "The `set_max_huge_pages()` function handles the reservation logic and will attempt compaction if contiguous memory is not immediately available.",
+      "source_hash": 15147397263159626395,
+      "context_hash": 18232600695680429099,
+      "translation": "`set_max_huge_pages()` 함수는 예약 로직을 처리하며, 연속 메모리를 즉시 확보할 수 없으면 compaction을 시도합니다.",
+      "glossary_snapshot": {
+        "contiguous memory": "연속 메모리"
+      },
+      "translated_at": "2026-11-14T23:37:23.756634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "PostgreSQL with hugetlbfs",
+      "source_hash": 15228349904787459277,
+      "context_hash": 16464025336214774934,
+      "translation": "hugetlbfs를 사용하는 PostgreSQL",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "hugetlbfs": "hugetlbfs"
+      },
+      "translated_at": "2026-11-14T22:35:51.402447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "PostgreSQL uses System V shared memory or `mmap` for its shared buffers.",
+      "source_hash": 5188057336121278621,
+      "context_hash": 15176719974145822234,
+      "translation": "PostgreSQL은 공유 버퍼에 System V 공유 메모리 또는 `mmap`을 사용합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-11-14T22:35:51.402448Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "The `huge_pages` GUC parameter was introduced in PostgreSQL 9.4 ([release notes](https://www.postgresql.org/docs/9.4/release-9-4.html)).",
+      "source_hash": 3084008853433911071,
+      "context_hash": 2151325954446065783,
+      "translation": "`huge_pages` GUC 매개변수는 PostgreSQL 9.4에서 도입되었습니다([릴리스 노트](https://www.postgresql.org/docs/9.4/release-9-4.html)).",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL"
+      },
+      "translated_at": "2026-11-14T22:35:51.402448Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "When `huge_pages = on`, PostgreSQL calls `shmget()` with `SHM_HUGETLB` (or uses `mmap` with `MAP_HUGETLB` in newer versions).",
+      "source_hash": 9670639315323080947,
+      "context_hash": 10342907241818722398,
+      "translation": "`huge_pages = on`일 때 PostgreSQL은 `SHM_HUGETLB`와 함께 `shmget()`을 호출합니다(최신 버전에서는 `MAP_HUGETLB`와 함께 `mmap`을 사용합니다).",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL"
+      },
+      "translated_at": "2026-11-14T22:35:51.402448Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "If the kernel cannot satisfy the request from the hugetlb pool, PostgreSQL refuses to start, which is the correct behavior: you want to know at startup, not discover degraded performance later.",
+      "source_hash": 12132626419061270772,
+      "context_hash": 3789857038423700719,
+      "translation": "커널이 hugetlb 풀에서 요청을 충족할 수 없으면 PostgreSQL은 시작을 거부하며, 이는 올바른 동작입니다. 성능 저하를 나중에 발견하는 것이 아니라 시작 시점에 알아야 하기 때문입니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "kernel": "커널",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:35:51.402448Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Oracle with hugetlbfs",
+      "source_hash": 13553349574339440592,
+      "context_hash": 3131294016055151626,
+      "translation": "hugetlbfs를 사용하는 Oracle",
+      "glossary_snapshot": {
+        "hugetlbfs": "hugetlbfs"
+      },
+      "translated_at": "2026-11-14T22:35:51.402448Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "Oracle's SGA (System Global Area) benefits enormously from huge pages.",
+      "source_hash": 16286773304945686828,
+      "context_hash": 1944624678921290219,
+      "translation": "Oracle의 SGA(System Global Area)는 대형 페이지로부터 매우 큰 이점을 얻습니다.",
+      "glossary_snapshot": {
+        "huge pages": "대형 페이지"
+      },
+      "translated_at": "2026-11-14T22:35:51.402448Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:1",
+      "source": "Oracle calls this \"HugePages\" in its documentation and it has been a best practice since Oracle 11g.",
+      "source_hash": 2094915644548208898,
+      "context_hash": 11749955155886702689,
+      "translation": "Oracle은 문서에서 이를 \"HugePages\"라고 부르며, Oracle 11g 이후로 모범 사례로 자리 잡았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "MySQL/InnoDB with hugetlbfs",
+      "source_hash": 2208999743311697172,
+      "context_hash": 6577545639301833523,
+      "translation": "hugetlbfs를 사용하는 MySQL/InnoDB",
+      "glossary_snapshot": {
+        "hugetlbfs": "hugetlbfs"
+      },
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "THP: Why Databases Often Disable It",
+      "source_hash": 15702196473407999498,
+      "context_hash": 5884041432259503550,
+      "translation": "THP: 데이터베이스가 흔히 이를 비활성화하는 이유",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "[Transparent Huge Pages](thp.md) sound like they solve the same problem as hugetlbfs, but the \"transparent\" part is where the trouble starts.",
+      "source_hash": 8820181706673906080,
+      "context_hash": 1950052947963266243,
+      "translation": "[투명 대형 페이지(Transparent Huge Pages)](thp.md)는 hugetlbfs와 같은 문제를 해결하는 것처럼 보이지만, 문제는 바로 \"투명(transparent)\"이라는 부분에서 시작됩니다.",
+      "glossary_snapshot": {
+        "Transparent Huge Pages": "투명 대형 페이지",
+        "hugetlbfs": "hugetlbfs"
+      },
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "The Compaction Problem",
+      "source_hash": 16514948439247098987,
+      "context_hash": 6130563892386006596,
+      "translation": "컴팩션 문제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "When THP is enabled, the kernel runs `khugepaged` to collapse 4KB pages into 2MB huge pages.",
+      "source_hash": 12773339202201263739,
+      "context_hash": 3244917218191014708,
+      "translation": "THP가 활성화되면 커널은 `khugepaged`를 실행하여 4KB 페이지들을 2MB 대형 페이지로 합칩니다.",
+      "glossary_snapshot": {
+        "THP": "THP",
+        "huge pages": "대형 페이지",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "To do this, it must find or create 2MB-aligned contiguous free regions.",
+      "source_hash": 2325660286804000874,
+      "context_hash": 16772624614261588818,
+      "translation": "이를 위해 커널은 2MB 단위로 정렬된 연속된 빈 영역을 찾거나 만들어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "This triggers [compaction](compaction.md) -- moving pages around in physical memory to defragment it.",
+      "source_hash": 9156383801023333768,
+      "context_hash": 12873034064024812625,
+      "translation": "이로 인해 [컴팩션](compaction.md)(compaction)이 발생하며, 이는 물리 메모리에서 페이지를 이동시켜 단편화를 해소하는 작업입니다.",
+      "glossary_snapshot": {
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:35:51.402449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Compaction holds zone locks and can stall allocations.",
+      "source_hash": 7961064201655142431,
+      "context_hash": 528923089261779404,
+      "translation": "컴팩션은 zone 락을 잡고 있으며 할당을 지연시킬 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "For a database handling thousands of queries per second, a compaction stall during a page fault means:",
+      "source_hash": 16438997389018872351,
+      "context_hash": 7759925191017664923,
+      "translation": "초당 수천 개의 쿼리를 처리하는 데이터베이스에서 페이지 폴트 중 컴팩션으로 인한 지연은 다음을 의미합니다.",
+      "glossary_snapshot": {
+        "page fault": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "This is documented in many database vendor guides.",
+      "source_hash": 12753118070721679391,
+      "context_hash": 2798401171818184440,
+      "translation": "이는 여러 데이터베이스 벤더의 가이드에 문서화되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "MongoDB, Redis, and Oracle all recommend disabling THP.",
+      "source_hash": 204670379622542543,
+      "context_hash": 5134476130306766694,
+      "translation": "MongoDB, Redis, Oracle 모두 THP 비활성화를 권장합니다.",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:2",
+      "source": "PostgreSQL recommends hugetlbfs instead of THP.",
+      "source_hash": 4554598807410159067,
+      "context_hash": 11465950682730268543,
+      "translation": "PostgreSQL은 THP 대신 hugetlbfs를 권장합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "THP": "THP",
+        "hugetlbfs": "hugetlbfs"
+      },
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "The compaction code lives in [mm/compaction.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/compaction.c).",
+      "source_hash": 13398637512284183029,
+      "context_hash": 1133887216021874798,
+      "translation": "컴팩션 코드는 [mm/compaction.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/compaction.c)에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:1",
+      "source": "The `compact_zone()` function is where stalls occur -- it migrates pages while holding the zone lock, and cannot be interrupted mid-migration.",
+      "source_hash": 10990306747898742885,
+      "context_hash": 16894406549946804151,
+      "translation": "지연이 발생하는 곳은 `compact_zone()` 함수입니다. 이 함수는 zone 락을 잡은 채로 페이지를 마이그레이션하며, 마이그레이션 도중에는 중단될 수 없습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Disabling THP",
+      "source_hash": 5833252538045104101,
+      "context_hash": 8671909350765866038,
+      "translation": "THP 비활성화",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "THP madvise mode",
+      "source_hash": 12750028509090473711,
+      "context_hash": 16536884931874053775,
+      "translation": "THP madvise 모드",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:51.402450Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "Setting THP to `madvise` instead of `never` allows applications to opt-in to THP via `madvise(MADV_HUGEPAGE)` while keeping the default behavior as 4KB pages.",
+      "source_hash": 16917772529999191902,
+      "context_hash": 1340274930382657773,
+      "translation": "THP를 `never` 대신 `madvise`로 설정하면 기본 동작은 4KB 페이지로 유지하면서 애플리케이션이 `madvise(MADV_HUGEPAGE)`를 통해 THP를 선택적으로 사용할 수 있습니다.",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:51.402451Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:1",
+      "source": "This can be a reasonable middle ground on systems running mixed workloads, but most database-dedicated servers use `never` for simplicity.",
+      "source_hash": 5026846870045387905,
+      "context_hash": 1145671822516436694,
+      "translation": "이는 혼합 워크로드를 실행하는 시스템에서 합리적인 절충안이 될 수 있지만, 대부분의 데이터베이스 전용 서버는 단순함을 위해 `never`를 사용합니다.",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:35:51.402451Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "When THP Might Be Acceptable",
+      "source_hash": 15569775778941766588,
+      "context_hash": 6285504751784347801,
+      "translation": "THP를 허용할 수 있는 경우",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:51.402451Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "THP is not universally bad.",
+      "source_hash": 17538377423758926526,
+      "context_hash": 8342461802531982703,
+      "translation": "THP가 항상 나쁜 것은 아닙니다.",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:51.402451Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:1",
+      "source": "Analytical/OLAP databases that perform large sequential scans over column stores may benefit from THP because their access patterns align with huge page boundaries.",
+      "source_hash": 18138456473209788428,
+      "context_hash": 16729710777371902073,
+      "translation": "컬럼 스토어에서 대규모 순차 스캔을 수행하는 분석/OLAP 데이터베이스는 접근 패턴이 대형 페이지 경계와 맞아떨어지므로 THP의 이점을 얻을 수 있습니다.",
+      "glossary_snapshot": {
+        "THP": "THP",
+        "access patterns": "접근 패턴",
+        "huge page": "대형 페이지"
+      },
+      "translated_at": "2026-11-14T22:35:51.402451Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:2",
+      "source": "The issue is specifically with random-access OLTP workloads where compaction latency is unpredictable.",
+      "source_hash": 4203175382206176423,
+      "context_hash": 17173435287166670057,
+      "translation": "문제는 특히 컴팩션 지연 시간을 예측할 수 없는 랜덤 접근 OLTP 워크로드에서 발생합니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:35:51.402451Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "vm.swappiness",
+      "source_hash": 8782751649033101488,
+      "context_hash": 12071949631589240585,
+      "translation": "vm.swappiness",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402452Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Why Databases Set This Low",
+      "source_hash": 15727745789468801208,
+      "context_hash": 16862094067961574417,
+      "translation": "데이터베이스가 이 값을 낮게 설정하는 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:51.402452Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "`vm.swappiness` controls how aggressively the kernel reclaims anonymous pages (process memory) versus file-backed pages (page cache).",
+      "source_hash": 2740965142289088971,
+      "context_hash": 749337202832566463,
+      "translation": "`vm.swappiness`는 커널이 익명 페이지(프로세스 메모리)와 파일 기반 페이지(페이지 캐시) 중 익명 페이지를 얼마나 적극적으로 회수할지를 제어합니다.",
+      "glossary_snapshot": {
+        "file-backed pages": "파일 기반 페이지",
+        "kernel": "커널",
+        "memory": "메모리",
+        "page cache": "페이지 캐시",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:47.040734Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "The value ranges from 0 to 200, with the default at 60.",
+      "source_hash": 11198901947860090692,
+      "context_hash": 1955545328677787398,
+      "translation": "값의 범위는 0부터 200까지이며, 기본값은 60입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040735Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "For databases, the shared buffer pool is anonymous memory.",
+      "source_hash": 5509296944675124371,
+      "context_hash": 15870597654727086102,
+      "translation": "데이터베이스에서 공유 버퍼 풀은 익명 메모리입니다.",
+      "glossary_snapshot": {
+        "anonymous memory": "익명 메모리",
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:35:47.040735Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "The kernel has no way to know that those anonymous pages contain hot B-tree index nodes that are accessed thousands of times per second.",
+      "source_hash": 14930123277977214910,
+      "context_hash": 7835039863331435515,
+      "translation": "커널은 그 익명 페이지에 초당 수천 번 접근되는 핫(hot) B-tree 인덱스 노드가 들어 있다는 사실을 알 방법이 없습니다.",
+      "glossary_snapshot": {
+        "B-tree": "B-tree",
+        "kernel": "커널",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:35:47.040735Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "With the default swappiness, the kernel may decide to swap out buffer pool pages to make room for page cache entries from sequential file reads.",
+      "source_hash": 18364392763688977786,
+      "context_hash": 1764717679244752263,
+      "translation": "기본 swappiness에서는 커널이 순차 파일 읽기로 생기는 페이지 캐시 항목의 공간을 마련하기 위해 버퍼 풀 페이지를 스왑 아웃하기로 결정할 수 있습니다.",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀",
+        "kernel": "커널",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:35:47.040736Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "The swappiness value feeds into the reclaim scanner's cost calculation in [mm/vmscan.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c).",
+      "source_hash": 1736034819907169486,
+      "context_hash": 583742750944795146,
+      "translation": "swappiness 값은 [mm/vmscan.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c)에 있는 회수 스캐너의 비용 계산에 반영됩니다.",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:35:47.040736Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "Higher values make the scanner more willing to scan and reclaim anonymous pages; lower values bias toward reclaiming file pages.",
+      "source_hash": 17183899094491923050,
+      "context_hash": 4516511454704025233,
+      "translation": "값이 높을수록 스캐너가 익명 페이지를 더 적극적으로 스캔하고 회수하며, 값이 낮을수록 파일 페이지를 회수하는 쪽으로 기웁니다.",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:35:47.040736Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "**Why 1 and not 0?**",
+      "source_hash": 5639193065627516842,
+      "context_hash": 13181119381200638008,
+      "translation": "**왜 0이 아니라 1인가**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040737Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Setting `vm.swappiness = 0` tells the kernel to avoid swapping anonymous pages unless the system is under severe memory pressure (free + file pages below the high watermark of a zone).",
+      "source_hash": 5017006587843669350,
+      "context_hash": 70612462627202865,
+      "translation": "`vm.swappiness = 0`으로 설정하면 시스템이 심각한 메모리 압박 상태(free + file 페이지가 zone의 high 워터마크 미만)가 아닌 한 익명 페이지를 스왑하지 않도록 커널에 지시합니다.",
+      "glossary_snapshot": {
+        "watermark": "워터마크"
+      },
+      "translated_at": "2026-11-14T23:37:23.756635Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:1",
+      "source": "This sounds ideal, but in practice it means the kernel goes directly from \"no swap\" to \"OOM pressure\" with no graceful middle ground.",
+      "source_hash": 7296049289862173201,
+      "context_hash": 6366281663379669772,
+      "translation": "이상적으로 들리지만, 실제로는 커널이 완만한 중간 단계 없이 \"스왑 없음\"에서 곧바로 \"OOM 압박\"으로 넘어간다는 뜻입니다.",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:2",
+      "source": "A value of 1 provides a minimal but non-zero willingness to swap, giving the kernel a pressure release valve before reaching OOM conditions.",
+      "source_hash": 968751706098661364,
+      "context_hash": 4412664157184524177,
+      "translation": "값 1은 최소한이지만 0은 아닌 스왑 의향을 제공하여, 커널이 OOM 상황에 이르기 전에 압력을 해소할 수 있는 밸브를 마련해 줍니다.",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Databases that manage their own cache",
+      "source_hash": 1353931278338284079,
+      "context_hash": 10477419413423851817,
+      "translation": "자체 캐시를 관리하는 데이터베이스",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "PostgreSQL, MySQL, and Oracle all have their own buffer management with LRU eviction, write-behind, and prefetching.",
+      "source_hash": 11975031471648107535,
+      "context_hash": 7264858634901882146,
+      "translation": "PostgreSQL, MySQL, Oracle은 모두 LRU 축출, write-behind, 프리페칭을 갖춘 자체 버퍼 관리 기능을 가지고 있습니다.",
+      "glossary_snapshot": {
+        "LRU": "LRU",
+        "PostgreSQL": "PostgreSQL",
+        "eviction": "축출"
+      },
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:1",
+      "source": "They are better at managing their hot set than the kernel's generic LRU.",
+      "source_hash": 8133957664470903865,
+      "context_hash": 15472776389123581857,
+      "translation": "이들은 커널의 범용 LRU보다 자신의 핫 세트(hot set)를 더 잘 관리합니다.",
+      "glossary_snapshot": {
+        "LRU": "LRU",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:2",
+      "source": "Keeping `vm.swappiness` low lets the database's own cache management do its job without the kernel second-guessing it.",
+      "source_hash": 5027888498747883250,
+      "context_hash": 10665816970956241320,
+      "translation": "`vm.swappiness`를 낮게 유지하면 커널이 섣불리 개입하지 않고 데이터베이스 자체의 캐시 관리가 제 역할을 할 수 있습니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "vm.dirty_ratio and vm.dirty_background_ratio",
+      "source_hash": 4425858889962648883,
+      "context_hash": 17891495901377621202,
+      "translation": "vm.dirty_ratio 및 vm.dirty_background_ratio",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The Write-Ahead Log Pattern",
+      "source_hash": 7593187199384586060,
+      "context_hash": 13198971705701013056,
+      "translation": "Write-Ahead Log 패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040738Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Databases use write-ahead logging (WAL): every data modification is first written sequentially to a log file, then `fsync()`'d.",
+      "source_hash": 17334266670461647647,
+      "context_hash": 5567291910932830658,
+      "translation": "데이터베이스는 선행 기록 로깅(write-ahead logging, WAL)을 사용합니다. 모든 데이터 수정은 먼저 로그 파일에 순차적으로 기록된 뒤 `fsync()`됩니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "The actual data files are written asynchronously later (checkpointing).",
+      "source_hash": 14913258903047121328,
+      "context_hash": 6873753485834730244,
+      "translation": "실제 데이터 파일은 나중에 비동기적으로 기록됩니다(체크포인팅).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:2",
+      "source": "This creates two distinct I/O patterns:",
+      "source_hash": 2478436496330522586,
+      "context_hash": 15371765079874785686,
+      "translation": "이로 인해 서로 다른 두 가지 I/O 패턴이 생깁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "The kernel's dirty page writeback is controlled by two ratios:",
+      "source_hash": 7753726031969441643,
+      "context_hash": 3341204779285855887,
+      "translation": "커널의 dirty 페이지 writeback은 두 가지 비율로 제어됩니다.",
+      "glossary_snapshot": {
+        "dirty page": "dirty 페이지",
+        "kernel": "커널",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "**`vm.dirty_background_ratio`** (default: 10%) - When dirty pages exceed this percentage of available memory, the kernel starts background writeback via per-device writeback threads (`bdi_writeback`).",
+      "source_hash": 16479503622098187950,
+      "context_hash": 17554993334127292300,
+      "translation": "**`vm.dirty_background_ratio`** (기본값: 10%) - dirty 페이지가 가용 메모리의 이 비율을 초과하면 커널은 디바이스별 writeback 스레드(`bdi_writeback`)를 통해 백그라운드 writeback을 시작합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "dirty pages": "dirty 페이지",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T23:37:23.756637Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "**`vm.dirty_ratio`** (default: 20%) - When dirty pages exceed this, processes performing writes are **blocked** until writeback catches up.",
+      "source_hash": 6138267588274343265,
+      "context_hash": 1311672910516449172,
+      "translation": "**`vm.dirty_ratio`** (기본값: 20%) - dirty 페이지가 이 비율을 넘으면, 쓰기를 수행하는 프로세스는 writeback이 따라잡을 때까지 **블록**됩니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "processes": "프로세스",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "This is a synchronous stall.",
+      "source_hash": 10649459801892107758,
+      "context_hash": 10603485905104772778,
+      "translation": "이는 동기적 정지(stall)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "The writeback logic is in [mm/page-writeback.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/page-writeback.c).",
+      "source_hash": 6238385345557298543,
+      "context_hash": 6569684700920305525,
+      "translation": "writeback 로직은 [mm/page-writeback.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/page-writeback.c)에 있습니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "The `balance_dirty_pages()` function is where processes get throttled when dirty pages exceed the threshold.",
+      "source_hash": 10137477825104052367,
+      "context_hash": 648336914067975067,
+      "translation": "`balance_dirty_pages()` 함수는 dirty 페이지가 임계값을 넘었을 때 프로세스가 스로틀링되는 지점입니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "function": "함수",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "Why the Defaults Hurt Databases",
+      "source_hash": 17368951548938039160,
+      "context_hash": 9442945921690470852,
+      "translation": "기본값이 데이터베이스에 해로운 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "On a 128GB server, 20% means 25GB of dirty pages can accumulate before processes stall.",
+      "source_hash": 6060145448960536577,
+      "context_hash": 3318883721112919592,
+      "translation": "128GB 서버에서 20%는 프로세스가 정지되기 전까지 25GB의 dirty 페이지가 쌓일 수 있다는 뜻입니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:47.040739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:1",
+      "source": "When a checkpoint flushes 25GB of dirty data at once, it creates a thundering herd of I/O that saturates the disk and stalls WAL writes.",
+      "source_hash": 13766260532900554823,
+      "context_hash": 5700256997523758465,
+      "translation": "체크포인트가 25GB의 dirty 데이터를 한꺼번에 플러시하면, 디스크를 포화시키고 WAL 쓰기를 정지시키는 I/O의 thundering herd가 발생합니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:35:47.040740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Lowering these values causes the kernel to write back dirty pages more frequently in smaller batches, which:",
+      "source_hash": 12196546847834285373,
+      "context_hash": 11221553169601891527,
+      "translation": "이 값들을 낮추면 커널이 dirty 페이지를 더 작은 단위로 더 자주 writeback하게 되며, 이는 다음과 같은 효과가 있습니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:47.040740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Reduces checkpoint I/O spikes",
+      "source_hash": 10016309224660839827,
+      "context_hash": 2920656169143694081,
+      "translation": "체크포인트 I/O 급증 감소",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:47.040740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "Keeps WAL write latency more predictable",
+      "source_hash": 6598125400032666746,
+      "context_hash": 17880309574736280673,
+      "translation": "WAL 쓰기 지연 시간의 예측 가능성 향상",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:35:47.040740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "Avoids the cliff where processes hit `dirty_ratio` and stall",
+      "source_hash": 18143487166818276111,
+      "context_hash": 6255737071831071234,
+      "translation": "프로세스가 `dirty_ratio`에 도달해 멈추는 급격한 성능 저하 구간을 피합니다",
+      "glossary_snapshot": {
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:46.815363Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Byte values vs ratios",
+      "source_hash": 9474872700751087753,
+      "context_hash": 17695536955850275096,
+      "translation": "바이트 값과 비율",
+      "glossary_snapshot": {
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:35:46.815364Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "On large-memory servers (256GB+), even 3% is ~8GB of dirty data.",
+      "source_hash": 10260324131547448354,
+      "context_hash": 7850354044116614163,
+      "translation": "대용량 메모리 서버(256GB+)에서는 3%만 해도 약 8GB의 dirty 데이터입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:35:46.815364Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:1",
+      "source": "Using `vm.dirty_background_bytes` and `vm.dirty_bytes` gives you absolute control regardless of total RAM.",
+      "source_hash": 9623768036898168311,
+      "context_hash": 12396671704678645189,
+      "translation": "`vm.dirty_background_bytes`와 `vm.dirty_bytes`를 사용하면 전체 RAM 크기와 관계없이 절대적인 값으로 제어할 수 있습니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-11-14T22:35:46.815365Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:2",
+      "source": "The byte values override the ratio values when both are set.",
+      "source_hash": 7555368203920904812,
+      "context_hash": 3884920983388616489,
+      "translation": "두 값이 모두 설정되면 바이트 값이 비율 값보다 우선합니다.",
+      "glossary_snapshot": {
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:35:46.815365Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "NUMA Pinning",
+      "source_hash": 4426774337105336844,
+      "context_hash": 16962490575201458937,
+      "translation": "NUMA 고정",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:35:46.815365Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The Problem with Database Shared Buffers on NUMA",
+      "source_hash": 9170734131406649366,
+      "context_hash": 16901282798946074856,
+      "translation": "NUMA에서 데이터베이스 공유 버퍼의 문제",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:35:46.815366Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "On a [NUMA](numa.md) system, the default memory allocation policy is \"local allocation\" -- memory is allocated on the node where the requesting CPU runs.",
+      "source_hash": 1650312698702736478,
+      "context_hash": 9777794270860119639,
+      "translation": "[NUMA](numa.md) 시스템에서 기본 메모리 할당 정책은 \"로컬 할당\"입니다 -- 메모리는 요청한 CPU가 실행 중인 노드에 할당됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "NUMA": "NUMA",
+        "memory": "메모리",
+        "memory allocation": "메모리 할당",
+        "node": "노드",
+        "policy": "정책"
+      },
+      "translated_at": "2026-11-14T22:35:46.815366Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "For a database shared buffer pool, this means:",
+      "source_hash": 10267211047541021149,
+      "context_hash": 1691260687651563029,
+      "translation": "데이터베이스 공유 버퍼 풀에서 이것이 의미하는 바는 다음과 같습니다:",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:35:46.815366Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "If PostgreSQL's postmaster starts on Node 0 and allocates shared buffers there, every backend running on Node 1 pays the cross-node latency penalty for every buffer pool access.",
+      "source_hash": 1599970420550879516,
+      "context_hash": 12387242603113571736,
+      "translation": "PostgreSQL의 postmaster가 Node 0에서 시작되어 그곳에 공유 버퍼를 할당하면, Node 1에서 실행되는 모든 백엔드는 버퍼 풀에 접근할 때마다 노드 간 지연 시간 페널티를 치르게 됩니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "backend": "백엔드",
+        "buffer pool": "버퍼 풀",
+        "latency": "지연 시간",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T23:37:23.756639Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "Since the buffer pool is the most frequently accessed data structure in a database, this is devastating for throughput.",
+      "source_hash": 11274308245712364974,
+      "context_hash": 13499673281674625530,
+      "translation": "버퍼 풀은 데이터베이스에서 가장 자주 접근되는 자료 구조이므로, 이는 처리량에 치명적입니다.",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀",
+        "data structure": "자료 구조",
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:35:46.815367Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "numactl --interleave",
+      "source_hash": 17944364107350609270,
+      "context_hash": 6661595594874523365,
+      "translation": "numactl --interleave",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:46.815367Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "The fix is to interleave the shared buffer allocation across all NUMA nodes so that, on average, each CPU has equal local/remote access:",
+      "source_hash": 15730983028149236774,
+      "context_hash": 1130889505108654066,
+      "translation": "해결책은 공유 버퍼 할당을 모든 NUMA 노드에 인터리브(interleave)하여, 평균적으로 각 CPU가 동일한 비율의 로컬/원격 접근을 하도록 하는 것입니다:",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "NUMA nodes": "NUMA 노드"
+      },
+      "translated_at": "2026-11-14T22:35:46.815367Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Interleaving distributes pages round-robin across nodes.",
+      "source_hash": 6108564732532356525,
+      "context_hash": 2310609188461313356,
+      "translation": "인터리빙은 페이지를 노드 간에 라운드 로빈 방식으로 분산합니다.",
+      "glossary_snapshot": {
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:35:46.815367Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "No single CPU gets optimal locality, but no CPU gets worst-case remote access for the majority of the buffer pool either.",
+      "source_hash": 8704643972604262822,
+      "context_hash": 11851836953260193171,
+      "translation": "어떤 CPU도 최적의 지역성을 얻지는 못하지만, 버퍼 풀 대부분에 대해 최악의 원격 접근을 겪는 CPU도 없습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "buffer pool": "버퍼 풀",
+        "locality": "지역성"
+      },
+      "translated_at": "2026-11-14T22:35:46.815367Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:2",
+      "source": "This is the right trade-off for shared data structures accessed by all CPUs.",
+      "source_hash": 17688959435421576100,
+      "context_hash": 7972908880864715963,
+      "translation": "이는 모든 CPU가 접근하는 공유 자료 구조에 적합한 트레이드오프입니다.",
+      "glossary_snapshot": {
+        "CPUs": "CPU",
+        "data structures": "자료 구조",
+        "trade-off": "트레이드오프"
+      },
+      "translated_at": "2026-11-14T22:35:46.815367Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Linux 6.3 introduced NUMA memory balancing improvements (see [LWN: NUMA balancing gets some tweaks](https://lwn.net/Articles/920920/)) that can automatically migrate pages toward their accessing CPUs.",
+      "source_hash": 17818712944486846019,
+      "context_hash": 8060101121803351150,
+      "translation": "Linux 6.3은 페이지를 접근하는 CPU 쪽으로 자동으로 이동시킬 수 있는 NUMA 메모리 밸런싱 개선을 도입했습니다([LWN: NUMA balancing gets some tweaks](https://lwn.net/Articles/920920/) 참조).",
+      "glossary_snapshot": {
+        "CPUs": "CPU",
+        "LWN": "LWN",
+        "Linux": "Linux",
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:35:46.815368Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:1",
+      "source": "However, for large shared buffers accessed by many CPUs, interleaving remains the recommended approach because automatic balancing cannot satisfy all accessors simultaneously.",
+      "source_hash": 18402079546527198584,
+      "context_hash": 5776656299765354014,
+      "translation": "그러나 많은 CPU가 접근하는 대용량 공유 버퍼의 경우, 자동 밸런싱으로는 모든 접근자를 동시에 만족시킬 수 없으므로 인터리빙이 여전히 권장되는 방식입니다.",
+      "glossary_snapshot": {
+        "CPUs": "CPU"
+      },
+      "translated_at": "2026-11-14T22:35:46.815368Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "Verifying NUMA Distribution",
+      "source_hash": 13947277479835754701,
+      "context_hash": 5416887997677710374,
+      "translation": "NUMA 분산 확인",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:35:46.815368Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "vm.overcommit_memory",
+      "source_hash": 183196343678888600,
+      "context_hash": 13879552199739381880,
+      "translation": "vm.overcommit_memory",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:46.815368Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Why Strict Overcommit for Databases",
+      "source_hash": 4827739044264567068,
+      "context_hash": 10883392813691725057,
+      "translation": "데이터베이스에 엄격한 오버커밋이 필요한 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:46.815369Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "As described in [Memory Overcommit](overcommit.md), Linux defaults to heuristic overcommit (mode 0).",
+      "source_hash": 3776614703047968073,
+      "context_hash": 11524652038585732453,
+      "translation": "[메모리 오버커밋](overcommit.md)에서 설명한 것처럼, Linux는 기본적으로 휴리스틱 오버커밋(모드 0)을 사용합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:35:46.815369Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "This is fine for general workloads, but databases have a specific problem: they allocate large shared buffers at startup and expect that memory to be available for the lifetime of the process.",
+      "source_hash": 1236510191564920773,
+      "context_hash": 3437341798807611429,
+      "translation": "이는 일반적인 워크로드에는 문제가 없지만, 데이터베이스에는 특유의 문제가 있습니다: 시작 시 대용량 공유 버퍼를 할당하고 프로세스가 살아 있는 동안 그 메모리를 계속 사용할 수 있으리라 기대합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "process": "프로세스",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:35:46.815369Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "With heuristic overcommit, the kernel may allow more total allocations than physical memory can support.",
+      "source_hash": 1015332700125154303,
+      "context_hash": 10649593293319145688,
+      "translation": "휴리스틱 오버커밋에서는 커널이 물리 메모리가 감당할 수 있는 것보다 더 많은 총 할당을 허용할 수 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:35:46.815369Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "If this happens, the [OOM killer](oom.md) wakes up and picks a victim -- and a database with a 64GB shared buffer pool is an attractive target due to its high RSS.",
+      "source_hash": 4062356380458247235,
+      "context_hash": 5754719480445163131,
+      "translation": "이런 상황이 되면 [OOM 킬러](oom.md)가 깨어나 희생자를 고르는데 -- 64GB 공유 버퍼 풀을 가진 데이터베이스는 RSS가 크기 때문에 매력적인 대상이 됩니다.",
+      "glossary_snapshot": {
+        "OOM killer": "OOM 킬러",
+        "RSS": "RSS",
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:35:46.815369Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "The accounting logic is in [mm/mmap.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/mmap.c) (`__vm_enough_memory()`).",
+      "source_hash": 5678417643626915744,
+      "context_hash": 11450772850936513152,
+      "translation": "이 어카운팅 로직은 [mm/mmap.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/mmap.c)(`__vm_enough_memory()`)에 있습니다.",
+      "glossary_snapshot": {
+        "accounting": "어카운팅"
+      },
+      "translated_at": "2026-11-14T22:35:46.815370Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:1",
+      "source": "In mode 2, every `mmap()` and `brk()` call checks the commit charge against the commit limit.",
+      "source_hash": 18093127791122975418,
+      "context_hash": 3926165494042745724,
+      "translation": "모드 2에서는 모든 `mmap()`과 `brk()` 호출이 커밋 사용량을 커밋 한도와 비교해 검사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:46.815370Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:2",
+      "source": "If the new allocation would exceed the limit, the syscall fails with `ENOMEM`.",
+      "source_hash": 9410810845843514224,
+      "context_hash": 2502125855899968101,
+      "translation": "새 할당이 한도를 초과하게 되면 해당 시스템 콜은 `ENOMEM`으로 실패합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:35:46.815370Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "**The trade-off:** Mode 2 means `fork()` from a large process can fail because the child's address space counts against the commit limit, even with copy-on-write.",
+      "source_hash": 875404836444566771,
+      "context_hash": 7888413775309278291,
+      "translation": "**트레이드오프:** 모드 2에서는 copy-on-write를 사용하더라도 자식의 주소 공간이 커밋 한도에 포함되므로, 큰 프로세스에서의 `fork()`가 실패할 수 있습니다.",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "copy-on-write": "copy-on-write",
+        "process": "프로세스",
+        "trade-off": "트레이드오프"
+      },
+      "translated_at": "2026-11-14T22:35:46.815371Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:1",
+      "source": "PostgreSQL forks a backend for each connection, so `overcommit_ratio` must be high enough to account for the apparent (not actual) memory cost of all those forked backends.",
+      "source_hash": 6449452463013217839,
+      "context_hash": 8623387843820601689,
+      "translation": "PostgreSQL은 연결마다 백엔드를 fork하므로, `overcommit_ratio`는 fork된 모든 백엔드의 겉보기(실제가 아닌) 메모리 비용을 감당할 만큼 충분히 높아야 합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "backend": "백엔드",
+        "backends": "백엔드",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:35:46.815371Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:2",
+      "source": "Monitor `Committed_AS` in `/proc/meminfo` to verify headroom.",
+      "source_hash": 16951100218924517087,
+      "context_hash": 895609287101201922,
+      "translation": "여유 공간을 확인하려면 `/proc/meminfo`의 `Committed_AS`를 모니터링하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:46.815371Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "Commit accounting and fork()",
+      "source_hash": 1386403974321157821,
+      "context_hash": 2969861278693448129,
+      "translation": "커밋 어카운팅과 fork()",
+      "glossary_snapshot": {
+        "accounting": "어카운팅"
+      },
+      "translated_at": "2026-11-14T22:35:46.815371Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "A PostgreSQL server with 32GB `shared_buffers` and 200 connections may show a `Committed_AS` much larger than actual RAM usage because each forked backend inherits the parent's address space in the commit accounting.",
+      "source_hash": 2262199056789817584,
+      "context_hash": 12614450796155452889,
+      "translation": "`shared_buffers`가 32GB이고 커넥션이 200개인 PostgreSQL 서버는 fork된 각 백엔드가 커밋 어카운팅에서 부모의 주소 공간을 상속하므로, 실제 RAM 사용량보다 훨씬 큰 `Committed_AS`를 보일 수 있습니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "RAM": "RAM",
+        "accounting": "어카운팅",
+        "address space": "주소 공간",
+        "backend": "백엔드"
+      },
+      "translated_at": "2026-11-14T23:37:23.756642Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:1",
+      "source": "Set `overcommit_ratio` conservatively and monitor `Committed_AS` vs `CommitLimit`.",
+      "source_hash": 10154375322147289581,
+      "context_hash": 13059496019939020876,
+      "translation": "`overcommit_ratio`를 보수적으로 설정하고 `Committed_AS`와 `CommitLimit`를 비교하여 모니터링하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252812Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "vm.zone_reclaim_mode",
+      "source_hash": 14628160021599434902,
+      "context_hash": 12437615907061980250,
+      "translation": "vm.zone_reclaim_mode",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252812Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Why Databases Should Disable Zone Reclaim",
+      "source_hash": 5898121139173524794,
+      "context_hash": 666944876767745697,
+      "translation": "데이터베이스에서 zone 회수를 비활성화해야 하는 이유",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:35:44.252813Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "On NUMA systems, `vm.zone_reclaim_mode` controls whether the kernel tries to reclaim memory from the local node before falling back to remote nodes.",
+      "source_hash": 14067790114226469357,
+      "context_hash": 7054145645085056923,
+      "translation": "NUMA 시스템에서 `vm.zone_reclaim_mode`는 커널이 원격 노드로 폴백하기 전에 로컬 노드에서 메모리 회수를 시도할지를 제어합니다.",
+      "glossary_snapshot": {
+        "NUMA": "NUMA",
+        "kernel": "커널",
+        "memory": "메모리",
+        "node": "노드",
+        "nodes": "노드",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:35:44.252814Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "When enabled, the kernel may evict page cache or even swap out pages from the local zone rather than allocate from a remote node.",
+      "source_hash": 11889806966742248673,
+      "context_hash": 5914499972374272567,
+      "translation": "이 옵션이 활성화되면 커널은 원격 노드에서 할당하는 대신 로컬 zone의 페이지 캐시를 축출하거나 심지어 페이지를 스왑 아웃할 수도 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "node": "노드",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:35:44.252814Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "This is exactly wrong for databases.",
+      "source_hash": 12035322897130236288,
+      "context_hash": 16738675333103503935,
+      "translation": "이는 데이터베이스에는 정확히 잘못된 동작입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252815Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:1",
+      "source": "Database buffer pools are not page cache -- they are anonymous memory that is expensive to reconstruct.",
+      "source_hash": 2682880102775023629,
+      "context_hash": 9655401760235571128,
+      "translation": "데이터베이스 버퍼 풀은 페이지 캐시가 아니라 재구성 비용이 큰 익명 메모리입니다.",
+      "glossary_snapshot": {
+        "anonymous memory": "익명 메모리",
+        "buffer pools": "버퍼 풀",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:35:44.252815Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:2",
+      "source": "Even for page cache, evicting a hot cached WAL segment to satisfy a local allocation is worse than paying the cross-node latency.",
+      "source_hash": 10008823544430129450,
+      "context_hash": 9601420711541895331,
+      "translation": "페이지 캐시의 경우에도, 로컬 할당을 충족하기 위해 자주 접근되는 캐시된 WAL 세그먼트를 축출하는 것은 노드 간 지연 시간을 감수하는 것보다 나쁩니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "latency": "지연 시간",
+        "node": "노드",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:35:44.252815Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "The zone reclaim logic lives in [mm/vmscan.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c) (`node_reclaim()`).",
+      "source_hash": 8878472396915696305,
+      "context_hash": 17275072133422138058,
+      "translation": "zone 회수 로직은 [mm/vmscan.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c)(`node_reclaim()`)에 있습니다.",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:35:44.252816Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:1",
+      "source": "When mode is 0, the allocator skips local reclaim and falls back to remote nodes immediately.",
+      "source_hash": 8553643667907731367,
+      "context_hash": 4330112778802585590,
+      "translation": "모드가 0이면 할당자는 로컬 회수를 건너뛰고 즉시 원격 노드로 폴백합니다.",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "nodes": "노드",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:35:44.252816Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:2",
+      "source": "When mode is non-zero, it attempts local reclaim first, which can cause latency spikes on NUMA database workloads.",
+      "source_hash": 15554590033627127702,
+      "context_hash": 17994983030424444267,
+      "translation": "모드가 0이 아니면 먼저 로컬 회수를 시도하며, 이로 인해 NUMA 데이터베이스 워크로드에서 지연 시간 급증이 발생할 수 있습니다.",
+      "glossary_snapshot": {
+        "NUMA": "NUMA",
+        "latency spikes": "지연 시간 급증",
+        "reclaim": "회수",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:35:44.252817Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "The kernel changed the default from 1 to 0 in commit [4f9b16a6 (\"mm: disable zone_reclaim_mode by default\")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f9b16a64753d0bb607454347036dc997fd03b82), recognizing that the old behavior caused more harm than good for most workloads.",
+      "source_hash": 17943972597317385333,
+      "context_hash": 142109264399547342,
+      "translation": "커널은 이전 동작이 대부분의 워크로드에서 득보다 실이 많다는 점을 인정하여 커밋 [4f9b16a6 (\"mm: disable zone_reclaim_mode by default\")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f9b16a64753d0bb607454347036dc997fd03b82)에서 기본값을 1에서 0으로 변경했습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:35:44.252817Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:1",
+      "source": "Verify your system has the sane default:",
+      "source_hash": 5367056948821204315,
+      "context_hash": 13501855477812552010,
+      "translation": "시스템이 합리적인 기본값을 사용하는지 확인하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252817Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Monitoring",
+      "source_hash": 13039997858265296623,
+      "context_hash": 13765446752979560887,
+      "translation": "모니터링",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252818Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Key /proc/meminfo Fields",
+      "source_hash": 9631015936700338903,
+      "context_hash": 3631480140846783648,
+      "translation": "주요 /proc/meminfo 필드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252818Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "Field",
+      "source_hash": 15290013399643683147,
+      "context_hash": 15054178158675777273,
+      "translation": "필드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252818Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "What It Tells You",
+      "source_hash": 9708186908022881827,
+      "context_hash": 7772610283503344660,
+      "translation": "의미",
+      "glossary_snapshot": {
+        "What It Tells You": "의미"
+      },
+      "translated_at": "2026-11-14T22:35:44.252818Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "Warning Sign",
+      "source_hash": 10924192031914403377,
+      "context_hash": 10397567798552149623,
+      "translation": "경고 신호",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252818Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "`MemAvailable`",
+      "source_hash": 18242936612732223702,
+      "context_hash": 14165503282658610015,
+      "translation": "`MemAvailable`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252818Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "How much memory can be allocated without swapping",
+      "source_hash": 17973004999269768070,
+      "context_hash": 9595137336475303706,
+      "translation": "스와핑 없이 할당할 수 있는 메모리 양",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:35:44.252819Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "Dropping below database buffer pool size",
+      "source_hash": 9882703754286539390,
+      "context_hash": 6022679578387500615,
+      "translation": "데이터베이스 버퍼 풀 크기 미만으로 감소",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:35:44.252819Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "`SwapFree`",
+      "source_hash": 11726056801824624854,
+      "context_hash": 11831855392616622155,
+      "translation": "`SwapFree`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252819Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Remaining swap space",
+      "source_hash": 1646578720374676662,
+      "context_hash": 1301423130495165317,
+      "translation": "남은 스왑 공간",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252819Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "Any swap usage on a tuned database server is a red flag",
+      "source_hash": 9734481466259118585,
+      "context_hash": 12917113368930277465,
+      "translation": "튜닝된 데이터베이스 서버에서는 스왑 사용 자체가 위험 신호",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252820Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "`Dirty`",
+      "source_hash": 6162173474152749407,
+      "context_hash": 7750506394351333663,
+      "translation": "`Dirty`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252820Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "Pages modified but not yet written to disk",
+      "source_hash": 2372599575854248026,
+      "context_hash": 9629927589147045512,
+      "translation": "수정되었지만 아직 디스크에 기록되지 않은 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252820Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "Sustained high values mean writeback cannot keep up",
+      "source_hash": 7210183249144725084,
+      "context_hash": 6990243774972307581,
+      "translation": "높은 값이 지속되면 writeback이 따라가지 못한다는 의미",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:35:44.252820Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "`Writeback`",
+      "source_hash": 6960007085330153160,
+      "context_hash": 17675741754330193857,
+      "translation": "`Writeback`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252820Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:16/seg:0",
+      "source": "Pages currently being written to disk",
+      "source_hash": 6819804843800560398,
+      "context_hash": 13943731852866268569,
+      "translation": "현재 디스크에 기록 중인 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252821Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:17/seg:0",
+      "source": "Sustained non-zero means I/O bottleneck",
+      "source_hash": 14703714655016055642,
+      "context_hash": 2063627865133692938,
+      "translation": "0이 아닌 값이 지속되면 I/O 병목을 의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252821Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:18/seg:0",
+      "source": "`AnonPages`",
+      "source_hash": 4383963995181640757,
+      "context_hash": 10502483115252628793,
+      "translation": "`AnonPages`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:44.252821Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:19/seg:0",
+      "source": "Non-file-backed pages (includes buffer pools)",
+      "source_hash": 5414868922056871894,
+      "context_hash": 4571352349327972487,
+      "translation": "비파일 기반 페이지(버퍼 풀 포함)",
+      "glossary_snapshot": {
+        "buffer pools": "버퍼 풀",
+        "file-backed pages": "파일 기반 페이지"
+      },
+      "translated_at": "2026-11-14T23:37:23.756644Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:20/seg:0",
+      "source": "Should be stable once database is warmed up",
+      "source_hash": 779977425847747348,
+      "context_hash": 7489398913514636013,
+      "translation": "데이터베이스 워밍업 후에는 안정적이어야 함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764189Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:21/seg:0",
+      "source": "`Shmem`",
+      "source_hash": 15422181604473971777,
+      "context_hash": 17215338184293571857,
+      "translation": "`Shmem`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764189Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:22/seg:0",
+      "source": "Shared memory (PostgreSQL shared buffers use this)",
+      "source_hash": 18192530228341405196,
+      "context_hash": 11105463284543300213,
+      "translation": "공유 메모리(PostgreSQL shared buffers가 사용)",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-11-14T22:35:58.764189Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:23/seg:0",
+      "source": "Should match your shared_buffers roughly",
+      "source_hash": 2618227589549118548,
+      "context_hash": 1076821262907786575,
+      "translation": "shared_buffers와 대략 일치해야 함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764189Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:24/seg:0",
+      "source": "`HugePages_Free`",
+      "source_hash": 9060559596991853282,
+      "context_hash": 6011874468994192517,
+      "translation": "`HugePages_Free`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764189Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:25/seg:0",
+      "source": "Unused huge pages",
+      "source_hash": 15268506820552714612,
+      "context_hash": 12732416129768649537,
+      "translation": "사용되지 않은 대형 페이지",
+      "glossary_snapshot": {
+        "huge pages": "대형 페이지"
+      },
+      "translated_at": "2026-11-14T22:35:58.764189Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:26/seg:0",
+      "source": "Should drop after database starts, stay stable",
+      "source_hash": 18111629965196207173,
+      "context_hash": 12073715736195125876,
+      "translation": "데이터베이스 시작 후 감소한 뒤 안정적으로 유지되어야 함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:27/seg:0",
+      "source": "`Committed_AS`",
+      "source_hash": 7558379385949537073,
+      "context_hash": 16139971195482736529,
+      "translation": "`Committed_AS`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:28/seg:0",
+      "source": "Total committed address space",
+      "source_hash": 3288300546658716660,
+      "context_hash": 1550380682518616614,
+      "translation": "커밋된 전체 주소 공간",
+      "glossary_snapshot": {
+        "address space": "주소 공간"
+      },
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:29/seg:0",
+      "source": "Approaching `CommitLimit` means new allocations will fail (mode 2)",
+      "source_hash": 525665092994517747,
+      "context_hash": 10968286519011286656,
+      "translation": "`CommitLimit`에 근접하면 새 할당이 실패함(mode 2)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:30/seg:0",
+      "source": "Key /proc/vmstat Fields",
+      "source_hash": 1308843488150101664,
+      "context_hash": 5621993944348812682,
+      "translation": "주요 /proc/vmstat 필드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:32/seg:0",
+      "source": "Counter",
+      "source_hash": 10001973807307611107,
+      "context_hash": 10375511997966156372,
+      "translation": "카운터",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:33/seg:0",
+      "source": "What It Tells You",
+      "source_hash": 9708186908022881827,
+      "context_hash": 10376839236969717492,
+      "translation": "의미",
+      "glossary_snapshot": {
+        "What It Tells You": "의미"
+      },
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:34/seg:0",
+      "source": "Warning Sign",
+      "source_hash": 10924192031914403377,
+      "context_hash": 2498713373983001923,
+      "translation": "경고 신호",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:35/seg:0",
+      "source": "`pgscan_direct`",
+      "source_hash": 10592720524072580163,
+      "context_hash": 14867576167326044476,
+      "translation": "`pgscan_direct`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:36/seg:0",
+      "source": "Direct reclaim scanning (process stalled)",
+      "source_hash": 2978702830520855124,
+      "context_hash": 5928685225511009214,
+      "translation": "직접 회수(direct reclaim) 스캔(프로세스 지연)",
+      "glossary_snapshot": {
+        "direct reclaim": "직접 회수",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:37/seg:0",
+      "source": "Any increase under normal load",
+      "source_hash": 385444033748812506,
+      "context_hash": 10532810497466251989,
+      "translation": "평상 부하에서 조금이라도 증가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:38/seg:0",
+      "source": "`pgsteal_direct`",
+      "source_hash": 1069398831081504210,
+      "context_hash": 12109700971317210425,
+      "translation": "`pgsteal_direct`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764190Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:39/seg:0",
+      "source": "Pages reclaimed by direct reclaim",
+      "source_hash": 11124594312357305448,
+      "context_hash": 14169761634012438815,
+      "translation": "직접 회수로 회수된 페이지",
+      "glossary_snapshot": {
+        "direct reclaim": "직접 회수"
+      },
+      "translated_at": "2026-11-14T23:37:23.756646Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:40/seg:0",
+      "source": "Process had to wait for memory",
+      "source_hash": 3283904354882159699,
+      "context_hash": 5696222052731210168,
+      "translation": "프로세스가 메모리를 기다려야 했음",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:41/seg:0",
+      "source": "`pswpin` / `pswpout`",
+      "source_hash": 4266674774778116399,
+      "context_hash": 6883882453741395514,
+      "translation": "`pswpin` / `pswpout`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:42/seg:0",
+      "source": "Pages swapped in/out",
+      "source_hash": 17498035043634455259,
+      "context_hash": 2230190627356408679,
+      "translation": "스왑 인/아웃된 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:43/seg:0",
+      "source": "Any activity on a tuned server",
+      "source_hash": 2132304196703575198,
+      "context_hash": 13948141245493293580,
+      "translation": "튜닝된 서버에서 조금이라도 활동 발생",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:44/seg:0",
+      "source": "`compact_stall`",
+      "source_hash": 6951136583201055282,
+      "context_hash": 11850988320495914644,
+      "translation": "`compact_stall`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:45/seg:0",
+      "source": "Processes stalled waiting for compaction",
+      "source_hash": 1760368233058200349,
+      "context_hash": 13439694816836389469,
+      "translation": "compaction을 기다리며 정지된 프로세스",
+      "glossary_snapshot": {
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:46/seg:0",
+      "source": "Increasing = THP or hugepage allocation issues",
+      "source_hash": 4301417487423880791,
+      "context_hash": 2372430305859634012,
+      "translation": "증가 = THP 또는 hugepage 할당 문제",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:47/seg:0",
+      "source": "`compact_fail`",
+      "source_hash": 5701317648536184258,
+      "context_hash": 16642066257170110497,
+      "translation": "`compact_fail`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:48/seg:0",
+      "source": "Failed compaction attempts",
+      "source_hash": 4487961993490816848,
+      "context_hash": 5898154601765913873,
+      "translation": "실패한 compaction 시도",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:49/seg:0",
+      "source": "High ratio to compact_stall = fragmentation",
+      "source_hash": 9792195524024796102,
+      "context_hash": 16211570717867643533,
+      "translation": "compact_stall 대비 높은 비율 = 단편화",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:50/seg:0",
+      "source": "`thp_fault_fallback`",
+      "source_hash": 15268547104862927948,
+      "context_hash": 8818849577014485091,
+      "translation": "`thp_fault_fallback`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:51/seg:0",
+      "source": "THP allocations that fell back to 4KB",
+      "source_hash": 2186372978120432958,
+      "context_hash": 3250339216375387145,
+      "translation": "4KB로 폴백된 THP 할당",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:35:58.764191Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:52/seg:0",
+      "source": "Indicates fragmentation if THP is enabled",
+      "source_hash": 3604080368326904118,
+      "context_hash": 17434371122540390255,
+      "translation": "THP가 활성화된 경우 단편화를 나타냄",
+      "glossary_snapshot": {
+        "THP": "THP"
+      },
+      "translated_at": "2026-11-14T22:36:09.561064Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:53/seg:0",
+      "source": "`numa_hit` / `numa_miss`",
+      "source_hash": 6754335066019345654,
+      "context_hash": 3945273154329514818,
+      "translation": "`numa_hit` / `numa_miss`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561065Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:54/seg:0",
+      "source": "Local vs remote NUMA allocations",
+      "source_hash": 17701554971856302105,
+      "context_hash": 1092985895124401558,
+      "translation": "로컬 대 원격 NUMA 할당",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:36:09.561066Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:55/seg:0",
+      "source": "High `numa_miss` = memory policy misconfiguration",
+      "source_hash": 6540620966425027527,
+      "context_hash": 12813270689528203415,
+      "translation": "높은 `numa_miss` = 메모리 정책 설정 오류",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "policy": "정책"
+      },
+      "translated_at": "2026-11-14T22:36:09.561066Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:56/seg:0",
+      "source": "A Practical Monitoring Script",
+      "source_hash": 4646632819689253216,
+      "context_hash": 804053610073599617,
+      "translation": "실용적인 모니터링 스크립트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561066Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Practical Examples",
+      "source_hash": 2612692217508609681,
+      "context_hash": 2171405355074745694,
+      "translation": "실전 예제",
+      "glossary_snapshot": {
+        "Practical Examples": "실전 예제"
+      },
+      "translated_at": "2026-11-14T23:37:23.756647Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "PostgreSQL",
+      "source_hash": 9525731843733938950,
+      "context_hash": 3970643160715224752,
+      "translation": "PostgreSQL",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL"
+      },
+      "translated_at": "2026-11-14T22:36:09.561067Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "A complete sysctl and configuration for a 128GB server dedicated to PostgreSQL:",
+      "source_hash": 16007147252205368253,
+      "context_hash": 1638613684045350260,
+      "translation": "PostgreSQL 전용 128GB 서버를 위한 완전한 sysctl 및 구성입니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "sysctl": "sysctl"
+      },
+      "translated_at": "2026-11-14T22:36:09.561067Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "MySQL / MariaDB",
+      "source_hash": 1152155606897897804,
+      "context_hash": 484953182919725364,
+      "translation": "MySQL / MariaDB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561067Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "A complete configuration for a 64GB server dedicated to MySQL:",
+      "source_hash": 3719664769445959620,
+      "context_hash": 14979501094090369609,
+      "translation": "MySQL 전용 64GB 서버를 위한 완전한 구성입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561067Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "Using `O_DIRECT` for InnoDB is important: it tells the kernel to bypass the page cache for data file I/O, since InnoDB maintains its own buffer pool.",
+      "source_hash": 17461819552954947611,
+      "context_hash": 17167241406824872456,
+      "translation": "InnoDB에 `O_DIRECT`를 사용하는 것은 중요합니다. InnoDB는 자체 버퍼 풀을 유지하므로, 이 옵션은 데이터 파일 I/O에서 페이지 캐시를 우회하도록 커널에 지시합니다.",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀",
+        "kernel": "커널",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:36:09.561068Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:1",
+      "source": "This avoids double-caching and reduces memory pressure.",
+      "source_hash": 5745127174309595815,
+      "context_hash": 11423855189382967501,
+      "translation": "이를 통해 이중 캐싱을 피하고 메모리 압박을 줄입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:36:09.561068Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:2",
+      "source": "The interaction between `O_DIRECT` and the page cache is implemented in [mm/filemap.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/filemap.c).",
+      "source_hash": 3966075801586522074,
+      "context_hash": 15255400423951664682,
+      "translation": "`O_DIRECT`와 페이지 캐시 사이의 상호작용은 [mm/filemap.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/filemap.c)에 구현되어 있습니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:36:09.561069Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:0",
+      "source": "Redis",
+      "source_hash": 6432836943027743921,
+      "context_hash": 9064505355350747224,
+      "translation": "Redis",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561069Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:14/seg:0",
+      "source": "Redis is single-threaded (per shard) and keeps its entire dataset in anonymous memory.",
+      "source_hash": 16893385160648874309,
+      "context_hash": 5455741880593983920,
+      "translation": "Redis는 (샤드당) 단일 스레드로 동작하며 전체 데이터셋을 익명 메모리(anonymous memory)에 보관합니다.",
+      "glossary_snapshot": {
+        "anonymous memory": "익명 메모리"
+      },
+      "translated_at": "2026-11-14T22:36:09.561069Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:14/seg:1",
+      "source": "Its tuning needs are different from disk-based databases but the memory management concerns overlap.",
+      "source_hash": 16441448618173280218,
+      "context_hash": 6597318628139444936,
+      "translation": "튜닝 요구 사항은 디스크 기반 데이터베이스와 다르지만, 메모리 관리상의 고려 사항은 겹칩니다.",
+      "glossary_snapshot": {
+        "memory management": "메모리 관리"
+      },
+      "translated_at": "2026-11-14T22:36:09.561070Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:0",
+      "source": "Redis and overcommit mode 2",
+      "source_hash": 7535547066906320897,
+      "context_hash": 13161546475098859825,
+      "translation": "Redis와 overcommit 모드 2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561070Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:0",
+      "source": "Unlike PostgreSQL and MySQL, Redis recommends `vm.overcommit_memory = 1` (always overcommit).",
+      "source_hash": 14767097076732797821,
+      "context_hash": 3806116414826243853,
+      "translation": "PostgreSQL 및 MySQL과 달리, Redis는 `vm.overcommit_memory = 1`(항상 overcommit)을 권장합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL"
+      },
+      "translated_at": "2026-11-14T22:36:09.561070Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:1",
+      "source": "This is because Redis uses `fork()` for background persistence (BGSAVE, BGREWRITEAOF).",
+      "source_hash": 14792135673327263163,
+      "context_hash": 4187819860488176159,
+      "translation": "이는 Redis가 백그라운드 영속화(BGSAVE, BGREWRITEAOF)에 `fork()`를 사용하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561070Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:2",
+      "source": "A Redis instance using 50GB of RAM needs to fork, creating a child with a 50GB address space.",
+      "source_hash": 3677070098663996827,
+      "context_hash": 16827415028115167716,
+      "translation": "50GB의 RAM을 사용하는 Redis 인스턴스는 fork를 해야 하며, 이때 50GB 주소 공간을 가진 자식 프로세스가 생성됩니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "address space": "주소 공간"
+      },
+      "translated_at": "2026-11-14T22:36:09.561070Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:3",
+      "source": "With mode 2, this fork will fail unless `CommitLimit` has 50GB of headroom, which defeats the purpose of strict accounting.",
+      "source_hash": 13830017418750961515,
+      "context_hash": 7359123642642051913,
+      "translation": "모드 2에서는 `CommitLimit`에 50GB의 여유가 없으면 이 fork가 실패하며, 이는 엄격한 어카운팅의 목적을 무색하게 만듭니다.",
+      "glossary_snapshot": {
+        "accounting": "어카운팅"
+      },
+      "translated_at": "2026-11-14T23:37:23.756648Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:4",
+      "source": "Mode 1 allows the fork to succeed, relying on copy-on-write to avoid actually needing 100GB.",
+      "source_hash": 14440307098554011129,
+      "context_hash": 17451395134962056042,
+      "translation": "모드 1에서는 fork가 성공할 수 있으며, copy-on-write에 의존하여 실제로 100GB가 필요해지는 상황을 피합니다.",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:36:09.561071Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Try It Yourself",
+      "source_hash": 15329900578796528184,
+      "context_hash": 9417762325098296032,
+      "translation": "직접 해 보기",
+      "glossary_snapshot": {
+        "Try It Yourself": "직접 해 보기"
+      },
+      "translated_at": "2026-11-14T22:36:09.561071Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Check Your Current Settings",
+      "source_hash": 2539434263319208633,
+      "context_hash": 6033236572531282420,
+      "translation": "현재 설정 확인",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:36:09.561071Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "Observe Swap Behavior Under Memory Pressure",
+      "source_hash": 8040127938147180358,
+      "context_hash": 6014853498595901260,
+      "translation": "메모리 압박 상황에서의 스왑 동작 관찰",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:36:09.561071Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "Measure NUMA Effects",
+      "source_hash": 8570816427341759627,
+      "context_hash": 6815694930948245859,
+      "translation": "NUMA 효과 측정",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:36:09.561071Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "Watch Dirty Page Writeback",
+      "source_hash": 5276811310009631552,
+      "context_hash": 15998581741282556866,
+      "translation": "dirty 페이지 writeback 관찰",
+      "glossary_snapshot": {
+        "dirty page": "dirty 페이지",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T23:37:23.756649Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Further Reading",
+      "source_hash": 16149536966054822133,
+      "context_hash": 16808933666496984577,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:36:09.561071Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "[docs.kernel.org: vm.overcommit_memory](https://docs.kernel.org/admin-guide/sysctl/vm.html#overcommit-memory) - Kernel documentation for all vm sysctl tunables",
+      "source_hash": 7646946119838223689,
+      "context_hash": 6339822366100181594,
+      "translation": "[docs.kernel.org: vm.overcommit_memory](https://docs.kernel.org/admin-guide/sysctl/vm.html#overcommit-memory) - 모든 vm sysctl 튜닝 항목에 대한 커널 문서",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "sysctl": "sysctl"
+      },
+      "translated_at": "2026-11-14T22:36:09.561072Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[docs.kernel.org: hugetlbpage](https://docs.kernel.org/admin-guide/mm/hugetlbpage.html) - Kernel documentation for huge page configuration",
+      "source_hash": 17659187143647049354,
+      "context_hash": 6437506881785125644,
+      "translation": "[docs.kernel.org: hugetlbpage](https://docs.kernel.org/admin-guide/mm/hugetlbpage.html) - 대형 페이지 구성에 대한 커널 문서",
+      "glossary_snapshot": {
+        "huge page": "대형 페이지",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:36:09.561072Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[LWN: NUMA in a hurry](https://lwn.net/Articles/473440/) - Overview of NUMA memory management in Linux",
+      "source_hash": 18330907557278035350,
+      "context_hash": 7450278814594459550,
+      "translation": "[LWN: NUMA in a hurry](https://lwn.net/Articles/473440/) - Linux의 NUMA 메모리 관리 개요",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "Linux": "Linux",
+        "NUMA": "NUMA",
+        "memory management": "메모리 관리"
+      },
+      "translated_at": "2026-11-14T22:36:09.561072Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "[LWN: Transparent huge pages](https://lwn.net/Articles/423584/) - Original THP design and trade-offs",
+      "source_hash": 9250163075920882836,
+      "context_hash": 17250437193209102516,
+      "translation": "[LWN: Transparent huge pages](https://lwn.net/Articles/423584/) - 투명 대형 페이지(THP)의 원래 설계와 트레이드오프",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "THP": "THP",
+        "Transparent Huge Pages": "투명 대형 페이지",
+        "trade-offs": "트레이드오프"
+      },
+      "translated_at": "2026-11-14T22:36:09.561072Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "[LWN: Better active/inactive list balancing](https://lwn.net/Articles/495543/) - How the kernel decides what to reclaim",
+      "source_hash": 15068409036211405102,
+      "context_hash": 656300923687655773,
+      "translation": "[LWN: Better active/inactive list balancing](https://lwn.net/Articles/495543/) - 커널이 무엇을 회수할지 결정하는 방식",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "kernel": "커널",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:03:34.675333Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "[mm/vmscan.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c) - Reclaim, swappiness, and zone reclaim logic",
+      "source_hash": 15017409625515474425,
+      "context_hash": 16894753574146782302,
+      "translation": "[mm/vmscan.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c) - 회수, swappiness, zone reclaim 로직",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:03:34.675335Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "[mm/page-writeback.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/page-writeback.c) - Dirty page writeback and throttling",
+      "source_hash": 1529723153706964339,
+      "context_hash": 2809148246530158065,
+      "translation": "[mm/page-writeback.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/page-writeback.c) - dirty 페이지 writeback과 스로틀링",
+      "glossary_snapshot": {
+        "dirty page": "dirty 페이지",
+        "throttling": "스로틀링",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:03:34.675336Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "[mm/hugetlb.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/hugetlb.c) - Huge page reservation and allocation",
+      "source_hash": 12645037816370429907,
+      "context_hash": 13437139291323687026,
+      "translation": "[mm/hugetlb.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/hugetlb.c) - 대형 페이지 예약과 할당",
+      "glossary_snapshot": {
+        "huge page": "대형 페이지"
+      },
+      "translated_at": "2026-11-14T22:03:34.675336Z",
+      "issues": []
+    }
+  ]
+}

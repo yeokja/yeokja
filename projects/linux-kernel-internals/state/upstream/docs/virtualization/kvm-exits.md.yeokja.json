@@ -1,0 +1,1267 @@
+{
+  "version": 1,
+  "source_hash": 4998889548175491556,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "KVM Exit Handling",
+      "source_hash": 5840830897593496982,
+      "context_hash": 15213476136539539632,
+      "translation": "KVM Exit 처리",
+      "glossary_snapshot": {
+        "KVM": "KVM"
+      },
+      "translated_at": "2026-11-14T23:08:24.451640Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "What happens when a guest faults: exit reasons, I/O emulation, and MMIO",
+      "source_hash": 4047774352585991050,
+      "context_hash": 16681032582549462391,
+      "translation": "게스트가 폴트를 일으키면 일어나는 일: exit 사유, I/O 에뮬레이션, MMIO",
+      "glossary_snapshot": {
+        "MMIO": "MMIO",
+        "guest": "게스트"
+      },
+      "translated_at": "2026-11-14T23:08:24.451641Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The vcpu_run loop",
+      "source_hash": 532505620737547171,
+      "context_hash": 3308474513273967613,
+      "translation": "vcpu_run 루프",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451642Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Every KVM vCPU runs in a tight loop inside `kvm_arch_vcpu_ioctl_run()` in `arch/x86/kvm/x86.c`.",
+      "source_hash": 15900318670638963202,
+      "context_hash": 14151445115773214912,
+      "translation": "모든 KVM vCPU는 `arch/x86/kvm/x86.c`의 `kvm_arch_vcpu_ioctl_run()` 안에서 촘촘한 루프로 실행됩니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:24.451642Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The loop enters the guest, hardware runs the guest until something requires hypervisor intervention (a VM exit), then KVM dispatches that exit to the appropriate handler.",
+      "source_hash": 8567081449169376032,
+      "context_hash": 662519666847247171,
+      "translation": "루프가 게스트에 진입하면 하드웨어는 하이퍼바이저의 개입이 필요한 일(VM exit)이 생길 때까지 게스트를 실행하고, 그다음 KVM이 해당 exit를 적절한 핸들러로 디스패치합니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "guest": "게스트",
+        "handler": "핸들러",
+        "hardware": "하드웨어",
+        "hypervisor": "하이퍼바이저"
+      },
+      "translated_at": "2026-11-14T23:08:24.451643Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "The key contract: a handler returning `1` means KVM can re-enter the guest immediately.",
+      "source_hash": 18010629961901747748,
+      "context_hash": 12320750933087962605,
+      "translation": "핵심 규약은 다음과 같습니다. 핸들러가 `1`을 반환하면 KVM이 즉시 게스트에 재진입할 수 있다는 뜻입니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "guest": "게스트",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:08:24.451643Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "Returning `0` or a negative error means `KVM_RUN` ioctl returns to userspace, which inspects `struct kvm_run` to learn what happened.",
+      "source_hash": 16111115299723507419,
+      "context_hash": 3141432899071761017,
+      "translation": "`0`이나 음수 오류를 반환하면 `KVM_RUN` ioctl이 사용자 공간으로 돌아가며, 사용자 공간은 `struct kvm_run`을 살펴보고 무슨 일이 일어났는지 파악합니다.",
+      "glossary_snapshot": {
+        "ioctl": "ioctl",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:08:24.451643Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "vcpu_enter_guest internals",
+      "source_hash": 4854823971982380817,
+      "context_hash": 7895534745845546188,
+      "translation": "vcpu_enter_guest 내부 구조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451644Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Before entering the guest on each iteration, `vcpu_enter_guest()` processes any pending work:",
+      "source_hash": 5415685399724891316,
+      "context_hash": 1854639465212481175,
+      "translation": "매 반복마다 게스트에 진입하기 전에 `vcpu_enter_guest()`는 대기 중인 작업을 처리합니다.",
+      "glossary_snapshot": {
+        "guest": "게스트"
+      },
+      "translated_at": "2026-11-14T23:08:24.451644Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Exit reason dispatch",
+      "source_hash": 17063452436693445974,
+      "context_hash": 6519739887881401008,
+      "translation": "Exit 사유 디스패치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451644Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "On Intel, the exit reason is stored in the VMCS `VM_EXIT_REASON` field. `vmx_get_exit_reason(vcpu)` reads it (from a per-vCPU VMX field, not `vcpu->arch`) into a `union vmx_exit_reason`, and the low bits (`.basic`) index into `kvm_vmx_exit_handlers[]`:",
+      "source_hash": 2754271929018727486,
+      "context_hash": 5807849995887472713,
+      "translation": "Intel에서는 exit 사유가 VMCS의 `VM_EXIT_REASON` 필드에 저장됩니다. `vmx_get_exit_reason(vcpu)`는 이 값을 (`vcpu->arch`가 아닌 vCPU별 VMX 필드에서) 읽어 `union vmx_exit_reason`에 담으며, 하위 비트(`.basic`)가 `kvm_vmx_exit_handlers[]`의 인덱스로 쓰입니다.",
+      "glossary_snapshot": {
+        "Intel": "Intel",
+        "VMX": "VMX",
+        "bits": "비트",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:24.451644Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`__vmx_handle_exit()` does the actual dispatch; the entry point reached via `kvm_x86_call(handle_exit)` is a thin `vmx_handle_exit()` wrapper around it that also checks for a detected bus lock (`KVM_EXIT_X86_BUS_LOCK`).",
+      "source_hash": 4475647717058311352,
+      "context_hash": 10328158967644178797,
+      "translation": "실제 디스패치는 `__vmx_handle_exit()`가 수행합니다. `kvm_x86_call(handle_exit)`를 통해 도달하는 진입점은 이를 감싸는 얇은 `vmx_handle_exit()` 래퍼이며, 이 래퍼는 감지된 버스 락(`KVM_EXIT_X86_BUS_LOCK`)도 검사합니다.",
+      "glossary_snapshot": {
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T23:08:24.451644Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "AMD SVM follows the same pattern with `svm_exit_handlers[]` in `arch/x86/kvm/svm/svm.c`, indexed by the `EXITCODE` field in the VMCB.",
+      "source_hash": 17718613821048965580,
+      "context_hash": 1351208931533121623,
+      "translation": "AMD SVM도 `arch/x86/kvm/svm/svm.c`의 `svm_exit_handlers[]`로 같은 패턴을 따르며, 이 테이블은 VMCB의 `EXITCODE` 필드로 인덱싱됩니다.",
+      "glossary_snapshot": {
+        "AMD": "AMD"
+      },
+      "translated_at": "2026-11-14T23:08:24.451645Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Common exit reasons",
+      "source_hash": 897940072920555671,
+      "context_hash": 422138983042584464,
+      "translation": "주요 exit 사유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451645Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "EXIT_REASON_IO_INSTRUCTION — port I/O",
+      "source_hash": 1655367139768700775,
+      "context_hash": 18440305831527899139,
+      "translation": "EXIT_REASON_IO_INSTRUCTION — 포트 I/O",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451645Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Port I/O instructions (`in`/`out`) exit by default; the per-VMCS I/O bitmap can be configured to let specific ports run without exiting at all.",
+      "source_hash": 11382727018661175293,
+      "context_hash": 10317454290205150712,
+      "translation": "포트 I/O 명령어(`in`/`out`)는 기본적으로 exit를 일으킵니다. VMCS별 I/O 비트맵을 설정하면 특정 포트는 exit 없이 그대로 실행되게 할 수 있습니다.",
+      "glossary_snapshot": {
+        "bitmap": "비트맵"
+      },
+      "translated_at": "2026-11-14T23:08:24.451645Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "Of the ports that do exit, the fast path handles simple cases in-kernel; the slow path (string I/O) falls back to full instruction emulation.",
+      "source_hash": 12072144493124674026,
+      "context_hash": 6285776429832525844,
+      "translation": "exit를 일으키는 포트 중 단순한 경우는 빠른 경로가 커널 안에서 처리하고, 느린 경로(문자열 I/O)는 전체 명령어 에뮬레이션으로 넘어갑니다.",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로",
+        "kernel": "커널",
+        "slow path": "느린 경로"
+      },
+      "translated_at": "2026-11-14T23:08:24.451645Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "`kvm_fast_pio()` (in `arch/x86/kvm/x86.c`) hands off to `kvm_fast_pio_in()`/`kvm_fast_pio_out()`, which go through the emulator's `emulator_pio_in()`/`emulator_pio_out()` path.",
+      "source_hash": 18161524365087693315,
+      "context_hash": 6589252124251148574,
+      "translation": "`kvm_fast_pio()`(`arch/x86/kvm/x86.c`에 있음)는 `kvm_fast_pio_in()`/`kvm_fast_pio_out()`에 처리를 넘기고, 이 함수들은 에뮬레이터의 `emulator_pio_in()`/`emulator_pio_out()` 경로를 거칩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451646Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "That path tries in-kernel device emulation via the `kvm_io_bus` dispatch table first; if no in-kernel device owns the port, it fills `kvm_run` and returns `0`:",
+      "source_hash": 4431997922966541681,
+      "context_hash": 13282015054916045692,
+      "translation": "이 경로는 먼저 `kvm_io_bus` 디스패치 테이블을 통해 커널 내 디바이스 에뮬레이션을 시도합니다. 해당 포트를 소유한 커널 내 디바이스가 없으면 `kvm_run`을 채우고 `0`을 반환합니다:",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:37:25.515861Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "EXIT_REASON_EPT_VIOLATION — EPT/NPT page fault",
+      "source_hash": 1803098229750440413,
+      "context_hash": 16138902128018215430,
+      "translation": "EXIT_REASON_EPT_VIOLATION — EPT/NPT 페이지 폴트",
+      "glossary_snapshot": {
+        "EPT": "EPT",
+        "page fault": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T23:08:24.451647Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "When the guest accesses a guest physical address (GPA) that has no valid Extended Page Table (EPT) entry, or violates access permissions, hardware raises an EPT violation exit.",
+      "source_hash": 9146900551973115212,
+      "context_hash": 10335257375287712638,
+      "translation": "게스트가 유효한 확장 페이지 테이블(Extended Page Table, EPT) 엔트리가 없는 게스트 물리 주소(GPA)에 접근하거나 접근 권한을 위반하면, 하드웨어가 EPT violation exit를 발생시킵니다.",
+      "glossary_snapshot": {
+        "EPT": "EPT",
+        "guest": "게스트",
+        "hardware": "하드웨어",
+        "page table": "페이지 테이블",
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T23:08:24.451647Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "`kvm_mmu_page_fault()` (in `arch/x86/kvm/mmu/mmu.c`) determines the cause:",
+      "source_hash": 11735087989950306696,
+      "context_hash": 8611362941170880011,
+      "translation": "`kvm_mmu_page_fault()`(`arch/x86/kvm/mmu/mmu.c`에 있음)가 원인을 판별합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451647Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "**Missing mapping**: installs a new EPT leaf entry pointing to the host physical page.",
+      "source_hash": 18403005238787339442,
+      "context_hash": 7509061844433860471,
+      "translation": "**매핑 없음**: 호스트 물리 페이지를 가리키는 새 EPT 리프 엔트리를 설치합니다.",
+      "glossary_snapshot": {
+        "EPT": "EPT",
+        "host": "호스트",
+        "mapping": "매핑",
+        "physical page": "물리 페이지"
+      },
+      "translated_at": "2026-11-14T23:08:24.451648Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "**MMIO range**: the GPA maps to a device, not RAM — triggers MMIO emulation (see below).",
+      "source_hash": 3791466036580271888,
+      "context_hash": 2976132746544934309,
+      "translation": "**MMIO 범위**: GPA가 RAM이 아니라 디바이스에 매핑되어 있으며, MMIO 에뮬레이션을 일으킵니다(아래 참조).",
+      "glossary_snapshot": {
+        "MMIO": "MMIO",
+        "RAM": "RAM",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:37:25.515862Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "**Permission fault**: guest tried a disallowed access (e.g., write to read-only page for CoW).",
+      "source_hash": 14801640946601463145,
+      "context_hash": 977322342918969961,
+      "translation": "**권한 폴트**: 게스트가 허용되지 않은 접근을 시도한 경우입니다(예: CoW를 위한 읽기 전용 페이지에 대한 쓰기).",
+      "glossary_snapshot": {
+        "guest": "게스트"
+      },
+      "translated_at": "2026-11-14T23:08:24.451648Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "EXIT_REASON_CPUID",
+      "source_hash": 8554957699897736125,
+      "context_hash": 11955470691706177290,
+      "translation": "EXIT_REASON_CPUID",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451648Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "`CPUID` is always intercepted so KVM can filter or synthesize feature bits.",
+      "source_hash": 13609463931834104139,
+      "context_hash": 6075969963804928832,
+      "translation": "KVM이 기능 비트를 걸러 내거나 합성할 수 있도록 `CPUID`는 항상 가로채집니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "bits": "비트"
+      },
+      "translated_at": "2026-11-14T23:08:24.451648Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:1",
+      "source": "The handler calls `kvm_emulate_cpuid()` in `arch/x86/kvm/cpuid.c`, which looks up the leaf in `vcpu->arch.cpuid_entries[]` (populated from `KVM_SET_CPUID2` ioctl).",
+      "source_hash": 1833776719684842084,
+      "context_hash": 15558144098937433287,
+      "translation": "핸들러는 `arch/x86/kvm/cpuid.c`의 `kvm_emulate_cpuid()`를 호출하며, 이 함수는 (`KVM_SET_CPUID2` ioctl로 채워진) `vcpu->arch.cpuid_entries[]`에서 해당 리프를 찾습니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러",
+        "ioctl": "ioctl"
+      },
+      "translated_at": "2026-11-14T23:08:24.451648Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:2",
+      "source": "Sensitive leaves are masked — for example, the hypervisor bit is set, and certain VMX feature bits are hidden from the guest.",
+      "source_hash": 5389074988208331401,
+      "context_hash": 868206113182054678,
+      "translation": "민감한 리프는 마스킹됩니다. 예를 들어 하이퍼바이저 비트가 설정되고, 일부 VMX 기능 비트는 게스트에게 숨겨집니다.",
+      "glossary_snapshot": {
+        "VMX": "VMX",
+        "bit": "비트",
+        "bits": "비트",
+        "guest": "게스트",
+        "hypervisor": "하이퍼바이저"
+      },
+      "translated_at": "2026-11-14T23:08:24.451648Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "EXIT_REASON_HLT",
+      "source_hash": 10969536060112141860,
+      "context_hash": 10916701420374893760,
+      "translation": "EXIT_REASON_HLT",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:24.451649Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "When the guest executes `HLT` and interrupts are disabled, there is nothing for the vCPU to do.",
+      "source_hash": 14383739276339927518,
+      "context_hash": 14516984883550924087,
+      "translation": "게스트가 `HLT`를 실행하고 인터럽트가 비활성화되어 있으면 vCPU가 할 일이 없습니다.",
+      "glossary_snapshot": {
+        "guest": "게스트",
+        "interrupts": "인터럽트",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:24.451649Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:1",
+      "source": "KVM calls `kvm_vcpu_halt()` which calls `kvm_vcpu_block()`:",
+      "source_hash": 438584263951090959,
+      "context_hash": 5082334895365387191,
+      "translation": "KVM은 `kvm_vcpu_halt()`를 호출하고, 이 함수는 `kvm_vcpu_block()`을 호출합니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM"
+      },
+      "translated_at": "2026-11-14T23:08:24.451649Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "The vCPU thread sleeps until `kvm_vcpu_kick()` wakes it — typically because a virtual interrupt arrived.",
+      "source_hash": 2725423040251718993,
+      "context_hash": 4657721279274474083,
+      "translation": "vCPU 스레드는 `kvm_vcpu_kick()`이 깨울 때까지 잠들며, 이는 보통 가상 인터럽트가 도착했기 때문입니다.",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:18.589552Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "EXIT_REASON_MSR_READ / MSR_WRITE",
+      "source_hash": 2437757367676977389,
+      "context_hash": 7175186469374769796,
+      "translation": "EXIT_REASON_MSR_READ / MSR_WRITE",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589553Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "MSR accesses can be made cheap with the **MSR bitmap**: a 4KB page (pointed to by the VMCS's `MSR_BITMAP` field, not embedded in the VMCS itself) where each bit controls whether a specific MSR causes a VM exit.",
+      "source_hash": 14444350749726587348,
+      "context_hash": 13558389589598149914,
+      "translation": "**MSR 비트맵**을 사용하면 MSR 접근 비용을 낮출 수 있습니다. MSR 비트맵은 4KB 페이지로(VMCS 자체에 포함되지 않고 VMCS의 `MSR_BITMAP` 필드가 가리킴), 각 비트가 특정 MSR이 VM exit를 일으킬지 여부를 제어합니다.",
+      "glossary_snapshot": {
+        "MSR": "MSR",
+        "bit": "비트",
+        "bitmap": "비트맵"
+      },
+      "translated_at": "2026-11-14T23:08:18.589554Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:1",
+      "source": "Frequently-read MSRs like `IA32_TSC` or `IA32_SYSENTER_EIP` can be pass-through (no exit).",
+      "source_hash": 1146371260145947606,
+      "context_hash": 11439872357964347333,
+      "translation": "`IA32_TSC`나 `IA32_SYSENTER_EIP`처럼 자주 읽히는 MSR은 pass-through(exit 없음)로 둘 수 있습니다.",
+      "glossary_snapshot": {
+        "MSRs": "MSR"
+      },
+      "translated_at": "2026-11-14T23:08:18.589554Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:2",
+      "source": "For intercepted MSRs, KVM dispatches to `kvm_emulate_rdmsr()` or `kvm_emulate_wrmsr()` (in `arch/x86/kvm/x86.c`), which uses switch-based per-MSR dispatch inside `__kvm_get_msr()` / `__kvm_set_msr()`.",
+      "source_hash": 5587000564238836206,
+      "context_hash": 15609567871524662004,
+      "translation": "가로채는 MSR의 경우 KVM은 `kvm_emulate_rdmsr()` 또는 `kvm_emulate_wrmsr()`(`arch/x86/kvm/x86.c`에 있음)로 분기하며, 이 함수들은 `__kvm_get_msr()` / `__kvm_set_msr()` 내부에서 switch 기반의 MSR별 분기를 사용합니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "MSR": "MSR",
+        "MSRs": "MSR"
+      },
+      "translated_at": "2026-11-14T23:08:18.589555Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "EXIT_REASON_EXCEPTION_NMI",
+      "source_hash": 10951577010052664668,
+      "context_hash": 2866343176341516940,
+      "translation": "EXIT_REASON_EXCEPTION_NMI",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589555Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Guest exceptions (page faults, GPFs, breakpoints) and NMIs exit here. `handle_exception_nmi()` in `arch/x86/kvm/vmx/vmx.c` inspects the `VM_EXIT_INTR_INFO` VMCS field to determine the vector.",
+      "source_hash": 11621350976341553305,
+      "context_hash": 17469469607449642995,
+      "translation": "게스트 예외(페이지 폴트, GPF, 브레이크포인트)와 NMI는 여기서 exit합니다. `arch/x86/kvm/vmx/vmx.c`의 `handle_exception_nmi()`는 `VM_EXIT_INTR_INFO` VMCS 필드를 검사하여 벡터를 판별합니다.",
+      "glossary_snapshot": {
+        "guest": "게스트",
+        "page faults": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T23:08:18.589555Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:1",
+      "source": "Depending on context:",
+      "source_hash": 14339638836403090775,
+      "context_hash": 14337361481422293398,
+      "translation": "상황에 따른 처리:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589555Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "**Guest page fault** (`#PF`): handled by `kvm_handle_page_fault()` — either maps a host page or re-injects the fault to the guest.",
+      "source_hash": 2408187944690159062,
+      "context_hash": 6033941917111110410,
+      "translation": "**게스트 페이지 폴트**(`#PF`): `kvm_handle_page_fault()`가 처리하며, 호스트 페이지를 매핑하거나 폴트를 게스트에 다시 주입합니다.",
+      "glossary_snapshot": {
+        "guest": "게스트",
+        "host": "호스트",
+        "page fault": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T23:08:18.589556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "**Breakpoint** (`#BP`): delivered to the guest or intercepted for GDB stub.",
+      "source_hash": 5175600310622075760,
+      "context_hash": 11719635461592460461,
+      "translation": "**브레이크포인트**(`#BP`): 게스트에 전달되거나 GDB stub을 위해 가로채집니다.",
+      "glossary_snapshot": {
+        "guest": "게스트"
+      },
+      "translated_at": "2026-11-14T23:08:18.589556Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "**NMI**: injected into the guest via the VMCS event-injection mechanism.",
+      "source_hash": 3439733633479020306,
+      "context_hash": 18300969799625967976,
+      "translation": "**NMI**: VMCS 이벤트 주입 메커니즘을 통해 게스트에 주입됩니다.",
+      "glossary_snapshot": {
+        "guest": "게스트"
+      },
+      "translated_at": "2026-11-14T23:08:18.589557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "MMIO emulation",
+      "source_hash": 7311995577878814394,
+      "context_hash": 5314073882233487620,
+      "translation": "MMIO 에뮬레이션",
+      "glossary_snapshot": {
+        "MMIO": "MMIO"
+      },
+      "translated_at": "2026-11-14T23:08:18.589557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "When `handle_ept_violation()` determines the faulting GPA is in a MMIO region (no host physical mapping exists), KVM emulates the instruction that caused the fault rather than mapping a page.",
+      "source_hash": 15645130129397042520,
+      "context_hash": 6044996552616269476,
+      "translation": "`handle_ept_violation()`이 폴트가 발생한 GPA가 MMIO 영역에 있다고(호스트 물리 매핑이 존재하지 않음) 판단하면, KVM은 페이지를 매핑하는 대신 폴트를 일으킨 명령어를 에뮬레이션합니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "MMIO": "MMIO",
+        "host": "호스트",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T23:08:18.589557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "The MMIO fields in `struct kvm_run` (from `include/uapi/linux/kvm.h`):",
+      "source_hash": 11583797773416493405,
+      "context_hash": 6946857821129659812,
+      "translation": "`struct kvm_run`의 MMIO 필드(`include/uapi/linux/kvm.h`에서 발췌):",
+      "glossary_snapshot": {
+        "MMIO": "MMIO"
+      },
+      "translated_at": "2026-11-14T23:08:18.589557Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "For a guest **read**: userspace (e.g. QEMU) fills `kvm_run.mmio.data` with the device register value, then re-enters KVM via `KVM_RUN`.",
+      "source_hash": 9656344914627152969,
+      "context_hash": 16915567783477143509,
+      "translation": "게스트 **읽기**의 경우: 사용자 공간(예: QEMU)이 `kvm_run.mmio.data`를 디바이스 레지스터 값으로 채운 뒤 `KVM_RUN`을 통해 KVM에 다시 진입합니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "QEMU": "QEMU",
+        "device": "디바이스",
+        "guest": "게스트",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:08:18.589558Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "KVM completes the emulated instruction by writing the data into the guest register.",
+      "source_hash": 12134029984884881101,
+      "context_hash": 1688225376900944803,
+      "translation": "KVM은 해당 데이터를 게스트 레지스터에 기록하여 에뮬레이션한 명령어를 완료합니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "guest": "게스트"
+      },
+      "translated_at": "2026-11-14T23:08:18.589558Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "For a guest **write**: userspace reads `kvm_run.mmio.data` and forwards it to its device model.",
+      "source_hash": 14660355720034467335,
+      "context_hash": 15829487609786602756,
+      "translation": "게스트 **쓰기**의 경우: 사용자 공간이 `kvm_run.mmio.data`를 읽어 자신의 디바이스 모델로 전달합니다.",
+      "glossary_snapshot": {
+        "device model": "디바이스 모델",
+        "guest": "게스트",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:08:18.589558Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "KVM in-kernel devices",
+      "source_hash": 10052389858112336935,
+      "context_hash": 5234228348076346526,
+      "translation": "KVM 커널 내 디바이스",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "devices": "디바이스",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:08:18.589558Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "Several devices are emulated entirely in-kernel to avoid the round-trip to userspace:",
+      "source_hash": 13113244794391181592,
+      "context_hash": 13737618352093722906,
+      "translation": "일부 디바이스는 사용자 공간으로의 왕복을 피하기 위해 전적으로 커널 내에서 에뮬레이션됩니다:",
+      "glossary_snapshot": {
+        "devices": "디바이스",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:08:18.589558Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Device",
+      "source_hash": 6780759534773641067,
+      "context_hash": 12640647746889600434,
+      "translation": "디바이스",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:08:18.589559Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "In-kernel emulation",
+      "source_hash": 305956227513272982,
+      "context_hash": 12583721279764057771,
+      "translation": "커널 내 에뮬레이션",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:08:18.589559Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "Registration",
+      "source_hash": 12581034211891611423,
+      "context_hash": 6348084981293672439,
+      "translation": "등록",
+      "glossary_snapshot": {
+        "Registration": "등록"
+      },
+      "translated_at": "2026-11-14T23:37:25.515863Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Local APIC",
+      "source_hash": 16756193378295252721,
+      "context_hash": 1843456183491286092,
+      "translation": "Local APIC",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589559Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "`arch/x86/kvm/lapic.c`",
+      "source_hash": 9432400452234953469,
+      "context_hash": 12839975989957987341,
+      "translation": "`arch/x86/kvm/lapic.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Checked directly (`vcpu->arch.apic->dev`) ahead of the generic bus — not registered via `kvm_io_bus_register_dev()`",
+      "source_hash": 9039210048624393612,
+      "context_hash": 16545526941827037111,
+      "translation": "범용 버스보다 먼저 직접 검사(`vcpu->arch.apic->dev`) — `kvm_io_bus_register_dev()`로 등록되지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "IOAPIC",
+      "source_hash": 814922857361734745,
+      "context_hash": 5435524750769689659,
+      "translation": "IOAPIC",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "`arch/x86/kvm/ioapic.c`",
+      "source_hash": 5022914989296549565,
+      "context_hash": 8243056840589150278,
+      "translation": "`arch/x86/kvm/ioapic.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "`kvm_io_bus_register_dev(kvm, KVM_MMIO_BUS, ...)`, matched by GPA range",
+      "source_hash": 16590290974596756004,
+      "context_hash": 16352109544806425162,
+      "translation": "`kvm_io_bus_register_dev(kvm, KVM_MMIO_BUS, ...)`, GPA 범위로 매칭",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "PIT (8254 timer)",
+      "source_hash": 5804126922021786366,
+      "context_hash": 6454769655540751929,
+      "translation": "PIT(8254 타이머)",
+      "glossary_snapshot": {
+        "timer": "타이머"
+      },
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "`arch/x86/kvm/i8254.c`",
+      "source_hash": 14954779332872895334,
+      "context_hash": 14226592095380545733,
+      "translation": "`arch/x86/kvm/i8254.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "`kvm_io_bus_register_dev(kvm, KVM_PIO_BUS, ...)` — legacy port I/O (ports 0x40-0x43, 0x61), not MMIO",
+      "source_hash": 4175596351339706414,
+      "context_hash": 5179226887654510646,
+      "translation": "`kvm_io_bus_register_dev(kvm, KVM_PIO_BUS, ...)` — MMIO가 아닌 레거시 포트 I/O(포트 0x40-0x43, 0x61)",
+      "glossary_snapshot": {
+        "MMIO": "MMIO"
+      },
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "Only IOAPIC (and other genuine MMIO devices) go through the generic `kvm_io_bus` GPA-range lookup; the Local APIC is special-cased ahead of it, and the PIT is reached via the separate port-I/O bus, not MMIO at all.",
+      "source_hash": 2300568453185866198,
+      "context_hash": 8414938662118190278,
+      "translation": "범용 `kvm_io_bus` GPA 범위 조회를 거치는 것은 IOAPIC(및 기타 실제 MMIO 디바이스)뿐입니다. Local APIC는 그보다 먼저 특별 처리되며, PIT는 MMIO가 전혀 아닌 별도의 포트 I/O 버스를 통해 접근됩니다.",
+      "glossary_snapshot": {
+        "MMIO": "MMIO",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:08:18.589560Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Interrupt injection",
+      "source_hash": 1331296925336746748,
+      "context_hash": 13469145476464613392,
+      "translation": "인터럽트 주입",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:08:27.521133Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Interrupts to guest vCPUs do not arrive via normal hardware interrupt lines.",
+      "source_hash": 15485028972588687032,
+      "context_hash": 16342988354566736036,
+      "translation": "게스트 vCPU로 가는 인터럽트는 일반적인 하드웨어 인터럽트 라인을 통해 도착하지 않습니다.",
+      "glossary_snapshot": {
+        "guest": "게스트",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트",
+        "interrupts": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:08:27.521134Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "KVM manages virtual interrupt delivery:",
+      "source_hash": 1370943338071576264,
+      "context_hash": 3615819716327670065,
+      "translation": "KVM이 가상 인터럽트 전달을 관리합니다:",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:08:27.521134Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "The interrupt routing path for device interrupts:",
+      "source_hash": 12772406801566393767,
+      "context_hash": 13728721463114452499,
+      "translation": "디바이스 인터럽트의 인터럽트 라우팅 경로는 다음과 같습니다:",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "interrupt": "인터럽트",
+        "interrupts": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:37:25.515864Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "The routing table (`struct kvm_irq_routing_table`, allocated in `virt/kvm/irqchip.c`) maps GSI numbers to IOAPIC/MSI entries and is updated via the `KVM_SET_GSI_ROUTING` ioctl.",
+      "source_hash": 7451891653640030943,
+      "context_hash": 1818312707479122938,
+      "translation": "라우팅 테이블(`struct kvm_irq_routing_table`, `virt/kvm/irqchip.c`에서 할당)은 GSI 번호를 IOAPIC/MSI 엔트리에 매핑하며 `KVM_SET_GSI_ROUTING` ioctl을 통해 갱신됩니다.",
+      "glossary_snapshot": {
+        "MSI": "MSI",
+        "ioctl": "ioctl"
+      },
+      "translated_at": "2026-11-14T23:08:27.521135Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "Advanced interrupt features that reduce exits:",
+      "source_hash": 5356107975136574383,
+      "context_hash": 5970080376301534255,
+      "translation": "exit를 줄이는 고급 인터럽트 기능:",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:08:27.521135Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "**APICv / AVIC**: virtualizes the local APIC in hardware (Intel APICv / AMD AVIC), eliminating most APIC MMIO exits and enabling posted interrupt delivery without a VM exit.",
+      "source_hash": 17572138296734233653,
+      "context_hash": 15883122553586184253,
+      "translation": "**APICv / AVIC**: 로컬 APIC를 하드웨어에서 가상화하여(Intel APICv / AMD AVIC) 대부분의 APIC MMIO exit을 없애고, VM exit 없이 posted 인터럽트를 전달할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "AMD": "AMD",
+        "Intel": "Intel",
+        "MMIO": "MMIO",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:08:27.521135Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "**Posted interrupts**: the CPU delivers virtual interrupts directly to the guest without a VM exit, tracked via a per-vCPU posted-interrupt descriptor (`struct pi_desc`).",
+      "source_hash": 4228937236580276134,
+      "context_hash": 8414780521559230251,
+      "translation": "**Posted interrupt**: CPU가 VM exit 없이 가상 인터럽트를 게스트에 직접 전달하며, vCPU별 posted-interrupt 디스크립터(`struct pi_desc`)를 통해 추적합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "descriptor": "디스크립터",
+        "guest": "게스트",
+        "interrupt": "인터럽트",
+        "interrupts": "인터럽트",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:27.521135Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Performance: measuring exits",
+      "source_hash": 11171946674282405913,
+      "context_hash": 14794057045408794822,
+      "translation": "성능: exit 측정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:27.521136Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "VM exits are the primary source of KVM overhead.",
+      "source_hash": 4610304926877249546,
+      "context_hash": 17163979690401575142,
+      "translation": "VM exit는 KVM 오버헤드의 주요 원인입니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T23:08:27.521136Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "Minimizing exit frequency and exit handling latency is the main performance lever.",
+      "source_hash": 8485730335131648350,
+      "context_hash": 4608260071492059679,
+      "translation": "exit 빈도와 exit 처리 지연 시간을 최소화하는 것이 성능을 높이는 주된 수단입니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T23:08:27.521136Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Key performance guidelines:",
+      "source_hash": 9801574097056744558,
+      "context_hash": 16387956288298056603,
+      "translation": "주요 성능 지침:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:27.521136Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "**MMIO exits**: use in-kernel emulation (APIC, IOAPIC) or virtio (which batches kicks) to reduce frequency.",
+      "source_hash": 6084372977011428156,
+      "context_hash": 15876460786741741309,
+      "translation": "**MMIO exit**: 빈도를 줄이려면 커널 내 에뮬레이션(APIC, IOAPIC)이나 virtio(kick을 일괄 처리함)를 사용하십시오.",
+      "glossary_snapshot": {
+        "MMIO": "MMIO",
+        "kernel": "커널",
+        "virtio": "virtio"
+      },
+      "translated_at": "2026-11-14T23:08:27.521137Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "**MSR exits**: tune the MSR bitmap to pass-through frequently-read MSRs.",
+      "source_hash": 1135637323181166478,
+      "context_hash": 2044872792185897161,
+      "translation": "**MSR exit**: 자주 읽히는 MSR을 pass-through하도록 MSR 비트맵을 조정하십시오.",
+      "glossary_snapshot": {
+        "MSR": "MSR",
+        "MSRs": "MSR",
+        "bitmap": "비트맵"
+      },
+      "translated_at": "2026-11-14T23:08:27.521137Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "**PIO exits**: COM1 serial at boot is a common source; disable serial console in production VMs.",
+      "source_hash": 11610858867598417266,
+      "context_hash": 524142654828767977,
+      "translation": "**PIO exit**: 부팅 시 COM1 시리얼이 흔한 원인이므로, 프로덕션 VM에서는 시리얼 콘솔을 비활성화하십시오.",
+      "glossary_snapshot": {
+        "console": "콘솔"
+      },
+      "translated_at": "2026-11-14T23:08:27.521137Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "**EPT violations at startup**: normal — the working set pages in over the first few seconds.",
+      "source_hash": 15531099731906188231,
+      "context_hash": 1942997777248510296,
+      "translation": "**시작 시의 EPT violation**: 정상입니다. 처음 몇 초 동안 워킹 셋이 페이지 인(page in)됩니다.",
+      "glossary_snapshot": {
+        "EPT": "EPT",
+        "working set": "워킹 셋"
+      },
+      "translated_at": "2026-11-14T23:37:25.515864Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 18213350955236945776,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T23:08:27.521137Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 10361913264247998984,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:08:27.521137Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "[arch/x86/kvm/x86.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/x86.c) — `vcpu_enter_guest()`: the per-exit dispatch loop; `kvm_fast_pio()`: the in-kernel port I/O fast path; `kvm_emulate_rdmsr()`/`kvm_emulate_wrmsr()`: MSR read/write VM-exit dispatch",
+      "source_hash": 16707338180430290794,
+      "context_hash": 17743647427821468199,
+      "translation": "[arch/x86/kvm/x86.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/x86.c) — `vcpu_enter_guest()`: exit별 디스패치 루프, `kvm_fast_pio()`: 커널 내 포트 I/O 빠른 경로, `kvm_emulate_rdmsr()`/`kvm_emulate_wrmsr()`: MSR 읽기/쓰기 VM exit 디스패치",
+      "glossary_snapshot": {
+        "MSR": "MSR",
+        "fast path": "빠른 경로",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:08:27.521138Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "[arch/x86/kvm/vmx/vmx.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/vmx/vmx.c) — `kvm_vmx_exit_handlers[]`: the VMX exit-reason dispatch table; `handle_io()`, `handle_ept_violation()`, `handle_exception_nmi()`",
+      "source_hash": 10740930200476122032,
+      "context_hash": 2942229018760146965,
+      "translation": "[arch/x86/kvm/vmx/vmx.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/vmx/vmx.c) — `kvm_vmx_exit_handlers[]`: VMX exit reason 디스패치 테이블, `handle_io()`, `handle_ept_violation()`, `handle_exception_nmi()`",
+      "glossary_snapshot": {
+        "VMX": "VMX"
+      },
+      "translated_at": "2026-11-14T23:08:27.521138Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "[arch/x86/kvm/svm/svm.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/svm/svm.c) — `svm_exit_handlers[]`: AMD SVM's equivalent exit-reason table, indexed by the VMCB `EXITCODE` field",
+      "source_hash": 4434741440068097145,
+      "context_hash": 17451469222714339980,
+      "translation": "[arch/x86/kvm/svm/svm.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/svm/svm.c) — `svm_exit_handlers[]`: VMCB `EXITCODE` 필드로 인덱싱되는 AMD SVM의 대응 exit reason 테이블",
+      "glossary_snapshot": {
+        "AMD": "AMD"
+      },
+      "translated_at": "2026-11-14T23:08:27.521138Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "[arch/x86/kvm/mmu/mmu.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/mmu/mmu.c) — `kvm_mmu_page_fault()`: distinguishes a missing EPT mapping, an MMIO region, and a permission fault",
+      "source_hash": 4828095281611799524,
+      "context_hash": 1569318505568745016,
+      "translation": "[arch/x86/kvm/mmu/mmu.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/mmu/mmu.c) — `kvm_mmu_page_fault()`: 누락된 EPT 매핑, MMIO 영역, 권한 폴트를 구별",
+      "glossary_snapshot": {
+        "EPT": "EPT",
+        "MMIO": "MMIO",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T23:08:27.521138Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "[arch/x86/kvm/cpuid.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/cpuid.c) — `kvm_emulate_cpuid()`: CPUID leaf lookup and feature-bit filtering",
+      "source_hash": 13572449166619780683,
+      "context_hash": 3044824264203453022,
+      "translation": "[arch/x86/kvm/cpuid.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/cpuid.c) — `kvm_emulate_cpuid()`: CPUID leaf 조회 및 기능 비트 필터링",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:08:27.521138Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "[arch/x86/kvm/emulate.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/emulate.c) — `x86_emulate_insn()`: the low-level decode-and-execute step invoked internally by `x86_emulate_instruction()` (in `x86.c`), the top-level entry point for MMIO and string I/O emulation; `vcpu_mmio_write()`/`vcpu_mmio_read()` (in `x86.c`) are the emulator callbacks that dispatch to the local APIC directly or fall back to `kvm_io_bus_write()`/`kvm_io_bus_read()`",
+      "source_hash": 4929250524537335576,
+      "context_hash": 9329094610825083739,
+      "translation": "[arch/x86/kvm/emulate.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/emulate.c) — `x86_emulate_insn()`: MMIO 및 문자열 I/O 에뮬레이션의 최상위 진입점인 `x86_emulate_instruction()`(`x86.c`에 위치)이 내부적으로 호출하는 저수준 디코드 및 실행 단계, `vcpu_mmio_write()`/`vcpu_mmio_read()`(`x86.c`에 위치)는 로컬 APIC로 직접 디스패치하거나 `kvm_io_bus_write()`/`kvm_io_bus_read()`로 폴백하는 에뮬레이터 콜백",
+      "glossary_snapshot": {
+        "MMIO": "MMIO",
+        "callbacks": "콜백",
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T23:08:27.521139Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "[virt/kvm/kvm_main.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/virt/kvm/kvm_main.c) — `kvm_vcpu_block()`/`kvm_vcpu_kick()`: HLT-driven vCPU sleep and wake",
+      "source_hash": 12337502334887156830,
+      "context_hash": 16322983739483255781,
+      "translation": "[virt/kvm/kvm_main.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/virt/kvm/kvm_main.c) — `kvm_vcpu_block()`/`kvm_vcpu_kick()`: HLT에 의한 vCPU 슬립 및 깨우기",
+      "glossary_snapshot": {
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:27.521139Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "[virt/kvm/irqchip.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/virt/kvm/irqchip.c) — `kvm_set_irq()` and the GSI routing table used to deliver device interrupts",
+      "source_hash": 11301453855545737999,
+      "context_hash": 7507178062802961827,
+      "translation": "[virt/kvm/irqchip.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/virt/kvm/irqchip.c) — `kvm_set_irq()`와 디바이스 인터럽트 전달에 쓰이는 GSI 라우팅 테이블",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "interrupts": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:37:25.515865Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "[arch/x86/kvm/lapic.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/lapic.c) — in-kernel local APIC emulation",
+      "source_hash": 9575766665868870982,
+      "context_hash": 11108420987132648769,
+      "translation": "[arch/x86/kvm/lapic.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/lapic.c) — 커널 내 로컬 APIC 에뮬레이션",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:08:27.521139Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "[arch/x86/kvm/ioapic.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/ioapic.c) — in-kernel IOAPIC emulation",
+      "source_hash": 266545547319880628,
+      "context_hash": 10261547021577990265,
+      "translation": "[arch/x86/kvm/ioapic.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/ioapic.c) — 커널 내 IOAPIC 에뮬레이션",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:08:27.521139Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "[arch/x86/kvm/i8254.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/i8254.c) — in-kernel PIT (8254 timer) emulation",
+      "source_hash": 5358228045428196036,
+      "context_hash": 1632984622418865440,
+      "translation": "[arch/x86/kvm/i8254.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kvm/i8254.c) — 커널 내 PIT(8254 타이머) 에뮬레이션",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "timer": "타이머"
+      },
+      "translated_at": "2026-11-14T23:08:27.521139Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "[include/uapi/linux/kvm.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/kvm.h) — `struct kvm_run`, `KVM_EXIT_IO`, `KVM_EXIT_MMIO`: the userspace-visible exit ABI",
+      "source_hash": 4212855803595773577,
+      "context_hash": 500019951597869560,
+      "translation": "[include/uapi/linux/kvm.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/kvm.h) — `struct kvm_run`, `KVM_EXIT_IO`, `KVM_EXIT_MMIO`: 사용자 공간에 노출되는 exit ABI",
+      "glossary_snapshot": {
+        "ABI": "ABI",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:08:27.521139Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 6392509782254147859,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:27.521140Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "[KVM Architecture](kvm-arch.md) — vCPU lifecycle, VMCS, KVM ioctls",
+      "source_hash": 2753587046528152038,
+      "context_hash": 6526711183655275199,
+      "translation": "[KVM 아키텍처](kvm-arch.md) — vCPU 수명 주기, VMCS, KVM ioctl",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "ioctls": "ioctl",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:27.521140Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "[Memory Virtualization](kvm-memory.md) — EPT, shadow paging, MMU notifiers",
+      "source_hash": 15211443262367550281,
+      "context_hash": 17255483165472014691,
+      "translation": "[메모리 가상화](kvm-memory.md) — EPT, 섀도 페이징, MMU notifier",
+      "glossary_snapshot": {
+        "EPT": "EPT",
+        "MMU": "MMU",
+        "notifiers": "notifier",
+        "paging": "페이징",
+        "virtualization": "가상화"
+      },
+      "translated_at": "2026-11-14T23:37:25.515865Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:17/seg:0",
+      "source": "[Nested Virtualization](nested-virt.md) — exit handling for L2 guests",
+      "source_hash": 15152283261929492482,
+      "context_hash": 8191852527257754704,
+      "translation": "[중첩 가상화](nested-virt.md) — L2 게스트의 exit 처리",
+      "glossary_snapshot": {
+        "guests": "게스트",
+        "virtualization": "가상화"
+      },
+      "translated_at": "2026-11-14T23:08:07.544404Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:0",
+      "source": "External",
+      "source_hash": 18173270850398166434,
+      "context_hash": 14520777205230440502,
+      "translation": "외부 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:08:07.544405Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:0",
+      "source": "[The Definitive KVM API Documentation](https://docs.kernel.org/virt/kvm/api.html) — `KVM_RUN`, `struct kvm_run`, and the `KVM_EXIT_IO`/`KVM_EXIT_MMIO` field layouts",
+      "source_hash": 6579524900421731019,
+      "context_hash": 2898082807896948178,
+      "translation": "[The Definitive KVM API Documentation](https://docs.kernel.org/virt/kvm/api.html) — `KVM_RUN`, `struct kvm_run`, `KVM_EXIT_IO`/`KVM_EXIT_MMIO` 필드 레이아웃",
+      "glossary_snapshot": {
+        "API": "API",
+        "KVM": "KVM"
+      },
+      "translated_at": "2026-11-14T23:08:07.544405Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:20/seg:0",
+      "source": "[KVM VCPU Requests](https://docs.kernel.org/virt/kvm/vcpu-requests.html) — the `KVM_REQ_*` flag mechanism processed at the top of `vcpu_enter_guest()`",
+      "source_hash": 10196775089333710499,
+      "context_hash": 4069554137810028217,
+      "translation": "[KVM VCPU Requests](https://docs.kernel.org/virt/kvm/vcpu-requests.html) — `vcpu_enter_guest()` 시작 부분에서 처리되는 `KVM_REQ_*` 플래그 메커니즘",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:08:07.544405Z",
+      "issues": []
+    }
+  ]
+}

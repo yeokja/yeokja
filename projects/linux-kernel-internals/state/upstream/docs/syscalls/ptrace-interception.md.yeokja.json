@@ -1,0 +1,1012 @@
+{
+  "version": 1,
+  "source_hash": 519909476549507704,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "ptrace and Syscall Interception",
+      "source_hash": 9826457069767717017,
+      "context_hash": 1367686338536116462,
+      "translation": "ptrace와 시스템 콜 가로채기",
+      "glossary_snapshot": {
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102343Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How strace, debuggers, and seccomp-notify intercept syscalls",
+      "source_hash": 781458225678914053,
+      "context_hash": 7781579072452209779,
+      "translation": "strace, 디버거, seccomp-notify가 시스템 콜을 가로채는 방법",
+      "glossary_snapshot": {
+        "seccomp": "seccomp",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102343Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "ptrace overview",
+      "source_hash": 13464095684093623423,
+      "context_hash": 2500180063533311809,
+      "translation": "ptrace 개요",
+      "glossary_snapshot": {
+        "ptrace": "ptrace"
+      },
+      "translated_at": "2026-11-14T22:33:16.102343Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "`ptrace(2)` is the kernel mechanism that powers debuggers (`gdb`), tracers (`strace`), and system call supervisors.",
+      "source_hash": 11073008590145068344,
+      "context_hash": 10253397787227753726,
+      "translation": "`ptrace(2)`는 디버거(`gdb`), 트레이서(`strace`), 시스템 콜 감독자(supervisor)를 구동하는 커널 메커니즘입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "system call": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "It lets one process (the tracer) inspect and modify the register state and memory of another (the tracee), and pause the tracee at specific events.",
+      "source_hash": 6662767409644558926,
+      "context_hash": 6317910708574132630,
+      "translation": "이 메커니즘을 사용하면 한 프로세스(tracer)가 다른 프로세스(tracee)의 레지스터 상태와 메모리를 검사하고 수정할 수 있으며, 특정 이벤트에서 tracee를 일시 정지시킬 수 있습니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Two ways to attach:",
+      "source_hash": 6884591926480594566,
+      "context_hash": 226948277410051721,
+      "translation": "attach하는 두 가지 방법:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "After attachment, the tracee enters a **ptrace-stop** when it hits a watched event (syscall, signal, exec, fork, clone).",
+      "source_hash": 3865532916845669110,
+      "context_hash": 16458977161760217713,
+      "translation": "attach한 뒤 tracee는 감시 대상 이벤트(시스템 콜, 시그널, exec, fork, clone)를 만나면 **ptrace-stop** 상태에 들어갑니다.",
+      "glossary_snapshot": {
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "In ptrace-stop, the tracee is paused and the tracer can call `waitpid()` to collect the stop reason, then inspect or modify state before resuming.",
+      "source_hash": 5537418052702043152,
+      "context_hash": 1955919614875408227,
+      "translation": "ptrace-stop 상태에서 tracee는 일시 정지되며, tracer는 `waitpid()`를 호출하여 정지 사유를 수집한 다음 재개하기 전에 상태를 검사하거나 수정할 수 있습니다.",
+      "glossary_snapshot": {
+        "ptrace": "ptrace"
+      },
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "PTRACE_SYSCALL: how strace works",
+      "source_hash": 13899095548466258539,
+      "context_hash": 14592784667768293469,
+      "translation": "PTRACE_SYSCALL: strace의 동작 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "This causes the kernel to stop the tracee **twice per syscall**: once on entry (before the syscall executes) and once on exit (after the kernel sets the return value). `strace` uses this to log every syscall:",
+      "source_hash": 10945204283683956325,
+      "context_hash": 10576068159897515028,
+      "translation": "이렇게 하면 커널은 tracee를 **시스템 콜마다 두 번** 정지시킵니다. 한 번은 진입 시(시스템 콜이 실행되기 전)이고, 다른 한 번은 종료 시(커널이 반환 값을 설정한 후)입니다. `strace`는 이를 이용하여 모든 시스템 콜을 기록합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Because `strace` calls `waitpid()` twice per syscall, tracing doubles the number of context switches and is costly.",
+      "source_hash": 15631585357467945339,
+      "context_hash": 14183860790452873933,
+      "translation": "`strace`는 시스템 콜마다 `waitpid()`를 두 번 호출하므로, 트레이싱은 컨텍스트 스위치 횟수를 두 배로 늘리며 비용이 큽니다.",
+      "glossary_snapshot": {
+        "context switches": "컨텍스트 스위치",
+        "syscall": "시스템 콜",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:33:16.102344Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "A traced process can be 100x slower on syscall-heavy workloads.",
+      "source_hash": 5325538286081659531,
+      "context_hash": 6802877049178688472,
+      "translation": "시스템 콜이 많은 워크로드에서는 트레이싱되는 프로세스가 100배 느려질 수 있습니다.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "syscall": "시스템 콜",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:33:16.102345Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Syscall-stops: entry and exit",
+      "source_hash": 5906136985205608439,
+      "context_hash": 2052939931306313534,
+      "translation": "시스템 콜 정지(syscall-stop): 진입과 종료",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102345Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The kernel notifies ptrace of syscall boundaries via two functions declared as `static inline` in `include/linux/ptrace.h` (both call into the shared `ptrace_report_syscall()` helper):",
+      "source_hash": 16651171050517280290,
+      "context_hash": 4077504952076702481,
+      "translation": "커널은 `include/linux/ptrace.h`에 `static inline`으로 선언된 두 함수를 통해 ptrace에 시스템 콜 경계를 알립니다(두 함수 모두 공용 헬퍼인 `ptrace_report_syscall()`을 호출합니다).",
+      "glossary_snapshot": {
+        "functions": "함수",
+        "kernel": "커널",
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102345Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "`ptrace_report_syscall_permit_entry(regs)` — called from `syscall_enter_from_user_mode_work()` before the syscall handler runs.",
+      "source_hash": 14309173849639563973,
+      "context_hash": 7499988193589457528,
+      "translation": "`ptrace_report_syscall_permit_entry(regs)` — 시스템 콜 핸들러가 실행되기 전에 `syscall_enter_from_user_mode_work()`에서 호출됩니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102345Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "Returns `bool`: if it returns false, the caller must abort the syscall entirely rather than dispatch it.",
+      "source_hash": 16114712113758356513,
+      "context_hash": 11221044767646053754,
+      "translation": "`bool`을 반환합니다. false를 반환하면 호출자는 시스템 콜을 디스패치하지 않고 완전히 중단해야 합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102345Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "`ptrace_report_syscall_exit(regs, step)` — called from `syscall_exit_to_user_mode_work()` after the return value is set.",
+      "source_hash": 18231703838355413751,
+      "context_hash": 7595747442916169399,
+      "translation": "`ptrace_report_syscall_exit(regs, step)` — 반환 값이 설정된 후 `syscall_exit_to_user_mode_work()`에서 호출됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:16.102345Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "If `step` is nonzero (single-step/block-step is active), it reports via `user_single_step_report()` instead of the normal syscall-stop path.",
+      "source_hash": 14869019775539420272,
+      "context_hash": 16888262864276438360,
+      "translation": "`step`이 0이 아니면(single-step/block-step이 활성화된 경우) 일반적인 시스템 콜 정지 경로 대신 `user_single_step_report()`를 통해 보고합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102345Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "`ptrace_report_syscall()` calls `ptrace_notify()`, which sets the tracee's stop code to `(SIGTRAP | 0x80)` (the high bit distinguishes a syscall-stop from a plain signal-stop) and sends `SIGCHLD` to the tracer.",
+      "source_hash": 6384608229834212150,
+      "context_hash": 18392278217335241439,
+      "translation": "`ptrace_report_syscall()`은 `ptrace_notify()`를 호출하며, 이 함수는 tracee의 정지 코드를 `(SIGTRAP | 0x80)`으로 설정하고(상위 비트로 시스템 콜 정지와 일반 시그널 정지를 구별합니다) tracer에게 `SIGCHLD`를 보냅니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102346Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Reading and modifying syscall args",
+      "source_hash": 4474699126908555943,
+      "context_hash": 4588983031800533562,
+      "translation": "시스템 콜 인자 읽기 및 수정",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102346Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "At entry-stop, the syscall arguments are in `pt_regs`:",
+      "source_hash": 9117017449585129795,
+      "context_hash": 7669515448254834818,
+      "translation": "진입 정지(entry-stop) 시점에 시스템 콜 인자는 `pt_regs`에 들어 있습니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102346Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "To change the syscall number (e.g., to replace `unlink` with a no-op):",
+      "source_hash": 12993050238407748877,
+      "context_hash": 11178545733504194796,
+      "translation": "시스템 콜 번호를 변경하려면(예: `unlink`를 no-op으로 대체하려면):",
+      "glossary_snapshot": {
+        "syscall number": "시스템 콜 번호"
+      },
+      "translated_at": "2026-11-14T22:33:16.102346Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "To cancel the syscall entirely, set `orig_rax` to `-1`. `do_syscall_64()` only falls back to `__x64_sys_ni_syscall()` (`-ENOSYS`) for an out-of-range syscall number *other than* `-1` — a `-1` number skips dispatch entirely, leaving `regs->ax` exactly as the tracer set it.",
+      "source_hash": 2879525444528386564,
+      "context_hash": 4670672431923941256,
+      "translation": "시스템 콜을 완전히 취소하려면 `orig_rax`를 `-1`로 설정하십시오. `do_syscall_64()`는 `-1` *이외의* 범위를 벗어난 시스템 콜 번호에 대해서만 `__x64_sys_ni_syscall()`(`-ENOSYS`)로 대체합니다. `-1` 번호는 디스패치를 완전히 건너뛰므로 `regs->ax`는 tracer가 설정한 값 그대로 남습니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜",
+        "syscall number": "시스템 콜 번호"
+      },
+      "translated_at": "2026-11-14T22:33:16.102346Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "This is the actual mechanism for injecting a return value or no-op'ing a syscall via ptrace: set `orig_rax = -1` and set `rax` to whatever return value you want the traced process to see.",
+      "source_hash": 5393118444159802089,
+      "context_hash": 15870037464114223992,
+      "translation": "이것이 ptrace를 통해 반환 값을 주입하거나 시스템 콜을 no-op으로 만드는 실제 메커니즘입니다. `orig_rax = -1`로 설정하고, `rax`를 트레이싱되는 프로세스가 보기를 원하는 반환 값으로 설정하십시오.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "SYSCALL_WORK_SYSCALL_TRACE",
+      "source_hash": 1217797375623762622,
+      "context_hash": 17353014215228995925,
+      "translation": "SYSCALL_WORK_SYSCALL_TRACE",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The flag that triggers ptrace syscall-stops is `SYSCALL_WORK_SYSCALL_TRACE` in the task's `thread_info.syscall_work`.",
+      "source_hash": 8690911668965541823,
+      "context_hash": 6794847646112543977,
+      "translation": "ptrace 시스템 콜 정지를 일으키는 플래그는 태스크의 `thread_info.syscall_work`에 있는 `SYSCALL_WORK_SYSCALL_TRACE`입니다.",
+      "glossary_snapshot": {
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "It is set by `ptrace_resume()` when a `PTRACE_SYSCALL` request is issued (not at attach time — a plain `PTRACE_CONT` never sets it), and cleared in `__ptrace_unlink()` when the tracer detaches.",
+      "source_hash": 3654270264498120846,
+      "context_hash": 1808707848075552682,
+      "translation": "이 플래그는 `PTRACE_SYSCALL` 요청이 발행될 때 `ptrace_resume()`에 의해 설정되며(attach 시점이 아닙니다 — 일반 `PTRACE_CONT`는 이 플래그를 절대 설정하지 않습니다), tracer가 detach할 때 `__ptrace_unlink()`에서 해제됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:2",
+      "source": "The kernel checks this flag in `syscall_enter_from_user_mode()` and `syscall_exit_to_user_mode()`:",
+      "source_hash": 1243221836610823192,
+      "context_hash": 1761540441711364180,
+      "translation": "커널은 `syscall_enter_from_user_mode()`와 `syscall_exit_to_user_mode()`에서 이 플래그를 검사합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "`arch_ptrace_report_syscall_permit_entry()` is an architecture override point that, unless an arch defines its own, falls back directly to `ptrace_report_syscall_permit_entry()` from the previous section.",
+      "source_hash": 13532841532864449142,
+      "context_hash": 13180917716542980102,
+      "translation": "`arch_ptrace_report_syscall_permit_entry()`는 아키텍처 오버라이드 지점으로, 아키텍처가 자체 구현을 정의하지 않으면 앞 절의 `ptrace_report_syscall_permit_entry()`로 바로 대체됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "The same work-flags mechanism also carries `SYSCALL_WORK_SECCOMP` (for seccomp filtering) and `SYSCALL_WORK_SYSCALL_AUDIT` (for the audit subsystem), so all three can coexist.",
+      "source_hash": 11298196631854081223,
+      "context_hash": 11658775381384947228,
+      "translation": "동일한 work 플래그 메커니즘은 `SYSCALL_WORK_SECCOMP`(seccomp 필터링용)와 `SYSCALL_WORK_SYSCALL_AUDIT`(audit 서브시스템용)도 담고 있으므로, 세 가지가 모두 공존할 수 있습니다.",
+      "glossary_snapshot": {
+        "seccomp": "seccomp",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "PTRACE_GET_SYSCALL_INFO (Linux 5.3)",
+      "source_hash": 11596538052701582411,
+      "context_hash": 9357839359221790852,
+      "translation": "PTRACE_GET_SYSCALL_INFO (Linux 5.3)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:33:16.102347Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Before Linux 5.3, tracers had to call `PTRACE_GETREGS` and infer the stop type from the waitpid status.",
+      "source_hash": 10025958335218018497,
+      "context_hash": 2737242113111238807,
+      "translation": "Linux 5.3 이전에는 tracer가 `PTRACE_GETREGS`를 호출하고 waitpid 상태로부터 정지 유형을 추론해야 했습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:33:11.586605Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "Linux 5.3 added `PTRACE_GET_SYSCALL_INFO` (commit `201766a20e30f982ccfe36bebfad9602c3ff574a`), which returns a structured description:",
+      "source_hash": 10208831898882597859,
+      "context_hash": 5363353760843645438,
+      "translation": "Linux 5.3에서는 구조화된 정보를 반환하는 `PTRACE_GET_SYSCALL_INFO`(commit `201766a20e30f982ccfe36bebfad9602c3ff574a`)가 추가되었습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:33:11.586606Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "This is the interface used by modern `strace` (5.1+) instead of `PTRACE_GETREGS`.",
+      "source_hash": 4961533121430481115,
+      "context_hash": 3499463492596170149,
+      "translation": "이는 최신 `strace`(5.1+)가 `PTRACE_GETREGS` 대신 사용하는 인터페이스입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586606Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "ptrace events: PTRACE_O_TRACEFORK and friends",
+      "source_hash": 2226240100454685852,
+      "context_hash": 4526379957105818401,
+      "translation": "ptrace 이벤트: PTRACE_O_TRACEFORK 및 관련 옵션",
+      "glossary_snapshot": {
+        "ptrace": "ptrace"
+      },
+      "translated_at": "2026-11-14T22:33:11.586606Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "The tracer can request events beyond syscall-stops by setting ptrace options:",
+      "source_hash": 14298467910416716245,
+      "context_hash": 11668494043191799419,
+      "translation": "tracer는 ptrace 옵션을 설정하여 시스템 콜 정지(syscall-stop) 외의 이벤트도 요청할 수 있습니다.",
+      "glossary_snapshot": {
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586606Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "When one of these events fires, `waitpid()` returns a status where `(status >> 8) == (SIGTRAP | (PTRACE_EVENT_xxx << 8))`.",
+      "source_hash": 16177428895817088952,
+      "context_hash": 5207939999854843179,
+      "translation": "이러한 이벤트 중 하나가 발생하면 `waitpid()`는 `(status >> 8) == (SIGTRAP | (PTRACE_EVENT_xxx << 8))`인 상태를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586607Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "For example, a fork event returns `PTRACE_EVENT_FORK`.",
+      "source_hash": 3792711775254454531,
+      "context_hash": 1228282877729411503,
+      "translation": "예를 들어 fork 이벤트는 `PTRACE_EVENT_FORK`를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586607Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:2",
+      "source": "The tracer can then call `ptrace(PTRACE_GETEVENTMSG, pid, NULL, &msg)` to retrieve the new child's PID.",
+      "source_hash": 13618053193642392273,
+      "context_hash": 2711751549441762112,
+      "translation": "그런 다음 tracer는 `ptrace(PTRACE_GETEVENTMSG, pid, NULL, &msg)`를 호출하여 새 자식 프로세스의 PID를 가져올 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586607Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "seccomp-notify: a modern alternative to ptrace",
+      "source_hash": 4339089266142665375,
+      "context_hash": 8729497053140356192,
+      "translation": "seccomp-notify: ptrace의 현대적 대안",
+      "glossary_snapshot": {
+        "ptrace": "ptrace",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:33:11.586607Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "`SECCOMP_RET_USER_NOTIF` (added in Linux 5.0, `include/uapi/linux/seccomp.h`) lets a privileged supervisor intercept syscalls without the overhead of ptrace.",
+      "source_hash": 17043878371754340937,
+      "context_hash": 16827651530406177197,
+      "translation": "`SECCOMP_RET_USER_NOTIF`(Linux 5.0에서 추가, `include/uapi/linux/seccomp.h`)를 사용하면 특권을 가진 supervisor가 ptrace의 오버헤드 없이 시스템 콜을 가로챌 수 있습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "overhead": "오버헤드",
+        "ptrace": "ptrace",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586607Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "Instead of stopping the tracee and waking the tracer, the kernel sends a notification to a file descriptor, and the tracee sleeps until the supervisor replies.",
+      "source_hash": 14852248699943675857,
+      "context_hash": 7439738884444751196,
+      "translation": "커널은 tracee를 정지시키고 tracer를 깨우는 대신 파일 디스크립터로 알림을 보내며, tracee는 supervisor가 응답할 때까지 잠든 상태로 있습니다.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:33:11.586607Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "Installing the filter",
+      "source_hash": 7422263892421405251,
+      "context_hash": 14245426610190256016,
+      "translation": "필터 설치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586608Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "The BPF program returns `SECCOMP_RET_USER_NOTIF` for syscalls to intercept and `SECCOMP_RET_ALLOW` for everything else.",
+      "source_hash": 4572278858054819651,
+      "context_hash": 3465109875694550935,
+      "translation": "BPF 프로그램은 가로챌 시스템 콜에 대해서는 `SECCOMP_RET_USER_NOTIF`를, 그 밖의 모든 경우에는 `SECCOMP_RET_ALLOW`를 반환합니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586608Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Receiving and responding to notifications",
+      "source_hash": 9622913179767825691,
+      "context_hash": 4297786827816627118,
+      "translation": "알림 수신 및 응답",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586608Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "The suspended task in the supervised process wakes up and sees `42` as the syscall return value.",
+      "source_hash": 13306451937965981085,
+      "context_hash": 10174810660005110016,
+      "translation": "감독 대상 프로세스에서 중단되었던 태스크가 깨어나고 시스템 콜 반환값으로 `42`를 받습니다.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586608Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:1",
+      "source": "This avoids the two context switches per syscall that ptrace requires.",
+      "source_hash": 7488748488590876732,
+      "context_hash": 7751504621012326486,
+      "translation": "이 방식은 ptrace가 시스템 콜마다 요구하는 두 번의 컨텍스트 스위치를 피합니다.",
+      "glossary_snapshot": {
+        "context switches": "컨텍스트 스위치",
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586608Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "Container managers such as `bubblewrap` and `systemd`'s `RootDirectory=` sandboxing use seccomp-notify to implement syscall emulation (e.g., faking `mount()` for unprivileged containers).",
+      "source_hash": 15621071928517766377,
+      "context_hash": 8153436537720162343,
+      "translation": "`bubblewrap` 및 `systemd`의 `RootDirectory=` 샌드박싱과 같은 컨테이너 관리자는 seccomp-notify를 사용하여 시스템 콜 에뮬레이션(예: 비특권 컨테이너를 위한 `mount()` 위장)을 구현합니다.",
+      "glossary_snapshot": {
+        "seccomp": "seccomp",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586609Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "SECCOMP_USER_NOTIF_FLAG_CONTINUE",
+      "source_hash": 1042881627701571888,
+      "context_hash": 13654229278493665109,
+      "translation": "SECCOMP_USER_NOTIF_FLAG_CONTINUE",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586609Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "If the supervisor sets `SECCOMP_USER_NOTIF_FLAG_CONTINUE` in `resp.flags`, the kernel executes the syscall normally instead of injecting a return value.",
+      "source_hash": 7278698694655323568,
+      "context_hash": 3033052172250144344,
+      "translation": "supervisor가 `resp.flags`에 `SECCOMP_USER_NOTIF_FLAG_CONTINUE`를 설정하면 커널은 반환값을 주입하는 대신 시스템 콜을 정상적으로 실행합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586609Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:1",
+      "source": "This is used when the supervisor just wants to log the call without blocking it.",
+      "source_hash": 8262283721990126028,
+      "context_hash": 13214068135484051016,
+      "translation": "이는 supervisor가 호출을 차단하지 않고 기록만 하려는 경우에 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586609Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "perf syscall tracing",
+      "source_hash": 6767427178445491537,
+      "context_hash": 15684326216390007109,
+      "translation": "perf 시스템 콜 트레이싱",
+      "glossary_snapshot": {
+        "perf": "perf",
+        "syscall": "시스템 콜",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:34:42.645738Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "`raw_syscalls:sys_enter` fires on every syscall and provides the number and first argument.",
+      "source_hash": 2399841902399420034,
+      "context_hash": 9255874962027225965,
+      "translation": "`raw_syscalls:sys_enter`는 모든 시스템 콜에서 발생하며 시스템 콜 번호와 첫 번째 인자를 제공합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586610Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:1",
+      "source": "The `syscalls:sys_enter_<name>` tracepoints fire only for the named syscall and decode all arguments symbolically.",
+      "source_hash": 9486668829681067839,
+      "context_hash": 16216108362294215479,
+      "translation": "`syscalls:sys_enter_<name>` 트레이스포인트는 이름이 지정된 시스템 콜에서만 발생하며 모든 인자를 심볼 형태로 디코딩합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜",
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:33:11.586610Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:2",
+      "source": "Both are standard ftrace tracepoints, defined by the `SYSCALL_METADATA` macro that `SYSCALL_DEFINE` emits.",
+      "source_hash": 7187361011337548369,
+      "context_hash": 18319009419945820949,
+      "translation": "둘 다 `SYSCALL_DEFINE`이 생성하는 `SYSCALL_METADATA` 매크로로 정의되는 표준 ftrace 트레이스포인트입니다.",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "macro": "매크로",
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:33:11.586611Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "eBPF tracepoints for syscalls",
+      "source_hash": 1588297405683644495,
+      "context_hash": 9890316893902235005,
+      "translation": "시스템 콜용 eBPF 트레이스포인트",
+      "glossary_snapshot": {
+        "eBPF": "eBPF",
+        "syscalls": "시스템 콜",
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:33:11.586611Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "BPF programs can attach to syscall tracepoints using libbpf:",
+      "source_hash": 7425955625408335244,
+      "context_hash": 2427308351592973727,
+      "translation": "BPF 프로그램은 libbpf를 사용하여 시스템 콜 트레이스포인트에 연결할 수 있습니다.",
+      "glossary_snapshot": {
+        "BPF programs": "BPF 프로그램",
+        "syscall": "시스템 콜",
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:33:11.586611Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "The struct `trace_event_raw_sys_enter` is generated by BTF from the tracepoint format file at `/sys/kernel/tracing/events/syscalls/sys_enter_openat/format`.",
+      "source_hash": 16502465761514294396,
+      "context_hash": 453740120952787796,
+      "translation": "`trace_event_raw_sys_enter` 구조체는 `/sys/kernel/tracing/events/syscalls/sys_enter_openat/format`에 있는 트레이스포인트 format 파일로부터 BTF에 의해 생성됩니다.",
+      "glossary_snapshot": {
+        "BTF": "BTF",
+        "struct": "구조체",
+        "tracepoint": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:33:11.586611Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:1",
+      "source": "The `args[]` array contains the raw register values in argument order.",
+      "source_hash": 10470028445243172880,
+      "context_hash": 1820266950168714266,
+      "translation": "`args[]` 배열에는 인자 순서대로 원시 레지스터 값이 들어 있습니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:33:11.586611Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "For syscall exit:",
+      "source_hash": 12719744246013122407,
+      "context_hash": 4037499687336417865,
+      "translation": "시스템 콜 종료의 경우:",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:33:11.586611Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "ftrace: tracing syscall handler functions",
+      "source_hash": 17231811753935922128,
+      "context_hash": 10220164798702366183,
+      "translation": "ftrace: 시스템 콜 핸들러 함수 트레이싱",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "handler": "핸들러",
+        "syscall": "시스템 콜",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:34:42.645740Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "Note that the function tracer traces `__x64_sys_openat` (the pt_regs wrapper), not `do_sys_openat2()` (the actual implementation).",
+      "source_hash": 13354498205587510853,
+      "context_hash": 6203329283224013275,
+      "translation": "function tracer는 `do_sys_openat2()`(실제 구현)가 아니라 `__x64_sys_openat`(pt_regs 래퍼)를 추적한다는 점에 유의하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586612Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:1",
+      "source": "To trace the implementation, add it explicitly:",
+      "source_hash": 15257045268740010581,
+      "context_hash": 8678329527792191908,
+      "translation": "실제 구현을 추적하려면 다음과 같이 명시적으로 추가하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:11.586612Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "For syscall function graphs (showing the entire call tree under a syscall):",
+      "source_hash": 12240412314526399516,
+      "context_hash": 17943125233794184962,
+      "translation": "시스템 콜 함수 그래프(시스템 콜 아래의 전체 호출 트리를 보여 줌)는 다음과 같이 확인합니다:",
+      "glossary_snapshot": {
+        "function": "함수",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:39.342277Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 7295043516811775930,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:17:39.342280Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 10674668450515148718,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:17:39.342296Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[include/linux/ptrace.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/ptrace.h) — `ptrace_report_syscall_permit_entry()`, `ptrace_report_syscall_exit()`, and the shared `ptrace_report_syscall()` helper that calls `ptrace_notify()`",
+      "source_hash": 14592361101685633565,
+      "context_hash": 9210557499921122748,
+      "translation": "[include/linux/ptrace.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/ptrace.h) — `ptrace_report_syscall_permit_entry()`, `ptrace_report_syscall_exit()`, 그리고 `ptrace_notify()`를 호출하는 공용 헬퍼 `ptrace_report_syscall()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:39.342296Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[include/linux/entry-common.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/entry-common.h) — `syscall_trace_enter()`, `syscall_enter_from_user_mode_work()`, and `syscall_exit_to_user_mode_work()`, which check `SYSCALL_WORK_SYSCALL_TRACE` and drive ptrace, seccomp, and audit in sequence",
+      "source_hash": 3664984954827669788,
+      "context_hash": 10702033901789896353,
+      "translation": "[include/linux/entry-common.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/entry-common.h) — `SYSCALL_WORK_SYSCALL_TRACE`를 검사하고 ptrace, seccomp, audit을 차례로 구동하는 `syscall_trace_enter()`, `syscall_enter_from_user_mode_work()`, `syscall_exit_to_user_mode_work()`",
+      "glossary_snapshot": {
+        "ptrace": "ptrace",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:17:39.342296Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "[include/uapi/linux/ptrace.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/ptrace.h) — `struct ptrace_syscall_info` and the `PTRACE_GET_SYSCALL_INFO` request",
+      "source_hash": 5726599935727572929,
+      "context_hash": 10386967239430664692,
+      "translation": "[include/uapi/linux/ptrace.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/ptrace.h) — `struct ptrace_syscall_info`와 `PTRACE_GET_SYSCALL_INFO` 요청",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:39.342297Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "[include/uapi/linux/seccomp.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/seccomp.h) — `struct seccomp_notif` / `struct seccomp_notif_resp`, `SECCOMP_RET_USER_NOTIF`, `SECCOMP_USER_NOTIF_FLAG_CONTINUE`",
+      "source_hash": 11290774056950792126,
+      "context_hash": 10078047011200692620,
+      "translation": "[include/uapi/linux/seccomp.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/seccomp.h) — `struct seccomp_notif` / `struct seccomp_notif_resp`, `SECCOMP_RET_USER_NOTIF`, `SECCOMP_USER_NOTIF_FLAG_CONTINUE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:39.342297Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "[kernel/seccomp.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/seccomp.c) — `seccomp_do_user_notification()` and the `SECCOMP_IOCTL_NOTIF_RECV`/`SECCOMP_IOCTL_NOTIF_SEND` ioctl handling",
+      "source_hash": 12538907840484696432,
+      "context_hash": 8159344797501788257,
+      "translation": "[kernel/seccomp.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/seccomp.c) — `seccomp_do_user_notification()`과 `SECCOMP_IOCTL_NOTIF_RECV`/`SECCOMP_IOCTL_NOTIF_SEND` ioctl 처리",
+      "glossary_snapshot": {
+        "ioctl": "ioctl"
+      },
+      "translated_at": "2026-11-14T22:17:39.342297Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "[arch/x86/entry/syscall_64.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/syscall_64.c) — `do_syscall_64()`/`do_syscall_x64()`: how a tracer-modified `orig_rax` is dispatched (or skipped)",
+      "source_hash": 3352180482806245898,
+      "context_hash": 11880327182569086684,
+      "translation": "[arch/x86/entry/syscall_64.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/syscall_64.c) — `do_syscall_64()`/`do_syscall_x64()`: tracer가 수정한 `orig_rax`가 디스패치되는(또는 건너뛰어지는) 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:39.342297Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "Commit [`201766a20e30f982ccfe36bebfad9602c3ff574a`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=201766a20e30f982ccfe36bebfad9602c3ff574a) (\"ptrace: add PTRACE_GET_SYSCALL_INFO request\") — landed in the Linux 5.3 merge window",
+      "source_hash": 6740475379747656541,
+      "context_hash": 4101065126042960516,
+      "translation": "커밋 [`201766a20e30f982ccfe36bebfad9602c3ff574a`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=201766a20e30f982ccfe36bebfad9602c3ff574a)(\"ptrace: add PTRACE_GET_SYSCALL_INFO request\") — Linux 5.3 머지 윈도우에 반영",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "ptrace": "ptrace"
+      },
+      "translated_at": "2026-11-14T22:17:39.342297Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "Man pages",
+      "source_hash": 683209337414486197,
+      "context_hash": 16787402533085286910,
+      "translation": "매뉴얼 페이지",
+      "glossary_snapshot": {
+        "Man pages": "매뉴얼 페이지"
+      },
+      "translated_at": "2026-11-14T22:17:39.342297Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "[`ptrace(2)`](https://man7.org/linux/man-pages/man2/ptrace.2.html) — full interface reference: syscall-stop, `PTRACE_SETOPTIONS`, `PTRACE_O_TRACESYSGOOD`, `PTRACE_GET_SYSCALL_INFO`",
+      "source_hash": 11180914346692263608,
+      "context_hash": 9860165088435343692,
+      "translation": "[`ptrace(2)`](https://man7.org/linux/man-pages/man2/ptrace.2.html) — 전체 인터페이스 레퍼런스: 시스템 콜 정지(syscall-stop), `PTRACE_SETOPTIONS`, `PTRACE_O_TRACESYSGOOD`, `PTRACE_GET_SYSCALL_INFO`",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:39.342298Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "[`seccomp(2)`](https://man7.org/linux/man-pages/man2/seccomp.2.html) — `SECCOMP_SET_MODE_FILTER`, `SECCOMP_FILTER_FLAG_NEW_LISTENER`, `SECCOMP_RET_USER_NOTIF`",
+      "source_hash": 17019270477628204731,
+      "context_hash": 1138737266421078549,
+      "translation": "[`seccomp(2)`](https://man7.org/linux/man-pages/man2/seccomp.2.html) — `SECCOMP_SET_MODE_FILTER`, `SECCOMP_FILTER_FLAG_NEW_LISTENER`, `SECCOMP_RET_USER_NOTIF`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:39.342298Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:12/seg:0",
+      "source": "[`seccomp_unotify(2)`](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) — the user-space notification protocol: `SECCOMP_IOCTL_NOTIF_RECV`/`SEND`, `struct seccomp_notif`/`seccomp_notif_resp`, `SECCOMP_USER_NOTIF_FLAG_CONTINUE`",
+      "source_hash": 15970629041386408067,
+      "context_hash": 4918249079928300688,
+      "translation": "[`seccomp_unotify(2)`](https://man7.org/linux/man-pages/man2/seccomp_unotify.2.html) — 사용자 공간 알림 프로토콜: `SECCOMP_IOCTL_NOTIF_RECV`/`SEND`, `struct seccomp_notif`/`seccomp_notif_resp`, `SECCOMP_USER_NOTIF_FLAG_CONTINUE`",
+      "glossary_snapshot": {
+        "user-space": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:17:39.342298Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:13/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 14648891812482338275,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:39.342299Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:14/seg:0",
+      "source": "[Syscall Entry Path](syscall-entry.md) — `entry_SYSCALL_64`, `pt_regs`, and the `do_syscall_64()` dispatch this page's tracer hooks run inside",
+      "source_hash": 17915786871253852890,
+      "context_hash": 9346714532533026774,
+      "translation": "[시스템 콜 진입 경로](syscall-entry.md) — `entry_SYSCALL_64`, `pt_regs`, 그리고 이 페이지의 tracer 훅이 그 안에서 실행되는 `do_syscall_64()` 디스패치",
+      "glossary_snapshot": {
+        "hooks": "훅",
+        "syscall entry": "시스템 콜 진입"
+      },
+      "translated_at": "2026-11-14T22:17:39.342299Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:15/seg:0",
+      "source": "[SYSCALL_DEFINE and Dispatch](syscall-define.md) — how `SYSCALL_DEFINE` wires a syscall into the dispatch table",
+      "source_hash": 10762666431075615299,
+      "context_hash": 6038641478662043805,
+      "translation": "[SYSCALL_DEFINE과 디스패치](syscall-define.md) — `SYSCALL_DEFINE`이 시스템 콜을 디스패치 테이블에 연결하는 방식",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:39.342299Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:16/seg:0",
+      "source": "[Syscall Auditing](audit.md) — `SYSCALL_WORK_SYSCALL_AUDIT` and the audit subsystem's own entry/exit hooks",
+      "source_hash": 18103702188169526042,
+      "context_hash": 11292727875580310378,
+      "translation": "[시스템 콜 감사](audit.md) — `SYSCALL_WORK_SYSCALL_AUDIT`와 audit 서브시스템 자체의 진입/종료 훅",
+      "glossary_snapshot": {
+        "hooks": "훅",
+        "subsystem": "서브시스템",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:39.342299Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:17/seg:0",
+      "source": "External",
+      "source_hash": 18173270850398166434,
+      "context_hash": 11999729041730586006,
+      "translation": "외부 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:39.342300Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:18/seg:0",
+      "source": "[seccomp BPF (SECCOMP_MODE_FILTER)](https://docs.kernel.org/userspace-api/seccomp_filter.html) — kernel documentation for `SECCOMP_RET_USER_NOTIF`, the notification structs, and the ioctl protocol",
+      "source_hash": 7120096727601819985,
+      "context_hash": 18191167322867389807,
+      "translation": "[seccomp BPF (SECCOMP_MODE_FILTER)](https://docs.kernel.org/userspace-api/seccomp_filter.html) — `SECCOMP_RET_USER_NOTIF`, 알림 구조체, ioctl 프로토콜에 관한 커널 문서",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "ioctl": "ioctl",
+        "kernel": "커널",
+        "seccomp": "seccomp",
+        "structs": "구조체"
+      },
+      "translated_at": "2026-11-14T22:17:39.342300Z",
+      "issues": []
+    }
+  ]
+}

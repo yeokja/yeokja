@@ -1,0 +1,2575 @@
+{
+  "version": 1,
+  "source_hash": 12092882880656402487,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Kmemleak (Kernel Memory Leak Detector)",
+      "source_hash": 3955620507033512243,
+      "context_hash": 6291347624467837744,
+      "translation": "Kmemleak(커널 메모리 누수 탐지기, Kernel Memory Leak Detector)",
+      "glossary_snapshot": {
+        "kernel memory": "커널 메모리",
+        "kmemleak": "kmemleak",
+        "memory leak": "메모리 누수"
+      },
+      "translated_at": "2026-11-14T22:17:56.986144Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Finding unreferenced kernel allocations with a garbage-collection style scan",
+      "source_hash": 8800544196051894346,
+      "context_hash": 8054023246771451092,
+      "translation": "가비지 컬렉션 방식의 스캔으로 참조되지 않는 커널 할당 찾기",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:17:56.986145Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What Is Kmemleak?",
+      "source_hash": 4702893522033981607,
+      "context_hash": 11660808664066489792,
+      "translation": "Kmemleak이란 무엇인가",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:56.986145Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Kmemleak is a kernel subsystem that detects **memory leaks** in the kernel — allocations that are no longer referenced by any pointer but have never been freed.",
+      "source_hash": 1585624031717370990,
+      "context_hash": 8031945211971925294,
+      "translation": "Kmemleak은 커널 내의 **메모리 누수**, 즉 더 이상 어떤 포인터도 참조하지 않지만 해제되지 않은 할당을 탐지하는 커널 서브시스템입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "kmemleak": "kmemleak",
+        "memory leaks": "메모리 누수",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:17:56.986146Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "These are sometimes called *orphaned* allocations.",
+      "source_hash": 17634965219409890568,
+      "context_hash": 6813646595474442881,
+      "translation": "이러한 할당은 *고아(orphaned)* 할당이라고도 불립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986146Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "They do not cause immediate crashes, but they silently consume memory that can never be reclaimed, eventually leading to exhaustion.",
+      "source_hash": 11800047794291439892,
+      "context_hash": 320953014250908663,
+      "translation": "이러한 할당은 즉각적인 크래시를 일으키지는 않지만, 결코 회수할 수 없는 메모리를 조용히 소비하여 결국 메모리 고갈로 이어집니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:17:56.986146Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Kmemleak is documented at [`Documentation/dev-tools/kmemleak.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/dev-tools/kmemleak.rst) and implemented in [`mm/kmemleak.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/kmemleak.c).",
+      "source_hash": 4746474706541256610,
+      "context_hash": 12675602870508605375,
+      "translation": "Kmemleak은 [`Documentation/dev-tools/kmemleak.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/dev-tools/kmemleak.rst)에 문서화되어 있으며 [`mm/kmemleak.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/kmemleak.c)에 구현되어 있습니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:56.986146Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "How Kmemleak Differs from KASAN and KFENCE",
+      "source_hash": 446195693937970515,
+      "context_hash": 1972922316462647601,
+      "translation": "Kmemleak과 KASAN, KFENCE의 차이점",
+      "glossary_snapshot": {
+        "KASAN": "KASAN",
+        "KFENCE": "KFENCE",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:56.986146Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Kmemleak, [KASAN](kasan.md), and [KFENCE](kfence.md) all guard kernel memory, but they target fundamentally different failure modes:",
+      "source_hash": 4400499363632034423,
+      "context_hash": 9524977025841574391,
+      "translation": "Kmemleak, [KASAN](kasan.md), [KFENCE](kfence.md)는 모두 커널 메모리를 보호하지만, 근본적으로 서로 다른 실패 양상을 대상으로 합니다:",
+      "glossary_snapshot": {
+        "KASAN": "KASAN",
+        "KFENCE": "KFENCE",
+        "failure modes": "실패 양상",
+        "kernel memory": "커널 메모리",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T23:33:46.740992Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Tool",
+      "source_hash": 7198353922982892662,
+      "context_hash": 10009690793489698788,
+      "translation": "도구",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "What it catches",
+      "source_hash": 4147392618250441907,
+      "context_hash": 16133739923494908498,
+      "translation": "탐지 대상",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "How it works",
+      "source_hash": 16935900381963222246,
+      "context_hash": 16655129466521531975,
+      "translation": "동작 방식",
+      "glossary_snapshot": {
+        "How it works": "동작 방식"
+      },
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Deployment",
+      "source_hash": 6713653862113471029,
+      "context_hash": 14981912540319811355,
+      "translation": "사용 환경",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Kmemleak",
+      "source_hash": 3167596639428268501,
+      "context_hash": 14111420854808384450,
+      "translation": "Kmemleak",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Memory **leaks** (never freed)",
+      "source_hash": 11875928431326181090,
+      "context_hash": 9621230466641715900,
+      "translation": "메모리 **누수**(해제되지 않음)",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Garbage-collection scan, gray-coloring",
+      "source_hash": 9992812197744997701,
+      "context_hash": 13001765956862705631,
+      "translation": "가비지 컬렉션 스캔, 회색 칠하기(gray-coloring)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Testing, debug builds",
+      "source_hash": 8751263254975483465,
+      "context_hash": 10569702732945369044,
+      "translation": "테스트, 디버그 빌드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "[KASAN](kasan.md)",
+      "source_hash": 14854459957103322767,
+      "context_hash": 7767845834255458671,
+      "translation": "[KASAN](kasan.md)",
+      "glossary_snapshot": {
+        "KASAN": "KASAN"
+      },
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "**Use-after-free**, out-of-bounds, double-free",
+      "source_hash": 912471972259895729,
+      "context_hash": 12363967746229873689,
+      "translation": "**Use-after-free**, out-of-bounds, double-free",
+      "glossary_snapshot": {
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T22:17:56.986147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Shadow memory + compiler instrumentation",
+      "source_hash": 15895609038334715985,
+      "context_hash": 15359495580370957735,
+      "translation": "섀도 메모리 + 컴파일러 계측(instrumentation)",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:17:56.986148Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Testing, CI",
+      "source_hash": 7368562601787798754,
+      "context_hash": 12552587513492760034,
+      "translation": "테스트, CI",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986148Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "[KFENCE](kfence.md)",
+      "source_hash": 9851570222486280794,
+      "context_hash": 2935330242326670312,
+      "translation": "[KFENCE](kfence.md)",
+      "glossary_snapshot": {
+        "KFENCE": "KFENCE"
+      },
+      "translated_at": "2026-11-14T22:17:56.986148Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Use-after-free, out-of-bounds (sampled)",
+      "source_hash": 15570183177848283905,
+      "context_hash": 2210057191585273273,
+      "translation": "Use-after-free, out-of-bounds(샘플링 방식)",
+      "glossary_snapshot": {
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T22:17:56.986148Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Guard pages, hardware page faults",
+      "source_hash": 4231015108532274999,
+      "context_hash": 7980969210477366974,
+      "translation": "가드 페이지, 하드웨어 페이지 폴트",
+      "glossary_snapshot": {
+        "hardware": "하드웨어",
+        "page faults": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T22:17:56.986148Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "Production, always-on",
+      "source_hash": 9953948638044345031,
+      "context_hash": 6928096669248343660,
+      "translation": "프로덕션, 상시 활성화",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986148Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "A buffer that is allocated, its only pointer is overwritten without freeing it, and then the allocation is forgotten: KASAN and KFENCE are silent (no bad access happened).",
+      "source_hash": 8600385641075054701,
+      "context_hash": 1093224822023628493,
+      "translation": "버퍼가 할당된 뒤 그 유일한 포인터가 해제 없이 덮어쓰이고 할당이 잊혀진 경우, KASAN과 KFENCE는 아무것도 보고하지 않습니다(잘못된 접근이 발생하지 않았기 때문입니다).",
+      "glossary_snapshot": {
+        "KASAN": "KASAN",
+        "KFENCE": "KFENCE"
+      },
+      "translated_at": "2026-11-14T22:17:56.986148Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:1",
+      "source": "Only kmemleak reports it.",
+      "source_hash": 3928813926853842716,
+      "context_hash": 10776324581352426447,
+      "translation": "이를 보고하는 것은 kmemleak뿐입니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:56.986149Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "Conversely, kmemleak cannot tell you that a freed pointer was accessed again.",
+      "source_hash": 1048362325257683205,
+      "context_hash": 2975848060705584260,
+      "translation": "반대로, kmemleak은 해제된 포인터에 다시 접근했다는 사실을 알려 줄 수 없습니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:56.986149Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:1",
+      "source": "That is KASAN's domain.",
+      "source_hash": 1451363439641217819,
+      "context_hash": 5151941051012153245,
+      "translation": "이는 KASAN의 영역입니다.",
+      "glossary_snapshot": {
+        "KASAN": "KASAN"
+      },
+      "translated_at": "2026-11-14T22:17:56.986149Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "How Kmemleak Works",
+      "source_hash": 722983169391385342,
+      "context_hash": 8681321152682641903,
+      "translation": "Kmemleak의 동작 방식",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:56.986149Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The Gray-Coloring Algorithm",
+      "source_hash": 1913488624857033160,
+      "context_hash": 5760985384503468697,
+      "translation": "회색 칠하기(Gray-Coloring) 알고리즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:56.986149Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Kmemleak uses an algorithm inspired by **garbage collector tri-color marking**.",
+      "source_hash": 10791527945523249162,
+      "context_hash": 14388172985876112103,
+      "translation": "Kmemleak은 **가비지 컬렉터의 삼색 마킹**(tri-color marking)에서 착안한 알고리즘을 사용합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:54.499061Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "Every tracked allocation is assigned one of three states:",
+      "source_hash": 9102508489036424903,
+      "context_hash": 4203308721093876852,
+      "translation": "추적되는 모든 할당에는 세 가지 상태 중 하나가 부여됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499062Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "At the end of a scan:",
+      "source_hash": 17398383681342556173,
+      "context_hash": 14591109255794602719,
+      "translation": "스캔이 끝나면 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499063Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "**Gray objects** are considered live.",
+      "source_hash": 5678265773606210783,
+      "context_hash": 15459166797015466869,
+      "translation": "**회색 객체**는 살아 있는 것으로 간주됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499063Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "They will not be reported.",
+      "source_hash": 17483866888105250127,
+      "context_hash": 12736755330907753509,
+      "translation": "이 객체들은 보고되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499063Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "**White objects** (those never colored gray) are *potentially leaked* — no pointer to them was found anywhere in the scanned memory.",
+      "source_hash": 11324384616069817927,
+      "context_hash": 11546890032813861410,
+      "translation": "**흰색 객체**(한 번도 회색으로 칠해지지 않은 객체)는 *누수되었을 가능성이 있는* 객체입니다. 스캔한 메모리 어디에서도 이 객체를 가리키는 포인터를 찾지 못했기 때문입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:17:54.499064Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "The algorithm is described in the source at the top of [`mm/kmemleak.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/kmemleak.c).",
+      "source_hash": 5743397654290985996,
+      "context_hash": 3583263408166950670,
+      "translation": "이 알고리즘은 [`mm/kmemleak.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/kmemleak.c) 소스의 맨 위에 설명되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499064Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "What Gets Scanned",
+      "source_hash": 15242776339989619091,
+      "context_hash": 10406517033105885780,
+      "translation": "스캔 대상",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499065Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "To find pointers, kmemleak scans:",
+      "source_hash": 10993824027787679372,
+      "context_hash": 14681060396462811883,
+      "translation": "포인터를 찾기 위해 kmemleak은 다음을 스캔합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:54.499065Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "**Data and BSS segments** of the kernel image — global/static variables that might hold pointers to allocations",
+      "source_hash": 602808872374047626,
+      "context_hash": 199600778919655235,
+      "translation": "커널 이미지의 **데이터 및 BSS 세그먼트** — 할당을 가리키는 포인터를 담고 있을 수 있는 전역/정적 변수",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:17:54.499066Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "**The init section** (`.init.data`) before it is freed",
+      "source_hash": 9287726699140761557,
+      "context_hash": 16158040725674430160,
+      "translation": "해제되기 전의 **init 섹션**(`.init.data`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499066Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "**Per-CPU data areas** — per-CPU variables that could hold allocation pointers",
+      "source_hash": 7560115648629752669,
+      "context_hash": 10488869368619591383,
+      "translation": "**Per-CPU 데이터 영역** — 할당 포인터를 담고 있을 수 있는 per-CPU 변수",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:17:54.499066Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "**Stack of every thread** — each task's kernel stack is scanned for pointer-like values",
+      "source_hash": 7011491784909081704,
+      "context_hash": 8682823012798995833,
+      "translation": "**모든 스레드의 스택** — 각 태스크의 커널 스택에서 포인터처럼 보이는 값을 스캔",
+      "glossary_snapshot": {
+        "kernel stack": "커널 스택"
+      },
+      "translated_at": "2026-11-14T22:17:54.499066Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "**Extra scan areas** explicitly registered via `kmemleak_scan_area()` — used by subsystems that store pointers in memory regions not covered by the above",
+      "source_hash": 1294371193493950279,
+      "context_hash": 14326111933648366626,
+      "translation": "`kmemleak_scan_area()`를 통해 명시적으로 등록된 **추가 스캔 영역** — 위 영역에 포함되지 않는 메모리 영역에 포인터를 저장하는 서브시스템에서 사용",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "subsystems": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:17:54.499067Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "Any value in any of these regions that **looks like** a pointer into a tracked allocation marks that allocation gray (reachable).",
+      "source_hash": 6525614962257845406,
+      "context_hash": 13659709811809269382,
+      "translation": "이 영역들 중 어디에서든 추적 중인 할당을 가리키는 포인터처럼 **보이는** 값이 있으면 해당 할당은 회색(도달 가능)으로 표시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499067Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "What \"Looks Like a Pointer\" Means",
+      "source_hash": 2454965285865809101,
+      "context_hash": 8351812802019615531,
+      "translation": "\"포인터처럼 보인다\"의 의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499067Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "Kmemleak uses a conservative approach: **any word-sized value that falls within the address range of a tracked allocation is treated as a valid pointer**.",
+      "source_hash": 12315936897151984690,
+      "context_hash": 10477314847247899356,
+      "translation": "Kmemleak은 보수적인 접근 방식을 사용합니다. **추적 중인 할당의 주소 범위 안에 들어가는 워드 크기의 값은 모두 유효한 포인터로 취급됩니다**.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:54.499067Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:1",
+      "source": "This is intentionally liberal to avoid false positives.",
+      "source_hash": 7931256364814452308,
+      "context_hash": 4625025190391012337,
+      "translation": "이는 오탐(false positive)을 피하기 위해 의도적으로 관대하게 설계된 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499067Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "The consequence is false negatives: if the pointer is stored in a form kmemleak cannot read (e.g., XOR-obfuscated linked list pointers, packed bitfields, or offsets rather than direct pointers), kmemleak will miss it and falsely report the allocation as leaked.",
+      "source_hash": 5863323182091116627,
+      "context_hash": 16232367360407619496,
+      "translation": "그 결과로 미탐(false negative)이 발생합니다. 포인터가 kmemleak이 읽을 수 없는 형태(예: XOR로 난독화된 연결 리스트 포인터, 압축된 비트필드, 직접 포인터가 아닌 오프셋)로 저장되어 있으면 kmemleak은 이를 놓치고 해당 할당을 누수된 것으로 잘못 보고합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:54.499068Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:1",
+      "source": "This is a known limitation — see [Limitations](#limitations) below.",
+      "source_hash": 3448578598084865898,
+      "context_hash": 1427561698139658033,
+      "translation": "이는 알려진 한계입니다. 아래의 [한계](#limitations)를 참조하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499068Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "Tracking Allocations",
+      "source_hash": 8916512004508936977,
+      "context_hash": 7338344638289916423,
+      "translation": "할당 추적",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499068Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "Kmemleak hooks into the kernel allocator by way of callbacks declared in [`include/linux/kmemleak.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/kmemleak.h):",
+      "source_hash": 5646020418808238127,
+      "context_hash": 9757414192034004666,
+      "translation": "Kmemleak은 [`include/linux/kmemleak.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/kmemleak.h)에 선언된 콜백을 통해 커널 할당자에 훅을 겁니다.",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "callbacks": "콜백",
+        "hooks": "훅",
+        "kernel": "커널",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:54.499068Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "Allocator event",
+      "source_hash": 15745103451281142350,
+      "context_hash": 14666445186061794694,
+      "translation": "할당자 이벤트",
+      "glossary_snapshot": {
+        "allocator": "할당자"
+      },
+      "translated_at": "2026-11-14T22:17:54.499069Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Kmemleak callback",
+      "source_hash": 10549598055194716914,
+      "context_hash": 1770149888798614804,
+      "translation": "Kmemleak 콜백",
+      "glossary_snapshot": {
+        "callback": "콜백",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:17:54.499069Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "`kmalloc()` / `kmem_cache_alloc()`",
+      "source_hash": 10631571665897022866,
+      "context_hash": 6343252828717851236,
+      "translation": "`kmalloc()` / `kmem_cache_alloc()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499069Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "`kmemleak_alloc()` — register new object",
+      "source_hash": 4653522601976883080,
+      "context_hash": 6503510559500506740,
+      "translation": "`kmemleak_alloc()` — 새 객체 등록",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499069Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "`kfree()` / `kmem_cache_free()`",
+      "source_hash": 2343919222982328158,
+      "context_hash": 16967022486060144415,
+      "translation": "`kfree()` / `kmem_cache_free()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499070Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:0",
+      "source": "`kmemleak_free()` — unregister object",
+      "source_hash": 1153309709212890560,
+      "context_hash": 6332195923424784411,
+      "translation": "`kmemleak_free()` — 객체 등록 해제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499070Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:27/seg:0",
+      "source": "`vmalloc()`",
+      "source_hash": 18016347256539216587,
+      "context_hash": 7387399355027247411,
+      "translation": "`vmalloc()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499070Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:28/seg:0",
+      "source": "`kmemleak_vmalloc()`",
+      "source_hash": 4632753743711913683,
+      "context_hash": 8029023908559754269,
+      "translation": "`kmemleak_vmalloc()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499070Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:29/seg:0",
+      "source": "`vfree()`",
+      "source_hash": 4732590429124535207,
+      "context_hash": 5078507123648000507,
+      "translation": "`vfree()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499070Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:30/seg:0",
+      "source": "`kmemleak_free()`",
+      "source_hash": 11745722359361313612,
+      "context_hash": 17137455207030556036,
+      "translation": "`kmemleak_free()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:54.499070Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:31/seg:0",
+      "source": "These hooks are called from deep inside the slab allocator ([`mm/slab_common.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slab_common.c), [`mm/slub.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slub.c)) and are compiled out entirely when `CONFIG_DEBUG_KMEMLEAK` is not set.",
+      "source_hash": 593626842485899715,
+      "context_hash": 13150405353984249185,
+      "translation": "이 훅들은 slab 할당자 내부 깊숙한 곳([`mm/slab_common.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slab_common.c), [`mm/slub.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slub.c))에서 호출되며, `CONFIG_DEBUG_KMEMLEAK`가 설정되지 않으면 컴파일 단계에서 완전히 제외됩니다.",
+      "glossary_snapshot": {
+        "hooks": "훅",
+        "slab allocator": "slab 할당자"
+      },
+      "translated_at": "2026-11-14T22:18:02.715945Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:32/seg:0",
+      "source": "Each tracked object is represented by a `struct kmemleak_object` (defined in `mm/kmemleak.c`) that stores:",
+      "source_hash": 5495393574609498645,
+      "context_hash": 951207339078224171,
+      "translation": "추적되는 각 객체는 `struct kmemleak_object`(`mm/kmemleak.c`에 정의됨)로 표현되며, 이 구조체는 다음을 저장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715947Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:33/seg:0",
+      "source": "The allocation pointer and size",
+      "source_hash": 6187022409085784613,
+      "context_hash": 17666292666028191437,
+      "translation": "할당 포인터와 크기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715947Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:34/seg:0",
+      "source": "The allocation stack trace (captured at `kmemleak_alloc()` time)",
+      "source_hash": 2345733580078322240,
+      "context_hash": 13419524685281548271,
+      "translation": "할당 스택 트레이스(`kmemleak_alloc()` 시점에 캡처됨)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715948Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:35/seg:0",
+      "source": "Reference count and state flags",
+      "source_hash": 4142007461556604788,
+      "context_hash": 16225170653663285755,
+      "translation": "참조 카운트와 상태 플래그",
+      "glossary_snapshot": {
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:18:02.715948Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:36/seg:0",
+      "source": "Minimum number of pointer references required before declaring a leak (default 1; set via the `min_count` parameter to `kmemleak_alloc()`)",
+      "source_hash": 3640460193135657818,
+      "context_hash": 3569739431303749583,
+      "translation": "누수로 판정하기 전에 필요한 최소 포인터 참조 수(기본값 1, `kmemleak_alloc()`의 `min_count` 매개변수로 설정)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715949Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:37/seg:0",
+      "source": "The Scan Thread",
+      "source_hash": 7889323913925199796,
+      "context_hash": 16928367983063548050,
+      "translation": "스캔 스레드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715949Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:38/seg:0",
+      "source": "A kernel thread (`kmemleak` kthread) periodically executes `kmemleak_scan()`.",
+      "source_hash": 16945109733960134505,
+      "context_hash": 5267996091360203028,
+      "translation": "커널 스레드(`kmemleak` kthread)가 주기적으로 `kmemleak_scan()`을 실행합니다.",
+      "glossary_snapshot": {
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T22:18:02.715949Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:38/seg:1",
+      "source": "The scan:",
+      "source_hash": 13525732394904157055,
+      "context_hash": 3846561523496160238,
+      "translation": "스캔 과정은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715949Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:39/seg:0",
+      "source": "**Marks all objects white** (candidate state)",
+      "source_hash": 17107783950333958978,
+      "context_hash": 471602952742892550,
+      "translation": "**모든 객체를 흰색으로 표시**(후보 상태)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715950Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:40/seg:0",
+      "source": "**Walks all scan areas** (data, BSS, per-CPU, stacks) looking for pointer values",
+      "source_hash": 4219697050237850679,
+      "context_hash": 15772963333979384126,
+      "translation": "포인터 값을 찾기 위해 **모든 스캔 영역을 순회**(data, BSS, per-CPU, 스택)",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:18:02.715950Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:41/seg:0",
+      "source": "**Colors reachable objects gray** — objects pointed to by a scanned root are marked reachable via `make_gray_object()`",
+      "source_hash": 4077472690767821417,
+      "context_hash": 13199240490439993510,
+      "translation": "**도달 가능한 객체를 회색으로 칠함** — 스캔된 루트가 가리키는 객체는 `make_gray_object()`를 통해 도달 가능으로 표시됨",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715950Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:42/seg:0",
+      "source": "**Reports survivors** — any object still white after the full walk is reported as a potential leak",
+      "source_hash": 5706797385215187199,
+      "context_hash": 8470805266958163420,
+      "translation": "**남은 객체를 보고** — 전체 순회 후에도 여전히 흰색인 객체는 잠재적 누수로 보고됨",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715950Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:43/seg:0",
+      "source": "The scan is also triggered on demand via the debugfs interface (see [Using Kmemleak](#using-kmemleak)).",
+      "source_hash": 12813396225677524378,
+      "context_hash": 9827040291909606887,
+      "translation": "스캔은 debugfs 인터페이스를 통해 필요할 때 수동으로 실행할 수도 있습니다([Kmemleak 사용하기](#using-kmemleak) 참조).",
+      "glossary_snapshot": {
+        "debugfs": "debugfs",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:02.715950Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Enabling Kmemleak",
+      "source_hash": 11613364387879884305,
+      "context_hash": 17221972625444234283,
+      "translation": "Kmemleak 활성화",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:02.715951Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Kernel Configuration",
+      "source_hash": 1346982726159557949,
+      "context_hash": 13230546351554484451,
+      "translation": "커널 설정",
+      "glossary_snapshot": {
+        "Kernel Configuration": "커널 설정"
+      },
+      "translated_at": "2026-11-14T23:33:46.740994Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Enabling kmemleak requires `CONFIG_DEBUG_KMEMLEAK=y`.",
+      "source_hash": 17235535523880088025,
+      "context_hash": 5119739309757120959,
+      "translation": "kmemleak을 활성화하려면 `CONFIG_DEBUG_KMEMLEAK=y`가 필요합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:02.715951Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "The related options are defined in [`lib/Kconfig.debug`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/Kconfig.debug).",
+      "source_hash": 8158890367855568982,
+      "context_hash": 9714118457847641850,
+      "translation": "관련 옵션은 [`lib/Kconfig.debug`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/Kconfig.debug)에 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715951Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Not for production",
+      "source_hash": 5441818755038180701,
+      "context_hash": 15027438440558131391,
+      "translation": "프로덕션용 아님",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715951Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Kmemleak adds measurable memory and CPU overhead (see [Performance Overhead](#performance-overhead)).",
+      "source_hash": 2058022965372175536,
+      "context_hash": 14253580594754933258,
+      "translation": "Kmemleak은 측정 가능한 수준의 메모리 및 CPU 오버헤드를 추가합니다([성능 오버헤드](#performance-overhead) 참조).",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "kmemleak": "kmemleak",
+        "memory": "메모리",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:18:02.715951Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "It is intended for development and debugging builds, not production deployment.",
+      "source_hash": 17986235922705264716,
+      "context_hash": 16611702548880396034,
+      "translation": "프로덕션 배포가 아니라 개발 및 디버깅 빌드용으로 만들어졌습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715951Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Boot Parameters",
+      "source_hash": 15471582158607867571,
+      "context_hash": 17566524737902295096,
+      "translation": "부트 파라미터",
+      "glossary_snapshot": {
+        "Boot Parameters": "부트 파라미터",
+        "boot parameters": "부트 파라미터"
+      },
+      "translated_at": "2026-11-14T23:33:46.740997Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Verifying Kmemleak Is Active",
+      "source_hash": 8429501038743902461,
+      "context_hash": 10964240878967172586,
+      "translation": "Kmemleak 활성화 여부 확인",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:02.715951Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Using Kmemleak",
+      "source_hash": 2807451967988584903,
+      "context_hash": 13798308919154298413,
+      "translation": "Kmemleak 사용하기",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:02.715952Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The debugfs Interface",
+      "source_hash": 17377865645628185188,
+      "context_hash": 13007145509563707787,
+      "translation": "debugfs 인터페이스",
+      "glossary_snapshot": {
+        "debugfs": "debugfs"
+      },
+      "translated_at": "2026-11-14T22:18:02.715952Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Kmemleak exposes a single file at `/sys/kernel/debug/kmemleak` that serves as both a control channel (writes) and a report interface (reads).",
+      "source_hash": 5814826306761901229,
+      "context_hash": 8809112370132517993,
+      "translation": "Kmemleak은 `/sys/kernel/debug/kmemleak`에 파일 하나를 노출하며, 이 파일은 제어 채널(쓰기)과 보고 인터페이스(읽기) 역할을 모두 합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:02.715952Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Reading Reports",
+      "source_hash": 17895435436027287994,
+      "context_hash": 4809740376840143480,
+      "translation": "보고서 읽기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715952Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "A typical leak report looks like:",
+      "source_hash": 5190521001962864277,
+      "context_hash": 4843192465144821905,
+      "translation": "일반적인 누수 보고서는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715952Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "**Reading the report**:",
+      "source_hash": 15114398145800515754,
+      "context_hash": 522506126734957639,
+      "translation": "**보고서 읽는 법**:",
+      "glossary_snapshot": {
+        "**Reading the report**:": "**보고서 읽는 법**"
+      },
+      "translated_at": "2026-11-14T23:33:46.740998Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "Field",
+      "source_hash": 15290013399643683147,
+      "context_hash": 5268242889265945851,
+      "translation": "필드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715953Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 14809074770237274638,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715953Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "`unreferenced object 0xffff...`",
+      "source_hash": 729469564473285954,
+      "context_hash": 15239430990001554371,
+      "translation": "`unreferenced object 0xffff...`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:02.715953Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Allocation address found with no pointer to it",
+      "source_hash": 57921190247250628,
+      "context_hash": 7900367126132869270,
+      "translation": "가리키는 포인터가 발견되지 않은 할당 주소",
+      "glossary_snapshot": {
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T22:18:06.923195Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "`size 128`",
+      "source_hash": 9133290574597121758,
+      "context_hash": 2633613970410094764,
+      "translation": "`size 128`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923196Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "Allocation size in bytes",
+      "source_hash": 12706698489972138131,
+      "context_hash": 10735794184506660576,
+      "translation": "바이트 단위 할당 크기",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:18:06.923196Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "`comm / pid / jiffies`",
+      "source_hash": 6492317591498649135,
+      "context_hash": 1949238536046346722,
+      "translation": "`comm / pid / jiffies`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923196Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "Task name, PID, and kernel timestamp at allocation time",
+      "source_hash": 12965825014137639317,
+      "context_hash": 14090738184393830609,
+      "translation": "할당 시점의 태스크 이름, PID, 커널 타임스탬프",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "timestamp": "타임스탬프"
+      },
+      "translated_at": "2026-11-14T22:18:06.923196Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "`age`",
+      "source_hash": 1335197040802015291,
+      "context_hash": 13406109789941963370,
+      "translation": "`age`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923196Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "Seconds since the allocation was made",
+      "source_hash": 2367943141489916240,
+      "context_hash": 1330291677955111355,
+      "translation": "할당 이후 경과한 시간(초)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923196Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "`hex dump`",
+      "source_hash": 5471217203885022577,
+      "context_hash": 16472991443817828388,
+      "translation": "`hex dump`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "First bytes of the allocation (helps identify the object type)",
+      "source_hash": 14412549638514849485,
+      "context_hash": 16117263220512647513,
+      "translation": "할당 영역의 처음 몇 바이트(객체 유형 식별에 도움)",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "`backtrace`",
+      "source_hash": 14284160798728440165,
+      "context_hash": 6554708930405134113,
+      "translation": "`backtrace`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "Call stack at allocation time — this shows **where the leak was created**",
+      "source_hash": 15855656758355630412,
+      "context_hash": 97463173059107204,
+      "translation": "할당 시점의 콜 스택 — **누수가 생성된 위치**를 보여 줌",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "The backtrace points to where the memory was allocated, which is typically where you begin the investigation.",
+      "source_hash": 9813533188099931340,
+      "context_hash": 2313921433011538181,
+      "translation": "backtrace는 메모리가 할당된 위치를 가리키며, 보통 이곳에서 조사를 시작합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:1",
+      "source": "The leak itself (where the pointer was dropped) is the bug to find.",
+      "source_hash": 15579291191143039659,
+      "context_hash": 10549759930264230852,
+      "translation": "찾아야 할 버그는 누수 자체(포인터가 유실된 위치)입니다.",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "Control Commands",
+      "source_hash": 8251358817541099109,
+      "context_hash": 6649642068593193682,
+      "translation": "제어 명령",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:25/seg:0",
+      "source": "Workflow: Finding a Leak in a Kernel Module",
+      "source_hash": 2711360609755437644,
+      "context_hash": 10332889514856250587,
+      "translation": "작업 흐름: 커널 모듈에서 누수 찾기",
+      "glossary_snapshot": {
+        "kernel module": "커널 모듈"
+      },
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:28/seg:0",
+      "source": "Multiple scan passes",
+      "source_hash": 3758223594512748607,
+      "context_hash": 13371180048980191433,
+      "translation": "여러 차례의 스캔",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:29/seg:0",
+      "source": "The first read after loading may include transient allocations.",
+      "source_hash": 11039449604532893945,
+      "context_hash": 15539328091744538864,
+      "translation": "로드 직후의 첫 번째 읽기 결과에는 일시적인 할당이 포함될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923197Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:29/seg:1",
+      "source": "Run `echo scan > /sys/kernel/debug/kmemleak` a second or third time, waiting a few seconds between passes.",
+      "source_hash": 1795816425841675185,
+      "context_hash": 6434235298605919707,
+      "translation": "스캔 사이에 몇 초씩 기다리면서 `echo scan > /sys/kernel/debug/kmemleak`를 두세 번 실행하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:29/seg:2",
+      "source": "Objects that persist across multiple scans are more likely to be true leaks.",
+      "source_hash": 3884396286591606575,
+      "context_hash": 16480055152092516105,
+      "translation": "여러 번의 스캔에 걸쳐 계속 남아 있는 객체일수록 실제 누수일 가능성이 높습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:30/seg:0",
+      "source": "Automatic Scanning",
+      "source_hash": 8310599700252753138,
+      "context_hash": 11807382388424730066,
+      "translation": "자동 스캔",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:31/seg:0",
+      "source": "By default, kmemleak schedules automatic scans every 600 seconds (10 minutes) using a kernel thread.",
+      "source_hash": 1920910037913549982,
+      "context_hash": 16378955091137455445,
+      "translation": "기본적으로 kmemleak은 커널 스레드를 사용하여 600초(10분)마다 자동 스캔을 예약합니다.",
+      "glossary_snapshot": {
+        "kernel thread": "커널 스레드",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:31/seg:1",
+      "source": "You can see this thread:",
+      "source_hash": 5890820245291371201,
+      "context_hash": 7420067766191316981,
+      "translation": "이 스레드는 다음과 같이 확인할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:33/seg:0",
+      "source": "Automatic scans produce the same output as manual scans.",
+      "source_hash": 5270021354182305103,
+      "context_hash": 16963074447775711677,
+      "translation": "자동 스캔은 수동 스캔과 동일한 출력을 생성합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:33/seg:1",
+      "source": "Check `/sys/kernel/debug/kmemleak` at any time to see the accumulated results.",
+      "source_hash": 15359638740035610164,
+      "context_hash": 8749086871174510842,
+      "translation": "누적된 결과를 보려면 언제든지 `/sys/kernel/debug/kmemleak`를 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Annotating Allocations",
+      "source_hash": 10853840052939888305,
+      "context_hash": 7626302062253875721,
+      "translation": "할당에 주석 달기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Kmemleak can report false positives for allocations where the pointer is stored in a way it cannot scan — XOR-linked lists, encoded pointers, hardware descriptor rings, or deliberately long-lived allocations that the programmer knows are intentional.",
+      "source_hash": 17228292098396157869,
+      "context_hash": 3480481496012194987,
+      "translation": "Kmemleak은 포인터가 스캔할 수 없는 방식으로 저장된 할당에 대해 오탐(false positive)을 보고할 수 있습니다. XOR 연결 리스트, 인코딩된 포인터, 하드웨어 디스크립터 링, 또는 프로그래머가 의도한 것임을 알고 있는 의도적으로 오래 유지되는 할당 등이 이에 해당합니다.",
+      "glossary_snapshot": {
+        "descriptor": "디스크립터",
+        "hardware": "하드웨어",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "The API in [`include/linux/kmemleak.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/kmemleak.h) provides annotations to suppress these reports.",
+      "source_hash": 2240840393099829474,
+      "context_hash": 544803938569961327,
+      "translation": "[`include/linux/kmemleak.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/kmemleak.h)의 API는 이러한 보고를 억제하는 주석(annotation)을 제공합니다.",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:18:06.923198Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "kmemleak_not_leak",
+      "source_hash": 7582981626190996351,
+      "context_hash": 15299913948915727638,
+      "translation": "kmemleak_not_leak",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923199Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "`kmemleak_not_leak(ptr)` tells kmemleak that this allocation is **intentionally not tracked** — it will not be reported even if no pointer to it is found during scanning.",
+      "source_hash": 12396913496939711960,
+      "context_hash": 3828454134315268192,
+      "translation": "`kmemleak_not_leak(ptr)`는 kmemleak에 이 할당이 **의도적으로 추적되지 않는 것**임을 알립니다. 즉, 스캔 중에 이 할당을 가리키는 포인터가 발견되지 않더라도 보고되지 않습니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:06.923199Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "Use this when you know the allocation is reachable through a path kmemleak cannot see.",
+      "source_hash": 18221499416182459135,
+      "context_hash": 12280869376080744526,
+      "translation": "kmemleak이 볼 수 없는 경로를 통해 할당에 도달할 수 있다는 것을 알고 있을 때 이것을 사용하십시오.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:06.923199Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "kmemleak_ignore",
+      "source_hash": 3975234536390202900,
+      "context_hash": 14066223566249559567,
+      "translation": "kmemleak_ignore",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:06.923199Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "`kmemleak_ignore(ptr)` suppresses reporting for this specific allocation and also suppresses scanning its contents.",
+      "source_hash": 4820280260274271971,
+      "context_hash": 15335832708381609430,
+      "translation": "`kmemleak_ignore(ptr)`는 이 특정 할당에 대한 보고를 억제하고, 그 내용의 스캔도 억제합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829566Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:1",
+      "source": "Use this for allocations that are truly intentional one-time allocations that are never freed (e.g., early-boot data structures that live for the kernel lifetime).",
+      "source_hash": 2790928131584814509,
+      "context_hash": 17772798192447727484,
+      "translation": "해제되지 않는, 진정으로 의도된 일회성 할당(예: 커널 수명 동안 유지되는 초기 부팅 자료 구조)에 사용하십시오.",
+      "glossary_snapshot": {
+        "data structures": "자료 구조",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:18:11.829567Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "kmemleak_no_scan",
+      "source_hash": 13126970713749373981,
+      "context_hash": 4266634809053125693,
+      "translation": "kmemleak_no_scan",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829567Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "`kmemleak_no_scan(ptr)` prevents kmemleak from scanning the contents of this allocation for pointers to other objects.",
+      "source_hash": 643924367639985985,
+      "context_hash": 13002080390443043936,
+      "translation": "`kmemleak_no_scan(ptr)`는 kmemleak이 다른 객체를 가리키는 포인터를 찾기 위해 이 할당의 내용을 스캔하지 않도록 합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:11.829567Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:1",
+      "source": "It does not suppress leak reporting for `ptr` itself; it just stops kmemleak from using `ptr`'s contents as roots.",
+      "source_hash": 5005099851530590947,
+      "context_hash": 1174796107611817154,
+      "translation": "`ptr` 자체에 대한 누수 보고는 억제하지 않으며, kmemleak이 `ptr`의 내용을 루트로 사용하지 않도록 할 뿐입니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:11.829567Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:2",
+      "source": "Use this when the object contains values that look like pointers but are not (e.g., hash values, checksums, raw data buffers).",
+      "source_hash": 822233892365487994,
+      "context_hash": 1416614085921765916,
+      "translation": "객체가 포인터처럼 보이지만 실제로는 포인터가 아닌 값(예: 해시 값, 체크섬, 원시 데이터 버퍼)을 담고 있을 때 사용하십시오.",
+      "glossary_snapshot": {
+        "checksums": "체크섬"
+      },
+      "translated_at": "2026-11-14T22:18:11.829567Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "kmemleak_erase",
+      "source_hash": 12886193773000138552,
+      "context_hash": 11371035231762178165,
+      "translation": "kmemleak_erase",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829568Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "`kmemleak_erase(ptr)` explicitly removes a pointer from consideration during scanning.",
+      "source_hash": 303316277121205641,
+      "context_hash": 17238010262011081094,
+      "translation": "`kmemleak_erase(ptr)`는 스캔 중 고려 대상에서 포인터를 명시적으로 제거합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829568Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:1",
+      "source": "Use this when a pointer to an allocation has been cleared but the allocation will be freed later through a different mechanism.",
+      "source_hash": 12871404034036989573,
+      "context_hash": 12717705080984228939,
+      "translation": "할당을 가리키는 포인터는 지워졌지만 해당 할당이 나중에 다른 메커니즘을 통해 해제될 때 사용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829568Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:2",
+      "source": "This prevents kmemleak from following the now-null pointer during the scan.",
+      "source_hash": 18170580683334861875,
+      "context_hash": 13630934101362669023,
+      "translation": "이렇게 하면 kmemleak이 스캔 중에 이제 null이 된 포인터를 따라가지 않습니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:11.829568Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "kmemleak_alloc / kmemleak_free (Manual Registration)",
+      "source_hash": 5137334806986050958,
+      "context_hash": 15194117823575403051,
+      "translation": "kmemleak_alloc / kmemleak_free (수동 등록)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829568Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "For memory that is tracked by a custom allocator rather than `kmalloc`/`vmalloc`, you can register and unregister objects manually:",
+      "source_hash": 10758050222787124295,
+      "context_hash": 16871836321537421541,
+      "translation": "`kmalloc`/`vmalloc`이 아닌 사용자 정의 할당자가 추적하는 메모리의 경우, 객체를 수동으로 등록하고 등록 해제할 수 있습니다:",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:18:11.829568Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "The `min_count` parameter controls how many pointer references are required before kmemleak considers the object reachable.",
+      "source_hash": 1045398897274954969,
+      "context_hash": 3458385702114613359,
+      "translation": "`min_count` 매개변수는 kmemleak이 객체를 도달 가능하다고 판단하기 위해 필요한 포인터 참조의 수를 제어합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:1",
+      "source": "Setting `min_count=0` means kmemleak will never report this object regardless of references (equivalent to `kmemleak_ignore`).",
+      "source_hash": 3955478037626610557,
+      "context_hash": 558519722213542494,
+      "translation": "`min_count=0`으로 설정하면 kmemleak은 참조와 관계없이 이 객체를 절대 보고하지 않습니다(`kmemleak_ignore`와 동일).",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:2",
+      "source": "Setting `min_count=2` requires at least two pointer references.",
+      "source_hash": 8282564359692472112,
+      "context_hash": 18358419398263382067,
+      "translation": "`min_count=2`로 설정하면 최소 두 개의 포인터 참조가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:0",
+      "source": "Summary of Annotation Functions",
+      "source_hash": 11213143740557496283,
+      "context_hash": 7060968718001878052,
+      "translation": "어노테이션 함수 요약",
+      "glossary_snapshot": {
+        "functions": "함수"
+      },
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:19/seg:0",
+      "source": "Function",
+      "source_hash": 12017511910326844596,
+      "context_hash": 17633463247981824802,
+      "translation": "함수",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:20/seg:0",
+      "source": "Effect",
+      "source_hash": 6420176389575395961,
+      "context_hash": 9024682957638346830,
+      "translation": "효과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:21/seg:0",
+      "source": "`kmemleak_not_leak(ptr)`",
+      "source_hash": 16386986369014057171,
+      "context_hash": 13751527799320899613,
+      "translation": "`kmemleak_not_leak(ptr)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:22/seg:0",
+      "source": "Do not report this object as leaked",
+      "source_hash": 12658448441246942111,
+      "context_hash": 2070901942922708121,
+      "translation": "이 객체를 누수로 보고하지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829569Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:23/seg:0",
+      "source": "`kmemleak_ignore(ptr)`",
+      "source_hash": 4830226845028196098,
+      "context_hash": 9948790026377439518,
+      "translation": "`kmemleak_ignore(ptr)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:24/seg:0",
+      "source": "Do not report; do not scan contents",
+      "source_hash": 17476180180529009929,
+      "context_hash": 17404802560163158554,
+      "translation": "보고하지 않음, 내용을 스캔하지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:25/seg:0",
+      "source": "`kmemleak_no_scan(ptr)`",
+      "source_hash": 17571398954458706020,
+      "context_hash": 13893086310918771083,
+      "translation": "`kmemleak_no_scan(ptr)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:26/seg:0",
+      "source": "Do not scan contents (still track for leaks)",
+      "source_hash": 5087412681340621443,
+      "context_hash": 1812660385102644484,
+      "translation": "내용을 스캔하지 않음(누수 추적은 계속함)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:27/seg:0",
+      "source": "`kmemleak_erase(addrp)`",
+      "source_hash": 18256727505219659341,
+      "context_hash": 14682121514836726028,
+      "translation": "`kmemleak_erase(addrp)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:28/seg:0",
+      "source": "Remove a pointer from scan consideration",
+      "source_hash": 421056523868316065,
+      "context_hash": 13533096936863977756,
+      "translation": "스캔 고려 대상에서 포인터 제거",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:29/seg:0",
+      "source": "`kmemleak_alloc(ptr, size, min_count, gfp)`",
+      "source_hash": 6319771406986279396,
+      "context_hash": 16146243686886428617,
+      "translation": "`kmemleak_alloc(ptr, size, min_count, gfp)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:30/seg:0",
+      "source": "Manually register an object",
+      "source_hash": 2471733871949004314,
+      "context_hash": 10664972097066503126,
+      "translation": "객체 수동 등록",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:31/seg:0",
+      "source": "`kmemleak_free(ptr)`",
+      "source_hash": 9994674030176088428,
+      "context_hash": 1842701473156037085,
+      "translation": "`kmemleak_free(ptr)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:32/seg:0",
+      "source": "Manually unregister an object",
+      "source_hash": 14421425920503738727,
+      "context_hash": 17358388608285919227,
+      "translation": "객체 수동 등록 해제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Limitations",
+      "source_hash": 13908973138977023134,
+      "context_hash": 17773096996291445396,
+      "translation": "한계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "False Positives (Incorrectly Reported Leaks)",
+      "source_hash": 1796737163578158812,
+      "context_hash": 1720018859197324147,
+      "translation": "거짓 양성(잘못 보고된 누수)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:11.829570Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "Kmemleak reports an allocation as leaked whenever its scan finds no pointer to it.",
+      "source_hash": 18234600621122402609,
+      "context_hash": 11336632823621477855,
+      "translation": "Kmemleak은 스캔에서 어떤 할당을 가리키는 포인터를 찾지 못하면 그 할당을 누수로 보고합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:32.847627Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "This produces false positives when the pointer exists but is hidden:",
+      "source_hash": 2528766398190863556,
+      "context_hash": 15190479959026952559,
+      "translation": "이 때문에 포인터가 존재하지만 숨겨져 있는 경우 오탐(false positive)이 발생합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847628Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "**Encoded pointers**: XOR-linked lists (`list_add_rcu` variants), offset-based references, or deliberately obfuscated pointers are not recognized as valid references.",
+      "source_hash": 11611214999884441971,
+      "context_hash": 13850305652933825153,
+      "translation": "**인코딩된 포인터**: XOR 연결 리스트(`list_add_rcu` 변형), 오프셋 기반 참조, 의도적으로 난독화된 포인터는 유효한 참조로 인식되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847628Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "**Pointer stored in hardware**: Physical addresses written to MMIO registers, DMA descriptor rings, or IOMMU tables are not part of the scanned memory.",
+      "source_hash": 15810880924306067900,
+      "context_hash": 8366442019144469529,
+      "translation": "**하드웨어에 저장된 포인터**: MMIO 레지스터, DMA 디스크립터 링, IOMMU 테이블에 기록된 물리 주소는 스캔 대상 메모리에 포함되지 않습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "MMIO": "MMIO",
+        "descriptor": "디스크립터",
+        "hardware": "하드웨어",
+        "memory": "메모리",
+        "physical addresses": "물리 주소"
+      },
+      "translated_at": "2026-11-14T22:18:32.847628Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "**Pointer stored in userspace memory**: If a kernel pointer is copied to a userspace buffer (unusual, and typically a bug itself), kmemleak does not scan userspace.",
+      "source_hash": 15619321664932322704,
+      "context_hash": 3398604551835947383,
+      "translation": "**사용자 공간 메모리에 저장된 포인터**: 커널 포인터가 사용자 공간 버퍼에 복사되더라도(드문 경우이며 대개 그 자체가 버그입니다) kmemleak은 사용자 공간을 스캔하지 않습니다.",
+      "glossary_snapshot": {
+        "bug": "버그",
+        "kernel": "커널",
+        "kmemleak": "kmemleak",
+        "memory": "메모리",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:18:32.847628Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "**Pointer split across two words**: On architectures where unaligned access is legal, a pointer split across a word boundary may not be recognized.",
+      "source_hash": 13329045478839007035,
+      "context_hash": 3686541078943280516,
+      "translation": "**두 워드에 걸쳐 나뉜 포인터**: 정렬되지 않은 접근이 허용되는 아키텍처에서는 워드 경계에 걸쳐 나뉜 포인터가 인식되지 않을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847629Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "The `kmemleak_not_leak()` and `kmemleak_no_scan()` annotations exist specifically to silence these false positives in known-good code.",
+      "source_hash": 1063843694385783331,
+      "context_hash": 4620711523080458735,
+      "translation": "`kmemleak_not_leak()`와 `kmemleak_no_scan()` 어노테이션은 정상임이 확인된 코드에서 이러한 오탐을 억제하기 위해 존재합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847629Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "False Negatives (Missed Leaks)",
+      "source_hash": 12629574891982264263,
+      "context_hash": 18126740895381340889,
+      "translation": "미탐(놓친 누수)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847629Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "Kmemleak can fail to detect a real leak if:",
+      "source_hash": 9864490863922715565,
+      "context_hash": 2157057140285058940,
+      "translation": "Kmemleak은 다음과 같은 경우 실제 누수를 탐지하지 못할 수 있습니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:32.847629Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "The pointer happens to be present somewhere in scanned memory (a stale value from a previous allocation that was never cleared), making the object appear reachable.",
+      "source_hash": 6523625940021247104,
+      "context_hash": 9550390149961054502,
+      "translation": "스캔 대상 메모리 어딘가에 우연히 포인터가 남아 있어(이전 할당에서 지워지지 않은 오래된 값) 객체가 도달 가능한 것처럼 보이는 경우입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:18:32.847629Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "The allocation is freed before the scan runs (kmemleak correctly removes freed objects from tracking).",
+      "source_hash": 3296690988726290237,
+      "context_hash": 13521700981657777389,
+      "translation": "스캔이 실행되기 전에 할당이 해제된 경우입니다(kmemleak은 해제된 객체를 추적 대상에서 올바르게 제거합니다).",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:32.847629Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "The allocation is below the minimum size tracked by kmemleak.",
+      "source_hash": 11178878816403091194,
+      "context_hash": 4534494756279655728,
+      "translation": "할당 크기가 kmemleak이 추적하는 최소 크기보다 작은 경우입니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:32.847630Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "Performance Overhead",
+      "source_hash": 18069133656542170519,
+      "context_hash": 17961921216918587647,
+      "translation": "성능 오버헤드",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:18:32.847630Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "Kmemleak has three main sources of overhead:",
+      "source_hash": 12725387772395848448,
+      "context_hash": 17211985207643121844,
+      "translation": "Kmemleak의 오버헤드는 크게 세 가지 원인에서 발생합니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:18:32.847630Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "**Per-allocation cost**: Every `kmalloc()` and `kfree()` invokes a kmemleak callback that updates the internal object tree (a red-black tree keyed on allocation address).",
+      "source_hash": 4620303701896679030,
+      "context_hash": 17387738950942323461,
+      "translation": "**할당당 비용**: 모든 `kmalloc()`과 `kfree()`는 내부 객체 트리(할당 주소를 키로 하는 레드-블랙 트리)를 갱신하는 kmemleak 콜백을 호출합니다.",
+      "glossary_snapshot": {
+        "callback": "콜백",
+        "kmemleak": "kmemleak",
+        "red-black tree": "레드-블랙 트리"
+      },
+      "translated_at": "2026-11-14T23:33:46.740998Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:1",
+      "source": "This adds latency to every allocation.",
+      "source_hash": 7977971271472784337,
+      "context_hash": 3598778737850316019,
+      "translation": "이로 인해 모든 할당에 지연 시간이 추가됩니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:18:32.847630Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "**Memory for metadata**: Each tracked `struct kmemleak_object` consumes memory proportional to the number of live allocations.",
+      "source_hash": 3029854744292255692,
+      "context_hash": 15549239729358135011,
+      "translation": "**메타데이터용 메모리**: 추적되는 각 `struct kmemleak_object`는 살아 있는 할당의 수에 비례하는 메모리를 소비합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:18:32.847630Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:17/seg:0",
+      "source": "**Scan cost**: The periodic scan traverses the data segment, per-CPU areas, and every thread's kernel stack.",
+      "source_hash": 9571049618354078086,
+      "context_hash": 9211392674120019556,
+      "translation": "**스캔 비용**: 주기적 스캔은 데이터 세그먼트, per-CPU 영역, 모든 스레드의 커널 스택을 순회합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "kernel stack": "커널 스택"
+      },
+      "translated_at": "2026-11-14T22:18:32.847630Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:17/seg:1",
+      "source": "On systems with many threads or large data segments, a single scan can take hundreds of milliseconds.",
+      "source_hash": 17362548836114594190,
+      "context_hash": 17896206934422498859,
+      "translation": "스레드가 많거나 데이터 세그먼트가 큰 시스템에서는 한 번의 스캔에 수백 밀리초가 걸릴 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847630Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:0",
+      "source": "The scan temporarily disables migration and reads every thread's stack, which can cause scheduling jitter.",
+      "source_hash": 8555049076100800269,
+      "context_hash": 9663643360521002141,
+      "translation": "스캔은 일시적으로 마이그레이션을 비활성화하고 모든 스레드의 스택을 읽으므로 스케줄링 지터를 일으킬 수 있습니다.",
+      "glossary_snapshot": {
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:18:32.847631Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:1",
+      "source": "This makes kmemleak unsuitable for latency-sensitive workloads.",
+      "source_hash": 6491968191974478536,
+      "context_hash": 11077607461702998957,
+      "translation": "이 때문에 kmemleak은 지연 시간에 민감한 워크로드에는 적합하지 않습니다.",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak",
+        "latency": "지연 시간",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:18:32.847631Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:0",
+      "source": "What Kmemleak Cannot Detect",
+      "source_hash": 3353178692193185499,
+      "context_hash": 14168902787826097449,
+      "translation": "Kmemleak이 탐지할 수 없는 것",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:32.847631Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:20/seg:0",
+      "source": "Leaks in userspace processes (use Valgrind or AddressSanitizer for that)",
+      "source_hash": 15368785158388667335,
+      "context_hash": 10577119327670032730,
+      "translation": "사용자 공간 프로세스의 누수(이 경우 Valgrind나 AddressSanitizer를 사용하십시오)",
+      "glossary_snapshot": {
+        "processes": "프로세스",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:18:32.847631Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:21/seg:0",
+      "source": "Leaks in memory-mapped I/O regions",
+      "source_hash": 14945713670746390783,
+      "context_hash": 1943264434537358357,
+      "translation": "메모리 매핑된 I/O 영역의 누수",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:18:32.847631Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:22/seg:0",
+      "source": "Memory that is technically reachable but functionally never used (logical leaks)",
+      "source_hash": 8916941641233754729,
+      "context_hash": 16040089908507545086,
+      "translation": "기술적으로는 도달 가능하지만 기능적으로는 전혀 사용되지 않는 메모리(논리적 누수)",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:18:32.847631Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:23/seg:0",
+      "source": "Reference counting bugs (where a reference count never reaches zero, keeping an object alive indefinitely) — these are reachable and will not be reported",
+      "source_hash": 15520950615961670688,
+      "context_hash": 8365385845928259545,
+      "translation": "참조 카운팅 버그(참조 카운트가 0에 도달하지 않아 객체가 무기한 살아 있는 경우) — 이러한 객체는 도달 가능하므로 보고되지 않음",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:18:32.847631Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:24/seg:0",
+      "source": "For OOM conditions caused by accumulation of unfreed objects, see [OOM Debugging](oom-debugging.md).",
+      "source_hash": 3067276945938691353,
+      "context_hash": 8126856966584897006,
+      "translation": "해제되지 않은 객체가 누적되어 발생하는 OOM 상황은 [OOM 디버깅](oom-debugging.md)을 참조하십시오.",
+      "glossary_snapshot": {
+        "OOM": "OOM"
+      },
+      "translated_at": "2026-11-14T22:18:32.847632Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "History",
+      "source_hash": 8648362223470591576,
+      "context_hash": 13184823403153247329,
+      "translation": "역사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847632Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "v2.6.28: Introduction (2008)",
+      "source_hash": 3709753264874135348,
+      "context_hash": 2767108230651726561,
+      "translation": "v2.6.28: 도입(2008)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:32.847632Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "Kmemleak was introduced by Catalin Marinas (Arm Ltd) in kernel 2.6.28.",
+      "source_hash": 13059751067075051668,
+      "context_hash": 6728883943162077145,
+      "translation": "Kmemleak은 Catalin Marinas(Arm Ltd)가 커널 2.6.28에서 도입했습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:32.847632Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "The initial submission is described in the commit that added the infrastructure and the debugfs interface.",
+      "source_hash": 15026953121741966630,
+      "context_hash": 13477109851214701040,
+      "translation": "최초 제출 내용은 해당 인프라와 debugfs 인터페이스를 추가한 커밋에 설명되어 있습니다.",
+      "glossary_snapshot": {
+        "debugfs": "debugfs"
+      },
+      "translated_at": "2026-11-14T22:18:32.847632Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:2",
+      "source": "The design drew on ideas from the Boehm-Demers-Weiser conservative garbage collector applied to the kernel's flat virtual address space.",
+      "source_hash": 6432694051495167860,
+      "context_hash": 10282640833633463493,
+      "translation": "이 설계는 Boehm-Demers-Weiser 보수적 가비지 컬렉터의 아이디어를 커널의 평탄한 가상 주소 공간에 적용한 것입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "virtual address space": "가상 주소 공간"
+      },
+      "translated_at": "2026-11-14T22:18:32.847632Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "**LWN coverage**: [Finding kernel memory leaks](https://lwn.net/Articles/187979/) (2006) describes the early design proposals that preceded the upstream submission.",
+      "source_hash": 10072779675961775019,
+      "context_hash": 13901896627711339913,
+      "translation": "**LWN 보도**: [Finding kernel memory leaks](https://lwn.net/Articles/187979/)(2006)는 업스트림 제출에 앞서 나온 초기 설계 제안을 설명합니다.",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "upstream": "업스트림"
+      },
+      "translated_at": "2026-11-14T22:18:57.378812Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "v2.6.30–v2.6.32: Stabilization",
+      "source_hash": 6102949665940953,
+      "context_hash": 3742712552674734128,
+      "translation": "v2.6.30–v2.6.32: 안정화",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378813Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Early after introduction, Catalin Marinas and other contributors addressed false-positive rates and scanning coverage, adding support for per-CPU variables and refining the gray-coloring pass.",
+      "source_hash": 4559290413701701179,
+      "context_hash": 16148131612877361221,
+      "translation": "도입 직후 Catalin Marinas와 다른 기여자들은 오탐(false positive) 비율과 스캔 범위 문제를 다루면서 per-CPU 변수 지원을 추가하고 회색 표시(gray-coloring) 패스를 개선했습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:18:57.378813Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "v3.2: Early-Log Buffer",
+      "source_hash": 15439594827895163011,
+      "context_hash": 8614953164258333489,
+      "translation": "v3.2: 조기 로그 버퍼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378813Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "The early-log buffer was added to capture allocations that happen before the kmemleak data structures are fully initialized (very early boot), allowing boot-time leaks to be reported once kmemleak is ready.",
+      "source_hash": 7632632409546196575,
+      "context_hash": 8710013442903858287,
+      "translation": "kmemleak 자료 구조가 완전히 초기화되기 전(부팅 극초기)에 일어나는 할당을 기록하기 위해 조기 로그 버퍼(early-log buffer)가 추가되었으며, 이를 통해 kmemleak이 준비되면 부팅 시점의 누수를 보고할 수 있습니다.",
+      "glossary_snapshot": {
+        "data structures": "자료 구조",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:57.378813Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "v4.x: Stability and Integration Improvements",
+      "source_hash": 16105380570762855247,
+      "context_hash": 15204833893054278685,
+      "translation": "v4.x: 안정성 및 통합 개선",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378813Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "Incremental improvements over the v4.x series addressed interactions with other debug infrastructure (fault injection, KASAN), reduced false-positive rates, and improved default scan interval behavior.",
+      "source_hash": 8532467542750682035,
+      "context_hash": 9069370543971449863,
+      "translation": "v4.x 시리즈에 걸친 점진적 개선을 통해 다른 디버그 인프라(fault injection, KASAN)와의 상호작용 문제를 해결하고, 오탐 비율을 줄였으며, 기본 스캔 주기 동작을 개선했습니다.",
+      "glossary_snapshot": {
+        "KASAN": "KASAN"
+      },
+      "translated_at": "2026-11-14T22:18:57.378814Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "v5.x: SLUB Integration Improvements",
+      "source_hash": 12552095999505835143,
+      "context_hash": 4155726770787672461,
+      "translation": "v5.x: SLUB 통합 개선",
+      "glossary_snapshot": {
+        "SLUB": "SLUB"
+      },
+      "translated_at": "2026-11-14T22:18:57.378814Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "As SLUB became the dominant slab allocator (see [Slab Allocator](slab.md)), kmemleak's hooks in [`mm/slub.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slub.c) were refined to correctly track SLUB's internal object lifecycle, reducing false positives from SLUB's own internal allocations.",
+      "source_hash": 6563386585714037484,
+      "context_hash": 200790843306410978,
+      "translation": "SLUB이 주된 slab 할당자가 되면서([Slab 할당자](slab.md) 참고) [`mm/slub.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slub.c)의 kmemleak 훅이 SLUB 내부 객체의 생명 주기를 올바르게 추적하도록 다듬어졌고, 그 결과 SLUB 자체의 내부 할당으로 인한 오탐이 줄었습니다.",
+      "glossary_snapshot": {
+        "SLUB": "SLUB",
+        "hooks": "훅",
+        "kmemleak": "kmemleak",
+        "slab allocator": "slab 할당자"
+      },
+      "translated_at": "2026-11-14T22:18:57.378814Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Key Source Files",
+      "source_hash": 16514665536748640086,
+      "context_hash": 5034413527349081528,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T22:18:57.378814Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 18093235272305737123,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:18:57.378814Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Description",
+      "source_hash": 1758583599421982602,
+      "context_hash": 16168224971869961975,
+      "translation": "설명",
+      "glossary_snapshot": {
+        "Description": "설명"
+      },
+      "translated_at": "2026-11-14T22:18:57.378814Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "[`mm/kmemleak.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/kmemleak.c)",
+      "source_hash": 7659662853269106207,
+      "context_hash": 17720203715307501951,
+      "translation": "[`mm/kmemleak.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/kmemleak.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378814Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "Full kmemleak implementation: object tracking, scan logic, debugfs interface",
+      "source_hash": 5729959577089621677,
+      "context_hash": 7603799017371397892,
+      "translation": "kmemleak 전체 구현: 객체 추적, 스캔 로직, debugfs 인터페이스",
+      "glossary_snapshot": {
+        "debugfs": "debugfs",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "[`include/linux/kmemleak.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/kmemleak.h)",
+      "source_hash": 15815487229638567920,
+      "context_hash": 8942376017941315140,
+      "translation": "[`include/linux/kmemleak.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/kmemleak.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "Public API: `kmemleak_alloc`, `kmemleak_free`, annotation functions",
+      "source_hash": 6593983840344474535,
+      "context_hash": 8135443419574046526,
+      "translation": "공개 API: `kmemleak_alloc`, `kmemleak_free`, 주석(annotation) 함수",
+      "glossary_snapshot": {
+        "API": "API",
+        "functions": "함수"
+      },
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "[`Documentation/dev-tools/kmemleak.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/dev-tools/kmemleak.rst)",
+      "source_hash": 17341617409843371845,
+      "context_hash": 3515337049795409111,
+      "translation": "[`Documentation/dev-tools/kmemleak.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/dev-tools/kmemleak.rst)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "Official kernel documentation",
+      "source_hash": 10854959621829733929,
+      "context_hash": 16529001917896507318,
+      "translation": "공식 커널 문서",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "[`mm/slab_common.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slab_common.c)",
+      "source_hash": 5205073882685373117,
+      "context_hash": 17088460860504520695,
+      "translation": "[`mm/slab_common.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slab_common.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Calls `kmemleak_alloc` and `kmemleak_free` from common slab paths",
+      "source_hash": 16300539598746857676,
+      "context_hash": 6449886726414977209,
+      "translation": "공통 slab 경로에서 `kmemleak_alloc`과 `kmemleak_free` 호출",
+      "glossary_snapshot": {
+        "slab": "slab"
+      },
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "[`mm/slub.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slub.c)",
+      "source_hash": 9003956273616751519,
+      "context_hash": 15459485009689994025,
+      "translation": "[`mm/slub.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/slub.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "SLUB allocator; calls kmemleak hooks on alloc/free",
+      "source_hash": 13685030461181213547,
+      "context_hash": 10932457562675917758,
+      "translation": "SLUB 할당자; 할당/해제 시 kmemleak 훅 호출",
+      "glossary_snapshot": {
+        "SLUB": "SLUB",
+        "allocator": "할당자",
+        "hooks": "훅",
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:57.378815Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "[`mm/vmalloc.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmalloc.c)",
+      "source_hash": 16488096870881784984,
+      "context_hash": 2894041621556842162,
+      "translation": "[`mm/vmalloc.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmalloc.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "Calls `kmemleak_vmalloc` / `kmemleak_vfree`",
+      "source_hash": 6767755078256031436,
+      "context_hash": 8781846196075517134,
+      "translation": "`kmemleak_vmalloc` / `kmemleak_vfree` 호출",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "[`lib/Kconfig.debug`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/Kconfig.debug)",
+      "source_hash": 7939478602113543560,
+      "context_hash": 16340630633641337042,
+      "translation": "[`lib/Kconfig.debug`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/Kconfig.debug)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:16/seg:0",
+      "source": "`CONFIG_DEBUG_KMEMLEAK` and related Kconfig options",
+      "source_hash": 17838477016244882439,
+      "context_hash": 14489774863296358802,
+      "translation": "`CONFIG_DEBUG_KMEMLEAK` 및 관련 Kconfig 옵션",
+      "glossary_snapshot": {
+        "Kconfig": "Kconfig"
+      },
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Further Reading",
+      "source_hash": 16149536966054822133,
+      "context_hash": 6163809916063317687,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "Kernel Documentation",
+      "source_hash": 2270548287239967354,
+      "context_hash": 10842401038252083110,
+      "translation": "커널 문서",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "[Kmemleak official documentation](https://docs.kernel.org/dev-tools/kmemleak.html) — configuration, usage, and the scanning algorithm",
+      "source_hash": 5075649040888268316,
+      "context_hash": 1621729838906187839,
+      "translation": "[Kmemleak 공식 문서](https://docs.kernel.org/dev-tools/kmemleak.html) — 설정, 사용법, 스캔 알고리즘",
+      "glossary_snapshot": {
+        "kmemleak": "kmemleak"
+      },
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "LWN Articles",
+      "source_hash": 4231737255466291420,
+      "context_hash": 8873253087333880799,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "[Finding kernel memory leaks](https://lwn.net/Articles/187979/) — early design proposal describing the motivation and algorithm",
+      "source_hash": 944432421202853538,
+      "context_hash": 12658281796962878317,
+      "translation": "[Finding kernel memory leaks](https://lwn.net/Articles/187979/) — 동기와 알고리즘을 설명하는 초기 설계 제안",
+      "glossary_snapshot": {
+        "memory leaks": "메모리 누수"
+      },
+      "translated_at": "2026-11-14T22:18:57.378816Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "Related",
+      "source_hash": 15093278483956875061,
+      "context_hash": 6955525797089958457,
+      "translation": "관련 문서",
+      "glossary_snapshot": {
+        "Related": "관련 문서"
+      },
+      "translated_at": "2026-11-14T23:33:46.741Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "[KASAN](kasan.md) — catches use-after-free and out-of-bounds; complementary to kmemleak",
+      "source_hash": 15061907107645154282,
+      "context_hash": 11867415409671931757,
+      "translation": "[KASAN](kasan.md) — use-after-free와 out-of-bounds를 탐지합니다. kmemleak을 보완합니다",
+      "glossary_snapshot": {
+        "KASAN": "KASAN",
+        "kmemleak": "kmemleak",
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T21:51:28.099676Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "[KFENCE](kfence.md) — production-safe sampling detector; catches access bugs, not leaks",
+      "source_hash": 15539205329304333680,
+      "context_hash": 9517784864537836830,
+      "translation": "[KFENCE](kfence.md) — 프로덕션 환경에서도 안전한 샘플링 기반 탐지기입니다. 누수가 아닌 접근 버그를 탐지합니다",
+      "glossary_snapshot": {
+        "KFENCE": "KFENCE",
+        "bugs": "버그"
+      },
+      "translated_at": "2026-11-14T21:51:28.099677Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "[OOM Debugging](oom-debugging.md) — when accumulated leaks lead to exhaustion",
+      "source_hash": 8743977013481549646,
+      "context_hash": 1730647065740553334,
+      "translation": "[OOM 디버깅](oom-debugging.md) — 누적된 누수로 메모리가 고갈될 때",
+      "glossary_snapshot": {
+        "OOM": "OOM"
+      },
+      "translated_at": "2026-11-14T21:51:28.099677Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "[Slab Allocator](slab.md) — kmemleak hooks into slab allocation paths",
+      "source_hash": 14512533705291351368,
+      "context_hash": 1216249980968262309,
+      "translation": "[Slab 할당자](slab.md) — kmemleak은 slab 할당 경로에 훅을 겁니다",
+      "glossary_snapshot": {
+        "hooks": "훅",
+        "kmemleak": "kmemleak",
+        "slab": "slab",
+        "slab allocator": "slab 할당자"
+      },
+      "translated_at": "2026-11-14T21:51:28.099677Z",
+      "issues": []
+    }
+  ]
+}

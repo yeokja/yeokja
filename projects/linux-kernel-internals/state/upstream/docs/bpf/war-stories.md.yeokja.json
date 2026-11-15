@@ -1,0 +1,1598 @@
+{
+  "version": 1,
+  "source_hash": 5188036842797244121,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "War Stories: BPF Verifier Bugs and CVEs",
+      "source_hash": 6511670748614306350,
+      "context_hash": 12751910588553675092,
+      "translation": "실전 사례: BPF 검증기 버그와 CVE",
+      "glossary_snapshot": {
+        "BPF Verifier": "BPF 검증기",
+        "CVEs": "CVE",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T23:26:23.878811Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Real vulnerabilities from the eBPF verifier — what broke, why, and what the kernel eventually concluded about the whole idea",
+      "source_hash": 14189583855363046680,
+      "context_hash": 13482306142716218787,
+      "translation": "eBPF verifier에서 실제로 발생한 취약점 — 무엇이 깨졌고, 왜 깨졌으며, 커널이 이 발상 전체에 대해 결국 어떤 결론을 내렸는지",
+      "glossary_snapshot": {
+        "eBPF": "eBPF",
+        "kernel": "커널",
+        "vulnerabilities": "취약점"
+      },
+      "translated_at": "2026-11-14T21:57:41.714267Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Almost every other war story on this site is about code that was *supposed* to be safe and turned out not to be.",
+      "source_hash": 11407129067224233822,
+      "context_hash": 8480572859745848984,
+      "translation": "이 사이트의 다른 실전 사례는 거의 모두 안전*해야 했던* 코드가 실제로는 그렇지 않았다는 이야기입니다.",
+      "glossary_snapshot": {
+        "war story": "실전 사례"
+      },
+      "translated_at": "2026-11-14T21:57:41.714267Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "The BPF verifier is different: it is a program whose entire job is to be a proof.",
+      "source_hash": 8428310187878819739,
+      "context_hash": 14004360269615673778,
+      "translation": "BPF 검증기는 다릅니다. BPF 검증기는 그 자체가 하나의 증명이 되는 것을 유일한 임무로 삼는 프로그램입니다.",
+      "glossary_snapshot": {
+        "BPF Verifier": "BPF 검증기"
+      },
+      "translated_at": "2026-11-14T23:26:23.878812Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "Before the kernel will run a BPF program, the verifier walks every path the program could take, tracks what every register could hold, and refuses anything it cannot prove safe.",
+      "source_hash": 2106985717619028595,
+      "context_hash": 15876098107284729131,
+      "translation": "커널이 BPF 프로그램을 실행하기 전에 verifier는 프로그램이 취할 수 있는 모든 경로를 따라가며 각 레지스터가 가질 수 있는 값을 추적하고, 안전하다고 증명할 수 없는 것은 모두 거부합니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:57:41.714267Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:3",
+      "source": "When it works, an unprivileged user can load code into ring 0 and nothing bad happens.",
+      "source_hash": 5946370994280498973,
+      "context_hash": 7281943486051768817,
+      "translation": "verifier가 제대로 동작한다면, 비특권 사용자가 ring 0에 코드를 적재해도 아무런 문제가 일어나지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714268Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "That makes the bug class here unusually pure.",
+      "source_hash": 3155437302812704612,
+      "context_hash": 7434225582475704558,
+      "translation": "그래서 이 버그 유형은 유달리 순수합니다.",
+      "glossary_snapshot": {
+        "bug class": "버그 유형"
+      },
+      "translated_at": "2026-11-14T21:57:41.714268Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "There is no buffer to overflow and no lock to drop.",
+      "source_hash": 15405928026285631062,
+      "context_hash": 3750321240137784479,
+      "translation": "오버플로할 버퍼도, 빠뜨릴 락도 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714268Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:2",
+      "source": "Every incident below is the same failure in a different costume: **the verifier's model of what a register holds diverged from what the register will actually hold at run time.** One instruction where the model says \"sign-extended\" and the machine says \"zero-padded.\" One masking operation that is valid for a value and invalid for a range.",
+      "source_hash": 18125054345108793094,
+      "context_hash": 16017701168222209778,
+      "translation": "아래의 모든 사고는 겉모습만 다를 뿐 같은 실패입니다. **레지스터가 담고 있는 값에 대한 verifier의 모델이 실행 시점에 레지스터가 실제로 담게 될 값과 어긋난 것입니다.** 모델은 \"부호 확장\"이라고 하는데 기계는 \"0으로 채움\"이라고 하는 명령어 하나. 단일 값에는 유효하지만 범위에는 유효하지 않은 마스킹 연산 하나.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714268Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:3",
+      "source": "One early return that skips an update because a sibling function \"will handle it.\" Each of those is a few lines, each of them passed review, and each of them hands an unprivileged process the ability to construct a pointer the verifier thinks is in bounds.",
+      "source_hash": 10926330885888897768,
+      "context_hash": 8086180983851611697,
+      "translation": "형제 함수가 \"처리해 줄 것\"이라며 갱신을 건너뛰는 조기 반환 하나. 이들은 모두 몇 줄짜리였고, 모두 리뷰를 통과했으며, 모두 비특권 프로세스에 verifier가 범위 안에 있다고 믿는 포인터를 만들어 낼 능력을 쥐여 줍니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T21:57:41.714268Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:0",
+      "source": "The other thing this page documents is a conclusion.",
+      "source_hash": 13120331590534891268,
+      "context_hash": 9191370599547319071,
+      "translation": "이 페이지가 기록하는 또 하나는 하나의 결론입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714268Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:1",
+      "source": "After years of holding the line that the verifier could be a security boundary against a hostile program author, the BPF maintainers stopped believing it — publicly, on LWN, in 2019 — and the subsystem eventually shipped a knob to turn unprivileged BPF off by default.",
+      "source_hash": 15594465234706055516,
+      "context_hash": 2320821260631586479,
+      "translation": "verifier가 악의적인 프로그램 작성자에 맞서는 보안 경계가 될 수 있다는 입장을 수년간 고수한 끝에, BPF 메인테이너들은 2019년 LWN에서 공개적으로 그 믿음을 거두었고, 서브시스템은 결국 비특권 BPF를 기본적으로 끄는 설정 항목을 내놓았습니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "LWN": "LWN",
+        "subsystem": "서브시스템",
+        "unprivileged BPF": "비특권 BPF"
+      },
+      "translated_at": "2026-11-14T21:57:41.714268Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:4/seg:2",
+      "source": "That is not a CVE, but it is the most consequential entry here, so it gets a page.",
+      "source_hash": 14691339772872931937,
+      "context_hash": 18300051293001719561,
+      "translation": "이것은 CVE는 아니지만 여기서 가장 파급력이 큰 항목이므로 별도의 페이지를 둡니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:0",
+      "source": "Each incident below has its own page: root-cause analysis grounded in the actual patches and the actual verifier traces the maintainers pasted into their commit messages, plus whatever public mailing-list record exists.",
+      "source_hash": 3609859047273609127,
+      "context_hash": 9280513365492065033,
+      "translation": "아래의 각 사고에는 전용 페이지가 있습니다. 실제 패치와 메인테이너가 커밋 메시지에 붙여 넣은 실제 verifier 트레이스에 근거한 근본 원인 분석과 함께, 존재하는 공개 메일링 리스트 기록을 모두 담았습니다.",
+      "glossary_snapshot": {
+        "analysis": "분석",
+        "commit messages": "커밋 메시지"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:1",
+      "source": "For one of them — the 2020 jmp32 revert — that record is a full public thread with a replacement implementation from Jann Horn in the same series.",
+      "source_hash": 10404068743500301433,
+      "context_hash": 2217056015558811582,
+      "translation": "그중 하나인 2020년 jmp32 revert의 경우, 그 기록은 같은 시리즈에 Jann Horn의 대체 구현까지 포함된 완전한 공개 스레드입니다.",
+      "glossary_snapshot": {
+        "Jann": "Jann"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:2",
+      "source": "For most of the rest, the fixes were handled privately and announced on oss-security once they shipped; CVE-2021-31440 has no oss-security announcement at all, only a ZDI advisory, and the unprivileged-BPF default change was an ordinary public patch posting.",
+      "source_hash": 12401624796161778763,
+      "context_hash": 4024167914919821577,
+      "translation": "나머지 대부분은 수정이 비공개로 처리되었고 배포된 뒤에 oss-security에 공지되었습니다. CVE-2021-31440은 oss-security 공지가 아예 없고 ZDI 권고문만 있으며, 비특권 BPF 기본값 변경은 일반적인 공개 패치 게시였습니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "CVE": "CVE",
+        "oss-security": "oss-security"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:5/seg:3",
+      "source": "The pages say that rather than manufacturing a debate.",
+      "source_hash": 10420690029089168525,
+      "context_hash": 1808658478954534390,
+      "translation": "각 페이지는 없는 논쟁을 지어내지 않고 이 사실을 그대로 밝힙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Incidents",
+      "source_hash": 13222895534781683695,
+      "context_hash": 17157838281774603000,
+      "translation": "사고 목록",
+      "glossary_snapshot": {
+        "Incidents": "사고 목록"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Ordered reverse chronologically by earliest public disclosure — oss-security post, ZDI advisory, or NVD publication, whichever came first — newest first.",
+      "source_hash": 14159118398355363158,
+      "context_hash": 18438715485976916550,
+      "translation": "최초 공개 시점(oss-security 게시, ZDI 권고문, NVD 공개 중 가장 이른 것) 기준 역순, 최신순 정렬",
+      "glossary_snapshot": {
+        "NVD": "NVD",
+        "oss-security": "oss-security"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "[Spectre in the BPF Verifier](war-stories/spectre-verifier.md)",
+      "source_hash": 6561421696979024659,
+      "context_hash": 5744662706907728173,
+      "translation": "[BPF Verifier의 Spectre](war-stories/spectre-verifier.md)",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Spectre": "Spectre"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**June 2021 · CVE-2021-33624 · CVSS 4.7** The verifier only walks paths that can actually execute.",
+      "source_hash": 11187386265494757813,
+      "context_hash": 990326384006459567,
+      "translation": "**2021년 6월 · CVE-2021-33624 · CVSS 4.7** verifier는 실제로 실행될 수 있는 경로만 따라갑니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "CVSS": "CVSS"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "A CPU that mispredicts two mutually exclusive branches will execute a path the verifier proved impossible, dereferencing an attacker-controlled pointer under speculation.",
+      "source_hash": 16650981800640723207,
+      "context_hash": 15803273701191096077,
+      "translation": "상호 배타적인 두 분기를 모두 잘못 예측한 CPU는 verifier가 불가능하다고 증명한 경로를 실행하며, 투기적 실행 중에 공격자가 제어하는 포인터를 역참조합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T21:57:41.714269Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "The fix stopped pruning unreachable branches and started simulating them.",
+      "source_hash": 9345173871428007482,
+      "context_hash": 4316057023870463262,
+      "translation": "수정 패치는 도달 불가능한 분기를 가지치기하지 않고 시뮬레이션하도록 바꾸었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "[Unprivileged BPF Off by Default](war-stories/unprivileged-bpf-off.md)",
+      "source_hash": 2863710889495094557,
+      "context_hash": 534472942693753592,
+      "translation": "[비특권 BPF 기본 비활성화](war-stories/unprivileged-bpf-off.md)",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**May 2021 · not a CVE** Posted the same day CVE-2021-3490 was announced: a kconfig knob defaulting `kernel.unprivileged_bpf_disabled` to a new value 2 — off, but recoverable by an administrator.",
+      "source_hash": 17359712571193944928,
+      "context_hash": 14317122950337021995,
+      "translation": "**2021년 5월 · CVE 아님** CVE-2021-3490이 공지된 바로 그날 게시되었습니다. `kernel.unprivileged_bpf_disabled`의 기본값을 새로운 값 2(비활성화되지만 관리자가 되돌릴 수 있음)로 설정하는 kconfig 항목입니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Kconfig": "Kconfig",
+        "administrator": "관리자"
+      },
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "The end of a two-year argument about whether unprivileged BPF was ever achievable, which LWN had documented in 2019.",
+      "source_hash": 70494372103782450,
+      "context_hash": 694568570570583317,
+      "translation": "비특권 BPF가 애초에 실현 가능한가를 둘러싸고 2019년 LWN이 기록했던 2년간의 논쟁에 마침표를 찍은 변경입니다.",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "unprivileged BPF": "비특권 BPF"
+      },
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "[ALU32 Bitwise Bounds Tracking](war-stories/alu32-bitwise-bounds.md)",
+      "source_hash": 2028834819004451380,
+      "context_hash": 8730287124249634353,
+      "translation": "[ALU32 비트 연산 범위 추적](war-stories/alu32-bitwise-bounds.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "**May 2021 · CVE-2021-3490 · CVSS 7.8** Three functions skipped updating a register's 32-bit bounds on the grounds that a 64-bit sibling would handle it.",
+      "source_hash": 1609574669682371257,
+      "context_hash": 12559913966235784636,
+      "translation": "**2021년 5월 · CVE-2021-3490 · CVSS 7.8** 세 함수가 64비트 형제 함수가 처리해 줄 것이라는 이유로 레지스터의 32비트 범위 갱신을 건너뛰었습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "CVSS": "CVSS",
+        "bit": "비트",
+        "functions": "함수"
+      },
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "The sibling only handled it under a stricter precondition, leaving registers in a state where the minimum exceeded the maximum.",
+      "source_hash": 3525169434357490637,
+      "context_hash": 1651593772381812970,
+      "translation": "형제 함수는 더 엄격한 전제 조건에서만 이를 처리했기 때문에, 레지스터가 최솟값이 최댓값보다 큰 상태로 남았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "A public local-root exploit followed.",
+      "source_hash": 53714812632736335,
+      "context_hash": 10339922722696836324,
+      "translation": "이후 공개 로컬 루트 익스플로잇이 나왔습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "[The 32-Bit Unsigned Bounds Propagation Bug](war-stories/alu32-unsigned-bounds.md)",
+      "source_hash": 2933389506450670633,
+      "context_hash": 7241492422354252383,
+      "translation": "[32비트 부호 없는 범위 전파 버그](war-stories/alu32-unsigned-bounds.md)",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T21:57:41.714270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "**May 2021 · CVE-2021-31440 · CVSS 7.0 (NVD) / 8.8 (ZDI)** Four and a half months earlier, someone had fixed exactly this bug in the signed half of a two-block pattern.",
+      "source_hash": 14160611333444938305,
+      "context_hash": 5676756966485373332,
+      "translation": "**2021년 5월 · CVE-2021-31440 · CVSS 7.0 (NVD) / 8.8 (ZDI)** 그보다 4개월 반 전에, 누군가가 두 블록으로 된 패턴의 signed 쪽 절반에서 정확히 이 버그를 고쳤습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "CVSS": "CVSS",
+        "NVD": "NVD",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T21:57:34.032004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:1",
+      "source": "The unsigned half sat unchanged in the trailing context of the fix's own diff.",
+      "source_hash": 10597519149058315610,
+      "context_hash": 17762736989368788299,
+      "translation": "unsigned 쪽 절반은 그 수정 diff 자체의 뒤쪽 context에 바뀌지 않은 채로 남아 있었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "[The jmp32 Bounds Regression](war-stories/jmp32-bounds.md)",
+      "source_hash": 490417184476770840,
+      "context_hash": 3297946162233759554,
+      "translation": "[jmp32 경계 회귀](war-stories/jmp32-bounds.md)",
+      "glossary_snapshot": {
+        "regression": "회귀"
+      },
+      "translated_at": "2026-11-14T21:57:34.032004Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "**March 2020 · CVE-2020-8835 · CVSS 7.8** A precision improvement, never intended for stable, was auto-selected into the 5.4 long-term series by a machine-learning classifier that mistook it for a fix.",
+      "source_hash": 17070482201199703478,
+      "context_hash": 16506481765525609987,
+      "translation": "**2020년 3월 · CVE-2020-8835 · CVSS 7.8** stable을 염두에 두지 않았던 정밀도 개선 패치가, 이를 수정 패치로 오인한 기계 학습 분류기에 의해 5.4 장기 지원 시리즈에 자동으로 선택되었습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "CVSS": "CVSS"
+      },
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "Manfred Paul turned it into a Pwn2Own entry.",
+      "source_hash": 14244681010347301475,
+      "context_hash": 16517046047973740346,
+      "translation": "Manfred Paul은 이를 Pwn2Own 출품작으로 만들었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:2",
+      "source": "The fix was a pure 19-line deletion, chosen over a working repair.",
+      "source_hash": 10806274121495715318,
+      "context_hash": 1852284588512719166,
+      "translation": "수정은 제대로 동작하는 보수안 대신 선택된, 19줄을 순수하게 삭제하는 패치였습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "[Sign Extension in `check_alu_op()`](war-stories/sign-extension.md)",
+      "source_hash": 577013610823146844,
+      "context_hash": 11420963817094109859,
+      "translation": "[`check_alu_op()`의 부호 확장](war-stories/sign-extension.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "**December 2017 · CVE-2017-16995 · CVSS 7.8** The verifier sign-extended a 32-bit immediate that the machine zero-pads, so its model of the register was wrong from the first instruction.",
+      "source_hash": 15776024345164094391,
+      "context_hash": 7291101645563591283,
+      "translation": "**2017년 12월 · CVE-2017-16995 · CVSS 7.8** verifier는 기계가 0으로 채우는 32비트 즉치값을 부호 확장했기 때문에, 레지스터에 대한 verifier의 모델은 첫 명령어부터 틀려 있었습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "CVSS": "CVSS",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:1",
+      "source": "One of eight verifier bugs Jann Horn reported in a single message — the pass that established the verifier's arithmetic as a security-reviewed surface.",
+      "source_hash": 2183827479652241969,
+      "context_hash": 10539106994973498944,
+      "translation": "Jann Horn이 하나의 메시지로 보고한 verifier 버그 8개 중 하나로, 이 검토를 계기로 verifier의 산술 연산이 보안 검토 대상 영역으로 자리 잡았습니다.",
+      "glossary_snapshot": {
+        "Jann": "Jann",
+        "bugs": "버그"
+      },
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:2",
+      "source": "Three public exploits, including a Metasploit module.",
+      "source_hash": 14689298035970534090,
+      "context_hash": 14064603165494325684,
+      "translation": "Metasploit 모듈을 포함하여 공개된 익스플로잇이 세 개 있습니다.",
+      "glossary_snapshot": {
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Common threads",
+      "source_hash": 15630519619683491239,
+      "context_hash": 14092454350606999571,
+      "translation": "공통점",
+      "glossary_snapshot": {
+        "Common threads": "공통점"
+      },
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Pattern",
+      "source_hash": 544911176319535475,
+      "context_hash": 2656313375298312634,
+      "translation": "패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Spectre",
+      "source_hash": 13004517709478956367,
+      "context_hash": 13520287399464840755,
+      "translation": "Spectre",
+      "glossary_snapshot": {
+        "Spectre": "Spectre"
+      },
+      "translated_at": "2026-11-14T21:57:34.032005Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Unpriv off",
+      "source_hash": 4447486620145260253,
+      "context_hash": 15077975360960028228,
+      "translation": "비특권 비활성화",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "ALU32 bitwise",
+      "source_hash": 17505912031890400957,
+      "context_hash": 9612130953654250090,
+      "translation": "ALU32 비트 연산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "32-bit unsigned",
+      "source_hash": 13373052185435824608,
+      "context_hash": 7803984781325790240,
+      "translation": "32비트 unsigned",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "jmp32",
+      "source_hash": 570865378399746085,
+      "context_hash": 5547242093789267323,
+      "translation": "jmp32",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Sign extension",
+      "source_hash": 657126460564738691,
+      "context_hash": 5907828002922407568,
+      "translation": "부호 확장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Root cause is 32-bit vs. 64-bit value tracking",
+      "source_hash": 17227459062728390116,
+      "context_hash": 46303545442348419,
+      "translation": "근본 원인이 32비트와 64비트 값 추적의 차이",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 6415830994096345091,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 9508013301409225522,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11948438526398952714,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032006Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 1310357600367594477,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Reachable by an unprivileged local process on a default-configured kernel",
+      "source_hash": 12043416172091193305,
+      "context_hash": 7259753640440472095,
+      "translation": "기본 설정 커널에서 비특권 로컬 프로세스가 도달 가능",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 538331908926021921,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 7259753640440472095,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11948438526398952714,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 539880327321521025,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "Yes (from 4.14)",
+      "source_hash": 11365057982175341172,
+      "context_hash": 11811697844891197962,
+      "translation": "예 (4.14부터)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:34.032007Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "Descends from `3f50f132d840` (explicit ALU32 bounds tracking)",
+      "source_hash": 16711334339933966252,
+      "context_hash": 8727220333833842250,
+      "translation": "`3f50f132d840`(명시적 ALU32 범위 추적)에서 유래",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:30.353550Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 2179208628471634972,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353551Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 9508013301409225522,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:30.353552Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11948438526398952714,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353552Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16361932622599883170,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353552Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353552Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 77026839495709185,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "Surfaced first by fuzzing",
+      "source_hash": 4115846994127228093,
+      "context_hash": 7536943046141488671,
+      "translation": "퍼징으로 처음 발견",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:30.353553Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10760936027466229771,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 7536943046141488671,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:30.353554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14339229075725993992,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9508013301409225522,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7536943046141488671,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353554Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:35/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10973249878806580371,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "Found through a paid vulnerability program (ZDI / Pwn2Own)",
+      "source_hash": 7796870897973901025,
+      "context_hash": 7536943046141488671,
+      "translation": "유료 취약점 프로그램(ZDI / Pwn2Own)을 통해 발견",
+      "glossary_snapshot": {
+        "vulnerability": "취약점"
+      },
+      "translated_at": "2026-11-14T21:57:30.353555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:37/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14944828290678071203,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 9508013301409225522,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:30.353555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11948438526398952714,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353555Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16361932622599883170,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 15381945056058238046,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:0",
+      "source": "Packaged public exploit tool (Exploit-DB / Metasploit / Packet Storm)",
+      "source_hash": 16577913800211793633,
+      "context_hash": 7536943046141488671,
+      "translation": "패키지화된 공개 익스플로잇 도구(Exploit-DB / Metasploit / Packet Storm)",
+      "glossary_snapshot": {
+        "Exploit tool": "익스플로잇 도구"
+      },
+      "translated_at": "2026-11-14T21:57:30.353556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 1017875932332845217,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:45/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 9508013301409225522,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:30.353556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:46/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 14339229075725993992,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:47/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353556Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:48/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9508013301409225522,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353557Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:49/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 18298465337209191512,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:30.353558Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:50/seg:0",
+      "source": "Confirmed active exploitation (CISA KEV)",
+      "source_hash": 3065455718959401277,
+      "context_hash": 16361932622599883170,
+      "translation": "실제 악용 확인(CISA KEV)",
+      "glossary_snapshot": {
+        "CISA KEV": "CISA KEV"
+      },
+      "translated_at": "2026-11-14T21:57:30.353558Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:51/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 8230689111079219652,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353558Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:52/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 7536943046141488671,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:30.353558Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:53/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14339229075725993992,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:30.353558Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:54/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:54.799035Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:55/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:56/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 6203039464252508603,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:57/seg:0",
+      "source": "Fix deleted code rather than adding it",
+      "source_hash": 1832755637539603477,
+      "context_hash": 7536943046141488671,
+      "translation": "코드를 추가하는 대신 삭제된 코드를 수정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:58/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 3112313601998400951,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:59/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 7536943046141488671,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:60/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14339229075725993992,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:61/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9508013301409225522,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:62/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7536943046141488671,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:63/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 18381583392213119962,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:57:54.799036Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:64/seg:0",
+      "source": "The first row is the page's spine.",
+      "source_hash": 6975312770604556356,
+      "context_hash": 12462459334975189119,
+      "translation": "첫 번째 행이 이 페이지의 중심축입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:64/seg:1",
+      "source": "Four of the five bugs are the same disagreement at different points in the pipeline: a 64-bit value, a 32-bit view of it, and a rule for keeping the two consistent that was correct for the case its author had in mind.",
+      "source_hash": 14904750368576443047,
+      "context_hash": 11085994187954099687,
+      "translation": "다섯 개의 버그 중 네 개는 파이프라인의 서로 다른 지점에서 나타난 같은 불일치입니다. 즉 64비트 값, 그 값의 32비트 뷰, 그리고 둘을 일관되게 유지하는 규칙이 있는데, 그 규칙은 작성자가 염두에 둔 경우에 대해서만 올바른 것이었습니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "bugs": "버그"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:64/seg:2",
+      "source": "BPF programs are written in C and compiled by LLVM, which emits 32-bit arithmetic constantly, so the verifier cannot simply refuse to reason about subregisters — the alternative to this machinery is rejecting correct programs.",
+      "source_hash": 17083278470579143289,
+      "context_hash": 15661787439446808299,
+      "translation": "BPF 프로그램은 C로 작성되고 LLVM으로 컴파일되는데, LLVM은 32비트 산술 연산을 끊임없이 생성하므로 verifier는 서브레지스터(subregister)에 대한 추론을 그냥 거부할 수 없습니다. 이 메커니즘을 쓰지 않는다면 올바른 프로그램을 거부하는 수밖에 없습니다.",
+      "glossary_snapshot": {
+        "BPF programs": "BPF 프로그램",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:65/seg:0",
+      "source": "**The lineage is the most instructive thing here, and it is fully traceable in the commits.** A precision patch ([`581738a681b6`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=581738a681b6faae5725c2555439189ca81c0f1f)) encoded 32-bit knowledge by abusing the tnum representation.",
+      "source_hash": 13182861073608401140,
+      "context_hash": 17355922529901192965,
+      "translation": "**여기서 가장 교훈적인 것은 그 계보이며, 이는 커밋을 통해 완전히 추적할 수 있습니다.** 한 정밀도 패치([`581738a681b6`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=581738a681b6faae5725c2555439189ca81c0f1f))는 tnum 표현을 남용하여 32비트 정보를 인코딩했습니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:65/seg:1",
+      "source": "That became [CVE-2020-8835](war-stories/jmp32-bounds.md).",
+      "source_hash": 13013225128262808329,
+      "context_hash": 7904588685728144823,
+      "translation": "이것이 [CVE-2020-8835](war-stories/jmp32-bounds.md)가 되었습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:65/seg:2",
+      "source": "The response was a revert plus a correct reimplementation by Jann Horn — which was itself superseded, in the same release, by John Fastabend's [`3f50f132d840`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3f50f132d8400e129fc9eb68b5020167ef80a244), giving registers a genuine second set of 32-bit bounds instead of overloading the tnum.",
+      "source_hash": 562057712755640956,
+      "context_hash": 5509435375999698438,
+      "translation": "이에 대한 대응은 revert와 Jann Horn의 올바른 재구현이었으나, 이 재구현 역시 같은 릴리스에서 John Fastabend의 [`3f50f132d840`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3f50f132d8400e129fc9eb68b5020167ef80a244)로 대체되었습니다. 이 커밋은 tnum에 과도한 의미를 싣는 대신 레지스터에 실제로 별도의 32비트 범위 집합을 부여했습니다.",
+      "glossary_snapshot": {
+        "Jann": "Jann",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:65/seg:3",
+      "source": "That is the better design, and it is the `Fixes:` target of both [CVE-2021-3490](war-stories/alu32-bitwise-bounds.md) and [CVE-2021-31440](war-stories/alu32-unsigned-bounds.md).",
+      "source_hash": 12490617518771492017,
+      "context_hash": 14457246346097789656,
+      "translation": "이것이 더 나은 설계이며, [CVE-2021-3490](war-stories/alu32-bitwise-bounds.md)과 [CVE-2021-31440](war-stories/alu32-unsigned-bounds.md) 모두의 `Fixes:` 대상이기도 합니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:65/seg:4",
+      "source": "Every step of that chain was an improvement.",
+      "source_hash": 7385530703766191635,
+      "context_hash": 7093307937704822174,
+      "translation": "그 연쇄의 모든 단계는 개선이었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:65/seg:5",
+      "source": "Every step also created new invariants that nothing but review enforced, and review missed them.",
+      "source_hash": 1127509822722940294,
+      "context_hash": 18282338103099220907,
+      "translation": "동시에 모든 단계는 리뷰 외에는 아무것도 강제하지 않는 새로운 불변식을 만들어 냈고, 리뷰는 그것을 놓쳤습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:66/seg:0",
+      "source": "**Detection here looks nothing like the [networking page](../net/war-stories.md).** There, fuzzing found a real share of them — syzkaller flagged the AF_PACKET and UDP UFO defects, and a syzbot report on the Netfilter x_tables gap sat unanswered for eight months — because those bugs corrupt memory in ways a sanitizer notices.",
+      "source_hash": 10930397472855858642,
+      "context_hash": 18057758769842432088,
+      "translation": "**여기서의 탐지 양상은 [네트워킹 페이지](../net/war-stories.md)와 전혀 다릅니다.** 그곳에서는 퍼징이 상당한 비중을 찾아냈습니다. syzkaller가 AF_PACKET과 UDP UFO 결함을 잡아냈고, Netfilter x_tables의 허점에 대한 syzbot 보고는 8개월 동안 응답 없이 방치되었습니다. 이는 그 버그들이 sanitizer가 감지할 수 있는 방식으로 메모리를 손상시키기 때문입니다.",
+      "glossary_snapshot": {
+        "Netfilter": "Netfilter",
+        "UDP": "UDP",
+        "UFO": "UFO",
+        "bugs": "버그",
+        "memory": "메모리",
+        "syzbot": "syzbot",
+        "syzkaller": "syzkaller"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:66/seg:1",
+      "source": "A verifier bug corrupts nothing at verification time — it produces a *proof that is wrong*, and no sanitizer has an opinion about that.",
+      "source_hash": 6426524759085992550,
+      "context_hash": 6116533248258285940,
+      "translation": "verifier 버그는 검증 시점에 아무것도 손상시키지 않습니다. 대신 *잘못된 증명*을 만들어 내며, 어떤 sanitizer도 이에 대해서는 판단하지 못합니다.",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:66/seg:2",
+      "source": "So the finders are different: Jann Horn's systematic 2017 audit, and then Manfred Paul, who is behind three of the five CVEs on this page, working through Pwn2Own and ZDI.",
+      "source_hash": 8937170321393610271,
+      "context_hash": 7584972214085957312,
+      "translation": "그래서 발견자도 다릅니다. Jann Horn의 체계적인 2017년 감사가 있었고, 그다음은 이 페이지의 CVE 다섯 개 중 세 개를 발견한 Manfred Paul로, Pwn2Own과 ZDI를 통해 활동했습니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "Jann": "Jann"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:66/seg:3",
+      "source": "Fuzzing appears exactly once, and even then obliquely: Anatoly Trosinenko's kBdysch harness reported CVE-2020-8835 as a *hang*, because the verifier's wrong proof caused it to rewrite live instructions as an infinite loop.",
+      "source_hash": 12137574281706923691,
+      "context_hash": 4689788889864198528,
+      "translation": "퍼징은 단 한 번 등장하며, 그마저도 간접적입니다. Anatoly Trosinenko의 kBdysch 하네스는 CVE-2020-8835를 *hang*으로 보고했는데, verifier의 잘못된 증명 때문에 실행되는 명령어가 무한 루프로 재작성되었기 때문입니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE"
+      },
+      "translated_at": "2026-11-14T21:57:54.799037Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:66/seg:4",
+      "source": "The security impact was found separately, by someone looking for it.",
+      "source_hash": 16014036357009123043,
+      "context_hash": 6252153651059234854,
+      "translation": "보안상의 영향은 그것을 찾고 있던 다른 사람이 별도로 발견했습니다.",
+      "glossary_snapshot": {
+        "impact": "영향"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:67/seg:0",
+      "source": "**None of these has ever been confirmed exploited in the wild.** Not one appears in CISA's KEV catalog, despite two of them having packaged public working exploits — one catalogued on Packet Storm, the other shipped as a Metasploit module in 2018.",
+      "source_hash": 7211604129181807110,
+      "context_hash": 2299645571266781094,
+      "translation": "**이 가운데 실제 환경(in the wild)에서 악용이 확인된 것은 하나도 없습니다.** 그중 두 개는 공개된 실제 작동 익스플로잇이 패키지 형태로 존재했음에도(하나는 Packet Storm에 등록되었고, 다른 하나는 2018년에 Metasploit 모듈로 배포되었습니다) CISA의 KEV 카탈로그에 등재된 것은 하나도 없습니다.",
+      "glossary_snapshot": {
+        "CISA": "CISA",
+        "KEV": "KEV",
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:67/seg:1",
+      "source": "That is a lower rate than the [security subsystem's war stories](../security/war-stories.md), where three of four are KEV-listed — and the likely reason is the same reason this page ends the way it does.",
+      "source_hash": 6940815431524048600,
+      "context_hash": 17835112117943349612,
+      "translation": "이는 네 개 중 세 개가 KEV에 등재된 [보안 서브시스템의 실전 사례](../security/war-stories.md)보다 낮은 비율이며, 그 이유는 아마도 이 페이지가 지금처럼 끝나는 이유와 같을 것입니다.",
+      "glossary_snapshot": {
+        "KEV": "KEV",
+        "subsystem": "서브시스템",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:67/seg:2",
+      "source": "A local privilege escalation is only useful if the primitive is available on the target, and over this exact period the primitive was being fenced off: `CAP_BPF` in 2020, then a build-time off-by-default option in 2021.",
+      "source_hash": 7826345779265034665,
+      "context_hash": 12173583170144006398,
+      "translation": "로컬 권한 상승은 대상 시스템에서 해당 프리미티브를 사용할 수 있을 때에만 유용한데, 바로 이 기간 동안 그 프리미티브는 차단되고 있었습니다. 2020년에는 `CAP_BPF`가, 2021년에는 빌드 시점에 기본적으로 꺼져 있는 옵션이 도입되었습니다.",
+      "glossary_snapshot": {
+        "privilege escalation": "권한 상승"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:67/seg:3",
+      "source": "That is a plausible explanation rather than a demonstrated one — absence from KEV is absence of *confirmed* exploitation, not evidence that nobody tried.",
+      "source_hash": 10120939735306266739,
+      "context_hash": 9303987934267294923,
+      "translation": "이는 입증된 설명이라기보다는 그럴듯한 설명입니다. KEV에 없다는 것은 *확인된* 악용이 없다는 뜻일 뿐, 아무도 시도하지 않았다는 증거는 아닙니다.",
+      "glossary_snapshot": {
+        "KEV": "KEV"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:68/seg:0",
+      "source": "**Which is the actual conclusion of this page.** The [unprivileged-BPF-off](war-stories/unprivileged-bpf-off.md) entry is not a CVE and not a mistake — it is the subsystem's own answer to everything above it.",
+      "source_hash": 14887008605040436929,
+      "context_hash": 14682791476466231731,
+      "translation": "**그리고 이것이 이 페이지의 실제 결론입니다.** [비특권 BPF 비활성화](war-stories/unprivileged-bpf-off.md) 항목은 CVE도 아니고 실수도 아닙니다. 그것은 위의 모든 것에 대한 서브시스템 자체의 답입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "CVE": "CVE",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:68/seg:1",
+      "source": "Alexei Starovoitov's position, quoted on LWN in 2019, is that the verifier hardening built to make unprivileged BPF safe is \"a lot of complex kernel code without users.\" Andy Lutomirski's counter, that the use cases don't exist *because* the support doesn't, was never refuted; it was settled by shipping a default.",
+      "source_hash": 16761307506687796508,
+      "context_hash": 15069695852937108204,
+      "translation": "2019년 LWN에 인용된 Alexei Starovoitov의 입장은, 비특권 BPF를 안전하게 만들기 위해 구축된 verifier 강화가 \"a lot of complex kernel code without users\"라는 것입니다. 지원이 없기 *때문에* 사용 사례가 존재하지 않는 것이라는 Andy Lutomirski의 반론은 한 번도 반박되지 않았으며, 이 논쟁은 기본값을 출시하는 것으로 결론지어졌습니다.",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "unprivileged BPF": "비특권 BPF"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:68/seg:2",
+      "source": "Read the five bug pages first, then that one, and the argument reads very differently than it does in isolation.",
+      "source_hash": 1501037038695065822,
+      "context_hash": 2101796825144169907,
+      "translation": "먼저 다섯 개의 버그 페이지를 읽은 다음 그 페이지를 읽으십시오. 그러면 그 논증이 따로 읽을 때와는 매우 다르게 읽힙니다.",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "See also",
+      "source_hash": 5857332155845589011,
+      "context_hash": 13758126492044566090,
+      "translation": "함께 보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:57:54.799038Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "[BPF Verifier](bpf-verifier.md) — register state tracking, bounds, path exploration, and dead-code elimination: the machinery every bug on this page lives inside",
+      "source_hash": 8771906903499671265,
+      "context_hash": 2082644087288336872,
+      "translation": "[BPF 검증기](bpf-verifier.md) — 레지스터 상태 추적, 범위(bounds), 경로 탐색, 데드 코드 제거: 이 페이지의 모든 버그가 자리한 메커니즘",
+      "glossary_snapshot": {
+        "BPF Verifier": "BPF 검증기"
+      },
+      "translated_at": "2026-11-14T23:26:23.878813Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "[Architecture & Program Types](bpf-overview.md) — the eBPF instruction format, registers, and program types: the vocabulary the 2017 bug is written in",
+      "source_hash": 8234064727201728991,
+      "context_hash": 7801027146125906128,
+      "translation": "[Architecture & Program Types](bpf-overview.md) — eBPF 명령어 형식, 레지스터, 프로그램 타입: 2017년 버그를 설명하는 데 쓰이는 용어",
+      "glossary_snapshot": {
+        "bug": "버그",
+        "eBPF": "eBPF"
+      },
+      "translated_at": "2026-11-14T21:52:06.032845Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "[BPF Maps](bpf-maps.md) — array maps and the other map types the pointers these bugs forge are aimed at",
+      "source_hash": 10658462349611778584,
+      "context_hash": 12008033508989193339,
+      "translation": "[BPF Maps](bpf-maps.md) — 이 버그들이 위조하는 포인터가 겨냥하는 배열 맵과 그 밖의 맵 유형",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T23:26:23.878813Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "[Linux Capabilities](../security/capabilities.md) — `CAP_BPF` and the privilege split that gave administrators an option between \"root\" and \"anyone\"",
+      "source_hash": 7098445001550851615,
+      "context_hash": 11601746962181073884,
+      "translation": "[Linux Capabilities](../security/capabilities.md) — `CAP_BPF`, 그리고 관리자에게 \"root\"와 \"누구나\" 사이의 선택지를 제공한 권한 분리",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "administrators": "관리자"
+      },
+      "translated_at": "2026-11-14T21:52:06.032845Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "[Kernel Hardening](../security/kernel-hardening.md) — where speculation mitigations and hardening config knobs sit in the wider picture",
+      "source_hash": 17875983096592951777,
+      "context_hash": 17678835723870096799,
+      "translation": "[Kernel Hardening](../security/kernel-hardening.md) — 더 넓은 관점에서 본 투기적 실행(speculation) 완화 기법과 하드닝 설정 옵션의 위치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:06.032846Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "[Security War Stories](../security/war-stories.md) — local privilege escalations in the capabilities/namespaces/credentials layer, with a very different KEV profile",
+      "source_hash": 6233404863544384229,
+      "context_hash": 8070923462294556515,
+      "translation": "[보안 실전 사례](../security/war-stories.md) — capabilities/네임스페이스/credentials 계층의 로컬 권한 상승 사례로, KEV 프로필이 매우 다릅니다",
+      "glossary_snapshot": {
+        "KEV": "KEV",
+        "namespaces": "네임스페이스",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T21:52:06.032846Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "[Network War Stories](../net/war-stories.md) — the same site's networking incidents, where syzkaller found bugs of a kind no sanitizer can find here",
+      "source_hash": 9930325256504371179,
+      "context_hash": 4496724815687461028,
+      "translation": "[네트워크 실전 사례](../net/war-stories.md) — 같은 사이트의 네트워킹 사고로, 여기서는 어떤 sanitizer도 찾을 수 없는 종류의 버그를 syzkaller가 찾아냈습니다",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "syzkaller": "syzkaller",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T21:52:06.032846Z",
+      "issues": []
+    }
+  ]
+}

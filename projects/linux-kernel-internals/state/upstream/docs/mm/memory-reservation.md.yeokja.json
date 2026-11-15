@@ -1,0 +1,2101 @@
+{
+  "version": 1,
+  "source_hash": 18089208812730362907,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Kernel Memory Reservation Mechanisms",
+      "source_hash": 9813313366211813674,
+      "context_hash": 11190162782907457499,
+      "translation": "커널 메모리 예약 메커니즘",
+      "glossary_snapshot": {
+        "kernel memory": "커널 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:03.438603Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Not all physical RAM is yours to use — the kernel, firmware, and hardware carve out regions long before user space ever runs",
+      "source_hash": 10572807877440418927,
+      "context_hash": 1866649430965838550,
+      "translation": "모든 물리 RAM을 자유롭게 쓸 수 있는 것은 아닙니다 — 커널, 펌웨어, 하드웨어는 사용자 공간이 실행되기 훨씬 전에 영역을 떼어 놓습니다",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "firmware": "펌웨어",
+        "hardware": "하드웨어",
+        "kernel": "커널",
+        "user space": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:31:03.438603Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why reservations exist",
+      "source_hash": 17801986302685004491,
+      "context_hash": 7754691371244646348,
+      "translation": "예약이 존재하는 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438604Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Physical memory is not a flat, uniformly available resource.",
+      "source_hash": 5486495782701181659,
+      "context_hash": 14248971137272155303,
+      "translation": "물리 메모리는 평평하고 균일하게 사용 가능한 자원이 아닙니다.",
+      "glossary_snapshot": {
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:03.438604Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "By the time the kernel reaches `start_kernel()`, several parties have already laid claim to portions of the physical address space:",
+      "source_hash": 10893557161877587486,
+      "context_hash": 13369692364499016777,
+      "translation": "커널이 `start_kernel()`에 도달할 무렵에는 이미 여러 주체가 물리 주소 공간의 일부를 차지하고 있습니다:",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "kernel": "커널",
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T22:31:03.438604Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**Firmware tables** — the BIOS, ACPI tables (RSDT, XSDT, DSDT), and SMBIOS data reside in RAM and must not be overwritten",
+      "source_hash": 15206146835883270733,
+      "context_hash": 7006366299167897886,
+      "translation": "**펌웨어 테이블** — BIOS, ACPI 테이블(RSDT, XSDT, DSDT), SMBIOS 데이터는 RAM에 상주하며 덮어써서는 안 됩니다",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "RAM": "RAM",
+        "firmware": "펌웨어"
+      },
+      "translated_at": "2026-11-14T22:31:03.438604Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Kernel text and data** — `.text`, `.rodata`, `.data`, `.bss`, and related sections occupy fixed physical addresses set by the bootloader",
+      "source_hash": 13471428406028082779,
+      "context_hash": 14239573716833654632,
+      "translation": "**커널 텍스트와 데이터** — `.text`, `.rodata`, `.data`, `.bss` 및 관련 섹션은 부트로더가 정한 고정 물리 주소를 차지합니다",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "physical addresses": "물리 주소"
+      },
+      "translated_at": "2026-11-14T22:31:03.438604Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**EFI runtime services** — on UEFI systems, boot services memory and the EFI memory map itself need protection",
+      "source_hash": 15745737002884065023,
+      "context_hash": 5232158194808585736,
+      "translation": "**EFI 런타임 서비스** — UEFI 시스템에서는 부트 서비스 메모리와 EFI 메모리 맵 자체를 보호해야 합니다",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**EBDA and legacy BIOS region** — the Extended BIOS Data Area and the top of the first megabyte are historically corrupt-prone",
+      "source_hash": 10626825218289321540,
+      "context_hash": 10191526242834730296,
+      "translation": "**EBDA와 레거시 BIOS 영역** — 확장 BIOS 데이터 영역(Extended BIOS Data Area)과 첫 1메가바이트의 상단부는 역사적으로 손상되기 쉬운 영역입니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "**Device memory and memory-mapped I/O** — firmware may describe ranges as `E820_TYPE_RESERVED` rather than RAM",
+      "source_hash": 13726500716523996722,
+      "context_hash": 18257962303176288119,
+      "translation": "**디바이스 메모리와 메모리 매핑 I/O** — 펌웨어는 특정 범위를 RAM이 아닌 `E820_TYPE_RESERVED`로 기술할 수 있습니다",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "device": "디바이스",
+        "firmware": "펌웨어",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "**crashkernel regions** — a dedicated region held in reserve for the kdump capture kernel",
+      "source_hash": 7504710377276179394,
+      "context_hash": 6720293402839206790,
+      "translation": "**crashkernel 영역** — kdump 캡처 커널을 위해 예약해 두는 전용 영역",
+      "glossary_snapshot": {
+        "kdump": "kdump",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "**CMA pools** — contiguous memory for DMA that doubles as ordinary movable memory until needed",
+      "source_hash": 17421209282523397013,
+      "context_hash": 12077364507663051281,
+      "translation": "**CMA 풀** — 필요해지기 전까지는 일반 movable 메모리로도 쓰이는 DMA용 연속 메모리",
+      "glossary_snapshot": {
+        "CMA": "CMA",
+        "DMA": "DMA",
+        "contiguous memory": "연속 메모리",
+        "memory": "메모리",
+        "pools": "풀"
+      },
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "**Hardware quirks** — some chipsets corrupt specific physical ranges (Sandy Bridge iGPU is a canonical x86 example)",
+      "source_hash": 422473338900955426,
+      "context_hash": 16241081278708568365,
+      "translation": "**하드웨어 결함(quirk)** — 일부 칩셋은 특정 물리 범위를 손상시킵니다(Sandy Bridge iGPU가 대표적인 x86 사례입니다)",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "The buddy allocator, which manages all general-purpose page allocation, can only hand out pages it knows are free.",
+      "source_hash": 126297984704045368,
+      "context_hash": 1832691704265098711,
+      "translation": "모든 범용 페이지 할당을 관리하는 buddy 할당자는 비어 있다고 알고 있는 페이지만 내줄 수 있습니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자"
+      },
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:1",
+      "source": "Anything outside that set must be reserved before `memblock_free_all()` hands memory over.",
+      "source_hash": 17915394974467282463,
+      "context_hash": 1643180594311722457,
+      "translation": "그 집합 밖의 모든 것은 `memblock_free_all()`이 메모리를 넘겨주기 전에 예약되어야 합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:03.438605Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "Key Source Files",
+      "source_hash": 16514665536748640086,
+      "context_hash": 11544577545105020381,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 4763366115696762411,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "Role",
+      "source_hash": 11497778783927235447,
+      "context_hash": 15327455402957059457,
+      "translation": "역할",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "`mm/memblock.c`",
+      "source_hash": 5867609874150273328,
+      "context_hash": 7943517504430651521,
+      "translation": "`mm/memblock.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "Core memblock allocator and reservation engine",
+      "source_hash": 7663936783732287311,
+      "context_hash": 8702178211797164927,
+      "translation": "memblock 핵심 할당자 및 예약 엔진",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "`include/linux/memblock.h`",
+      "source_hash": 2066203996543941457,
+      "context_hash": 525278485740182117,
+      "translation": "`include/linux/memblock.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "Public API, flag definitions, inline wrappers",
+      "source_hash": 17181019303323301721,
+      "context_hash": 8468713359240282405,
+      "translation": "공개 API, 플래그 정의, 인라인 래퍼",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "`arch/x86/kernel/setup.c`",
+      "source_hash": 13766450177352146604,
+      "context_hash": 3568317321425286151,
+      "translation": "`arch/x86/kernel/setup.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "`setup_arch()` — orchestrates all x86 boot reservations",
+      "source_hash": 2405225960021290315,
+      "context_hash": 604670664064178977,
+      "translation": "`setup_arch()` — 모든 x86 부팅 예약을 총괄",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438606Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "`arch/x86/kernel/ebda.c`",
+      "source_hash": 8540674866659473251,
+      "context_hash": 17008905492374967832,
+      "translation": "`arch/x86/kernel/ebda.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "`reserve_bios_regions()` — EBDA and legacy BIOS area",
+      "source_hash": 3495217117445926041,
+      "context_hash": 2373411991766573487,
+      "translation": "`reserve_bios_regions()` — EBDA 및 레거시 BIOS 영역",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "`arch/x86/realmode/init.c`",
+      "source_hash": 11192616029883171538,
+      "context_hash": 11910671187789187986,
+      "translation": "`arch/x86/realmode/init.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "`reserve_real_mode()` — first 1 MB and trampoline",
+      "source_hash": 9274884624049047562,
+      "context_hash": 4463472446975262910,
+      "translation": "`reserve_real_mode()` — 첫 1 MB 및 트램펄린",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "`arch/x86/platform/efi/efi.c`",
+      "source_hash": 14436866562937819311,
+      "context_hash": 18213015486986915396,
+      "translation": "`arch/x86/platform/efi/efi.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "`efi_memblock_x86_reserve_range()` — EFI memory map",
+      "source_hash": 12422734725007027872,
+      "context_hash": 9805509476397570915,
+      "translation": "`efi_memblock_x86_reserve_range()` — EFI 메모리 맵",
+      "glossary_snapshot": {
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:0",
+      "source": "`arch/x86/kernel/e820.c`",
+      "source_hash": 16765806297053934926,
+      "context_hash": 13067635838100782512,
+      "translation": "`arch/x86/kernel/e820.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "`e820__memblock_setup()` — translates e820 map to memblock",
+      "source_hash": 3068038670736086445,
+      "context_hash": 5444193160204665562,
+      "translation": "`e820__memblock_setup()` — e820 맵을 memblock으로 변환",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:03.438607Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:0",
+      "source": "`kernel/crash_reserve.c`",
+      "source_hash": 8643759671931014233,
+      "context_hash": 16614648168804120140,
+      "translation": "`kernel/crash_reserve.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588524Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "`reserve_crashkernel_generic()` — kdump region",
+      "source_hash": 10765002504833401918,
+      "context_hash": 10142194585764740742,
+      "translation": "`reserve_crashkernel_generic()` — kdump 영역",
+      "glossary_snapshot": {
+        "kdump": "kdump"
+      },
+      "translated_at": "2026-11-14T22:31:10.588524Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:31/seg:0",
+      "source": "`mm/memory_hotplug.c`",
+      "source_hash": 800265822045024123,
+      "context_hash": 11501223340857237490,
+      "translation": "`mm/memory_hotplug.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588525Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:0",
+      "source": "`movable_node` parameter handling",
+      "source_hash": 4293178541214941934,
+      "context_hash": 12054987101516044453,
+      "translation": "`movable_node` 매개변수 처리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588525Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "memblock reservations",
+      "source_hash": 15679028587299444117,
+      "context_hash": 17586698129507699571,
+      "translation": "memblock 예약",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:10.588525Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "memblock is the kernel's boot-time memory manager.",
+      "source_hash": 3228154281929600626,
+      "context_hash": 12779862351586293626,
+      "translation": "memblock은 커널의 부트 타임 메모리 관리자입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memblock": "memblock",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:10.588525Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It maintains two flat arrays of `struct memblock_region`: one for all available physical memory (`memblock.memory`) and one for reserved regions (`memblock.reserved`).",
+      "source_hash": 2093086153263016990,
+      "context_hash": 4037399417123627041,
+      "translation": "memblock은 `struct memblock_region`의 평면 배열 두 개를 유지합니다. 하나는 사용 가능한 모든 물리 메모리(`memblock.memory`)용이고, 다른 하나는 예약된 영역(`memblock.reserved`)용입니다.",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:10.588525Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "When `memblock_free_all()` is called late in `mm_init()`, only pages that appear in `memblock.memory` but *not* in `memblock.reserved` are released to the buddy allocator.",
+      "source_hash": 5465904982662339837,
+      "context_hash": 2235895868108340599,
+      "translation": "`mm_init()` 후반부에서 `memblock_free_all()`이 호출되면, `memblock.memory`에는 있지만 `memblock.reserved`에는 *없는* 페이지만 buddy 할당자로 해제됩니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자"
+      },
+      "translated_at": "2026-11-14T22:31:10.588525Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:3",
+      "source": "Everything else stays off-limits.",
+      "source_hash": 6560768294541764296,
+      "context_hash": 551809990571170332,
+      "translation": "그 밖의 모든 영역은 사용이 금지된 상태로 남습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "memblock_reserve()",
+      "source_hash": 10661853236266174628,
+      "context_hash": 6552658024612014457,
+      "translation": "memblock_reserve()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The primary reservation function is a thin inline wrapper in `include/linux/memblock.h`:",
+      "source_hash": 8451669821589813142,
+      "context_hash": 14345988457321413074,
+      "translation": "주요 예약 함수는 `include/linux/memblock.h`에 있는 얇은 인라인 래퍼입니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "`__memblock_reserve()` calls `memblock_add_range()` against `memblock.reserved`, merging overlapping and adjacent regions as it goes.",
+      "source_hash": 10943766522451698832,
+      "context_hash": 14646592048739236292,
+      "translation": "`__memblock_reserve()`는 `memblock.reserved`를 대상으로 `memblock_add_range()`를 호출하며, 그 과정에서 겹치거나 인접한 영역을 병합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "The function is safe to call from the earliest stages of `setup_arch()`, before paging is fully initialized.",
+      "source_hash": 8625869793054790015,
+      "context_hash": 10251738787858035894,
+      "translation": "이 함수는 페이징이 완전히 초기화되기 전인 `setup_arch()`의 가장 이른 단계에서도 안전하게 호출할 수 있습니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "paging": "페이징"
+      },
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "A variant, `memblock_reserve_kern()`, sets the additional `MEMBLOCK_RSRV_KERN` flag to indicate the region is consumed by the kernel itself (versus firmware, device memory, etc.):",
+      "source_hash": 17628766697677632733,
+      "context_hash": 699029703132472569,
+      "translation": "변형인 `memblock_reserve_kern()`은 해당 영역을 (펌웨어, 디바이스 메모리 등이 아니라) 커널 자신이 사용한다는 것을 나타내기 위해 `MEMBLOCK_RSRV_KERN` 플래그를 추가로 설정합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "firmware": "펌웨어",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "All internal memblock allocations automatically set `MEMBLOCK_RSRV_KERN`.",
+      "source_hash": 6871555381235533138,
+      "context_hash": 9734225288629702704,
+      "translation": "memblock 내부의 모든 할당은 자동으로 `MEMBLOCK_RSRV_KERN`을 설정합니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "memblock_phys_alloc()",
+      "source_hash": 12788504716739163583,
+      "context_hash": 10670995612304761961,
+      "translation": "memblock_phys_alloc()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588526Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Before the buddy allocator is available, the kernel must allocate memory for its own data structures (page tables, `struct page` arrays, zone structures). `memblock_phys_alloc()` satisfies these requests and returns a physical address:",
+      "source_hash": 10638081512208016452,
+      "context_hash": 7445464445790252917,
+      "translation": "buddy 할당자를 사용할 수 있게 되기 전에, 커널은 자체 자료 구조(페이지 테이블, `struct page` 배열, zone 구조체)를 위한 메모리를 할당해야 합니다. `memblock_phys_alloc()`은 이러한 요청을 처리하고 물리 주소를 반환합니다.",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "buddy allocator": "buddy 할당자",
+        "data structures": "자료 구조",
+        "kernel": "커널",
+        "memory": "메모리",
+        "page tables": "페이지 테이블",
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "The call both allocates and implicitly marks the region reserved via `__memblock_reserve()` with `MEMBLOCK_RSRV_KERN`.",
+      "source_hash": 16354346054788031928,
+      "context_hash": 5403639561653685522,
+      "translation": "이 호출은 할당을 수행하는 동시에 `__memblock_reserve()`를 통해 `MEMBLOCK_RSRV_KERN`과 함께 해당 영역을 암묵적으로 예약 상태로 표시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:1",
+      "source": "A mapped virtual-address variant, `memblock_alloc()`, is also widely used for kernel data structure initialization.",
+      "source_hash": 9745373389275945638,
+      "context_hash": 9101379257664780897,
+      "translation": "매핑된 가상 주소를 반환하는 변형인 `memblock_alloc()`도 커널 자료 구조 초기화에 널리 사용됩니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "data structure": "자료 구조",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "memblock_mark_nomap()",
+      "source_hash": 567550591405488003,
+      "context_hash": 17819380946002410963,
+      "translation": "memblock_mark_nomap()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "A reserved region still gets struct pages allocated for it and is covered by the kernel direct map by default. `memblock_mark_nomap()` goes further by setting the `MEMBLOCK_NOMAP` flag, which prevents the region from being included in the kernel's direct physical mapping altogether:",
+      "source_hash": 80076830071161957,
+      "context_hash": 10916370800615870328,
+      "translation": "예약된 영역도 기본적으로는 struct page가 할당되고 커널 direct map에 포함됩니다. `memblock_mark_nomap()`은 여기서 더 나아가 `MEMBLOCK_NOMAP` 플래그를 설정하여, 해당 영역이 커널의 직접 물리 매핑에 아예 포함되지 않도록 합니다.",
+      "glossary_snapshot": {
+        "direct map": "direct map",
+        "kernel": "커널",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Regions marked `MEMBLOCK_NOMAP` are still covered by the memory map (struct pages exist and are `PageReserved()`), but the kernel has no linear-map virtual address for them.",
+      "source_hash": 16591981412690275558,
+      "context_hash": 16152464851427285917,
+      "translation": "`MEMBLOCK_NOMAP`으로 표시된 영역도 여전히 메모리 맵에는 포함되지만(struct page가 존재하며 `PageReserved()` 상태입니다), 커널은 이 영역에 대한 linear map 가상 주소를 갖지 않습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory map": "메모리 맵",
+        "virtual address": "가상 주소"
+      },
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "This is used for device memory ranges or persistent memory that requires special mapping treatment.",
+      "source_hash": 3229441183583492987,
+      "context_hash": 5239612902568117445,
+      "translation": "이는 특별한 매핑 처리가 필요한 디바이스 메모리 범위나 영구 메모리(persistent memory)에 사용됩니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "mapping": "매핑",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:2",
+      "source": "As the comment in `include/linux/memblock.h` states: *\"don't add to kernel direct mapping and treat as reserved in the memory map.\"*",
+      "source_hash": 14074313353056411242,
+      "context_hash": 12161428292963127988,
+      "translation": "`include/linux/memblock.h`의 주석에는 다음과 같이 적혀 있습니다. *\"커널 direct mapping에 추가하지 말고 메모리 맵에서는 예약된 것으로 취급하라.\"*",
+      "glossary_snapshot": {
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "memblock flags summary",
+      "source_hash": 16158429365730026379,
+      "context_hash": 6599681412978735345,
+      "translation": "memblock 플래그 요약",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:10.588527Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Flag",
+      "source_hash": 7677103621892995957,
+      "context_hash": 16472985100713760727,
+      "translation": "플래그",
+      "glossary_snapshot": {
+        "Flag": "플래그"
+      },
+      "translated_at": "2026-11-14T22:31:10.588528Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 13309244022121072951,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588528Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "`MEMBLOCK_NONE`",
+      "source_hash": 13231007348945867409,
+      "context_hash": 1852472135551220407,
+      "translation": "`MEMBLOCK_NONE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588528Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "Plain reserved region",
+      "source_hash": 15668093911313617672,
+      "context_hash": 17017708264548798570,
+      "translation": "일반 예약 영역",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588528Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "`MEMBLOCK_HOTPLUG`",
+      "source_hash": 8625275921845165565,
+      "context_hash": 9104103756795458817,
+      "translation": "`MEMBLOCK_HOTPLUG`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588528Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Firmware-described hot(un)pluggable memory",
+      "source_hash": 15908560758329231077,
+      "context_hash": 6018393530235419362,
+      "translation": "펌웨어가 기술한 핫(언)플러그 가능 메모리",
+      "glossary_snapshot": {
+        "firmware": "펌웨어",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:10.588528Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "`MEMBLOCK_MIRROR`",
+      "source_hash": 2278936260254590896,
+      "context_hash": 17004196340140622624,
+      "translation": "`MEMBLOCK_MIRROR`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:10.588528Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Mirrored (redundant) memory region",
+      "source_hash": 9313552524065968607,
+      "context_hash": 7741722514629036511,
+      "translation": "미러링된(중복) 메모리 영역",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:13.674657Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "`MEMBLOCK_NOMAP`",
+      "source_hash": 9864481351195904659,
+      "context_hash": 17239282294661395231,
+      "translation": "`MEMBLOCK_NOMAP`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674657Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "Exclude from kernel direct map",
+      "source_hash": 14612630831581271529,
+      "context_hash": 906105556206113393,
+      "translation": "커널 direct map에서 제외",
+      "glossary_snapshot": {
+        "direct map": "direct map",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:13.674657Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "`MEMBLOCK_DRIVER_MANAGED`",
+      "source_hash": 6101152249368160101,
+      "context_hash": 9395310455150568707,
+      "translation": "`MEMBLOCK_DRIVER_MANAGED`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674657Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "Always added via driver, not firmware RAM",
+      "source_hash": 6697686779773783896,
+      "context_hash": 12444968578977826822,
+      "translation": "펌웨어 RAM이 아니라 항상 드라이버를 통해 추가됨",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "driver": "드라이버",
+        "firmware": "펌웨어"
+      },
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "`MEMBLOCK_RSRV_NOINIT`",
+      "source_hash": 5502989830580562288,
+      "context_hash": 16205582183637633418,
+      "translation": "`MEMBLOCK_RSRV_NOINIT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "Reserved; struct pages not fully initialized",
+      "source_hash": 11352105112753440417,
+      "context_hash": 2341253319307986453,
+      "translation": "예약됨; struct page가 완전히 초기화되지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "`MEMBLOCK_RSRV_KERN`",
+      "source_hash": 11637842647864068507,
+      "context_hash": 11494049872620967154,
+      "translation": "`MEMBLOCK_RSRV_KERN`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "Reserved for kernel use",
+      "source_hash": 18216783524659584936,
+      "context_hash": 10520382564805752273,
+      "translation": "커널 사용을 위해 예약됨",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "What gets reserved at boot on x86",
+      "source_hash": 12328105201801162063,
+      "context_hash": 16950814818875420379,
+      "translation": "x86에서 부팅 시 예약되는 영역",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`setup_arch()` in `arch/x86/kernel/setup.c` orchestrates all physical memory reservations for x86.",
+      "source_hash": 11687974714657624444,
+      "context_hash": 14819926015634699371,
+      "translation": "`arch/x86/kernel/setup.c`의 `setup_arch()`가 x86의 모든 물리 메모리 예약을 총괄합니다.",
+      "glossary_snapshot": {
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "The sequence matters — later stages depend on earlier reservations already being in place.",
+      "source_hash": 13409106621988305835,
+      "context_hash": 5553079601689362220,
+      "translation": "순서가 중요합니다 — 이후 단계는 앞선 예약이 이미 이루어져 있다는 것에 의존합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Phase 1: early_reserve_memory()",
+      "source_hash": 5865711226924186454,
+      "context_hash": 4321700396293047617,
+      "translation": "1단계: early_reserve_memory()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Called before `e820__memory_setup()` adds any RAM to `memblock.memory`, so nothing gets allocated on top of these regions:",
+      "source_hash": 1267144895064442270,
+      "context_hash": 9937566064961651959,
+      "translation": "`e820__memory_setup()`이 `memblock.memory`에 RAM을 추가하기 전에 호출되므로, 이 영역 위에는 아무것도 할당되지 않습니다:",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "**Kernel image:** The range from `_text` to `__end_of_kernel_reserve` (a linker-defined symbol in `arch/x86/kernel/vmlinux.lds.S`) covers `.text`, `.rodata`, `.data`, `.bss`, and related sections.",
+      "source_hash": 1895922851800380188,
+      "context_hash": 2335244654166457419,
+      "translation": "**커널 이미지:** `_text`부터 `__end_of_kernel_reserve`(`arch/x86/kernel/vmlinux.lds.S`에서 링커가 정의하는 심볼)까지의 범위는 `.text`, `.rodata`, `.data`, `.bss` 및 관련 섹션을 포함합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "Any sections placed *after* `__end_of_kernel_reserve` (such as `.brk`) must be reserved separately.",
+      "source_hash": 14808311047508652430,
+      "context_hash": 17046275340776790484,
+      "translation": "`__end_of_kernel_reserve` *뒤에* 배치되는 섹션(예: `.brk`)은 별도로 예약해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "**Low memory:** The first 64 KB (raised to 1 MB later by `reserve_real_mode()`) is reserved because legacy BIOSes corrupt low RAM and the first page must be reserved to prevent L1TF side-channel leaks.",
+      "source_hash": 8678875987898044116,
+      "context_hash": 6553190279078443483,
+      "translation": "**하위 메모리:** 레거시 BIOS가 하위 RAM을 손상시키고, L1TF 사이드 채널 유출을 막기 위해 첫 페이지를 예약해야 하므로 처음 64 KB(이후 `reserve_real_mode()`에 의해 1 MB로 확대됨)가 예약됩니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "**initrd:** `early_reserve_initrd()` immediately calls `memblock_reserve_kern()` on the ramdisk image address from `boot_params`, ensuring memblock cannot allocate over it before full setup completes.",
+      "source_hash": 8480263086983578493,
+      "context_hash": 444856209836354049,
+      "translation": "**initrd:** `early_reserve_initrd()`는 `boot_params`에서 얻은 ramdisk 이미지 주소에 대해 즉시 `memblock_reserve_kern()`을 호출하여, 전체 설정이 완료되기 전에 memblock이 그 위에 할당하지 못하도록 보장합니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "**BIOS/EBDA:** `reserve_bios_regions()` in `arch/x86/kernel/ebda.c` reads the EBDA pointer and reserves everything from the EBDA start through the top of the first megabyte:",
+      "source_hash": 6145384724083026939,
+      "context_hash": 15036126711993633004,
+      "translation": "**BIOS/EBDA:** `arch/x86/kernel/ebda.c`의 `reserve_bios_regions()`는 EBDA 포인터를 읽고 EBDA 시작 지점부터 첫 1 MB의 끝까지 모든 영역을 예약합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674658Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Phase 2: e820 and EFI memory map processing",
+      "source_hash": 12097754667174111042,
+      "context_hash": 10375537558881968036,
+      "translation": "2단계: e820 및 EFI 메모리 맵 처리",
+      "glossary_snapshot": {
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "`e820__memory_setup()` reads the firmware's physical memory map (BIOS e820 or EFI memory map) and constructs the authoritative picture of what is RAM, what is reserved, and what is absent.",
+      "source_hash": 2018321382909609228,
+      "context_hash": 2416582023967635162,
+      "translation": "`e820__memory_setup()`은 펌웨어의 물리 메모리 맵(BIOS e820 또는 EFI 메모리 맵)을 읽어 어디가 RAM이고, 어디가 예약되어 있으며, 어디가 존재하지 않는지에 대한 권위 있는 전체 그림을 구성합니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "firmware": "펌웨어",
+        "memory map": "메모리 맵",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "Regions typed `E820_TYPE_RAM` are subsequently added to `memblock.memory` by `e820__memblock_setup()`.",
+      "source_hash": 9523316406190615729,
+      "context_hash": 7508393481237759613,
+      "translation": "이후 `E820_TYPE_RAM` 유형의 영역은 `e820__memblock_setup()`에 의해 `memblock.memory`에 추가됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "On EFI systems, `efi_memblock_x86_reserve_range()` reserves the EFI memory map table itself:",
+      "source_hash": 15662328659658463620,
+      "context_hash": 5382478744808986929,
+      "translation": "EFI 시스템에서는 `efi_memblock_x86_reserve_range()`가 EFI 메모리 맵 테이블 자체를 예약합니다:",
+      "glossary_snapshot": {
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "Phase 3: post-e820 reservations",
+      "source_hash": 130783545993055931,
+      "context_hash": 10169635050921436471,
+      "translation": "3단계: e820 이후의 예약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "After `e820__memblock_setup()`, the full memory topology is known and further reservations are made:",
+      "source_hash": 11192526097863750258,
+      "context_hash": 16776539229757770653,
+      "translation": "`e820__memblock_setup()` 이후에는 전체 메모리 토폴로지가 알려지며 추가 예약이 이루어집니다:",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "**EFI boot services:** `efi_reserve_boot_services()` pins EFI boot service memory so runtime services remain accessible until `efi_free_boot_services()` is called after the boot CPU is up.",
+      "source_hash": 11012214590140793393,
+      "context_hash": 7772304809324410269,
+      "translation": "**EFI 부트 서비스:** `efi_reserve_boot_services()`는 EFI 부트 서비스 메모리를 고정하여, 부트 CPU가 가동된 후 `efi_free_boot_services()`가 호출될 때까지 런타임 서비스에 계속 접근할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "**Real mode trampoline:** `x86_platform.realmode_reserve()` calls `reserve_real_mode()`, which allocates a sub-1 MB trampoline region (for AP startup) and then unconditionally reserves the entire first megabyte with `memblock_reserve(0, SZ_1M)`.",
+      "source_hash": 11078893199407608103,
+      "context_hash": 4730849508090057680,
+      "translation": "**리얼 모드 트램펄린:** `x86_platform.realmode_reserve()`는 `reserve_real_mode()`를 호출하며, 이 함수는 1 MB 미만의 트램펄린 영역(AP 시작용)을 할당한 다음 `memblock_reserve(0, SZ_1M)`으로 첫 1 MB 전체를 무조건 예약합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "**initrd (final):** `reserve_initrd()` later verifies the initrd mapping and frees the physical pages once they have been copied.",
+      "source_hash": 7342415655254145610,
+      "context_hash": 6991241951207084015,
+      "translation": "**initrd(최종):** `reserve_initrd()`는 이후 initrd 매핑을 검증하고, 복사가 끝나면 해당 물리 페이지를 해제합니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑",
+        "physical pages": "물리 페이지"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "**ACPI tables:** `acpi_boot_table_init()` ultimately calls `memblock_reserve()` on ACPI table ranges found in the firmware map.",
+      "source_hash": 18008681304329544257,
+      "context_hash": 5530065033657763994,
+      "translation": "**ACPI 테이블:** `acpi_boot_table_init()`는 최종적으로 펌웨어 맵에서 발견된 ACPI 테이블 범위에 대해 `memblock_reserve()`를 호출합니다.",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "firmware": "펌웨어"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "**CMA:** `dma_contiguous_reserve()` carves out the CMA region (see [CMA reservations](#cma-reservations) below).",
+      "source_hash": 10423498238953914287,
+      "context_hash": 11495695225464497361,
+      "translation": "**CMA:** `dma_contiguous_reserve()`는 CMA 영역을 떼어 냅니다(아래 [CMA 예약](#cma-reservations) 참조).",
+      "glossary_snapshot": {
+        "CMA": "CMA"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "**crashkernel:** `arch_reserve_crashkernel()` reserves the kdump region (see [crashkernel reservation](#crashkernel-reservation) below).",
+      "source_hash": 7863838689609465979,
+      "context_hash": 6402345735330449855,
+      "translation": "**crashkernel:** `arch_reserve_crashkernel()`은 kdump 영역을 예약합니다(아래 [crashkernel 예약](#crashkernel-reservation) 참조).",
+      "glossary_snapshot": {
+        "kdump": "kdump"
+      },
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Reading the reservation log",
+      "source_hash": 13487571771401745815,
+      "context_hash": 3420880291380621743,
+      "translation": "예약 로그 읽기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:13.674659Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "The kernel logs all memblock reservations at early boot.",
+      "source_hash": 5775497642198970718,
+      "context_hash": 13149407944974338600,
+      "translation": "커널은 초기 부팅 시 모든 memblock 예약을 로그로 기록합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:14.330315Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:1",
+      "source": "A typical x86 dmesg contains:",
+      "source_hash": 7772659786603598782,
+      "context_hash": 6752777189753843041,
+      "translation": "일반적인 x86 dmesg에는 다음과 같은 내용이 포함됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330316Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "The reserved memory map",
+      "source_hash": 18163980922681763499,
+      "context_hash": 5755233123484679992,
+      "translation": "예약된 메모리 맵",
+      "glossary_snapshot": {
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:31:14.330316Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "/proc/iomem",
+      "source_hash": 1696866818088773808,
+      "context_hash": 15503742984763432620,
+      "translation": "/proc/iomem",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330316Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "`/proc/iomem` is the canonical view of the kernel resource tree — a hierarchical record of every claimed physical address range.",
+      "source_hash": 5353574959693203311,
+      "context_hash": 2011724734010792245,
+      "translation": "`/proc/iomem`은 커널 리소스 트리를 보여 주는 표준 뷰로, 점유된 모든 물리 주소 범위를 계층적으로 기록한 것입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T22:31:14.330316Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "Every reservation that calls `insert_resource()` or `request_resource()` appears here:",
+      "source_hash": 2360976700086365272,
+      "context_hash": 1026597864475612621,
+      "translation": "`insert_resource()` 또는 `request_resource()`를 호출하는 모든 예약이 여기에 나타납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330316Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Fields to note:",
+      "source_hash": 14645163730284790438,
+      "context_hash": 17168566504568238650,
+      "translation": "주목할 필드:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "`System RAM` — memory available to the kernel",
+      "source_hash": 16089506435446778858,
+      "context_hash": 17999456078416877080,
+      "translation": "`System RAM` — 커널이 사용할 수 있는 메모리",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "`Kernel code` / `Kernel rodata` / `Kernel data` / `Kernel bss` — exact regions occupied by the kernel image",
+      "source_hash": 8430723138811503891,
+      "context_hash": 318970721846268463,
+      "translation": "`Kernel code` / `Kernel rodata` / `Kernel data` / `Kernel bss` — 커널 이미지가 차지하는 정확한 영역",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "`Crash kernel` — the crashkernel-reserved region",
+      "source_hash": 2141506151772202454,
+      "context_hash": 4440758064260366982,
+      "translation": "`Crash kernel` — crashkernel용으로 예약된 영역",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "`Reserved` — firmware-reserved areas the kernel does not use",
+      "source_hash": 5872085271479984624,
+      "context_hash": 6870694121957408980,
+      "translation": "`Reserved` — 커널이 사용하지 않는 펌웨어 예약 영역",
+      "glossary_snapshot": {
+        "firmware": "펌웨어",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "`PCI Bus` — memory-mapped I/O ranges claimed by PCI",
+      "source_hash": 3152285070742339804,
+      "context_hash": 6053645538025277644,
+      "translation": "`PCI Bus` — PCI가 점유한 메모리 맵 I/O 범위",
+      "glossary_snapshot": {
+        "PCI": "PCI",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "/sys/kernel/debug/memblock/reserved",
+      "source_hash": 15723993563154103518,
+      "context_hash": 697480616405463667,
+      "translation": "/sys/kernel/debug/memblock/reserved",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "When `CONFIG_DEBUG_FS` is enabled, `memblock_init_debugfs()` in `mm/memblock.c` registers debugfs entries:",
+      "source_hash": 8581954312152288298,
+      "context_hash": 9366145132975268960,
+      "translation": "`CONFIG_DEBUG_FS`가 활성화되어 있으면 `mm/memblock.c`의 `memblock_init_debugfs()`가 debugfs 항목을 등록합니다.",
+      "glossary_snapshot": {
+        "debugfs": "debugfs"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "This file reflects the memblock state at the time of reading.",
+      "source_hash": 14265957767477411673,
+      "context_hash": 14667493998655538196,
+      "translation": "이 파일은 읽는 시점의 memblock 상태를 반영합니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "After `memblock_free_all()` is called (during `mm_init()`), memblock's internal arrays may be freed if `CONFIG_ARCH_KEEP_MEMBLOCK` is not set.",
+      "source_hash": 5568413078157515021,
+      "context_hash": 1833374840594075547,
+      "translation": "(`mm_init()` 중에) `memblock_free_all()`이 호출된 후에는 `CONFIG_ARCH_KEEP_MEMBLOCK`이 설정되어 있지 않으면 memblock의 내부 배열이 해제될 수 있습니다.",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:2",
+      "source": "On such kernels, the debugfs file may be absent or empty post-boot.",
+      "source_hash": 4098785958466265793,
+      "context_hash": 684565827834794781,
+      "translation": "이러한 커널에서는 부팅 후 debugfs 파일이 없거나 비어 있을 수 있습니다.",
+      "glossary_snapshot": {
+        "debugfs": "debugfs",
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:3",
+      "source": "On x86, `CONFIG_ARCH_KEEP_MEMBLOCK` is typically enabled, preserving the data.",
+      "source_hash": 12786029984701131412,
+      "context_hash": 6217522874845784628,
+      "translation": "x86에서는 일반적으로 `CONFIG_ARCH_KEEP_MEMBLOCK`이 활성화되어 있어 데이터가 보존됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "crashkernel reservation",
+      "source_hash": 4045578613871676617,
+      "context_hash": 9278784963188271456,
+      "translation": "crashkernel 예약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330317Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The `crashkernel=` kernel command line parameter reserves a contiguous region of physical memory at boot that is handed over to a secondary \"capture kernel\" when the running kernel panics.",
+      "source_hash": 1904328893668248153,
+      "context_hash": 15220251188570788304,
+      "translation": "`crashkernel=` 커널 명령줄 파라미터는 부팅 시 물리 메모리의 연속된 영역을 예약하며, 이 영역은 실행 중인 커널이 패닉에 빠지면 보조 \"캡처 커널(capture kernel)\"에 넘겨집니다.",
+      "glossary_snapshot": {
+        "command line": "명령줄",
+        "kernel": "커널",
+        "panics": "패닉",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "This is the foundation of kdump.",
+      "source_hash": 10069696472434497601,
+      "context_hash": 8938816002674837918,
+      "translation": "이것이 kdump의 기반입니다.",
+      "glossary_snapshot": {
+        "kdump": "kdump"
+      },
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "How it works",
+      "source_hash": 16935900381963222246,
+      "context_hash": 4360567190820887465,
+      "translation": "동작 방식",
+      "glossary_snapshot": {
+        "How it works": "동작 방식"
+      },
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "`arch_reserve_crashkernel()` in `arch/x86/kernel/setup.c` parses the command line and delegates to `reserve_crashkernel_generic()` in `kernel/crash_reserve.c`:",
+      "source_hash": 15090449890929838173,
+      "context_hash": 6105176397660508340,
+      "translation": "`arch/x86/kernel/setup.c`의 `arch_reserve_crashkernel()`은 명령줄을 파싱한 뒤 `kernel/crash_reserve.c`의 `reserve_crashkernel_generic()`에 처리를 위임합니다.",
+      "glossary_snapshot": {
+        "command line": "명령줄"
+      },
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "`reserve_crashkernel_generic()` uses `memblock_phys_alloc_range()` to find and reserve a suitable region:",
+      "source_hash": 3698341564981279773,
+      "context_hash": 17380810566275594698,
+      "translation": "`reserve_crashkernel_generic()`은 `memblock_phys_alloc_range()`를 사용해 적절한 영역을 찾아 예약합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "Once allocated, the region is recorded in `crashk_res` and registered in the iomem resource tree:",
+      "source_hash": 3795871596274704131,
+      "context_hash": 15639758865440439526,
+      "translation": "할당이 끝나면 이 영역은 `crashk_res`에 기록되고 iomem 리소스 트리에 등록됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "The reserved memory is removed from the running kernel's linear map so it cannot be accidentally written. `kexec_load()` places the capture kernel image and initrd inside this region; on panic, `crash_kexec()` jumps into it.",
+      "source_hash": 3477606449941986470,
+      "context_hash": 11690675039350379718,
+      "translation": "예약된 메모리는 실수로 쓰기가 일어나지 않도록 실행 중인 커널의 linear map에서 제거됩니다. `kexec_load()`는 캡처 커널 이미지와 initrd를 이 영역 안에 배치하며, 패닉이 발생하면 `crash_kexec()`가 이 영역으로 점프합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리",
+        "panic": "패닉"
+      },
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "Syntax options",
+      "source_hash": 8775596340777050038,
+      "context_hash": 772495161067284409,
+      "translation": "문법 옵션",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Syntax",
+      "source_hash": 15264683888421833618,
+      "context_hash": 15958736758649585330,
+      "translation": "문법",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 8739569289678354865,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "`crashkernel=256M`",
+      "source_hash": 1024611752230230490,
+      "context_hash": 2501236200349753579,
+      "translation": "`crashkernel=256M`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "Reserve 256 MB, kernel chooses address",
+      "source_hash": 13275424075489686068,
+      "context_hash": 9637839147113292729,
+      "translation": "256 MB 예약, 주소는 커널이 선택",
+      "glossary_snapshot": {
+        "address": "주소",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:14.330318Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "`crashkernel=256M@512M`",
+      "source_hash": 3885761383842183866,
+      "context_hash": 10927117087150626403,
+      "translation": "`crashkernel=256M@512M`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:14.330319Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Reserve 256 MB at physical offset 512 MB",
+      "source_hash": 4715852234123328189,
+      "context_hash": 15461508379952988640,
+      "translation": "물리 오프셋 512 MB 위치에 256 MB 예약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426051Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "`crashkernel=256M,high`",
+      "source_hash": 2451005283204034035,
+      "context_hash": 7045616149050258773,
+      "translation": "`crashkernel=256M,high`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426052Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "Prefer memory above 4 GB",
+      "source_hash": 3990320887705870608,
+      "context_hash": 18218555942206686572,
+      "translation": "4 GB 이상의 메모리 우선",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:25.426052Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "`crashkernel=256M,high crashkernel=64M,low`",
+      "source_hash": 17674290650547634199,
+      "context_hash": 18284846251169620459,
+      "translation": "`crashkernel=256M,high crashkernel=64M,low`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426052Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "256 MB high + 64 MB DMA-accessible region",
+      "source_hash": 7950817066598745935,
+      "context_hash": 363369068387291647,
+      "translation": "256 MB high + 64 MB DMA 접근 가능 영역",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T22:31:25.426052Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "`crashkernel=512M-2G:64M,2G-:128M`",
+      "source_hash": 8531529296157710925,
+      "context_hash": 5420100457336888877,
+      "translation": "`crashkernel=512M-2G:64M,2G-:128M`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426052Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "Size range: 64 MB if RAM is 512 M–2 G, 128 MB if > 2 G",
+      "source_hash": 17579554174793687750,
+      "context_hash": 8197876898759164485,
+      "translation": "크기 범위: RAM이 512 M–2 G이면 64 MB, > 2 G이면 128 MB",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-11-14T22:31:25.426053Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "On x86-64, if the initial low-memory search fails, the kernel automatically retries in high memory and allocates a small `crashk_low_res` region below 4 GB to satisfy DMA-capable hardware in the capture kernel.",
+      "source_hash": 18441331187540211061,
+      "context_hash": 17262849644408633326,
+      "translation": "x86-64에서 처음의 low 메모리 탐색이 실패하면 커널은 자동으로 high 메모리에서 다시 시도하고, 캡처 커널의 DMA 가능 하드웨어를 위해 4 GB 아래에 작은 `crashk_low_res` 영역을 할당합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "hardware": "하드웨어",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:25.426053Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:25/seg:0",
+      "source": "Timing",
+      "source_hash": 7122995992865561685,
+      "context_hash": 3240531851085533515,
+      "translation": "시점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426053Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:0",
+      "source": "Note in `setup_arch()` that `arch_reserve_crashkernel()` is called *after* `initmem_init()` (which parses ACPI SRAT) so that the reservation avoids hotpluggable memory regions:",
+      "source_hash": 9631327482828425917,
+      "context_hash": 671069199876585366,
+      "translation": "`setup_arch()`에서 `arch_reserve_crashkernel()`이 (ACPI SRAT를 파싱하는) `initmem_init()` *이후에* 호출되어 예약이 핫플러그 가능 메모리 영역을 피한다는 점에 유의하십시오:",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "SRAT": "SRAT",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:25.426053Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "CMA reservations",
+      "source_hash": 3790907392066100583,
+      "context_hash": 2071578383727200554,
+      "translation": "CMA 예약",
+      "glossary_snapshot": {
+        "CMA": "CMA"
+      },
+      "translated_at": "2026-11-14T22:31:25.426053Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "CMA (Contiguous Memory Allocator) carves out a physically contiguous region at boot, but unlike a hard reservation it remains productive: the kernel places movable pages (page cache, anonymous memory) in the CMA region during normal operation.",
+      "source_hash": 14530396220798650426,
+      "context_hash": 9438139533379277703,
+      "translation": "CMA(Contiguous Memory Allocator, 연속 메모리 할당자)는 부팅 시 물리적으로 연속된 영역을 떼어 두지만, 하드 예약과 달리 이 영역은 계속 활용됩니다. 즉, 정상 동작 중에는 커널이 이동 가능한 페이지(페이지 캐시, 익명 메모리)를 CMA 영역에 배치합니다.",
+      "glossary_snapshot": {
+        "CMA": "CMA",
+        "Memory Allocator": "메모리 할당자",
+        "anonymous memory": "익명 메모리",
+        "contiguous memory": "연속 메모리",
+        "kernel": "커널",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:31:25.426053Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "When a device driver requests a large contiguous DMA buffer, the kernel migrates those movable pages out and hands the now-empty contiguous range to the driver.",
+      "source_hash": 17248984723544628949,
+      "context_hash": 1949287361333656760,
+      "translation": "디바이스 드라이버가 큰 연속 DMA 버퍼를 요청하면, 커널은 이 이동 가능한 페이지들을 다른 곳으로 마이그레이션하고 비워진 연속 범위를 드라이버에 넘겨줍니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "device driver": "디바이스 드라이버",
+        "driver": "드라이버",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:25.426054Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "On x86, `setup_arch()` calls `dma_contiguous_reserve(max_pfn_mapped << PAGE_SHIFT)` to size and reserve the default CMA region.",
+      "source_hash": 2058581265225684025,
+      "context_hash": 5108370562031656007,
+      "translation": "x86에서 `setup_arch()`는 `dma_contiguous_reserve(max_pfn_mapped << PAGE_SHIFT)`를 호출하여 기본 CMA 영역의 크기를 정하고 예약합니다.",
+      "glossary_snapshot": {
+        "CMA": "CMA"
+      },
+      "translated_at": "2026-11-14T22:31:25.426054Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "See [CMA](cma.md) for full coverage of the CMA lifecycle, `dma_contiguous_reserve()`, `cma_declare_contiguous()`, and `alloc_contig_range()`.",
+      "source_hash": 3871075160310387919,
+      "context_hash": 15054465969483584410,
+      "translation": "CMA 수명 주기, `dma_contiguous_reserve()`, `cma_declare_contiguous()`, `alloc_contig_range()`에 대한 전체 내용은 [CMA](cma.md)를 참고하십시오.",
+      "glossary_snapshot": {
+        "CMA": "CMA"
+      },
+      "translated_at": "2026-11-14T22:31:25.426054Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Runtime reservations",
+      "source_hash": 13820864450508118724,
+      "context_hash": 2994093351783290534,
+      "translation": "런타임 예약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426054Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Once `memblock_free_all()` hands unreserved pages to the buddy allocator, the reservation landscape changes fundamentally.",
+      "source_hash": 8781295745488281746,
+      "context_hash": 4229470616114118699,
+      "translation": "`memblock_free_all()`이 예약되지 않은 페이지를 buddy 할당자에 넘기고 나면 예약을 둘러싼 상황이 근본적으로 달라집니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자"
+      },
+      "translated_at": "2026-11-14T22:31:25.426054Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "There is **no runtime equivalent of `memblock_reserve()`** for arbitrary physical ranges — the memblock arrays may have been freed, and the buddy allocator has no concept of marking an arbitrary range as off-limits after initialization.",
+      "source_hash": 15103482976709989410,
+      "context_hash": 6399920008270033928,
+      "translation": "임의의 물리 범위에 대해서는 **`memblock_reserve()`에 해당하는 런타임 기능이 없습니다** — memblock 배열은 이미 해제되었을 수 있고, buddy 할당자에는 초기화 이후 임의의 범위를 사용 금지로 표시한다는 개념이 없습니다.",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "buddy allocator": "buddy 할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:31:25.426055Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "To hold memory at runtime, the kernel must allocate it and keep it allocated:",
+      "source_hash": 5219077331565446602,
+      "context_hash": 11906140975951483639,
+      "translation": "런타임에 메모리를 확보해 두려면 커널은 메모리를 할당하고 할당된 상태로 유지해야 합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:25.426055Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "Calling `alloc_pages()` removes the pages from the free pool.",
+      "source_hash": 13609316813289095330,
+      "context_hash": 2674994973496755811,
+      "translation": "`alloc_pages()`를 호출하면 해당 페이지가 free 풀에서 제거됩니다.",
+      "glossary_snapshot": {
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T23:30:48.258636Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "As long as the kernel holds the reference and never calls `__free_pages()`, those pages remain unavailable for other use.",
+      "source_hash": 1915734200034767178,
+      "context_hash": 15707817693040487475,
+      "translation": "커널이 참조를 유지하고 `__free_pages()`를 호출하지 않는 한, 그 페이지들은 다른 용도로 사용될 수 없습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:25.426055Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "There is no way to \"reserve\" a specific physical address at runtime.",
+      "source_hash": 12701031012440543352,
+      "context_hash": 15598508822460054461,
+      "translation": "런타임에 특정 물리 주소를 \"예약\"하는 방법은 없습니다.",
+      "glossary_snapshot": {
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T22:31:25.426055Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:1",
+      "source": "If a driver or subsystem needs a particular physical range, it must be reserved at boot time via `memblock_reserve()` from an `early_param` handler or architecture setup code, or mapped through a mechanism like persistent memory (pmem) that uses `MEMBLOCK_NOMAP`.",
+      "source_hash": 1312850364410655828,
+      "context_hash": 7616397892501218173,
+      "translation": "드라이버나 서브시스템에 특정 물리 범위가 필요하다면, 부팅 시 `early_param` 핸들러나 아키텍처 설정 코드에서 `memblock_reserve()`로 예약하거나, `MEMBLOCK_NOMAP`을 사용하는 영구 메모리(pmem) 같은 메커니즘을 통해 매핑해야 합니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "handler": "핸들러",
+        "memory": "메모리",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:31:25.426055Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "Memory hotplug",
+      "source_hash": 10050375431409339543,
+      "context_hash": 15830387291706228875,
+      "translation": "메모리 핫플러그",
+      "glossary_snapshot": {
+        "memory hotplug": "메모리 핫플러그"
+      },
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "The one mechanism that changes the physical memory available to the buddy allocator at runtime is memory hotplug: adding new DIMM slots or removing existing ones on capable hardware.",
+      "source_hash": 9035187800840861453,
+      "context_hash": 14927133615677319539,
+      "translation": "런타임에 buddy 할당자가 사용할 수 있는 물리 메모리를 바꾸는 유일한 메커니즘은 메모리 핫플러그, 즉 이를 지원하는 하드웨어에서 새 DIMM 슬롯을 추가하거나 기존 슬롯을 제거하는 것입니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자",
+        "hardware": "하드웨어",
+        "memory hotplug": "메모리 핫플러그",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:1",
+      "source": "This extends (or shrinks) `memblock.memory` and the buddy allocator's managed range.",
+      "source_hash": 1367066446805409250,
+      "context_hash": 8251810078934415957,
+      "translation": "이를 통해 `memblock.memory`와 buddy 할당자의 관리 범위가 확장(또는 축소)됩니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자"
+      },
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:2",
+      "source": "See the memory hotplug documentation for details on `add_memory()`, `remove_memory()`, and the `MEMBLOCK_HOTPLUG` flag.",
+      "source_hash": 16091023599458264495,
+      "context_hash": 16228165196345608813,
+      "translation": "`add_memory()`, `remove_memory()`, `MEMBLOCK_HOTPLUG` 플래그에 대한 자세한 내용은 메모리 핫플러그 문서를 참고하십시오.",
+      "glossary_snapshot": {
+        "memory hotplug": "메모리 핫플러그"
+      },
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "ZONE_MOVABLE and movable_node",
+      "source_hash": 12817750008849999484,
+      "context_hash": 2664864382219924699,
+      "translation": "ZONE_MOVABLE과 movable_node",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Beyond hard reservations, the kernel supports a softer form of memory isolation: ensuring that a zone or an entire NUMA node's memory is placed in `ZONE_MOVABLE`.",
+      "source_hash": 6829466506253081421,
+      "context_hash": 3696113829473025428,
+      "translation": "커널은 하드 예약 외에도 더 부드러운 형태의 메모리 격리, 즉 존 하나 또는 NUMA 노드 전체의 메모리를 `ZONE_MOVABLE`에 배치하도록 보장하는 기능을 지원합니다.",
+      "glossary_snapshot": {
+        "NUMA node": "NUMA 노드",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "Pages in `ZONE_MOVABLE` can only be satisfied by movable allocations, which guarantees they can be migrated out, making the zone suitable for memory offlining and hotplug.",
+      "source_hash": 2638364979171775490,
+      "context_hash": 4857497113069275701,
+      "translation": "`ZONE_MOVABLE`의 페이지는 이동 가능한 할당에만 사용될 수 있으므로 마이그레이션이 보장되며, 따라서 이 존은 메모리 오프라이닝과 핫플러그에 적합합니다.",
+      "glossary_snapshot": {
+        "hotplug": "핫플러그",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "The `movable_node` kernel command line parameter enables this behavior.",
+      "source_hash": 8467156717415681660,
+      "context_hash": 3951567700001171322,
+      "translation": "`movable_node` 커널 명령줄 파라미터가 이 동작을 활성화합니다.",
+      "glossary_snapshot": {
+        "command line": "명령줄",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "It is handled by `cmdline_parse_movable_node()` in `mm/memory_hotplug.c`:",
+      "source_hash": 2227568993723079463,
+      "context_hash": 3902472804645413780,
+      "translation": "이 파라미터는 `mm/memory_hotplug.c`의 `cmdline_parse_movable_node()`가 처리합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:25.426056Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "When `movable_node_is_enabled()` returns true, `mm_init.c` iterates over memblock regions flagged `MEMBLOCK_HOTPLUG` and places their PFN range into `ZONE_MOVABLE` rather than `ZONE_NORMAL`.",
+      "source_hash": 3432666832152107200,
+      "context_hash": 9906664572350654174,
+      "translation": "`movable_node_is_enabled()`가 true를 반환하면 `mm_init.c`는 `MEMBLOCK_HOTPLUG` 플래그가 설정된 memblock 영역을 순회하며 그 PFN 범위를 `ZONE_NORMAL`이 아닌 `ZONE_MOVABLE`에 배치합니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:04:01.812145Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:1",
+      "source": "This prevents the kernel from placing non-migratable allocations (kernel code, pinned memory) on that node, enabling the entire node to be offlined and removed.",
+      "source_hash": 683842160892533519,
+      "context_hash": 5072410986012403716,
+      "translation": "이렇게 하면 커널이 마이그레이션할 수 없는 할당(커널 코드, 고정(pinned) 메모리)을 해당 노드에 배치하지 않으므로, 노드 전체를 오프라인으로 전환하여 제거할 수 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:04:01.812146Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "`ZONE_MOVABLE` is also used without `movable_node` through the `kernelcore=` and `movablecore=` parameters, which split a portion of each node's memory into the movable zone.",
+      "source_hash": 10774042089977359237,
+      "context_hash": 15165625177435197606,
+      "translation": "`ZONE_MOVABLE`은 `movable_node` 없이도 `kernelcore=` 및 `movablecore=` 파라미터를 통해 사용되며, 이 파라미터들은 각 노드 메모리의 일부를 movable zone으로 분할합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:04:01.812146Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "Memory tiering",
+      "source_hash": 11196343392796979523,
+      "context_hash": 4286927287244345896,
+      "translation": "메모리 티어링",
+      "glossary_snapshot": {
+        "Memory Tiering": "메모리 티어링"
+      },
+      "translated_at": "2026-11-14T22:04:01.812147Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "`movable_node` is also used in CXL memory tiering configurations to mark slow-memory nodes as fully movable, enabling the kernel's tiered memory promotion/demotion machinery to move pages between fast (local DRAM) and slow (CXL-attached) tiers.",
+      "source_hash": 2449574076681059771,
+      "context_hash": 14508004675932765772,
+      "translation": "`movable_node`는 CXL 메모리 티어링 구성에서도 느린 메모리 노드를 완전히 movable로 표시하는 데 사용되며, 이를 통해 커널의 계층형 메모리 승격/강등(promotion/demotion) 기법이 빠른 계층(로컬 DRAM)과 느린 계층(CXL 연결) 사이에서 페이지를 이동할 수 있습니다.",
+      "glossary_snapshot": {
+        "CXL": "CXL",
+        "DRAM": "DRAM",
+        "Memory Tiering": "메모리 티어링",
+        "demotion": "강등",
+        "kernel": "커널",
+        "memory": "메모리",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:04:01.812147Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:1",
+      "source": "See the CXL memory tiering documentation for details.",
+      "source_hash": 377668148724615119,
+      "context_hash": 11573233377984138404,
+      "translation": "자세한 내용은 CXL 메모리 티어링 문서를 참조하십시오.",
+      "glossary_snapshot": {
+        "CXL": "CXL",
+        "Memory Tiering": "메모리 티어링"
+      },
+      "translated_at": "2026-11-14T22:04:01.812147Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Summary: reservation mechanisms at a glance",
+      "source_hash": 11703314682812357992,
+      "context_hash": 5207652383175515296,
+      "translation": "요약: 예약 기법 한눈에 보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.812148Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 17424129819422789644,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:04:01.812148Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "[Kernel docs: Memory hotplug](https://docs.kernel.org/admin-guide/mm/memory-hotplug.html) — covers `MEMBLOCK_HOTPLUG` regions, `movable_node`, and how reservations interact with runtime memory add/remove",
+      "source_hash": 5041171595436441768,
+      "context_hash": 15961869591933583160,
+      "translation": "[커널 문서: 메모리 핫플러그](https://docs.kernel.org/admin-guide/mm/memory-hotplug.html) — `MEMBLOCK_HOTPLUG` 영역, `movable_node`, 그리고 예약이 런타임 메모리 추가/제거와 어떻게 상호작용하는지를 다룹니다",
+      "glossary_snapshot": {
+        "hotplug": "핫플러그"
+      },
+      "translated_at": "2026-11-14T23:30:48.258637Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "[`Documentation/admin-guide/mm/memory-hotplug.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/admin-guide/mm/memory-hotplug.rst) — `kernelcore=` and `movablecore=` parameters that shape the ZONE_MOVABLE split at boot",
+      "source_hash": 14624213152634382354,
+      "context_hash": 11374702859831352412,
+      "translation": "[`Documentation/admin-guide/mm/memory-hotplug.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/admin-guide/mm/memory-hotplug.rst) — 부팅 시 ZONE_MOVABLE 분할을 결정하는 `kernelcore=` 및 `movablecore=` 파라미터",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.812148Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "[`mm/memblock.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memblock.c) — core memblock implementation: `memblock_reserve()`, `memblock_mark_nomap()`, `memblock_free_all()`",
+      "source_hash": 10441233704096154435,
+      "context_hash": 1975736449872768262,
+      "translation": "[`mm/memblock.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memblock.c) — memblock 핵심 구현: `memblock_reserve()`, `memblock_mark_nomap()`, `memblock_free_all()`",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:04:01.812148Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "[`arch/x86/kernel/setup.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/setup.c) — `setup_arch()` orchestrating all x86 boot reservations in sequence",
+      "source_hash": 16503653826353166068,
+      "context_hash": 3492490749902418594,
+      "translation": "[`arch/x86/kernel/setup.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/setup.c) — x86의 모든 부팅 예약을 순서대로 조율하는 `setup_arch()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.812149Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "[`kernel/crash_reserve.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/crash_reserve.c) — `reserve_crashkernel_generic()` implementation",
+      "source_hash": 9799584662269946213,
+      "context_hash": 16815296424920168356,
+      "translation": "[`kernel/crash_reserve.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/crash_reserve.c) — `reserve_crashkernel_generic()` 구현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.812149Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "[LWN: memblock and early memory management](https://lwn.net/Articles/438225/) — how memblock replaced the earlier bootmem allocator and why flat arrays work for boot-time allocation (2011)",
+      "source_hash": 271943315864254751,
+      "context_hash": 10589676250592469647,
+      "translation": "[LWN: memblock and early memory management](https://lwn.net/Articles/438225/) — memblock이 이전의 bootmem 할당자를 대체한 과정과 평면 배열이 부팅 시점 할당에 적합한 이유(2011)",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "allocator": "할당자",
+        "arrays": "배열",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:04:01.812149Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "[memblock.md](memblock.md) — detailed coverage of the memblock allocator lifecycle, region merging, and transition to the buddy allocator",
+      "source_hash": 9642926839112801556,
+      "context_hash": 5886923548798765986,
+      "translation": "[memblock.md](memblock.md) — memblock 할당자의 생명 주기, 영역 병합, buddy 할당자로의 전환에 대한 상세 설명",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "buddy allocator": "buddy 할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:04:01.812149Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "[cma.md](cma.md) — how `dma_contiguous_reserve()` carves out CMA regions within the memblock reservation phase",
+      "source_hash": 147224244862791597,
+      "context_hash": 9989362965233695871,
+      "translation": "[cma.md](cma.md) — `dma_contiguous_reserve()`가 memblock 예약 단계에서 CMA 영역을 확보하는 방식",
+      "glossary_snapshot": {
+        "CMA": "CMA",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:04:01.812149Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "[memory-hotplug.md](memory-hotplug.md) — runtime counterpart to boot reservations: adding and removing physical memory after `memblock_free_all()`",
+      "source_hash": 14563927867997381362,
+      "context_hash": 1956143345333494287,
+      "translation": "[memory-hotplug.md](memory-hotplug.md) — 부팅 예약에 대응하는 런타임 기능: `memblock_free_all()` 이후 물리 메모리 추가 및 제거",
+      "glossary_snapshot": {
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:04:01.812149Z",
+      "issues": []
+    }
+  ]
+}

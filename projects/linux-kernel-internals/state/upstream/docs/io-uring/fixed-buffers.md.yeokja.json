@@ -1,0 +1,1156 @@
+{
+  "version": 1,
+  "source_hash": 1032700431165624203,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Fixed Buffers and Fixed Files",
+      "source_hash": 10504987729307715642,
+      "context_hash": 5432963215658461345,
+      "translation": "고정 버퍼와 고정 파일",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일",
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:46.483819Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Amortizing page pinning and fd lookup across I/O operations",
+      "source_hash": 4403115046761150540,
+      "context_hash": 136617704689190848,
+      "translation": "I/O 작업 전반에 걸친 페이지 고정과 fd 조회 비용의 분산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483820Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The per-operation tax",
+      "source_hash": 4397815540318798558,
+      "context_hash": 12969846417725338584,
+      "translation": "작업마다 치르는 비용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483820Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Every `read()` or `write()` — and every plain `IORING_OP_READ` — pays two costs that are easy to overlook:",
+      "source_hash": 18176604137073178611,
+      "context_hash": 10467827909841214618,
+      "translation": "모든 `read()`나 `write()`, 그리고 모든 일반 `IORING_OP_READ`는 간과하기 쉬운 두 가지 비용을 치릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483821Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**Page pinning.** Before DMA can start, the kernel must ensure the target pages stay resident in physical memory for the duration of the transfer.",
+      "source_hash": 15144415938567395231,
+      "context_hash": 4195173747136097114,
+      "translation": "**페이지 고정(pinning).** DMA가 시작되기 전에 커널은 대상 페이지가 전송 기간 동안 물리 메모리에 상주하도록 보장해야 합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "kernel": "커널",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:43:46.483821Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "This means calling `get_user_pages()` to walk the page tables, increment the page's reference count, and pin each page against reclaim (see [Getting User Pages (GUP)](../mm/gup.md) for the get-vs-pin mechanism this builds on).",
+      "source_hash": 1548011626535312745,
+      "context_hash": 12834509590997366447,
+      "translation": "이는 `get_user_pages()`를 호출하여 페이지 테이블을 탐색하고, 페이지의 참조 카운트를 증가시키고, 각 페이지가 회수되지 않도록 고정한다는 뜻입니다(이 기능의 기반이 되는 get 대 pin 메커니즘은 [Getting User Pages (GUP)](../mm/gup.md)를 참고하십시오).",
+      "glossary_snapshot": {
+        "GUP": "GUP",
+        "page tables": "페이지 테이블",
+        "reclaim": "회수",
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:43:46.483821Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "When the I/O completes, the pages must be unpinned (`unpin_user_pages()`).",
+      "source_hash": 12480669641880840627,
+      "context_hash": 1770348282381542459,
+      "translation": "I/O가 완료되면 페이지의 고정을 해제해야 합니다(`unpin_user_pages()`).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483821Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:3",
+      "source": "On a NVMe device capable of 1M IOPS, with a 4 KB buffer spanning a single page, that is 1M pin/unpin cycles per second — each one a TLB-unfriendly page-table walk.",
+      "source_hash": 2403277733266194963,
+      "context_hash": 8860008999105786405,
+      "translation": "1M IOPS를 처리할 수 있는 NVMe 디바이스에서 4 KB 버퍼가 단일 페이지에 걸쳐 있다면, 이는 초당 1M 회의 pin/unpin 사이클이며, 그 하나하나가 TLB에 비우호적인 페이지 테이블 워크입니다.",
+      "glossary_snapshot": {
+        "IOPS": "IOPS",
+        "NVMe": "NVMe",
+        "TLB": "TLB",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:34:12.872959Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**File descriptor lookup.** The kernel resolves an integer `fd` to a `struct file *` on every operation via `fdget()`, which takes a reference on the file and must drop it when done.",
+      "source_hash": 94100556049138510,
+      "context_hash": 12862362817301295363,
+      "translation": "**파일 디스크립터 조회.** 커널은 모든 작업에서 `fdget()`을 통해 정수 `fd`를 `struct file *`로 변환하며, 이 함수는 파일에 대한 참조를 획득하고 작업이 끝나면 이를 해제해야 합니다.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:43:46.483822Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "At high IOPS the lock contention on the file descriptor table is measurable.",
+      "source_hash": 15266297785469498793,
+      "context_hash": 13173624770929097594,
+      "translation": "IOPS가 높으면 파일 디스크립터 테이블의 락 경합이 측정 가능한 수준이 됩니다.",
+      "glossary_snapshot": {
+        "IOPS": "IOPS",
+        "file descriptor": "파일 디스크립터",
+        "lock contention": "락 경합"
+      },
+      "translated_at": "2026-11-14T22:43:46.483822Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "Fixed buffers and fixed files solve these problems by paying the cost once, at registration time, and amortizing it across every subsequent I/O.",
+      "source_hash": 13163024151711023794,
+      "context_hash": 11985111396248922396,
+      "translation": "고정 버퍼와 고정 파일은 등록 시점에 비용을 한 번만 치르고 이를 이후의 모든 I/O에 분산함으로써 이러한 문제를 해결합니다.",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일",
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:46.483822Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Fixed buffers (`IORING_REGISTER_BUFFERS`)",
+      "source_hash": 5447477314428926502,
+      "context_hash": 1800554086711385871,
+      "translation": "고정 버퍼(`IORING_REGISTER_BUFFERS`)",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:46.483823Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Registration",
+      "source_hash": 12581034211891611423,
+      "context_hash": 9043867532166746408,
+      "translation": "등록",
+      "glossary_snapshot": {
+        "Registration": "등록"
+      },
+      "translated_at": "2026-11-14T22:43:46.483823Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Under the hood, `io_uring_register_buffers` issues:",
+      "source_hash": 11019198712319666141,
+      "context_hash": 15964149808662027406,
+      "translation": "내부적으로 `io_uring_register_buffers`는 다음을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483823Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The kernel handler (`io_sqe_buffers_register` in `io_uring/rsrc.c`) iterates every `iovec`, calls `pin_user_pages_fast()` to pin all pages (falling back to `pin_user_pages()` for the non-fast path), and stores the resulting `struct page **` arrays inside an `io_mapped_ubuf` structure. io_uring buffer registration uses `FOLL_PIN` semantics (via `pin_user_pages_fast()`) rather than `FOLL_GET` (`get_user_pages_fast()`), which matters for DMA lifetime: pinned pages cannot be freed or migrated while the pin is held, which is required for safe long-lived DMA use.",
+      "source_hash": 2077243702088335098,
+      "context_hash": 8104140228732179439,
+      "translation": "커널 핸들러(`io_uring/rsrc.c`의 `io_sqe_buffers_register`)는 모든 `iovec`를 순회하면서 `pin_user_pages_fast()`를 호출하여 모든 페이지를 고정하고(빠른 경로가 아닌 경우에는 `pin_user_pages()`로 대체합니다), 그 결과로 얻은 `struct page **` 배열을 `io_mapped_ubuf` 구조체 안에 저장합니다. io_uring 버퍼 등록은 `FOLL_GET`(`get_user_pages_fast()`)이 아니라 `FOLL_PIN` 시맨틱(`pin_user_pages_fast()`를 통한)을 사용하며, 이는 DMA 수명에 중요합니다. 고정된 페이지는 고정이 유지되는 동안 해제되거나 마이그레이션될 수 없으며, 이는 장기간에 걸친 안전한 DMA 사용에 필수적입니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "arrays": "배열",
+        "fast path": "빠른 경로",
+        "handler": "핸들러",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:43:46.483823Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "These `io_mapped_ubuf` pointers are gathered into an `io_rsrc_data` table and stored on `io_ring_ctx`:",
+      "source_hash": 4774999302280461241,
+      "context_hash": 13680525052361684987,
+      "translation": "이 `io_mapped_ubuf` 포인터들은 `io_rsrc_data` 테이블로 모여 `io_ring_ctx`에 저장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483823Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "The pages remain pinned — and the `bio_vec` table stays valid — until the buffers are unregistered.",
+      "source_hash": 7326945148908604246,
+      "context_hash": 6122337800373675349,
+      "translation": "버퍼의 등록이 해제될 때까지 페이지는 고정된 상태로 유지되며 `bio_vec` 테이블도 유효한 상태로 유지됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "No page-table walk happens on the I/O submission path.",
+      "source_hash": 2937818478827256689,
+      "context_hash": 10133710029156325933,
+      "translation": "I/O 제출 경로에서는 페이지 테이블 탐색이 일어나지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Using fixed buffers in SQEs",
+      "source_hash": 9748708005380912173,
+      "context_hash": 11144689309230148996,
+      "translation": "SQE에서 고정 버퍼 사용하기",
+      "glossary_snapshot": {
+        "SQEs": "SQE",
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Use `IORING_OP_READ_FIXED` / `IORING_OP_WRITE_FIXED` and set `buf_index` in the SQE to the index of the registered buffer:",
+      "source_hash": 3893338678019938228,
+      "context_hash": 7127779726797080762,
+      "translation": "`IORING_OP_READ_FIXED` / `IORING_OP_WRITE_FIXED`를 사용하고, SQE의 `buf_index`를 등록된 버퍼의 인덱스로 설정하십시오.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "With liburing:",
+      "source_hash": 3943425403409797917,
+      "context_hash": 5743637243304305175,
+      "translation": "liburing을 사용하는 경우:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "`addr` must fall within the range `[iovecs[buf_index].iov_base, iov_base + iov_len)`.",
+      "source_hash": 32772412108368944,
+      "context_hash": 9760169036929133308,
+      "translation": "`addr`는 `[iovecs[buf_index].iov_base, iov_base + iov_len)` 범위 안에 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "The kernel validates this at submission time and returns `-EFAULT` if the range is out of bounds.",
+      "source_hash": 15881900667907304320,
+      "context_hash": 13486879901705178104,
+      "translation": "커널은 제출 시점에 이를 검증하며, 범위를 벗어나면 `-EFAULT`를 반환합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Unregistering",
+      "source_hash": 8105451466665800443,
+      "context_hash": 6951999457729492777,
+      "translation": "등록 해제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "All pinned pages are released.",
+      "source_hash": 16588418501851470625,
+      "context_hash": 11565614065587113996,
+      "translation": "고정된 모든 페이지가 해제됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:1",
+      "source": "Any in-flight operations that reference the buffers must complete before unregistration succeeds.",
+      "source_hash": 4910480261412216252,
+      "context_hash": 14491411774879927215,
+      "translation": "등록 해제가 성공하려면 해당 버퍼를 참조하는 진행 중인 작업이 모두 완료되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Fixed files (`IORING_REGISTER_FILES`)",
+      "source_hash": 956385291584920674,
+      "context_hash": 1814476961408700427,
+      "translation": "고정 파일(`IORING_REGISTER_FILES`)",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Registration",
+      "source_hash": 12581034211891611423,
+      "context_hash": 12264183436592272886,
+      "translation": "등록",
+      "glossary_snapshot": {
+        "Registration": "등록"
+      },
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "The raw syscall is:",
+      "source_hash": 11594687220803599694,
+      "context_hash": 18406301924303713394,
+      "translation": "원시 시스템 콜은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "The kernel resolves each fd to its `struct file *`, calls `fget()` once to take a counted reference, and stores the pointer in the `io_rsrc_data` files table on `io_ring_ctx`.",
+      "source_hash": 4743927544016372793,
+      "context_hash": 13773400348757507845,
+      "translation": "커널은 각 fd를 해당 `struct file *`로 변환하고, `fget()`을 한 번 호출하여 카운트되는 참조를 획득한 뒤, 그 포인터를 `io_ring_ctx`의 `io_rsrc_data` 파일 테이블에 저장합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "Subsequent operations use the stored pointer directly — `fdget()` is not called on the submission path.",
+      "source_hash": 11142254891635350814,
+      "context_hash": 7756990375168985733,
+      "translation": "이후의 작업은 저장된 포인터를 직접 사용하므로 제출 경로에서 `fdget()`이 호출되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Using fixed files in SQEs",
+      "source_hash": 1914765390616630218,
+      "context_hash": 7086904348608100684,
+      "translation": "SQE에서 고정 파일 사용하기",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일",
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:43:46.483825Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Set `IOSQE_FIXED_FILE` in `sqe->flags` and use the registered array index as `sqe->fd`:",
+      "source_hash": 13037046955219356843,
+      "context_hash": 1334914327755315961,
+      "translation": "`sqe->flags`에 `IOSQE_FIXED_FILE`를 설정하고 등록된 배열 인덱스를 `sqe->fd`로 사용하십시오:",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:43:42.288270Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "Fixed files and fixed buffers are independent features and can be combined freely in the same SQE.",
+      "source_hash": 18098563135507143332,
+      "context_hash": 12767426773978223270,
+      "translation": "고정 파일(fixed file)과 고정 버퍼(fixed buffer)는 서로 독립적인 기능이며 같은 SQE에서 자유롭게 함께 사용할 수 있습니다.",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일",
+        "SQE": "SQE",
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:42.288272Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Updating slots without full re-registration",
+      "source_hash": 4743026690951846591,
+      "context_hash": 9197896196197234969,
+      "translation": "전체 재등록 없이 슬롯 갱신하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288273Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "When a client disconnects and a new one connects, update the relevant slot atomically — without unregistering the entire table:",
+      "source_hash": 17287856054428107131,
+      "context_hash": 14882031250136865039,
+      "translation": "클라이언트 연결이 끊기고 새 클라이언트가 연결되면 테이블 전체를 등록 해제하지 않고 해당 슬롯을 원자적으로 갱신하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288274Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "This maps to `IORING_REGISTER_FILES_UPDATE` and allows per-slot updates at runtime.",
+      "source_hash": 13009540470547081696,
+      "context_hash": 26827895329442649,
+      "translation": "이는 `IORING_REGISTER_FILES_UPDATE`에 대응하며 런타임에 슬롯 단위 갱신을 가능하게 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288275Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:1",
+      "source": "Setting a slot to `-1` releases the reference for that slot.",
+      "source_hash": 10790669252490053502,
+      "context_hash": 1859994335741020682,
+      "translation": "슬롯을 `-1`로 설정하면 해당 슬롯의 참조가 해제됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288276Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "Unregistering",
+      "source_hash": 8105451466665800443,
+      "context_hash": 2401413212954650674,
+      "translation": "등록 해제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288276Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Performance numbers",
+      "source_hash": 13391907391175885570,
+      "context_hash": 17696853383913516954,
+      "translation": "성능 수치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288277Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "The performance benefit from fixed resources compounds at higher IOPS:",
+      "source_hash": 7456273618820739697,
+      "context_hash": 8558859463361903511,
+      "translation": "고정 리소스로 얻는 성능 이점은 IOPS가 높을수록 누적되어 커집니다:",
+      "glossary_snapshot": {
+        "IOPS": "IOPS"
+      },
+      "translated_at": "2026-11-14T22:43:42.288278Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Workload",
+      "source_hash": 8104379011836490443,
+      "context_hash": 1633009297053066985,
+      "translation": "워크로드",
+      "glossary_snapshot": {
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:43:42.288278Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Plain ops",
+      "source_hash": 1396482845745603430,
+      "context_hash": 14966468516425100151,
+      "translation": "일반 연산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288278Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Fixed buffers",
+      "source_hash": 5103949062288975020,
+      "context_hash": 3784861290014340636,
+      "translation": "고정 버퍼",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:42.288278Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Fixed files",
+      "source_hash": 12375348068088473331,
+      "context_hash": 5569146596831469239,
+      "translation": "고정 파일",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T22:43:42.288279Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Both",
+      "source_hash": 6984343725915534757,
+      "context_hash": 10952258298989683444,
+      "translation": "둘 다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288279Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "4 KB sequential read, NVMe",
+      "source_hash": 16810253703316477225,
+      "context_hash": 8425192554101604340,
+      "translation": "4 KB 순차 읽기, NVMe",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:43:42.288280Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "baseline",
+      "source_hash": 18149194126899618293,
+      "context_hash": 2933506142827484558,
+      "translation": "기준",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288280Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "+8–12% throughput",
+      "source_hash": 2347996595672570448,
+      "context_hash": 8844966651102058870,
+      "translation": "처리량 +8–12%",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:43:42.288280Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "+3–5% throughput",
+      "source_hash": 6014485620498250156,
+      "context_hash": 18151530374675436465,
+      "translation": "처리량 +3–5%",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:43:42.288280Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "+12–18% throughput",
+      "source_hash": 17577019653362816125,
+      "context_hash": 4245929104334474523,
+      "translation": "처리량 +12–18%",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:43:42.288281Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "4 KB random read, NVMe, 32 depth",
+      "source_hash": 5609435481622533822,
+      "context_hash": 4761428372463359957,
+      "translation": "4 KB 랜덤 읽기, NVMe, 큐 깊이 32",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:43:42.288281Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "baseline",
+      "source_hash": 18149194126899618293,
+      "context_hash": 9823976603043429959,
+      "translation": "기준",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288281Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "−20–30 µs CPU/op",
+      "source_hash": 9054691531165367016,
+      "context_hash": 2426532049203441913,
+      "translation": "연산당 CPU −20–30 µs",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:43:42.288282Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "−5–10 µs CPU/op",
+      "source_hash": 1216317231007239774,
+      "context_hash": 1170429402307871996,
+      "translation": "연산당 CPU −5–10 µs",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:43:42.288282Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "−30–40 µs CPU/op",
+      "source_hash": 16744229866081698318,
+      "context_hash": 8163040360310321094,
+      "translation": "연산당 CPU −30–40 µs",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:43:42.288282Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "High-concurrency socket recv",
+      "source_hash": 975073128690953339,
+      "context_hash": 5913095102883396248,
+      "translation": "고동시성 소켓 recv",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288282Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "baseline",
+      "source_hash": 18149194126899618293,
+      "context_hash": 14538348108500797172,
+      "translation": "기준",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288283Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "negligible",
+      "source_hash": 8493234297027314811,
+      "context_hash": 16769992564241077758,
+      "translation": "무시할 수준",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288283Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "+5–10%",
+      "source_hash": 8754150672781870278,
+      "context_hash": 16604960416674006371,
+      "translation": "+5–10%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288283Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "+8–15%",
+      "source_hash": 14411206481060572264,
+      "context_hash": 3746970290026843762,
+      "translation": "+8–15%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288284Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "Three distinct effects drive the numbers:",
+      "source_hash": 7529152538160450887,
+      "context_hash": 6012074821616352687,
+      "translation": "이 수치는 세 가지 서로 다른 효과에서 비롯됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288284Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "**Eliminated TLB pressure.** Page-table walks during `get_user_pages()` dirty TLB entries and evict cache lines used by the application.",
+      "source_hash": 6873674958769781581,
+      "context_hash": 6746345427608356290,
+      "translation": "**TLB 압박 제거.** `get_user_pages()` 중에 수행되는 페이지 테이블 워크는 TLB 엔트리를 더럽히고 애플리케이션이 사용하는 캐시 라인을 축출합니다.",
+      "glossary_snapshot": {
+        "TLB entries": "TLB 엔트리",
+        "TLB pressure": "TLB 압박"
+      },
+      "translated_at": "2026-11-14T23:34:12.872961Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:1",
+      "source": "Pinning once removes this interference for the duration of the ring's lifetime.",
+      "source_hash": 13806243035885599369,
+      "context_hash": 1393067090267053852,
+      "translation": "한 번만 고정(pin)하면 ring이 존재하는 동안 이러한 간섭이 사라집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:42.288285Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "**Reduced kernel CPU time.** Profiling with `perf` on a busy io_uring workload shows `get_user_pages_fast` and `unpin_user_pages` appearing prominently in kernel CPU profiles.",
+      "source_hash": 13285657727011382217,
+      "context_hash": 5196115160644336004,
+      "translation": "**커널 CPU 시간 감소.** 부하가 큰 io_uring 워크로드를 `perf`로 프로파일링하면 커널 CPU 프로파일에서 `get_user_pages_fast`와 `unpin_user_pages`가 두드러지게 나타납니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CPU time": "CPU 시간",
+        "kernel": "커널",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:43:52.598145Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:1",
+      "source": "With fixed buffers, these symbols disappear from the profile entirely.",
+      "source_hash": 2301178398481465669,
+      "context_hash": 16682120813593964898,
+      "translation": "고정 버퍼(fixed buffer)를 사용하면 이 심볼들이 프로파일에서 완전히 사라집니다.",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:52.598145Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "**Fewer atomic operations.** `fdget()` increments the file's reference count with an atomic `atomic_long_inc`.",
+      "source_hash": 14798595495225746411,
+      "context_hash": 352368881019641340,
+      "translation": "**원자적 연산 감소.** `fdget()`은 원자적 연산인 `atomic_long_inc`로 파일의 참조 카운트를 증가시킵니다.",
+      "glossary_snapshot": {
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:43:52.598145Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:1",
+      "source": "At 1M IOPS with 100 concurrent connections, the contention on file reference counts is visible in CPU cycle counts.",
+      "source_hash": 17566387957982276155,
+      "context_hash": 10776212936863075393,
+      "translation": "동시 연결 100개로 1M IOPS를 처리하면 파일 참조 카운트에 대한 경합이 CPU 사이클 수에서 드러납니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "IOPS": "IOPS",
+        "contention": "경합",
+        "reference counts": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:43:52.598145Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:2",
+      "source": "Fixed files replace per-op atomics with a single `fget` at registration time.",
+      "source_hash": 7684524424783497407,
+      "context_hash": 9934715791565528906,
+      "translation": "고정 파일(fixed file)은 연산마다 수행하던 원자적 연산을 등록 시점의 `fget` 한 번으로 대체합니다.",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T22:43:52.598146Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "The gains are most visible with small I/O operations on fast NVMe or in-memory filesystems (tmpfs, ramfs), where the kernel overhead is large relative to the actual I/O time.",
+      "source_hash": 14848924409742125835,
+      "context_hash": 2425057409524707625,
+      "translation": "이 이점은 실제 I/O 시간에 비해 커널 오버헤드가 큰 빠른 NVMe나 메모리 기반 파일시스템(tmpfs, ramfs)에서 작은 I/O 연산을 수행할 때 가장 두드러집니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "kernel": "커널",
+        "memory": "메모리",
+        "overhead": "오버헤드",
+        "tmpfs": "tmpfs"
+      },
+      "translated_at": "2026-11-14T22:43:52.598146Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:1",
+      "source": "On rotating disk, I/O latency dominates and the savings are proportionally smaller.",
+      "source_hash": 5011304667132049251,
+      "context_hash": 7898878780461268945,
+      "translation": "회전형 디스크에서는 I/O 지연 시간이 지배적이므로 절감 효과가 상대적으로 작습니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:43:52.598146Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Buffer rings (Linux 5.19+)",
+      "source_hash": 3557788141131315570,
+      "context_hash": 407893530655166225,
+      "translation": "버퍼 링(Linux 5.19+)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:43:52.598146Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Fixed buffers work well when the application assigns each I/O to a specific buffer.",
+      "source_hash": 406782167002556435,
+      "context_hash": 12811937217135173787,
+      "translation": "고정 버퍼는 애플리케이션이 각 I/O를 특정 버퍼에 할당할 때 잘 동작합니다.",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:43:52.598146Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "For socket `recv` or similar operations where the incoming data size is not known in advance, the application cannot safely assign a buffer at SQE submission time — the buffer might not be large enough, or hundreds of inflight receives might exhaust the buffer pool.",
+      "source_hash": 14043077150640905426,
+      "context_hash": 13010467498440379155,
+      "translation": "소켓 `recv`처럼 들어오는 데이터의 크기를 미리 알 수 없는 연산에서는 애플리케이션이 SQE 제출 시점에 버퍼를 안전하게 할당할 수 없습니다. 버퍼가 충분히 크지 않을 수도 있고, 처리 중인 수백 개의 수신 요청이 버퍼 풀을 고갈시킬 수도 있기 때문입니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:43:52.598146Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "**Provided buffer rings** (`IORING_REGISTER_PBUF_RING`, added in Linux 5.19) solve this by letting the kernel select a buffer from a pool at the moment data arrives:",
+      "source_hash": 16455783906860710716,
+      "context_hash": 4174337187813915039,
+      "translation": "**제공 버퍼 링**(provided buffer ring, Linux 5.19에서 추가된 `IORING_REGISTER_PBUF_RING`)은 데이터가 도착하는 시점에 커널이 풀에서 버퍼를 선택하도록 하여 이 문제를 해결합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "kernel": "커널",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:43:52.598146Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Setting up a buffer ring",
+      "source_hash": 3238672502447292014,
+      "context_hash": 854022371516779712,
+      "translation": "버퍼 링 설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "The `io_uring_buf_ring` is a single-producer (userspace) / single-consumer (kernel) ring.",
+      "source_hash": 10797960055963199640,
+      "context_hash": 2034043031179877219,
+      "translation": "`io_uring_buf_ring`은 단일 생산자(사용자 공간) / 단일 소비자(커널) 링입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "producer": "생산자",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "Userspace adds buffers via `io_uring_buf_ring_add` and commits them with `io_uring_buf_ring_advance`.",
+      "source_hash": 7851151811782781983,
+      "context_hash": 7078581442578413918,
+      "translation": "사용자 공간은 `io_uring_buf_ring_add`로 버퍼를 추가하고 `io_uring_buf_ring_advance`로 커밋합니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:2",
+      "source": "The kernel picks from the tail.",
+      "source_hash": 12032089526060835616,
+      "context_hash": 7514025519373453316,
+      "translation": "커널은 tail에서 버퍼를 가져갑니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "Submitting a recv with buffer selection",
+      "source_hash": 2630372327078967406,
+      "context_hash": 9328896042800852792,
+      "translation": "버퍼 선택을 사용한 recv 제출",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "Consuming completions and recycling buffers",
+      "source_hash": 371911902733321110,
+      "context_hash": 3502464189492186452,
+      "translation": "완료 처리와 버퍼 재활용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "`IORING_CQE_F_BUFFER` is set in `cqe->flags` whenever a buffer was selected; if it is not set (e.g., on error), `bid` is meaningless and the buffer was not consumed.",
+      "source_hash": 12925557511128555947,
+      "context_hash": 16282747423356848106,
+      "translation": "`IORING_CQE_F_BUFFER`는 버퍼가 선택될 때마다 `cqe->flags`에 설정됩니다. 이 플래그가 설정되지 않은 경우(예: 오류 발생 시)에는 `bid`가 의미가 없으며 버퍼도 소비되지 않은 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "The underlying registration syscall is:",
+      "source_hash": 2567776453493763821,
+      "context_hash": 12301962104590346858,
+      "translation": "내부적으로 사용되는 등록 시스템 콜은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:43:52.598147Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "To unregister:",
+      "source_hash": 4053411703238378770,
+      "context_hash": 12154153578243628643,
+      "translation": "등록 해제 방법은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Complete C example",
+      "source_hash": 15061591188309695468,
+      "context_hash": 8986855093521306979,
+      "translation": "전체 C 예제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The following example registers both buffers and a file, issues a `IORING_OP_READ_FIXED`, and cleans up:",
+      "source_hash": 4417268568085168118,
+      "context_hash": 17112163696224891915,
+      "translation": "다음 예제는 버퍼와 파일을 모두 등록하고, `IORING_OP_READ_FIXED`를 실행한 뒤 정리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Compile with:",
+      "source_hash": 15473780698414895282,
+      "context_hash": 7823973029403015319,
+      "translation": "컴파일 방법은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "Key points in the example:",
+      "source_hash": 8784789955690051304,
+      "context_hash": 13845591015104942622,
+      "translation": "예제의 핵심 사항:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "`IOSQE_FIXED_FILE` must be set whenever `sqe->fd` is a registered file index, not a real file descriptor.",
+      "source_hash": 12416157072670377208,
+      "context_hash": 4382320591824791666,
+      "translation": "`sqe->fd`가 실제 파일 디스크립터가 아니라 등록된 파일 인덱스일 때는 반드시 `IOSQE_FIXED_FILE`을 설정해야 합니다.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "`buf_index` in `io_uring_prep_read_fixed` must match the index in the `iovecs[]` array passed to `io_uring_register_buffers`.",
+      "source_hash": 9341253664325012623,
+      "context_hash": 6550553804108484500,
+      "translation": "`io_uring_prep_read_fixed`의 `buf_index`는 `io_uring_register_buffers`에 전달한 `iovecs[]` 배열의 인덱스와 일치해야 합니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "`addr` (the `buf` argument) must lie within the registered region for `buf_index`.",
+      "source_hash": 9800670071501570768,
+      "context_hash": 1730214815612919112,
+      "translation": "`addr`(`buf` 인자)는 `buf_index`에 대해 등록된 영역 안에 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "Passing `raw[0]` with `buf_index=0` satisfies this because `iovecs[0].iov_base == raw[0]`.",
+      "source_hash": 8209631964832535573,
+      "context_hash": 13185629669175660478,
+      "translation": "`iovecs[0].iov_base == raw[0]`이므로 `buf_index=0`과 함께 `raw[0]`을 전달하면 이 조건을 만족합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598148Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Unregistration order does not matter, but both should happen before `io_uring_queue_exit`.",
+      "source_hash": 14109433982666688630,
+      "context_hash": 4631741570984390959,
+      "translation": "등록 해제 순서는 상관없지만, 두 해제 모두 `io_uring_queue_exit` 이전에 수행해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:43:52.598149Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 1649427778011180508,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:43:52.598149Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "[Architecture and Rings](io-uring-arch.md) — Ring layout, SQE/CQE structures, mmap setup",
+      "source_hash": 1994889725131611170,
+      "context_hash": 5013181588008414648,
+      "translation": "[아키텍처와 링](io-uring-arch.md) — 링 레이아웃, SQE/CQE 구조체, mmap 설정",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:43:52.598149Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "[Operations and Advanced Features](io-uring-ops.md) — Supported opcodes, SQPOLL, linked requests",
+      "source_hash": 6318706161197473416,
+      "context_hash": 13892406081997571105,
+      "translation": "[연산과 고급 기능](io-uring-ops.md) — 지원되는 opcode, SQPOLL, 연결된 요청",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:43:52.598149Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "`io_uring/rsrc.c` in the kernel tree — `io_sqe_buffers_register`, `io_sqe_files_register`, `io_mapped_ubuf`",
+      "source_hash": 11342890781000904801,
+      "context_hash": 7256835382812204174,
+      "translation": "커널 트리의 `io_uring/rsrc.c` — `io_sqe_buffers_register`, `io_sqe_files_register`, `io_mapped_ubuf`",
+      "glossary_snapshot": {
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T22:00:20.252367Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "`io_uring/rsrc.h` — `io_rsrc_data`, `io_rsrc_node` structures",
+      "source_hash": 612110916105053679,
+      "context_hash": 15945460660578634223,
+      "translation": "`io_uring/rsrc.h` — `io_rsrc_data`, `io_rsrc_node` 구조체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:00:20.252369Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "`liburing/src/register.c` — userspace wrappers for all `io_uring_register` operations",
+      "source_hash": 11101077017531703989,
+      "context_hash": 4984521180010341498,
+      "translation": "`liburing/src/register.c` — 모든 `io_uring_register` 연산에 대한 사용자 공간 래퍼",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:00:20.252369Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "`liburing/test/fixed-buffers.c` — liburing test suite examples for fixed buffer edge cases",
+      "source_hash": 692448175663326644,
+      "context_hash": 7998511506594350813,
+      "translation": "`liburing/test/fixed-buffers.c` — 고정 버퍼의 경계 사례에 대한 liburing 테스트 스위트 예제",
+      "glossary_snapshot": {
+        "fixed buffer": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T23:34:12.872961Z",
+      "issues": []
+    }
+  ]
+}

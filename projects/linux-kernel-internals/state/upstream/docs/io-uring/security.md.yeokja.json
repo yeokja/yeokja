@@ -1,0 +1,1297 @@
+{
+  "version": 1,
+  "source_hash": 12830137835814091304,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "io_uring Security and Hardening",
+      "source_hash": 16828762909561568276,
+      "context_hash": 3872276322295945732,
+      "translation": "io_uring 보안 및 하드닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195784Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Attack surface, seccomp bypass, CVEs, and production lockdown",
+      "source_hash": 16747887130978094029,
+      "context_hash": 16851581694658817872,
+      "translation": "공격 표면, seccomp 우회, CVE, 그리고 프로덕션 환경 잠금",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:41:11.195785Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The attack surface",
+      "source_hash": 11855570315020573104,
+      "context_hash": 12211467973573117063,
+      "translation": "공격 표면",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195785Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "io_uring executes async operations from a kernel worker thread pool called **io-wq**.",
+      "source_hash": 9195851141268741561,
+      "context_hash": 4687852248040771157,
+      "translation": "io_uring은 **io-wq**라는 커널 워커 스레드 풀에서 비동기 작업을 실행합니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "kernel": "커널",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:41:11.195785Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "When an operation cannot complete inline (blocking read, file open, etc.), the kernel queues it to an io-wq thread.",
+      "source_hash": 13740202946193113634,
+      "context_hash": 9202626660347656826,
+      "translation": "작업을 인라인으로 완료할 수 없는 경우(블로킹 읽기, 파일 열기 등) 커널은 해당 작업을 io-wq 스레드의 큐에 넣습니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "kernel": "커널",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:41:11.195785Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "That thread runs with the credentials of the submitting task — the same UID, GID, capabilities, and open file table — but it runs **outside the normal syscall path**.",
+      "source_hash": 1812228616498383380,
+      "context_hash": 2483157221898613931,
+      "translation": "이 스레드는 작업을 제출한 태스크의 자격 증명, 즉 동일한 UID, GID, capability, 열린 파일 테이블을 가지고 실행되지만, **일반적인 시스템 콜 경로 밖에서** 실행됩니다.",
+      "glossary_snapshot": {
+        "GID": "GID",
+        "UID": "UID",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:11.195785Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "This matters because every kernel security hook designed around the syscall boundary becomes irrelevant for io-wq execution:",
+      "source_hash": 10125453218961247264,
+      "context_hash": 10435406635462140938,
+      "translation": "이 점이 중요한 이유는 시스템 콜 경계를 중심으로 설계된 모든 커널 보안 훅이 io-wq 실행에는 무의미해지기 때문입니다.",
+      "glossary_snapshot": {
+        "hook": "훅",
+        "io-wq": "io-wq",
+        "kernel": "커널",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:11.195786Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**seccomp filters** are evaluated at syscall entry; io-wq threads perform equivalent operations without making a syscall from userspace",
+      "source_hash": 10392676451713828837,
+      "context_hash": 14791192682010035255,
+      "translation": "**seccomp 필터**는 시스템 콜 진입 시점에 평가되지만, io-wq 스레드는 사용자 공간에서 시스템 콜을 호출하지 않고도 동등한 작업을 수행합니다",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "seccomp": "seccomp",
+        "syscall": "시스템 콜",
+        "syscall entry": "시스템 콜 진입",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:41:11.195786Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**ptrace**-based sandboxes observe system calls; io-wq work is invisible to them",
+      "source_hash": 13604493256231666442,
+      "context_hash": 17491131057030060935,
+      "translation": "**ptrace** 기반 샌드박스는 시스템 콜을 관찰하지만, io-wq 작업은 이러한 샌드박스에 보이지 않습니다",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "ptrace": "ptrace",
+        "system calls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:11.195786Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**audit rules** keyed on syscall numbers may not fire for async paths",
+      "source_hash": 13319855159859290390,
+      "context_hash": 11431461845727798143,
+      "translation": "시스템 콜 번호를 키로 하는 **audit 규칙**은 비동기 경로에서 발동하지 않을 수 있습니다",
+      "glossary_snapshot": {
+        "syscall numbers": "시스템 콜 번호"
+      },
+      "translated_at": "2026-11-14T22:41:11.195786Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "the **personality** field in an SQE allows submitting operations under a *different registered credential*, which is a legitimate feature but widens the attack surface considerably",
+      "source_hash": 12788742640116160100,
+      "context_hash": 10325923203299183443,
+      "translation": "SQE의 **personality** 필드를 사용하면 *다른 등록된 자격 증명*으로 작업을 제출할 수 있는데, 이는 정당한 기능이지만 공격 표면을 상당히 넓힙니다",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:41:11.195786Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "The io-wq path through `io_uring/io-wq.c` and the core submission machinery in `io_uring/io_uring.c` form a large, complex state machine.",
+      "source_hash": 3816560158256003166,
+      "context_hash": 17866669934764723204,
+      "translation": "`io_uring/io-wq.c`를 거치는 io-wq 경로와 `io_uring/io_uring.c`의 핵심 제출 메커니즘은 크고 복잡한 상태 머신을 이룹니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "state machine": "상태 머신"
+      },
+      "translated_at": "2026-11-14T22:41:11.195787Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "Subtle lifetime bugs and type confusions in that state machine have been the source of several privilege-escalation CVEs.",
+      "source_hash": 16862704341533824803,
+      "context_hash": 10570489599407462871,
+      "translation": "이 상태 머신의 미묘한 수명(lifetime) 버그와 타입 혼동(type confusion)은 여러 권한 상승 CVE의 원인이 되어 왔습니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "bugs": "버그",
+        "state machine": "상태 머신"
+      },
+      "translated_at": "2026-11-14T22:41:11.195787Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "seccomp and io_uring",
+      "source_hash": 15973913655146295242,
+      "context_hash": 9288736510334340056,
+      "translation": "seccomp와 io_uring",
+      "glossary_snapshot": {
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:41:11.195787Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "A process can install a strict seccomp filter that allows almost no syscalls, then use io_uring to perform those same operations asynchronously.",
+      "source_hash": 17363377592463339602,
+      "context_hash": 1799762550145903149,
+      "translation": "프로세스는 시스템 콜을 거의 허용하지 않는 엄격한 seccomp 필터를 설치한 다음, io_uring을 사용해 그와 동일한 작업을 비동기적으로 수행할 수 있습니다.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "seccomp": "seccomp",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:11.195787Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "The kernel does not re-evaluate the submitting process's seccomp policy when an io-wq thread executes the work.",
+      "source_hash": 5635459060142878957,
+      "context_hash": 11788001809823068815,
+      "translation": "io-wq 스레드가 작업을 실행할 때 커널은 제출한 프로세스의 seccomp 정책을 다시 평가하지 않습니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "kernel": "커널",
+        "policy": "정책",
+        "process": "프로세스",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:41:11.195787Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`IORING_SETUP_SQPOLL` makes this worse: a dedicated kernel polling thread drains the SQ ring continuously, so the process does not even need to call `io_uring_enter` (a syscall that *could* be blocked by seccomp) after the ring is set up.",
+      "source_hash": 18337928932183186438,
+      "context_hash": 9103803219303707080,
+      "translation": "`IORING_SETUP_SQPOLL`은 이 문제를 더 악화시킵니다. 전용 커널 폴링 스레드가 SQ 링을 지속적으로 비우므로, 링이 설정된 후에는 프로세스가 `io_uring_enter`(seccomp로 차단*될 수 있는* 시스템 콜)를 호출할 필요조차 없습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "process": "프로세스",
+        "seccomp": "seccomp",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:11.195787Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`IORING_SETUP_NO_SQTHREAD` (the default — omitting `IORING_SETUP_SQPOLL`) eliminates the polling thread, but io-wq threads still bypass seccomp for async work that cannot complete inline.",
+      "source_hash": 15087123082310883149,
+      "context_hash": 4009103482974570692,
+      "translation": "`IORING_SETUP_NO_SQTHREAD`(기본값으로, `IORING_SETUP_SQPOLL`을 생략한 경우)는 폴링 스레드를 없애지만, 인라인으로 완료할 수 없는 비동기 작업에 대해서는 여전히 io-wq 스레드가 seccomp를 우회합니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "`IORING_SETUP_SINGLE_ISSUER` (Linux 6.2) restricts submission to the one thread that created the ring, but does not change the seccomp bypass property.",
+      "source_hash": 15398066619492420345,
+      "context_hash": 15327489185448942829,
+      "translation": "`IORING_SETUP_SINGLE_ISSUER`(Linux 6.2)는 제출을 링을 생성한 단일 스레드로 제한하지만, seccomp 우회 특성은 바꾸지 않습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "The practical consequence: **seccomp alone is not a sufficient sandbox for processes that have access to an io_uring file descriptor**.",
+      "source_hash": 5864114916592558377,
+      "context_hash": 12893976140525802007,
+      "translation": "실질적인 결론은 다음과 같습니다. **io_uring 파일 디스크립터에 접근할 수 있는 프로세스에 대해서는 seccomp만으로는 충분한 샌드박스가 되지 않습니다**.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터",
+        "processes": "프로세스",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "Android, Chrome OS, and gVisor all respond to this by disabling `io_uring_setup` outright in their seccomp policies (see below).",
+      "source_hash": 9363052017065207873,
+      "context_hash": 15721827551677842430,
+      "translation": "Android, Chrome OS, gVisor는 모두 이에 대응하여 seccomp 정책에서 `io_uring_setup`을 완전히 비활성화합니다(아래 참조).",
+      "glossary_snapshot": {
+        "Android": "Android",
+        "policies": "정책",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Restrictions added over time",
+      "source_hash": 5104827868130656254,
+      "context_hash": 15216033866570686966,
+      "translation": "시간에 따라 추가된 제한 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The kernel has progressively tightened io_uring's privilege boundaries:",
+      "source_hash": 17311019340019811586,
+      "context_hash": 15805666141159521913,
+      "translation": "커널은 io_uring의 권한 경계를 점진적으로 강화해 왔습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Version",
+      "source_hash": 16904860506004502524,
+      "context_hash": 12980641971383227625,
+      "translation": "버전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Change",
+      "source_hash": 1932797102218492626,
+      "context_hash": 15940960132074297492,
+      "translation": "변경 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "5.10",
+      "source_hash": 12419323204659715195,
+      "context_hash": 9580842631064600524,
+      "translation": "5.10",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`io_uring_enter()` restricted — only the task that created the ring may call it",
+      "source_hash": 15109216265027704914,
+      "context_hash": 14663178534895747998,
+      "translation": "`io_uring_enter()` 제한 — 링을 생성한 태스크만 호출 가능",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "6.2",
+      "source_hash": 828476179502766592,
+      "context_hash": 10134516782747830513,
+      "translation": "6.2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195788Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "`IORING_SETUP_SINGLE_ISSUER` — only one thread may submit SQEs to the ring",
+      "source_hash": 8622597300565148846,
+      "context_hash": 16292582192160994105,
+      "translation": "`IORING_SETUP_SINGLE_ISSUER` — 하나의 스레드만 링에 SQE 제출 가능",
+      "glossary_snapshot": {
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:41:11.195789Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "6.1",
+      "source_hash": 8815792879715782369,
+      "context_hash": 15638796028987942896,
+      "translation": "6.1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195789Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "`IORING_SETUP_DEFER_TASKRUN` — completions run on the submitting thread; avoids spawning any SQPOLL kernel thread",
+      "source_hash": 810438817648062915,
+      "context_hash": 11290998299585792459,
+      "translation": "`IORING_SETUP_DEFER_TASKRUN` — 완료 처리가 제출 스레드에서 실행됨, SQPOLL 커널 스레드 생성 방지",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T22:41:11.195789Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "all",
+      "source_hash": 8772594623928901432,
+      "context_hash": 7542163854427740913,
+      "translation": "전체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:11.195789Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "`IORING_REGISTER_RESTRICTIONS` — whitelist the opcodes and registration operations a ring is allowed to use",
+      "source_hash": 17643348227446635233,
+      "context_hash": 10676448379068169928,
+      "translation": "`IORING_REGISTER_RESTRICTIONS` — 링이 사용할 수 있는 opcode와 등록 작업을 화이트리스트로 지정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118631Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "`IORING_SETUP_DEFER_TASKRUN` is particularly useful for sandboxed contexts: no io-wq threads are spawned for deferred completions, keeping all execution on the known, filterable userspace thread.",
+      "source_hash": 17100166086935638541,
+      "context_hash": 17835247544302182935,
+      "translation": "`IORING_SETUP_DEFER_TASKRUN`은 샌드박스 환경에서 특히 유용합니다. 지연된 완료를 위해 io-wq 스레드가 생성되지 않으므로, 모든 실행이 알려져 있고 필터링 가능한 사용자 공간 스레드에서 이루어집니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:50:56.118631Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "`IORING_REGISTER_RESTRICTIONS`",
+      "source_hash": 1357316335691746043,
+      "context_hash": 5074572387417944768,
+      "translation": "`IORING_REGISTER_RESTRICTIONS`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118632Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "After setting up a ring, a privileged component can **lock it down** before handing the ring fd to an untrusted component.",
+      "source_hash": 8865632646704853349,
+      "context_hash": 14159174110337141801,
+      "translation": "링을 설정한 후, 권한 있는 컴포넌트는 신뢰할 수 없는 컴포넌트에 링 fd를 넘기기 전에 링을 **잠글** 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118633Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The `IORING_REGISTER_RESTRICTIONS` registration call (`io_uring_register(2)`) accepts an array of `struct io_uring_restriction` entries.",
+      "source_hash": 10125876589128906743,
+      "context_hash": 18404883298605365567,
+      "translation": "`IORING_REGISTER_RESTRICTIONS` 등록 호출(`io_uring_register(2)`)은 `struct io_uring_restriction` 항목의 배열을 받습니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:50:56.118633Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:2",
+      "source": "Once applied, restrictions are permanent for the lifetime of the ring — they cannot be removed.",
+      "source_hash": 1395280812057090298,
+      "context_hash": 8972516414152935831,
+      "translation": "일단 적용된 제한은 링의 수명 동안 영구적이며, 제거할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118633Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Restriction types:",
+      "source_hash": 9341101744225744133,
+      "context_hash": 2903301443876416038,
+      "translation": "제한 유형:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118634Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Type",
+      "source_hash": 1769059670591154792,
+      "context_hash": 1573848234267980705,
+      "translation": "유형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118634Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Effect",
+      "source_hash": 6420176389575395961,
+      "context_hash": 14570968211476689162,
+      "translation": "효과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118634Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "`IORING_RESTRICTION_REGISTER_OP`",
+      "source_hash": 9688100660913140193,
+      "context_hash": 6850172679059481200,
+      "translation": "`IORING_RESTRICTION_REGISTER_OP`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118634Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Allow only the specified `IORING_REGISTER_*` operation",
+      "source_hash": 8229388133866996260,
+      "context_hash": 11012587876567946311,
+      "translation": "지정된 `IORING_REGISTER_*` 작업만 허용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118634Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "`IORING_RESTRICTION_SQE_OP`",
+      "source_hash": 12921387852935955,
+      "context_hash": 6623744444849800066,
+      "translation": "`IORING_RESTRICTION_SQE_OP`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118634Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "Allow only the specified `IORING_OP_*` opcode in SQEs",
+      "source_hash": 17651340684586080329,
+      "context_hash": 6114002275499139973,
+      "translation": "SQE에서 지정된 `IORING_OP_*` opcode만 허용",
+      "glossary_snapshot": {
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:50:56.118635Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "`IORING_RESTRICTION_SQE_FLAGS_ALLOWED`",
+      "source_hash": 927612891505633873,
+      "context_hash": 11717715888983788824,
+      "translation": "`IORING_RESTRICTION_SQE_FLAGS_ALLOWED`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118635Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "Mask of SQE flags userspace is allowed to set",
+      "source_hash": 14315627314773291860,
+      "context_hash": 4202755636485159610,
+      "translation": "사용자 공간이 설정할 수 있는 SQE 플래그의 마스크",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:50:56.118635Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "`IORING_RESTRICTION_SQE_FLAGS_REQUIRED`",
+      "source_hash": 17712956421874156343,
+      "context_hash": 12608743594695690954,
+      "translation": "`IORING_RESTRICTION_SQE_FLAGS_REQUIRED`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118636Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Mask of SQE flags that must be set on every SQE",
+      "source_hash": 5006633158474990268,
+      "context_hash": 11173879013607930713,
+      "translation": "모든 SQE에 반드시 설정되어야 하는 SQE 플래그의 마스크",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:50:56.118636Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "The implementation lives in `io_uring/rsrc.c` (resource registration) and `io_uring/io_uring.c` (`io_uring_register` dispatch and restriction enforcement).",
+      "source_hash": 5913540666476838235,
+      "context_hash": 17435458020404917074,
+      "translation": "구현은 `io_uring/rsrc.c`(리소스 등록)와 `io_uring/io_uring.c`(`io_uring_register` 디스패치 및 제한 적용)에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118636Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Example: handing a restricted ring to an untrusted component",
+      "source_hash": 9192809021161676602,
+      "context_hash": 2206216326747490703,
+      "translation": "예시: 제한된 링을 신뢰할 수 없는 컴포넌트에 넘기기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118636Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "After `IORING_REGISTER_RESTRICTIONS` is applied, the kernel checks each SQE against the restriction bitmap in `io_ring_ctx->restrictions` on the hot submission path.",
+      "source_hash": 14402035559204153802,
+      "context_hash": 16772916244008796439,
+      "translation": "`IORING_REGISTER_RESTRICTIONS`가 적용된 후, 커널은 핫 제출 경로에서 각 SQE를 `io_ring_ctx->restrictions`의 제한 비트맵과 대조하여 검사합니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "bitmap": "비트맵",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:50:56.118637Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:1",
+      "source": "Attempts to use a disallowed opcode or flag return `-EACCES`.",
+      "source_hash": 8793004680138500882,
+      "context_hash": 11265375612066771296,
+      "translation": "허용되지 않은 opcode나 플래그를 사용하려고 하면 `-EACCES`가 반환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118637Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "CVEs and kernel hardening",
+      "source_hash": 5855312770282535105,
+      "context_hash": 6139098001747895701,
+      "translation": "CVE와 커널 하드닝",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:50:56.118637Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The complexity of the io_uring state machine — cancellation, timeouts, linked requests, fixed buffers, registered credentials — creates a large surface for subtle memory-safety bugs:",
+      "source_hash": 9278525177182479537,
+      "context_hash": 1877136479712011897,
+      "translation": "취소, 타임아웃, 연결된 요청, 고정 버퍼, 등록된 자격 증명 등 io_uring 상태 머신의 복잡성은 미묘한 메모리 안전성 버그가 발생할 수 있는 넓은 공격 표면을 만듭니다.",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "fixed buffers": "고정 버퍼",
+        "memory": "메모리",
+        "state machine": "상태 머신"
+      },
+      "translated_at": "2026-11-14T22:50:56.118637Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "**CVE-2022-29582** — use-after-free in io_uring file table handling (`io_uring/fdinfo.c`, `io_uring/rsrc.c`).",
+      "source_hash": 687628040068037266,
+      "context_hash": 9085690979208108015,
+      "translation": "**CVE-2022-29582** — io_uring 파일 테이블 처리(`io_uring/fdinfo.c`, `io_uring/rsrc.c`)의 use-after-free입니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T22:50:56.118637Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "A race between file table updates and async operation teardown allowed a local attacker to escalate privileges.",
+      "source_hash": 6837312889733152791,
+      "context_hash": 15230106600435661883,
+      "translation": "파일 테이블 갱신과 비동기 작업 해체 사이의 경쟁 상태로 인해 로컬 공격자가 권한을 상승시킬 수 있었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118638Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:2",
+      "source": "Fixed in Linux 5.17.3 / 5.15.34.",
+      "source_hash": 10469073959638536635,
+      "context_hash": 11901027345782833906,
+      "translation": "Linux 5.17.3 / 5.15.34에서 수정되었습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:50:56.118638Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:3",
+      "source": "CVSS 7.8.",
+      "source_hash": 3432482335158570261,
+      "context_hash": 14538134891539201254,
+      "translation": "CVSS 7.8입니다.",
+      "glossary_snapshot": {
+        "CVSS": "CVSS"
+      },
+      "translated_at": "2026-11-14T22:50:56.118638Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "**CVE-2023-2598** — integer overflow in fixed buffer registration.",
+      "source_hash": 6406898455940505600,
+      "context_hash": 8920000563990552350,
+      "translation": "**CVE-2023-2598** — 고정 버퍼 등록 시의 정수 오버플로입니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "fixed buffer": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:50:56.118638Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "When registering fixed buffers via `IORING_REGISTER_BUFFERS`, insufficient validation of the buffer count allowed an overflow that corrupted kernel memory.",
+      "source_hash": 15496408352417683054,
+      "context_hash": 17665149622505895883,
+      "translation": "`IORING_REGISTER_BUFFERS`를 통해 고정 버퍼를 등록할 때 버퍼 개수에 대한 검증이 불충분하여, 커널 메모리를 손상시키는 오버플로가 발생할 수 있었습니다.",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼",
+        "kernel memory": "커널 메모리"
+      },
+      "translated_at": "2026-11-14T22:50:56.118638Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:2",
+      "source": "Fixed in Linux 6.3.",
+      "source_hash": 15401711573529576927,
+      "context_hash": 8558683410666378509,
+      "translation": "Linux 6.3에서 수정되었습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:50:56.118638Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:3",
+      "source": "The vulnerable calculation was in `io_uring/rsrc.c:io_sqe_buffers_register()`.",
+      "source_hash": 1000488775652804705,
+      "context_hash": 9660566602087554812,
+      "translation": "취약한 계산은 `io_uring/rsrc.c:io_sqe_buffers_register()`에 있었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:56.118638Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "**General pattern**: most io_uring CVEs share the same shape — a refcount, lifetime, or size calculation goes wrong in the async teardown path, turning a freed object into an exploitable primitive.",
+      "source_hash": 14496353415231758444,
+      "context_hash": 14297768435162806908,
+      "translation": "**일반적인 패턴**: 대부분의 io_uring CVE는 같은 형태를 띱니다. 비동기 해제(teardown) 경로에서 참조 카운트, 수명(lifetime), 또는 크기 계산이 잘못되어 해제된 객체가 악용 가능한 프리미티브로 바뀝니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "refcount": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:50:58.425955Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "The combination of multiple io-wq threads, user-controlled lifetimes, and shared kernel objects is inherently difficult to reason about.",
+      "source_hash": 3467694536675438035,
+      "context_hash": 15594926468607356381,
+      "translation": "여러 io-wq 스레드, 사용자가 제어하는 수명, 공유 커널 객체가 결합되면 본질적으로 동작을 추론하기 어렵습니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "kernel objects": "커널 객체"
+      },
+      "translated_at": "2026-11-14T22:50:58.425956Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "Staying on a recent kernel is the most effective mitigation.",
+      "source_hash": 867079184517893115,
+      "context_hash": 12406688204905058669,
+      "translation": "최신 커널을 유지하는 것이 가장 효과적인 완화책입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:50:58.425956Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "The io_uring subsystem receives security fixes backported to stable trees, but only for a limited window.",
+      "source_hash": 5551778065794853481,
+      "context_hash": 3427238019879408839,
+      "translation": "io_uring 서브시스템은 stable 트리로 백포트되는 보안 수정을 받지만, 제한된 기간 동안에만 받습니다.",
+      "glossary_snapshot": {
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:50:58.425956Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Android, Chrome OS, and gVisor restrictions",
+      "source_hash": 12678497373892437420,
+      "context_hash": 16946869007963089926,
+      "translation": "Android, Chrome OS, gVisor의 제한",
+      "glossary_snapshot": {
+        "Android": "Android"
+      },
+      "translated_at": "2026-11-14T22:50:58.425956Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "These platforms concluded that the seccomp bypass risk outweighs the performance benefit for their threat models:",
+      "source_hash": 2754289819208833200,
+      "context_hash": 3627338965056789695,
+      "translation": "이 플랫폼들은 각자의 위협 모델에서 seccomp 우회 위험이 성능상 이점보다 크다고 결론지었습니다:",
+      "glossary_snapshot": {
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "**Android** (since Android 12): `io_uring_setup` is blocked by the default seccomp policy applied to app processes (`SCMP_ACT_ERRNO`).",
+      "source_hash": 12447600209111032075,
+      "context_hash": 4662437800282165868,
+      "translation": "**Android**(Android 12부터): 앱 프로세스에 적용되는 기본 seccomp 정책(`SCMP_ACT_ERRNO`)이 `io_uring_setup`을 차단합니다.",
+      "glossary_snapshot": {
+        "Android": "Android",
+        "policy": "정책",
+        "processes": "프로세스",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "Privileged system processes may use it, but untrusted app code cannot create a ring.",
+      "source_hash": 7338562461404278892,
+      "context_hash": 3512039617556262814,
+      "translation": "권한이 있는 시스템 프로세스는 이를 사용할 수 있지만, 신뢰할 수 없는 앱 코드는 링을 생성할 수 없습니다.",
+      "glossary_snapshot": {
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:2",
+      "source": "This is enforced in the Bionic seccomp filter tables.",
+      "source_hash": 6718978939577686978,
+      "context_hash": 6354647342548437128,
+      "translation": "이는 Bionic seccomp 필터 테이블에서 강제됩니다.",
+      "glossary_snapshot": {
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "**Chrome OS**: the Chrome sandbox uses a seccomp-bpf policy that rejects `io_uring_setup` for renderer and GPU process sandboxes.",
+      "source_hash": 318939553742719997,
+      "context_hash": 16780826937000017836,
+      "translation": "**Chrome OS**: Chrome 샌드박스는 렌더러 및 GPU 프로세스 샌드박스에 대해 `io_uring_setup`을 거부하는 seccomp-bpf 정책을 사용합니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "GPU": "GPU",
+        "policy": "정책",
+        "process": "프로세스",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "The decision was made explicitly because seccomp filters do not cover io-wq operations.",
+      "source_hash": 5568695833911558880,
+      "context_hash": 8053566060489216410,
+      "translation": "seccomp 필터가 io-wq 작업을 다루지 못하기 때문에 이러한 결정이 명시적으로 내려졌습니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "**gVisor**: the gVisor kernel (`runsc`) intercepts syscalls at the sentry boundary.",
+      "source_hash": 10178813025985630863,
+      "context_hash": 13273567115412347041,
+      "translation": "**gVisor**: gVisor 커널(`runsc`)은 sentry 경계에서 시스템 콜을 가로챕니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "Because io_uring's async execution model is fundamentally at odds with gVisor's syscall interposition architecture, `io_uring_setup` returns `ENOSYS` in gVisor containers by default.",
+      "source_hash": 3621190337486152589,
+      "context_hash": 14404892370487432178,
+      "translation": "io_uring의 비동기 실행 모델은 gVisor의 시스템 콜 개입(interposition) 아키텍처와 근본적으로 상충하므로, gVisor 컨테이너에서는 기본적으로 `io_uring_setup`이 `ENOSYS`를 반환합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:2",
+      "source": "Supporting it would require the sentry to emulate the entire io-wq execution model.",
+      "source_hash": 8140435384192407335,
+      "context_hash": 3714533830379533139,
+      "translation": "이를 지원하려면 sentry가 io-wq 실행 모델 전체를 에뮬레이션해야 합니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:50:58.425957Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "**Linux Security Modules**: SELinux and AppArmor can restrict io_uring operations via the `io_uring` object class (added in Linux 5.12).",
+      "source_hash": 13822332407851019919,
+      "context_hash": 12467610787597137243,
+      "translation": "**Linux Security Modules**: SELinux와 AppArmor는 `io_uring` 객체 클래스(Linux 5.12에서 추가)를 통해 io_uring 작업을 제한할 수 있습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "SELinux": "SELinux"
+      },
+      "translated_at": "2026-11-14T22:50:58.425958Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "Policy can deny `sqpoll` (spawning the SQPOLL kernel thread) and `override_creds` (using the `personality` field to run ops under alternate credentials) independently of the general io_uring access.",
+      "source_hash": 4002687736299614363,
+      "context_hash": 4931025407930294967,
+      "translation": "정책은 일반적인 io_uring 접근과 별개로 `sqpoll`(SQPOLL 커널 스레드 생성)과 `override_creds`(`personality` 필드를 사용해 다른 자격 증명으로 작업 실행)를 거부할 수 있습니다.",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드",
+        "policy": "정책"
+      },
+      "translated_at": "2026-11-14T22:50:58.425958Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Best practices for production",
+      "source_hash": 17613419157843750309,
+      "context_hash": 5997914068252877465,
+      "translation": "프로덕션 환경을 위한 모범 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:58.425958Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "**Minimize flags**",
+      "source_hash": 8768061115492339909,
+      "context_hash": 5551892670280714012,
+      "translation": "**플래그 최소화**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:58.425958Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "Default: omit `IORING_SETUP_SQPOLL` unless polling latency is critical and the process is trusted.",
+      "source_hash": 3279085673009242014,
+      "context_hash": 8559598866879838838,
+      "translation": "기본 원칙: 폴링 지연 시간이 매우 중요하고 프로세스를 신뢰할 수 있는 경우가 아니라면 `IORING_SETUP_SQPOLL`을 생략하십시오.",
+      "glossary_snapshot": {
+        "latency": "지연 시간",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:50:58.425958Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "SQPOLL spawns a kernel thread that runs continuously with the process's credentials.",
+      "source_hash": 3920198421010910078,
+      "context_hash": 12349504338749547462,
+      "translation": "SQPOLL은 프로세스의 자격 증명으로 계속 실행되는 커널 스레드를 생성합니다.",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:50:58.425958Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "Use `IORING_SETUP_SINGLE_ISSUER` (Linux 6.2+) for any ring accessed from a single submission thread.",
+      "source_hash": 5130460875039722715,
+      "context_hash": 5904589831507711279,
+      "translation": "단일 제출 스레드에서만 접근하는 링에는 `IORING_SETUP_SINGLE_ISSUER`(Linux 6.2+)를 사용하십시오.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:50:58.425958Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "Use `IORING_SETUP_DEFER_TASKRUN` (Linux 6.1+) alongside `IORING_SETUP_SINGLE_ISSUER` to avoid spawning io-wq threads for completion processing.",
+      "source_hash": 6359836807915217136,
+      "context_hash": 9915379156299158631,
+      "translation": "완료 처리를 위해 io-wq 스레드가 생성되지 않도록 `IORING_SETUP_SINGLE_ISSUER`와 함께 `IORING_SETUP_DEFER_TASKRUN`(Linux 6.1+)을 사용하십시오.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "**Lock down rings in sandboxed contexts**",
+      "source_hash": 15440089267473289887,
+      "context_hash": 5036152191887020677,
+      "translation": "**샌드박스 환경에서 링 잠그기**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "Apply `IORING_REGISTER_RESTRICTIONS` immediately after `io_uring_setup`, before handing the ring fd to any untrusted code.",
+      "source_hash": 2412507902891219934,
+      "context_hash": 10278477871249666817,
+      "translation": "링 fd를 신뢰할 수 없는 코드에 넘기기 전에, `io_uring_setup` 직후 바로 `IORING_REGISTER_RESTRICTIONS`를 적용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:1",
+      "source": "Restrict to the minimum set of opcodes the component needs.",
+      "source_hash": 4183596261942712843,
+      "context_hash": 15843815980988255106,
+      "translation": "해당 컴포넌트에 필요한 최소한의 opcode 집합으로 제한하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:2",
+      "source": "This limits the blast radius of a compromised component even if the kernel has an unpatched vulnerability.",
+      "source_hash": 13129273155184957094,
+      "context_hash": 7185567072894396921,
+      "translation": "이렇게 하면 커널에 패치되지 않은 취약점이 있더라도 침해된 컴포넌트로 인한 피해 범위를 제한할 수 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "vulnerability": "취약점"
+      },
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "**Seccomp policy**",
+      "source_hash": 10419211620270784994,
+      "context_hash": 1771491813461846025,
+      "translation": "**Seccomp 정책**",
+      "glossary_snapshot": {
+        "policy": "정책",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "If the process does not need io_uring at all, block `io_uring_setup` in the seccomp filter.",
+      "source_hash": 11594861545580992536,
+      "context_hash": 12997787315235255220,
+      "translation": "프로세스가 io_uring을 전혀 필요로 하지 않는다면 seccomp 필터에서 `io_uring_setup`을 차단하십시오.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "seccomp": "seccomp"
+      },
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:1",
+      "source": "If the process creates a ring during initialization and then drops privileges, block `io_uring_setup` after ring creation — this prevents a compromised process from creating additional, unrestricted rings.",
+      "source_hash": 11684705956995397042,
+      "context_hash": 6845812780555120163,
+      "translation": "프로세스가 초기화 중에 링을 생성한 뒤 권한을 내려놓는다면, 링 생성 후 `io_uring_setup`을 차단하십시오. 이렇게 하면 침해된 프로세스가 제한 없는 링을 추가로 생성하는 것을 막을 수 있습니다.",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "**Avoid `personality` (registered credentials) unless necessary**",
+      "source_hash": 8334804344484108569,
+      "context_hash": 3058545420307465887,
+      "translation": "**꼭 필요한 경우가 아니라면 `personality`(등록된 자격 증명) 사용 피하기**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:50:58.425959Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "The `personality` field in an SQE allows operations to run under a pre-registered credential set (`IORING_REGISTER_PERSONALITY`).",
+      "source_hash": 14748441697985980933,
+      "context_hash": 2376368194217214569,
+      "translation": "SQE의 `personality` 필드를 사용하면 미리 등록된 자격 증명(credential) 집합(`IORING_REGISTER_PERSONALITY`)으로 작업을 실행할 수 있습니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:04:59.324841Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:1",
+      "source": "This is a powerful feature that is easy to misuse.",
+      "source_hash": 15848645478381445175,
+      "context_hash": 13339341103723724733,
+      "translation": "이는 강력하지만 오용하기 쉬운 기능입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:59.324842Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:2",
+      "source": "Restrict its use with `IORING_RESTRICTION_REGISTER_OP` to prevent registration of new personalities after the ring is set up.",
+      "source_hash": 6867669274297025348,
+      "context_hash": 7097638433354901065,
+      "translation": "링을 설정한 후에 새 personality가 등록되지 않도록 `IORING_RESTRICTION_REGISTER_OP`로 사용을 제한하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:59.324843Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "**Monitor with audit**",
+      "source_hash": 8245064653880839728,
+      "context_hash": 8910273576170685352,
+      "translation": "**audit을 이용한 모니터링**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:59.324843Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "The kernel audit subsystem emits records for `io_uring_setup` and `io_uring_register`.",
+      "source_hash": 48984389757596928,
+      "context_hash": 13123876774921336532,
+      "translation": "커널 audit 서브시스템은 `io_uring_setup`과 `io_uring_register`에 대한 레코드를 생성합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:04:59.324844Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:1",
+      "source": "In environments with auditd or a SIEM ingesting audit logs, rules on these event types surface unexpected ring creation or capability registration.",
+      "source_hash": 9164908020377066693,
+      "context_hash": 217389757235411942,
+      "translation": "auditd나 audit 로그를 수집하는 SIEM이 있는 환경에서는 이러한 이벤트 유형에 대한 규칙을 통해 예상치 못한 링 생성이나 capability 등록을 드러낼 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:59.324844Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 16372970238341451710,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:04:59.324844Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "[Architecture and Rings](io-uring-arch.md) — SQ/CQ layout, SQE/CQE structures",
+      "source_hash": 17189039187163325564,
+      "context_hash": 9967387185270034767,
+      "translation": "[아키텍처와 링](io-uring-arch.md) — SQ/CQ 레이아웃, SQE/CQE 구조체",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:04:59.324845Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "[Operations and Advanced Features](io-uring-ops.md) — Supported ops, SQPOLL, fixed buffers",
+      "source_hash": 3977064258590831347,
+      "context_hash": 11395174887347556913,
+      "translation": "[작업과 고급 기능](io-uring-ops.md) — 지원되는 작업, SQPOLL, 고정 버퍼",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:04:59.324845Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "`io_uring/io_uring.c` — core submission path and restriction enforcement",
+      "source_hash": 138100398329589868,
+      "context_hash": 18023357955924225696,
+      "translation": "`io_uring/io_uring.c` — 핵심 제출 경로 및 제한 적용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:59.324846Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "`io_uring/rsrc.c` — fixed buffer and credential registration, CVE-2023-2598 site",
+      "source_hash": 7066648051409301837,
+      "context_hash": 4785694788707042426,
+      "translation": "`io_uring/rsrc.c` — 고정 버퍼 및 자격 증명 등록, CVE-2023-2598 발생 위치",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "fixed buffer": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:04:59.324846Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "`io_uring/io-wq.c` — worker thread pool implementation",
+      "source_hash": 10538595870228688695,
+      "context_hash": 4826447886061267854,
+      "translation": "`io_uring/io-wq.c` — 워커 스레드 풀 구현",
+      "glossary_snapshot": {
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:04:59.324846Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "`include/uapi/linux/io_uring.h` — `IORING_RESTRICTION_*` constants and `struct io_uring_restriction`",
+      "source_hash": 6997493799957691232,
+      "context_hash": 3238761468343180317,
+      "translation": "`include/uapi/linux/io_uring.h` — `IORING_RESTRICTION_*` 상수와 `struct io_uring_restriction`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:59.324846Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "[Auditing io_uring](https://lwn.net/Articles/858023/) — LWN article on adding LSM and audit hooks to io_uring",
+      "source_hash": 13727337554382192978,
+      "context_hash": 4451254175863645027,
+      "translation": "[Auditing io_uring](https://lwn.net/Articles/858023/) — io_uring에 LSM 및 audit 훅을 추가하는 내용을 다룬 LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "hooks": "훅"
+      },
+      "translated_at": "2026-11-14T22:04:59.324847Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "[CVE-2022-29582 writeup (Qualys)](https://www.qualys.com/2022/05/02/cve-2022-29582/lpe-io-uring.txt) — detailed exploitation analysis",
+      "source_hash": 11223817455611446516,
+      "context_hash": 12741728019257249339,
+      "translation": "[CVE-2022-29582 writeup (Qualys)](https://www.qualys.com/2022/05/02/cve-2022-29582/lpe-io-uring.txt) — 상세한 익스플로잇 분석",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "analysis": "분석"
+      },
+      "translated_at": "2026-11-14T22:04:59.324847Z",
+      "issues": []
+    }
+  ]
+}

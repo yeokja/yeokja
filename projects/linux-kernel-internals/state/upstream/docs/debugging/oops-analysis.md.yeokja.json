@@ -1,0 +1,959 @@
+{
+  "version": 1,
+  "source_hash": 3388589721048208454,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Kernel Oops Analysis",
+      "source_hash": 16628993039215453498,
+      "context_hash": 1414945560532757225,
+      "translation": "커널 Oops 분석",
+      "glossary_snapshot": {
+        "analysis": "분석",
+        "kernel": "커널",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:45.913320Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Reading oops output, decoding addresses, and finding the bug",
+      "source_hash": 6483621512795771693,
+      "context_hash": 4028041493924020719,
+      "translation": "oops 출력 읽기, 주소 디코딩, 버그 찾기",
+      "glossary_snapshot": {
+        "addresses": "주소",
+        "bug": "버그",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:45.913320Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What is a kernel oops?",
+      "source_hash": 4123552632686405597,
+      "context_hash": 17874535113396663372,
+      "translation": "커널 oops란 무엇입니까?",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:45.913320Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A **kernel oops** is a non-fatal kernel error — the kernel detected an inconsistency (usually a NULL pointer dereference, bad memory access, or BUG()) but can keep running (though the offending task is killed).",
+      "source_hash": 17531720514832278071,
+      "context_hash": 8216252641008490490,
+      "translation": "**커널 oops**는 치명적이지 않은 커널 오류입니다. 커널이 불일치(대개 NULL 포인터 역참조, 잘못된 메모리 접근, 또는 BUG())를 감지했지만 계속 실행될 수 있습니다(다만 문제를 일으킨 태스크는 종료됩니다).",
+      "glossary_snapshot": {
+        "memory access": "메모리 접근",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:45.913321Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "A **kernel panic** is a fatal oops or a situation where the kernel cannot safely continue.",
+      "source_hash": 6211390564570762533,
+      "context_hash": 2093390358286167271,
+      "translation": "**커널 패닉**은 치명적인 oops이거나 커널이 안전하게 계속 실행될 수 없는 상황입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "oops": "oops",
+        "panic": "패닉"
+      },
+      "translated_at": "2026-11-14T22:46:45.913321Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Anatomy of an oops message",
+      "source_hash": 11508374102340771300,
+      "context_hash": 15698896406878358131,
+      "translation": "oops 메시지의 구조",
+      "glossary_snapshot": {
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:45.913321Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The doubled \"Oops: Oops:\" is real, not a typo: `__die_header()` (`arch/x86/kernel/dumpstack.c`) always prints `\"Oops: %s: ...\"`, and the generic kernel-mode page-fault handler (`arch/x86/mm/fault.c`) passes the literal string `\"Oops\"` as that `%s` — so the two collide.",
+      "source_hash": 8364842468657940471,
+      "context_hash": 13842355208649454218,
+      "translation": "\"Oops: Oops:\"가 두 번 나오는 것은 오타가 아니라 실제 출력입니다. `__die_header()`(`arch/x86/kernel/dumpstack.c`)는 항상 `\"Oops: %s: ...\"`를 출력하며, 범용 커널 모드 페이지 폴트 핸들러(`arch/x86/mm/fault.c`)가 그 `%s`로 리터럴 문자열 `\"Oops\"`를 전달하므로 두 문자열이 겹치게 됩니다.",
+      "glossary_snapshot": {
+        "fault handler": "폴트 핸들러",
+        "kernel": "커널",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:45.913322Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "The flags after `[#1]` are conditional, built from the running kernel's config: `SMP` (`CONFIG_SMP`), `DEBUG_PAGEALLOC` (if `debug_pagealloc_enabled()`), `KASAN` (`CONFIG_KASAN`), and `PTI`/`NOPTI` (`CONFIG_MITIGATION_PAGE_TABLE_ISOLATION`, `PTI` if the CPU needs the mitigation, `NOPTI` if not) — there is no `PREEMPT` flag in this line at all.",
+      "source_hash": 2450792594904252022,
+      "context_hash": 7383898297298551421,
+      "translation": "`[#1]` 뒤의 플래그는 조건부이며, 실행 중인 커널의 설정에 따라 구성됩니다. `SMP`(`CONFIG_SMP`), `DEBUG_PAGEALLOC`(`debug_pagealloc_enabled()`인 경우), `KASAN`(`CONFIG_KASAN`), 그리고 `PTI`/`NOPTI`(`CONFIG_MITIGATION_PAGE_TABLE_ISOLATION`, CPU에 완화 조치가 필요하면 `PTI`, 필요하지 않으면 `NOPTI`)가 있으며, 이 줄에는 `PREEMPT` 플래그가 전혀 없습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:46:45.913322Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Breaking down the first line:",
+      "source_hash": 14343256828590707026,
+      "context_hash": 11983682078526661570,
+      "translation": "첫 번째 줄 분석:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913323Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`BUG: kernel NULL pointer dereference` — the fault type",
+      "source_hash": 7604309410086212357,
+      "context_hash": 2958615693984289190,
+      "translation": "`BUG: kernel NULL pointer dereference` — 폴트 유형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913323Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "`address: 0x18` — the virtual address that caused the fault (0x18 = offset 24 in a struct)",
+      "source_hash": 10150211650558584952,
+      "context_hash": 8442594842157838772,
+      "translation": "`address: 0x18` — 폴트를 일으킨 가상 주소(0x18 = 구조체 내 오프셋 24)",
+      "glossary_snapshot": {
+        "struct": "구조체",
+        "virtual address": "가상 주소"
+      },
+      "translated_at": "2026-11-14T22:46:45.913323Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "The error code `0000`:",
+      "source_hash": 9909818096375078605,
+      "context_hash": 4408153178609319903,
+      "translation": "오류 코드 `0000`:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913323Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Bit 0 = 0: page not present (vs protection fault)",
+      "source_hash": 11634275608075558392,
+      "context_hash": 4988724283759791436,
+      "translation": "비트 0 = 0: 페이지가 존재하지 않음(보호 폴트와 대비)",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T22:46:45.913323Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Bit 1 = 0: read (vs write)",
+      "source_hash": 17596533182298632361,
+      "context_hash": 6132772440641986791,
+      "translation": "비트 1 = 0: 읽기(쓰기와 대비)",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T22:46:45.913324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Bit 2 = 0: kernel mode (vs user mode)",
+      "source_hash": 17290853907975624928,
+      "context_hash": 1844969142331630169,
+      "translation": "비트 2 = 0: 커널 모드(사용자 모드와 대비)",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:46:45.913324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "`CPU: 3` — which CPU was running",
+      "source_hash": 289506686948122725,
+      "context_hash": 3288205774386127754,
+      "translation": "`CPU: 3` — 실행 중이던 CPU",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:46:45.913324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "`PID: 1234 Comm: myapp` — the task that triggered the oops",
+      "source_hash": 5464848651453697167,
+      "context_hash": 15858784914823422998,
+      "translation": "`PID: 1234 Comm: myapp` — oops를 유발한 태스크",
+      "glossary_snapshot": {
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:45.913324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "`Tainted: G` — kernel taint flags (G = all loaded modules are GPL-compatible, no proprietary modules)",
+      "source_hash": 13728109761244822033,
+      "context_hash": 7288433907870111323,
+      "translation": "`Tainted: G` — 커널 taint 플래그(G = 로드된 모든 모듈이 GPL 호환이며 독점 모듈이 없음)",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "modules": "모듈",
+        "taint": "taint"
+      },
+      "translated_at": "2026-11-14T22:46:45.913324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "`RIP: 0010:` — instruction pointer, `0010` = kernel code segment",
+      "source_hash": 6696524936574286055,
+      "context_hash": 17629538566667345024,
+      "translation": "`RIP: 0010:` — 명령어 포인터, `0010` = 커널 코드 세그먼트",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:46:45.913324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "`mydriver_write+0x34/0xb0` — function + offset / function size",
+      "source_hash": 8173809585209339091,
+      "context_hash": 118639784378037362,
+      "translation": "`mydriver_write+0x34/0xb0` — 함수 + 오프셋 / 함수 크기",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:46:45.913325Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Taint flags",
+      "source_hash": 12656000051987502033,
+      "context_hash": 13348041280721241459,
+      "translation": "Taint 플래그",
+      "glossary_snapshot": {
+        "taint": "taint"
+      },
+      "translated_at": "2026-11-14T22:46:45.913325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Register dump",
+      "source_hash": 13251655837222028115,
+      "context_hash": 168786407492743755,
+      "translation": "레지스터 덤프",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Key registers for diagnosis:",
+      "source_hash": 6529485734199418979,
+      "context_hash": 9278390596262106593,
+      "translation": "진단에 중요한 레지스터:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "`RIP` — where the crash happened",
+      "source_hash": 8596513834258080242,
+      "context_hash": 389383396280333699,
+      "translation": "`RIP` — 크래시가 발생한 위치",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "`CR2` — the faulting address (for page faults)",
+      "source_hash": 1347082032314902240,
+      "context_hash": 15779771943688947237,
+      "translation": "`CR2` — 폴트가 발생한 주소(페이지 폴트의 경우)",
+      "glossary_snapshot": {
+        "address": "주소",
+        "page faults": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T22:46:45.913325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`RAX = 0` — often the NULL pointer that was dereferenced",
+      "source_hash": 10489079938441518199,
+      "context_hash": 16056858341818701282,
+      "translation": "`RAX = 0` — 역참조된 NULL 포인터인 경우가 많음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913326Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "`RBX`, `R12-15` — often hold struct pointers; can reveal the data structure",
+      "source_hash": 12747732235680000840,
+      "context_hash": 3728318836835698468,
+      "translation": "`RBX`, `R12-15` — 구조체 포인터를 담고 있는 경우가 많음; 어떤 자료 구조인지 알아내는 단서가 될 수 있음",
+      "glossary_snapshot": {
+        "data structure": "자료 구조"
+      },
+      "translated_at": "2026-11-14T23:29:50.918995Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "**The offset trick**: `CR2 = 0x18 = 24`.",
+      "source_hash": 15722083762911872530,
+      "context_hash": 3020579802253820087,
+      "translation": "**오프셋 기법**: `CR2 = 0x18 = 24`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913326Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:1",
+      "source": "A struct member at offset 24 from a NULL pointer.",
+      "source_hash": 517590173852279966,
+      "context_hash": 8153002423646151391,
+      "translation": "NULL 포인터로부터 오프셋 24에 있는 구조체 멤버입니다.",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:46:45.913326Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:2",
+      "source": "Count struct fields to identify which member was accessed.",
+      "source_hash": 15608171678581889296,
+      "context_hash": 18151147421672036478,
+      "translation": "구조체 필드를 세어 어떤 멤버에 접근했는지 확인하십시오.",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:46:45.913326Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Stack trace",
+      "source_hash": 13646977513078131340,
+      "context_hash": 11634988646216928767,
+      "translation": "스택 트레이스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:45.913327Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Read from top (most recent) to bottom (oldest call).",
+      "source_hash": 6666953057747112782,
+      "context_hash": 6643509884518066028,
+      "translation": "위(가장 최근)에서 아래(가장 오래된 호출) 순서로 읽으십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231674Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "The crash happened in `mydriver_write` at offset `0x34` within the function.",
+      "source_hash": 16994080295492544166,
+      "context_hash": 12386305677410126799,
+      "translation": "크래시는 `mydriver_write` 함수 내 오프셋 `0x34`에서 발생했습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:46:48.231675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "addr2line: finding the source line",
+      "source_hash": 12515351228883933525,
+      "context_hash": 8909777918994845892,
+      "translation": "addr2line: 소스 라인 찾기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231675Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Given the faulting address, find the exact source line:",
+      "source_hash": 1180415039708716538,
+      "context_hash": 11806767159316383080,
+      "translation": "폴트가 발생한 주소로부터 정확한 소스 라인을 찾으십시오:",
+      "glossary_snapshot": {
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T22:46:48.231676Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "decode_stacktrace.sh",
+      "source_hash": 2945005489897514356,
+      "context_hash": 12437181523460649554,
+      "translation": "decode_stacktrace.sh",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231676Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The kernel ships a script that resolves all addresses in a stack trace:",
+      "source_hash": 14354745682383913800,
+      "context_hash": 64229101523639693,
+      "translation": "커널에는 스택 트레이스의 모든 주소를 해석해 주는 스크립트가 포함되어 있습니다:",
+      "glossary_snapshot": {
+        "addresses": "주소",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:46:48.231677Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Output resolves each `function+0xNN/0xNN` to `function (file.c:line)`.",
+      "source_hash": 5795709793168619313,
+      "context_hash": 13956946107390815447,
+      "translation": "출력에서는 각 `function+0xNN/0xNN`이 `function (file.c:line)`으로 해석됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231677Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "objdump: disassembling around the crash",
+      "source_hash": 15161263502644145915,
+      "context_hash": 12449475384240531587,
+      "translation": "objdump: 크래시 지점 주변 디스어셈블",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231678Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "The crash was at offset `0x34` in `mydriver_write`:",
+      "source_hash": 14074892783518892634,
+      "context_hash": 865469482129072047,
+      "translation": "크래시는 `mydriver_write`의 오프셋 `0x34`에서 발생했습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231678Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "This tells us: `%rax` was NULL, and the code tried to read member at offset 0x18 from it.",
+      "source_hash": 17159637241783480539,
+      "context_hash": 15640563384907132792,
+      "translation": "이를 통해 `%rax`가 NULL이었고, 코드가 그로부터 오프셋 0x18에 있는 멤버를 읽으려 했다는 것을 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231678Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Common oops patterns",
+      "source_hash": 12124701998481747259,
+      "context_hash": 6935016654102972415,
+      "translation": "흔한 oops 패턴",
+      "glossary_snapshot": {
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:48.231678Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "NULL pointer dereference",
+      "source_hash": 365304955470737523,
+      "context_hash": 12584164622843294084,
+      "translation": "NULL 포인터 역참조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231679Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "Diagnosis: `RAX = 0` (the NULL pointer).",
+      "source_hash": 12459441621422812151,
+      "context_hash": 14085971662946682966,
+      "translation": "진단: `RAX = 0`(NULL 포인터)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231679Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:1",
+      "source": "Offset `0x18` tells you which field.",
+      "source_hash": 9410534406360714343,
+      "context_hash": 5262786537127639080,
+      "translation": "오프셋 `0x18`을 보면 어떤 필드인지 알 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231679Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:2",
+      "source": "Look at the struct at that offset.",
+      "source_hash": 17046001711489326170,
+      "context_hash": 13237909610288099247,
+      "translation": "해당 오프셋에 있는 구조체를 확인하십시오.",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:46:48.231679Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Use-after-free",
+      "source_hash": 16644896680075839446,
+      "context_hash": 12168215974279723232,
+      "translation": "Use-after-free",
+      "glossary_snapshot": {
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T22:46:48.231680Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "KASAN shows exactly where the memory was allocated and freed — invaluable for race conditions.",
+      "source_hash": 1027025467065835005,
+      "context_hash": 5018701244574870366,
+      "translation": "KASAN은 메모리가 어디서 할당되고 해제되었는지 정확히 보여 주며, 경쟁 상태를 분석할 때 매우 유용합니다.",
+      "glossary_snapshot": {
+        "KASAN": "KASAN",
+        "memory": "메모리",
+        "race conditions": "경쟁 상태"
+      },
+      "translated_at": "2026-11-14T22:46:48.231680Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "Stack overflow",
+      "source_hash": 14978389874848708270,
+      "context_hash": 16126007606279739963,
+      "translation": "스택 오버플로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231681Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "With `CONFIG_VMAP_STACK` (the default), kernel stacks are allocated with an unmapped guard page on either side, so overrunning one faults immediately instead of silently corrupting whatever memory follows it. `handle_stack_overflow()` (`arch/x86/kernel/traps.c`) catches that fault and reports it, then calls `die(\"stack guard page\", regs, 0)` to produce a normal oops:",
+      "source_hash": 8596413228607288435,
+      "context_hash": 7850985000256410532,
+      "translation": "`CONFIG_VMAP_STACK`(기본값)을 사용하면 커널 스택은 양쪽에 매핑되지 않은 가드 페이지를 두고 할당되므로, 스택을 넘어서면 그 뒤에 있는 메모리를 조용히 손상시키는 대신 즉시 폴트가 발생합니다. `handle_stack_overflow()`(`arch/x86/kernel/traps.c`)는 이 폴트를 잡아 보고한 다음, `die(\"stack guard page\", regs, 0)`를 호출하여 일반적인 oops를 생성합니다:",
+      "glossary_snapshot": {
+        "kernel stacks": "커널 스택",
+        "memory": "메모리",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:48.231681Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "The stack type (\"IRQ\", \"task\", ...) comes from `stack_type_name()`; a task stack overflow reads \"task stack guard page was hit\" instead.",
+      "source_hash": 16673169647100819448,
+      "context_hash": 12759251603261492151,
+      "translation": "스택 종류(\"IRQ\", \"task\", ...)는 `stack_type_name()`에서 가져오며, 태스크 스택 오버플로의 경우에는 대신 \"task stack guard page was hit\"로 표시됩니다.",
+      "glossary_snapshot": {
+        "IRQ": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:46:48.231682Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:1",
+      "source": "Kernel stacks are typically 8-16KB.",
+      "source_hash": 10866459644439124432,
+      "context_hash": 10359785934260910950,
+      "translation": "커널 스택은 일반적으로 8-16KB입니다.",
+      "glossary_snapshot": {
+        "kernel stacks": "커널 스택"
+      },
+      "translated_at": "2026-11-14T22:46:48.231682Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:2",
+      "source": "Deep recursion (e.g., deep VFS recursion with overlayfs) can overflow them.",
+      "source_hash": 205480996077361709,
+      "context_hash": 17970594302574566151,
+      "translation": "깊은 재귀(예: overlayfs 사용 시의 깊은 VFS 재귀)는 커널 스택을 오버플로시킬 수 있습니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS"
+      },
+      "translated_at": "2026-11-14T22:46:48.231682Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:12/seg:0",
+      "source": "Soft lockup",
+      "source_hash": 8051178609066023257,
+      "context_hash": 4343970438270075580,
+      "translation": "소프트 락업",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231682Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:14/seg:0",
+      "source": "The CPU hasn't scheduled in 20+ seconds.",
+      "source_hash": 3447710225648159857,
+      "context_hash": 6872663605106541831,
+      "translation": "CPU가 20초 이상 스케줄링되지 않았습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:46:48.231682Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:14/seg:1",
+      "source": "Usually: holding a spinlock too long, or a tight loop without `cond_resched()`.",
+      "source_hash": 2888974312190213905,
+      "context_hash": 3199259082042935141,
+      "translation": "주된 원인은 스핀락을 너무 오래 잡고 있거나, `cond_resched()` 없이 빡빡한 루프를 도는 경우입니다.",
+      "glossary_snapshot": {
+        "spinlock": "스핀락"
+      },
+      "translated_at": "2026-11-14T22:46:48.231683Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:15/seg:0",
+      "source": "RCU stall",
+      "source_hash": 13188095466784198706,
+      "context_hash": 17689107864090180122,
+      "translation": "RCU 스톨",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:46:48.231683Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:17/seg:0",
+      "source": "An RCU read-side critical section has been held for too long, or the RCU grace period is stalled.",
+      "source_hash": 17990774287325051719,
+      "context_hash": 4520169625067602380,
+      "translation": "RCU 읽기 측 임계 구역이 너무 오래 유지되었거나, RCU grace period가 정체된 상태입니다.",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "critical section": "임계 구역",
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:46:48.231683Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:17/seg:1",
+      "source": "Often caused by holding a lock while preemption is disabled for an extended time.",
+      "source_hash": 18124193343259994987,
+      "context_hash": 4098208846195335188,
+      "translation": "선점이 비활성화된 상태에서 락을 오랫동안 잡고 있는 것이 흔한 원인입니다.",
+      "glossary_snapshot": {
+        "preemption": "선점"
+      },
+      "translated_at": "2026-11-14T22:46:48.231683Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "BUG() and WARN()",
+      "source_hash": 4700958758211193029,
+      "context_hash": 6626892254642288163,
+      "translation": "BUG()와 WARN()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231683Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "`WARN` is useful for detecting unexpected conditions without crashing the system.",
+      "source_hash": 16665578135574988013,
+      "context_hash": 14946310003066540504,
+      "translation": "`WARN`은 시스템을 크래시시키지 않고 예상치 못한 상황을 감지하는 데 유용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231683Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:1",
+      "source": "Check `dmesg` for `WARNING:` lines even if the system seems fine.",
+      "source_hash": 2345611377400649312,
+      "context_hash": 12532027254338302446,
+      "translation": "시스템이 정상으로 보이더라도 `dmesg`에서 `WARNING:` 줄이 있는지 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:48.231684Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "netconsole: capture oops over the network",
+      "source_hash": 5127643912380911479,
+      "context_hash": 11733708111189529278,
+      "translation": "netconsole: 네트워크를 통한 oops 수집",
+      "glossary_snapshot": {
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:46:48.231684Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "For headless servers where you can't see the serial console:",
+      "source_hash": 15222452750542346177,
+      "context_hash": 8197630283213548482,
+      "translation": "시리얼 콘솔을 볼 수 없는 헤드리스(headless) 서버의 경우:",
+      "glossary_snapshot": {
+        "console": "콘솔"
+      },
+      "translated_at": "2026-11-14T21:51:37.965337Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 4496893877798312406,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:51:37.965337Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 7502675172091386647,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:51:37.965338Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "[arch/x86/include/asm/trap_pf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/trap_pf.h) — the `X86_PF_*` bit definitions behind the page-fault `error_code` breakdown (bit 0 = not-present/protection, bit 1 = read/write, bit 2 = kernel/user)",
+      "source_hash": 8570186138894324322,
+      "context_hash": 9148326056957732590,
+      "translation": "[arch/x86/include/asm/trap_pf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/trap_pf.h) — 페이지 폴트 `error_code` 분석의 근거가 되는 `X86_PF_*` 비트 정의(bit 0 = not-present/protection, bit 1 = read/write, bit 2 = kernel/user)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:37.965338Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "[kernel/panic.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/panic.c) — the `taint_flags[]` table: the authoritative letter-to-flag mapping behind the `Tainted:` line (see [tainted-kernels.rst](https://docs.kernel.org/admin-guide/tainted-kernels.html), cited below, for the human-readable meaning of each flag)",
+      "source_hash": 2271565789175572597,
+      "context_hash": 4604917987834442567,
+      "translation": "[kernel/panic.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/panic.c) — `taint_flags[]` 테이블: `Tainted:` 줄의 근거가 되는 문자와 플래그 간의 공식 매핑(각 플래그의 사람이 읽을 수 있는 의미는 아래에 인용된 [tainted-kernels.rst](https://docs.kernel.org/admin-guide/tainted-kernels.html)를 참고하십시오)",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T21:51:37.965338Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "[scripts/decode_stacktrace.sh](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/decode_stacktrace.sh) — resolves `function+0xNN/0xNN` entries in a captured oops to `function (file.c:line)`",
+      "source_hash": 15665765738821649856,
+      "context_hash": 8254305262272813942,
+      "translation": "[scripts/decode_stacktrace.sh](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/scripts/decode_stacktrace.sh) — 수집한 oops의 `function+0xNN/0xNN` 항목을 `function (file.c:line)` 형태로 변환",
+      "glossary_snapshot": {
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T21:51:37.965338Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "[Documentation/networking/netconsole.rst](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/networking/netconsole.rst) — the `netconsole=` module parameter format and the configfs-based dynamic reconfiguration interface (`dev_name`, `local_ip`, `remote_ip`, `remote_mac`, `enabled`, ...)",
+      "source_hash": 5473991833133474346,
+      "context_hash": 10819713219637682392,
+      "translation": "[Documentation/networking/netconsole.rst](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/networking/netconsole.rst) — `netconsole=` 모듈 파라미터 형식과 configfs 기반의 동적 재구성 인터페이스(`dev_name`, `local_ip`, `remote_ip`, `remote_mac`, `enabled`, ...)",
+      "glossary_snapshot": {
+        "module parameter": "모듈 파라미터"
+      },
+      "translated_at": "2026-11-14T21:51:37.965338Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "Man pages",
+      "source_hash": 683209337414486197,
+      "context_hash": 6215628119140765952,
+      "translation": "매뉴얼 페이지",
+      "glossary_snapshot": {
+        "Man pages": "매뉴얼 페이지"
+      },
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "[`addr2line(1)`](https://man7.org/linux/man-pages/man1/addr2line.1.html) — converts addresses (or `function+offset`) into file names and line numbers",
+      "source_hash": 11110856320906209872,
+      "context_hash": 11179729595507070480,
+      "translation": "[`addr2line(1)`](https://man7.org/linux/man-pages/man1/addr2line.1.html) — 주소(또는 `function+offset`)를 파일 이름과 줄 번호로 변환",
+      "glossary_snapshot": {
+        "addresses": "주소"
+      },
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "[`objdump(1)`](https://man7.org/linux/man-pages/man1/objdump.1.html) — disassembles object files; used here with `--start-address`/`--stop-address` to inspect the faulting instruction",
+      "source_hash": 16325270341780789763,
+      "context_hash": 17412712775073299994,
+      "translation": "[`objdump(1)`](https://man7.org/linux/man-pages/man1/objdump.1.html) — 오브젝트 파일을 디스어셈블; 여기서는 `--start-address`/`--stop-address`와 함께 사용하여 폴트를 일으킨 명령어를 확인",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 6819615582742226096,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "[Kernel Panic and Oops](../kernel/panic-oops.md) — the kernel-side code path: `die()`, `oops_begin()`/`oops_end()`, ORC unwinding, and `panic()`",
+      "source_hash": 3781658933279556895,
+      "context_hash": 11897434355505346210,
+      "translation": "[Kernel Panic and Oops](../kernel/panic-oops.md) — 커널 측 코드 경로: `die()`, `oops_begin()`/`oops_end()`, ORC 언와인딩, `panic()`",
+      "glossary_snapshot": {
+        "code path": "코드 경로",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "[kdump and crash](kdump.md) — automated crash dump collection",
+      "source_hash": 7002074492710051012,
+      "context_hash": 6468789542410528497,
+      "translation": "[kdump and crash](kdump.md) — 크래시 덤프 자동 수집",
+      "glossary_snapshot": {
+        "kdump": "kdump"
+      },
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "[KGDB](kgdb.md) — live kernel debugging",
+      "source_hash": 14429005568119499968,
+      "context_hash": 17912543285128210117,
+      "translation": "[KGDB](kgdb.md) — 라이브 커널 디버깅",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "[Memory Management: KASAN](../mm/kasan.md) — memory error detection",
+      "source_hash": 11992973017620604532,
+      "context_hash": 16500234821324361768,
+      "translation": "[Memory Management: KASAN](../mm/kasan.md) — 메모리 오류 탐지",
+      "glossary_snapshot": {
+        "KASAN": "KASAN"
+      },
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "[Memory Management: KFENCE](../mm/kfence.md) — lightweight production memory checking",
+      "source_hash": 7780565968379694619,
+      "context_hash": 1088299226429379736,
+      "translation": "[Memory Management: KFENCE](../mm/kfence.md) — 프로덕션용 경량 메모리 검사",
+      "glossary_snapshot": {
+        "KFENCE": "KFENCE"
+      },
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "[Tracing: kprobes](../tracing/kprobes-tracepoints.md) — probing without crashing",
+      "source_hash": 7499003903452099921,
+      "context_hash": 5597870693512626428,
+      "translation": "[트레이싱: kprobe](../tracing/kprobes-tracepoints.md) — 크래시 없이 프로빙하기",
+      "glossary_snapshot": {
+        "kprobes": "kprobe",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:29:50.918998Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "External",
+      "source_hash": 18173270850398166434,
+      "context_hash": 1573602595671805392,
+      "translation": "외부 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:37.965339Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "[Tainted kernels](https://docs.kernel.org/admin-guide/tainted-kernels.html) — full taint flag reference with official descriptions for every letter",
+      "source_hash": 14405662226191789857,
+      "context_hash": 18191167322867389807,
+      "translation": "[Tainted kernels](https://docs.kernel.org/admin-guide/tainted-kernels.html) — 모든 문자에 대한 공식 설명을 포함한 전체 taint 플래그 레퍼런스",
+      "glossary_snapshot": {
+        "taint": "taint"
+      },
+      "translated_at": "2026-11-14T21:51:37.965340Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,640 @@
+{
+  "version": 1,
+  "source_hash": 11393660494792350199,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "iomap: the Extent-Based I/O Framework",
+      "source_hash": 15812825890607045185,
+      "context_hash": 1152552649034218297,
+      "translation": "iomap: 익스텐트 기반 I/O 프레임워크",
+      "glossary_snapshot": {
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T22:04:16.581415Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "The modern, filesystem-agnostic layer that maps file offsets to device blocks and drives buffered, direct, and DAX I/O over them — what it is, what it replaced, and why",
+      "source_hash": 13407466854962507971,
+      "context_hash": 2101477757954597437,
+      "translation": "파일 오프셋을 디바이스 블록에 매핑하고 그 위에서 buffered, direct, DAX I/O를 구동하는, 파일시스템에 독립적인 현대적 계층 — 그것이 무엇이고, 무엇을 대체했으며, 왜 등장했는가",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T22:04:16.581415Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "For most of Linux's history, the generic code that turned a `read()` or `write()` into block I/O was built on the **`buffer_head`**: one small descriptor per filesystem block. iomap is the framework that replaced it, and it is now the shared I/O engine under XFS, gfs2, zonefs, and the direct-I/O path of ext4 and btrfs (plus ext4's DAX path).",
+      "source_hash": 4713259336623743587,
+      "context_hash": 9277517613262388616,
+      "translation": "Linux 역사의 대부분 동안 `read()`나 `write()`를 블록 I/O로 변환하는 범용 코드는 파일시스템 블록마다 하나씩 두는 작은 디스크립터인 **`buffer_head`를** 기반으로 만들어졌습니다. iomap은 이를 대체한 프레임워크이며, 현재 XFS, gfs2, zonefs, 그리고 ext4와 btrfs의 direct I/O 경로(그리고 ext4의 DAX 경로) 아래에서 공용 I/O 엔진으로 동작합니다.",
+      "glossary_snapshot": {
+        "Linux's": "Linux",
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "descriptor": "디스크립터",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T22:04:16.581416Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Understanding iomap is understanding how a modern Linux filesystem actually moves data.",
+      "source_hash": 17193723494119068272,
+      "context_hash": 518010362519571308,
+      "translation": "iomap을 이해하는 것은 현대 Linux 파일시스템이 실제로 데이터를 어떻게 옮기는지 이해하는 것입니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T22:04:16.581416Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem with `buffer_head`",
+      "source_hash": 4610947954433131417,
+      "context_hash": 919154641174413694,
+      "translation": "`buffer_head`의 문제점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A `buffer_head` describes the mapping and state of a **single** filesystem block (typically 4 KiB).",
+      "source_hash": 6289729446113148972,
+      "context_hash": 1000209022083065135,
+      "translation": "`buffer_head`는 **단일** 파일시스템 블록(보통 4 KiB)의 매핑과 상태를 기술합니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:04:16.581417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "That granularity is the whole problem:",
+      "source_hash": 5882630948894423686,
+      "context_hash": 3033450712221227149,
+      "translation": "바로 그 단위(granularity)가 문제의 전부입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**One struct per block.** A 1 MiB buffered write allocates and threads ~256 `buffer_head`s, each individually mapped, tracked, and torn down — real CPU and memory overhead for what is logically one contiguous operation.",
+      "source_hash": 11071549637879211040,
+      "context_hash": 9343094662290931826,
+      "translation": "**블록마다 구조체 하나.** 1 MiB 크기의 buffered write는 약 256개의 `buffer_head`를 할당하고 연결하며, 각각을 개별적으로 매핑하고 추적하고 해제합니다. 논리적으로는 하나의 연속된 작업에 불과한데도 실제 CPU 및 메모리 오버헤드가 발생합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "memory": "메모리",
+        "overhead": "오버헤드",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:04:16.581417Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**No notion of an extent.** Modern filesystems (XFS, ext4, btrfs) store files as **extents** — \"these 40,000 blocks are contiguous on disk.\" The `buffer_head` model can't express that; it re-derives the mapping one block at a time.",
+      "source_hash": 8561295170972214178,
+      "context_hash": 17166608979360281748,
+      "translation": "**익스텐트 개념의 부재.** 현대 파일시스템(XFS, ext4, btrfs)은 파일을 **익스텐트**(extent)로 저장합니다. 즉 \"이 40,000개의 블록은 디스크에서 연속되어 있다\"는 식입니다. `buffer_head` 모델은 이를 표현할 수 없어서 매핑을 한 번에 한 블록씩 다시 도출합니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**Tangled state.** `buffer_head` mixed the block *mapping* with page dirtiness/writeback state and locking, making the generic paths hard to reason about and hard to make concurrent.",
+      "source_hash": 10016355113349895980,
+      "context_hash": 15791734388165226410,
+      "translation": "**뒤얽힌 상태.** `buffer_head`는 블록 *매핑*을 페이지의 dirty/writeback 상태 및 락과 뒤섞어 놓았기 때문에, 범용 경로를 이해하기 어렵고 동시성을 확보하기도 어렵게 만들었습니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "The core idea: describe a mapping, not a block",
+      "source_hash": 13394918537204809154,
+      "context_hash": 4540976411633340374,
+      "translation": "핵심 아이디어: 블록이 아니라 매핑을 기술하기",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "iomap's central structure, `struct iomap`, describes an arbitrarily large **contiguous mapping** of a file range to a device range in a single object — offset, length, the device block address, the backing device, and a **type**:",
+      "source_hash": 9073052519244474778,
+      "context_hash": 12889398758074776643,
+      "translation": "iomap의 중심 구조체인 `struct iomap`은 파일 범위를 디바이스 범위로 잇는 임의 크기의 **연속 매핑**을 하나의 객체로 기술합니다. 여기에는 오프셋, 길이, 디바이스 블록 주소, 백킹 디바이스, 그리고 **타입**이 담깁니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "iomap": "iomap",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Type",
+      "source_hash": 1769059670591154792,
+      "context_hash": 1618046282535283705,
+      "translation": "타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 3355702851459265812,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`IOMAP_MAPPED`",
+      "source_hash": 2228362911200141309,
+      "context_hash": 311520923574093198,
+      "translation": "`IOMAP_MAPPED`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "real, allocated blocks on disk at a known address",
+      "source_hash": 16703472041611704761,
+      "context_hash": 9605512168319784729,
+      "translation": "알려진 주소에 있는, 실제로 할당된 디스크 블록",
+      "glossary_snapshot": {
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "`IOMAP_HOLE`",
+      "source_hash": 7155564941603533563,
+      "context_hash": 8528442040832348934,
+      "translation": "`IOMAP_HOLE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581418Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "a sparse hole — reads return zeros, no blocks allocated",
+      "source_hash": 6969085896639916210,
+      "context_hash": 18446333026539180306,
+      "translation": "희소 홀(sparse hole) — 읽으면 0이 반환되며, 할당된 블록 없음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "`IOMAP_UNWRITTEN`",
+      "source_hash": 1913771282076019369,
+      "context_hash": 15307566630457622583,
+      "translation": "`IOMAP_UNWRITTEN`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "blocks are allocated but not yet initialized (preallocation); reads return zeros",
+      "source_hash": 16089710980246384655,
+      "context_hash": 2783873938579188542,
+      "translation": "할당되었지만 아직 초기화되지 않은 블록(사전 할당) — 읽으면 0이 반환됨",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "`IOMAP_DELALLOC`",
+      "source_hash": 4555160090166019888,
+      "context_hash": 12744263454126841833,
+      "translation": "`IOMAP_DELALLOC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "delayed allocation — reserved in memory, no physical block chosen yet",
+      "source_hash": 10956659456020904373,
+      "context_hash": 5151703016242347800,
+      "translation": "지연 할당(delayed allocation) — 메모리에 예약되었으며, 아직 물리 블록이 선택되지 않음",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:04:16.581419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "`IOMAP_INLINE`",
+      "source_hash": 4837898870795100453,
+      "context_hash": 13402330917828472100,
+      "translation": "`IOMAP_INLINE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "data stored inline in the inode itself",
+      "source_hash": 14782751110316324696,
+      "context_hash": 11424143438376643139,
+      "translation": "inode 자체에 인라인으로 저장된 데이터",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:04:16.581419Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "One `struct iomap` can cover megabytes, so the generic code asks the filesystem for a mapping *once* and then processes the whole range.",
+      "source_hash": 4018295151251581862,
+      "context_hash": 7652529485704413249,
+      "translation": "`struct iomap` 하나가 수 메가바이트를 다룰 수 있으므로, 범용 코드는 파일시스템에 매핑을 *한 번*만 요청한 뒤 전체 범위를 처리합니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:04:16.581420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "How it works: `iomap_begin` and the iteration loop",
+      "source_hash": 14528590582845740862,
+      "context_hash": 5348496064602433941,
+      "translation": "동작 방식: `iomap_begin`과 반복 루프",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The division of labor is the point.",
+      "source_hash": 15561891666945364684,
+      "context_hash": 16309490847880159957,
+      "translation": "핵심은 역할 분담입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "The filesystem provides just two callbacks in a `struct iomap_ops`:",
+      "source_hash": 10550019139801088302,
+      "context_hash": 5069934996341198809,
+      "translation": "파일시스템은 `struct iomap_ops`에 콜백 두 개만 제공합니다.",
+      "glossary_snapshot": {
+        "callbacks": "콜백"
+      },
+      "translated_at": "2026-11-14T22:04:16.581420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "**`->iomap_begin(inode, pos, length, ...)`** — \"for this file range, fill in a `struct iomap`.\" This is the *only* filesystem-specific logic: consult the extent tree, allocate if needed, and return the mapping.",
+      "source_hash": 11273558118791121150,
+      "context_hash": 15866390439021530014,
+      "translation": "**`->iomap_begin(inode, pos, length, ...)`** — \"이 파일 범위에 대해 `struct iomap`을 채워 달라.\" 이것이 *유일한* 파일시스템 고유 로직입니다. 익스텐트 트리를 조회하고, 필요하면 할당한 뒤, 매핑을 반환합니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:04:16.581420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "**`->iomap_end()`** — optional cleanup/commit after the range is processed.",
+      "source_hash": 5574402990412411210,
+      "context_hash": 18036247130568480,
+      "translation": "**`->iomap_end()`** — 범위 처리가 끝난 뒤 수행하는 선택적 정리/커밋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:16.581420Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Everything else lives in generic `fs/iomap/` code.",
+      "source_hash": 4465269788170701253,
+      "context_hash": 8645427340969918566,
+      "translation": "나머지는 모두 범용 `fs/iomap/` 코드에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:47.653904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "An operation runs the **`iomap_iter`** loop: it calls `->iomap_begin` for the current position, gets back a mapping, does the actual work (copy to/from the page cache, build and submit `bio`s) across that mapping, advances, and repeats until the whole request is covered.",
+      "source_hash": 2023179779225316447,
+      "context_hash": 11909667469512879970,
+      "translation": "작업은 **`iomap_iter`** 루프를 실행합니다. 현재 위치에 대해 `->iomap_begin`을 호출하여 매핑을 돌려받고, 그 매핑 범위에 걸쳐 실제 작업(페이지 캐시로의/로부터의 복사, `bio` 생성 및 제출)을 수행한 뒤 위치를 전진시키며, 요청 전체가 처리될 때까지 이를 반복합니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:49:47.653905Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:2",
+      "source": "The filesystem never touches the page cache or the [block layer](../block/bio-request.md) directly — it only answers \"where does this file offset live?\"",
+      "source_hash": 16465743558950916410,
+      "context_hash": 690370975873612240,
+      "translation": "파일 시스템은 페이지 캐시나 [블록 계층](../block/bio-request.md)을 직접 건드리지 않으며, \"이 파일 오프셋은 어디에 있는가?\"라는 질문에만 답합니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:49:47.653906Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "On top of the iterator, iomap provides the full set of high-level operations, so a filesystem gets them all by implementing `iomap_begin` once:",
+      "source_hash": 960027863441786190,
+      "context_hash": 3347151387244641419,
+      "translation": "iomap은 이 iterator 위에 고수준 작업 전체를 제공하므로, 파일 시스템은 `iomap_begin`을 한 번 구현하는 것만으로 이 모든 작업을 얻습니다.",
+      "glossary_snapshot": {
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653907Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "**Buffered I/O** — `iomap_file_buffered_write()`, and the buffered read path, folio-native.",
+      "source_hash": 2738915881738234841,
+      "context_hash": 15782943077461108611,
+      "translation": "**Buffered I/O** — `iomap_file_buffered_write()`와 buffered 읽기 경로, 폴리오 기반으로 동작합니다.",
+      "glossary_snapshot": {
+        "folio": "폴리오"
+      },
+      "translated_at": "2026-11-14T21:49:47.653907Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "**Direct I/O** — `iomap_dio_rw()`, the shared O_DIRECT engine.",
+      "source_hash": 17120279022185625359,
+      "context_hash": 16772911790779433918,
+      "translation": "**Direct I/O** — `iomap_dio_rw()`, 공용 O_DIRECT 엔진입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:47.653908Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "**Writeback** — building `bio`s from dirty folios over their mappings.",
+      "source_hash": 2394821986749365379,
+      "context_hash": 16943671032875723443,
+      "translation": "**Writeback** — 더티 폴리오로부터 해당 매핑에 걸쳐 `bio`를 생성합니다.",
+      "glossary_snapshot": {
+        "folios": "폴리오",
+        "mappings": "매핑",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T21:49:47.653908Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "**DAX** — direct-access I/O to persistent memory, bypassing the page cache.",
+      "source_hash": 7209672709384370093,
+      "context_hash": 4081456212081240716,
+      "translation": "**DAX** — 페이지 캐시를 우회하여 영구 메모리(persistent memory)에 직접 접근하는 I/O입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:49:47.653908Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "**`FIEMAP`, `SEEK_HOLE`/`SEEK_DATA`, swapfile activation** — all fall out of the same \"ask the fs for the mapping\" model.",
+      "source_hash": 17782182897773194119,
+      "context_hash": 15004925675366577699,
+      "translation": "**`FIEMAP`, `SEEK_HOLE`/`SEEK_DATA`, swapfile 활성화** — 모두 \"파일 시스템에 매핑을 묻는다\"는 동일한 모델에서 자연스럽게 도출됩니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T21:49:47.653909Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "History and adoption",
+      "source_hash": 4397306669843519275,
+      "context_hash": 17357761533189925153,
+      "translation": "역사와 도입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:47.653909Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "iomap was introduced in 2016 by Christoph Hellwig ([`ae259a9c8593`](https://git.kernel.org/linus/ae259a9c8593) \"fs: introduce iomap infrastructure\", Linux 4.8), initially to give XFS a clean `SEEK_HOLE`/`FIEMAP` and direct-I/O path.",
+      "source_hash": 2860476306013399756,
+      "context_hash": 2283201145665778152,
+      "translation": "iomap은 2016년 Christoph Hellwig가 도입했으며([`ae259a9c8593`](https://git.kernel.org/linus/ae259a9c8593) \"fs: introduce iomap infrastructure\", Linux 4.8), 처음에는 XFS에 깔끔한 `SEEK_HOLE`/`FIEMAP` 및 direct I/O 경로를 제공하기 위한 것이었습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "XFS": "XFS",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653909Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "It proved general enough that the code was later split into its own subsystem directory ([`1c230208f53d`](https://git.kernel.org/linus/1c230208f53d) \"iomap: start moving code to fs/iomap/\"), and filesystems migrated their paths onto it:",
+      "source_hash": 5961714101322502062,
+      "context_hash": 1282475496009106960,
+      "translation": "iomap은 충분히 범용적임이 입증되어 이후 코드가 별도의 서브시스템 디렉터리로 분리되었고([`1c230208f53d`](https://git.kernel.org/linus/1c230208f53d) \"iomap: start moving code to fs/iomap/\"), 파일 시스템들이 자신의 경로를 iomap으로 이전했습니다.",
+      "glossary_snapshot": {
+        "iomap": "iomap",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T21:49:47.653910Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "**XFS** — the original consumer; all of its I/O paths run on iomap.",
+      "source_hash": 8297106060621222040,
+      "context_hash": 15409228775711865112,
+      "translation": "**XFS** — 최초의 사용자이며, 모든 I/O 경로가 iomap 위에서 동작합니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653910Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "**gfs2, zonefs, erofs** — adopted iomap for their block-mapping and I/O.",
+      "source_hash": 2716025416247916167,
+      "context_hash": 15147737041031419103,
+      "translation": "**gfs2, zonefs, erofs** — 블록 매핑과 I/O에 iomap을 도입했습니다.",
+      "glossary_snapshot": {
+        "iomap": "iomap",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T21:49:47.653910Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "**ext4** — uses iomap for DAX and direct I/O.",
+      "source_hash": 16557069233199389249,
+      "context_hash": 11170091633755786582,
+      "translation": "**ext4** — DAX와 direct I/O에 iomap을 사용합니다.",
+      "glossary_snapshot": {
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653910Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "**btrfs** — moved its direct-I/O path onto iomap.",
+      "source_hash": 12114124900261710453,
+      "context_hash": 3016971223783626611,
+      "translation": "**btrfs** — direct I/O 경로를 iomap으로 옮겼습니다.",
+      "glossary_snapshot": {
+        "btrfs": "btrfs",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653911Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "iomap was also **converted to folios early**, and — crucially — its generic paths were already centralized in `fs/iomap/` rather than duplicated behind per-filesystem `buffer_head` code.",
+      "source_hash": 8644067600126862158,
+      "context_hash": 6825610149682031577,
+      "translation": "iomap은 또한 **일찍 폴리오로 전환되었으며**, 무엇보다 중요한 점은 그 범용 경로가 파일 시스템별 `buffer_head` 코드 뒤에 중복되어 있지 않고 이미 `fs/iomap/`에 집중되어 있었다는 것입니다.",
+      "glossary_snapshot": {
+        "folios": "폴리오",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653911Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "That is why the kernel's folio conversion advanced first through the iomap-based filesystems: there was one place to convert, not one per filesystem.",
+      "source_hash": 13921315626175718867,
+      "context_hash": 4329989916794169147,
+      "translation": "그래서 커널의 폴리오 전환은 iomap 기반 파일 시스템들에서 가장 먼저 진척되었습니다. 파일 시스템마다 한 곳씩이 아니라 전환할 곳이 단 한 곳이었기 때문입니다.",
+      "glossary_snapshot": {
+        "folio": "폴리오",
+        "iomap": "iomap",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:49:47.653911Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 16984521378458960655,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:49:47.653912Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "[Kernel docs: iomap design](https://docs.kernel.org/filesystems/iomap/design.html) — the data model and the theory of operation",
+      "source_hash": 6322681507085623787,
+      "context_hash": 17667728378598704803,
+      "translation": "[커널 문서: iomap 설계](https://docs.kernel.org/filesystems/iomap/design.html) — 데이터 모델과 동작 원리",
+      "glossary_snapshot": {
+        "Kernel docs": "커널 문서",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653912Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "[Kernel docs: iomap operations](https://docs.kernel.org/filesystems/iomap/operations.html) — the buffered, direct, DAX, and writeback APIs",
+      "source_hash": 14434567984899761760,
+      "context_hash": 10426421298955552403,
+      "translation": "[커널 문서: iomap 작업](https://docs.kernel.org/filesystems/iomap/operations.html) — buffered, direct, DAX, writeback API",
+      "glossary_snapshot": {
+        "Kernel docs": "커널 문서",
+        "iomap": "iomap",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T21:49:47.653912Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "[bio and request structures](../block/bio-request.md) — the block-layer objects iomap builds and submits",
+      "source_hash": 10832158951137209158,
+      "context_hash": 7114743815004770927,
+      "translation": "[bio와 request 구조체](../block/bio-request.md) — iomap이 생성하고 제출하는 블록 계층 객체",
+      "glossary_snapshot": {
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653913Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "[ext4](ext4.md) · [XFS](xfs.md) · [btrfs](btrfs.md) — the filesystems whose I/O paths run on iomap",
+      "source_hash": 910276974531329095,
+      "context_hash": 14692546282924217993,
+      "translation": "[ext4](ext4.md) · [XFS](xfs.md) · [btrfs](btrfs.md) — I/O 경로가 iomap 위에서 동작하는 파일 시스템",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T21:49:47.653913Z",
+      "issues": []
+    }
+  ]
+}

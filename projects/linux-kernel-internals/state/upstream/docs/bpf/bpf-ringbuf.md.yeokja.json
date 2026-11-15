@@ -1,0 +1,702 @@
+{
+  "version": 1,
+  "source_hash": 8060515989035437496,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "BPF Ring Buffer",
+      "source_hash": 11314169273060499099,
+      "context_hash": 4628886762169397548,
+      "translation": "BPF 링 버퍼",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T21:54:22.762853Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Lock-free, memory-efficient event streaming from BPF programs",
+      "source_hash": 1578086823727621191,
+      "context_hash": 11473282135559830031,
+      "translation": "BPF 프로그램에서의 lock-free, 메모리 효율적 이벤트 스트리밍",
+      "glossary_snapshot": {
+        "BPF programs": "BPF 프로그램",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T21:54:22.762853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why not perf event output?",
+      "source_hash": 10569488309852822472,
+      "context_hash": 624975200118600764,
+      "translation": "perf event output을 쓰지 않는 이유",
+      "glossary_snapshot": {
+        "perf": "perf"
+      },
+      "translated_at": "2026-11-14T21:54:22.762853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Before `BPF_MAP_TYPE_RINGBUF` (5.8), BPF programs streamed events to userspace via `bpf_perf_event_output`:",
+      "source_hash": 3979806668970940121,
+      "context_hash": 151473437626424742,
+      "translation": "`BPF_MAP_TYPE_RINGBUF`(5.8) 이전에는 BPF 프로그램이 `bpf_perf_event_output`를 통해 사용자 공간으로 이벤트를 스트리밍했습니다:",
+      "glossary_snapshot": {
+        "BPF programs": "BPF 프로그램",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T21:54:22.762853Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Problems with `PERF_EVENT_ARRAY`:",
+      "source_hash": 320059576577079221,
+      "context_hash": 12995803773096276788,
+      "translation": "`PERF_EVENT_ARRAY`의 문제점:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**Per-CPU**: separate buffer per CPU, requires per-CPU polling in userspace",
+      "source_hash": 9340004015685485711,
+      "context_hash": 3529289559843956458,
+      "translation": "**Per-CPU**: CPU마다 별도의 버퍼를 사용하므로 사용자 공간에서 CPU별 폴링이 필요합니다",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**Memory waste**: each CPU gets a full buffer even if mostly idle",
+      "source_hash": 14157200300498787474,
+      "context_hash": 1153183859626836988,
+      "translation": "**메모리 낭비**: 대부분 유휴 상태인 CPU에도 전체 크기의 버퍼가 할당됩니다",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "**No variable-size records**: must pre-declare event size",
+      "source_hash": 5161758336361977279,
+      "context_hash": 13648411225216709209,
+      "translation": "**가변 크기 레코드 미지원**: 이벤트 크기를 미리 선언해야 합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "**Wakeup overhead**: `epoll_wait` requires a fd per CPU",
+      "source_hash": 653677282184654119,
+      "context_hash": 2161692313413226271,
+      "translation": "**wakeup 오버헤드**: `epoll_wait`에 CPU마다 fd가 하나씩 필요합니다",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "BPF ring buffer design",
+      "source_hash": 6728750173916005413,
+      "context_hash": 13433038006330665517,
+      "translation": "BPF 링 버퍼 설계",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "`BPF_MAP_TYPE_RINGBUF` uses a **single shared ring buffer** across all CPUs with a lock-free design:",
+      "source_hash": 1187761904867458170,
+      "context_hash": 18115529434575898214,
+      "translation": "`BPF_MAP_TYPE_RINGBUF`는 lock-free 설계로 모든 CPU가 **하나의 공유 링 버퍼**를 사용합니다:",
+      "glossary_snapshot": {
+        "CPUs": "CPU",
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Key properties:",
+      "source_hash": 5409981686824485612,
+      "context_hash": 12020560913046075105,
+      "translation": "주요 특성:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762854Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "**Single buffer**: no per-CPU waste; all CPUs share one ring",
+      "source_hash": 11565092154200257857,
+      "context_hash": 8817135586255167998,
+      "translation": "**단일 버퍼**: CPU별 낭비가 없으며 모든 CPU가 하나의 링을 공유합니다",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CPUs": "CPU"
+      },
+      "translated_at": "2026-11-14T21:54:22.762855Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "**Spinlock-free**: compare-and-swap for producer position reservation",
+      "source_hash": 1331070658740802191,
+      "context_hash": 7285912830460315694,
+      "translation": "**스핀락 없음**: 생산자 위치 예약에 compare-and-swap 사용",
+      "glossary_snapshot": {
+        "producer": "생산자",
+        "spinlock": "스핀락"
+      },
+      "translated_at": "2026-11-14T23:26:44.805350Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "**Two-phase commit**: reserve space, fill it, then submit or discard",
+      "source_hash": 11164535076368046511,
+      "context_hash": 13190178146521797904,
+      "translation": "**2단계 커밋**: 공간을 예약하고 채운 뒤 submit하거나 discard합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762855Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "**Memory-mapped**: userspace reads directly without syscall",
+      "source_hash": 12166317020397302423,
+      "context_hash": 11238590139313375646,
+      "translation": "**메모리 매핑**: 사용자 공간이 시스템 콜 없이 직접 읽습니다",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "syscall": "시스템 콜",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T21:54:22.762855Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "BPF program side",
+      "source_hash": 3458223609285750600,
+      "context_hash": 11796606809281910740,
+      "translation": "BPF 프로그램 측",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램"
+      },
+      "translated_at": "2026-11-14T21:54:22.762855Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "bpf_ringbuf_output: one-shot alternative",
+      "source_hash": 15570335025635520054,
+      "context_hash": 13609054824887667500,
+      "translation": "bpf_ringbuf_output: 일회성 대안",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762855Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "For small, fixed-size events where reserve+submit is overkill:",
+      "source_hash": 12212813308695866690,
+      "context_hash": 10550911665972005599,
+      "translation": "reserve+submit이 과한 작은 고정 크기 이벤트의 경우:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762855Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Discard on error",
+      "source_hash": 16702535681585699825,
+      "context_hash": 8180585459301062960,
+      "translation": "오류 시 discard",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762855Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Userspace consumption with libbpf",
+      "source_hash": 10444427291400415866,
+      "context_hash": 11480079401674030250,
+      "translation": "libbpf를 이용한 사용자 공간 소비",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Manual mmap polling",
+      "source_hash": 4501714810781212132,
+      "context_hash": 9096647789055616055,
+      "translation": "수동 mmap 폴링",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Without libbpf, the ring buffer is accessed via `mmap`:",
+      "source_hash": 15838582605389680514,
+      "context_hash": 2335795048639927351,
+      "translation": "libbpf 없이는 `mmap`을 통해 링 버퍼에 접근합니다:",
+      "glossary_snapshot": {
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "BPF_MAP_TYPE_RINGBUF vs PERF_EVENT_ARRAY",
+      "source_hash": 18182951593622130715,
+      "context_hash": 8930600535599941881,
+      "translation": "BPF_MAP_TYPE_RINGBUF와 PERF_EVENT_ARRAY 비교",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Feature",
+      "source_hash": 15829752412308606062,
+      "context_hash": 5316649504113512077,
+      "translation": "기능",
+      "glossary_snapshot": {
+        "Feature": "기능"
+      },
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "PERF_EVENT_ARRAY",
+      "source_hash": 6645241351888935125,
+      "context_hash": 1053051250640991304,
+      "translation": "PERF_EVENT_ARRAY",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "RINGBUF",
+      "source_hash": 11411716776995040933,
+      "context_hash": 4070612646631406374,
+      "translation": "RINGBUF",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Memory",
+      "source_hash": 6472943712808407901,
+      "context_hash": 11106405951568461011,
+      "translation": "메모리",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "Per-CPU buffers",
+      "source_hash": 7898622312381846745,
+      "context_hash": 14036998271268442582,
+      "translation": "CPU별 버퍼",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "Single shared buffer",
+      "source_hash": 12517844909995183603,
+      "context_hash": 162437471998782140,
+      "translation": "단일 공유 버퍼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "Variable-size records",
+      "source_hash": 3495989933069652583,
+      "context_hash": 16302943188241187293,
+      "translation": "가변 크기 레코드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9282056821148121812,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:54:22.762856Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 15270317422938016165,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:36.756295Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "Userspace polling",
+      "source_hash": 16568482262541591142,
+      "context_hash": 3963960827605506101,
+      "translation": "사용자 공간 폴링",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T21:52:36.756295Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Per-CPU epoll fds",
+      "source_hash": 2511646468691564361,
+      "context_hash": 10826755785626189993,
+      "translation": "CPU별 epoll fd",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "epoll": "epoll"
+      },
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Single fd",
+      "source_hash": 8523841062874327087,
+      "context_hash": 14553046415755705779,
+      "translation": "단일 fd",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "In-place filling",
+      "source_hash": 1377507962182704933,
+      "context_hash": 16925438670353198461,
+      "translation": "제자리 채우기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "No (stack copy)",
+      "source_hash": 8549383892195656030,
+      "context_hash": 2729531609706568123,
+      "translation": "아니요(스택 복사)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "Yes (reserve+submit)",
+      "source_hash": 5600655332274769162,
+      "context_hash": 1074392786925910595,
+      "translation": "예(reserve+submit)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Discard support",
+      "source_hash": 7458361705070127798,
+      "context_hash": 2271308630590456445,
+      "translation": "discard 지원",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14082384071913414126,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7399531753467665768,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "mmap access",
+      "source_hash": 14269288308644556506,
+      "context_hash": 7259753640440472095,
+      "translation": "mmap 접근",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 12952988015050505292,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16485246660161792837,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:36.756296Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "Kernel version",
+      "source_hash": 15542711200523525328,
+      "context_hash": 11609381546885473663,
+      "translation": "커널 버전",
+      "glossary_snapshot": {
+        "kernel version": "커널 버전"
+      },
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "4.4",
+      "source_hash": 11878574628187950107,
+      "context_hash": 14753146788116546079,
+      "translation": "4.4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "5.8",
+      "source_hash": 5293751705302342004,
+      "context_hash": 15646206712375848364,
+      "translation": "5.8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:25/seg:0",
+      "source": "Overhead",
+      "source_hash": 730210114067021831,
+      "context_hash": 3566538245098757561,
+      "translation": "오버헤드",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:0",
+      "source": "Higher",
+      "source_hash": 14960755838072494081,
+      "context_hash": 13453291693142246779,
+      "translation": "높음",
+      "glossary_snapshot": {
+        "Higher": "높음"
+      },
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:27/seg:0",
+      "source": "Lower",
+      "source_hash": 18123550164685015443,
+      "context_hash": 16634994821032393457,
+      "translation": "낮음",
+      "glossary_snapshot": {
+        "Lower": "낮음"
+      },
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Wakeup control",
+      "source_hash": 17651640548916821741,
+      "context_hash": 16322840199417869068,
+      "translation": "wakeup 제어",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "With `ring_buffer__poll` in libbpf, `BPF_RB_NO_WAKEUP` + a final `BPF_RB_FORCE_WAKEUP` can batch many events into a single wakeup, reducing overhead significantly.",
+      "source_hash": 4427177105455814887,
+      "context_hash": 11721122244407741343,
+      "translation": "libbpf의 `ring_buffer__poll`과 함께 `BPF_RB_NO_WAKEUP`과 마지막의 `BPF_RB_FORCE_WAKEUP`을 사용하면 여러 이벤트를 한 번의 wakeup으로 묶어 오버헤드를 크게 줄일 수 있습니다.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Query available space",
+      "source_hash": 6067793432567117899,
+      "context_hash": 6828876095349589219,
+      "translation": "사용 가능한 공간 조회",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 1226852614926007249,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:52:36.756297Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "[BPF Maps](bpf-maps.md) — other BPF map types",
+      "source_hash": 17061447805840063922,
+      "context_hash": 3602395294556140130,
+      "translation": "[BPF Maps](bpf-maps.md) — 다른 BPF 맵 유형",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T21:52:36.756298Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "[BPF Architecture](bpf-overview.md) — program types overview",
+      "source_hash": 4291071806325432336,
+      "context_hash": 18381369894924094634,
+      "translation": "[BPF Architecture](bpf-overview.md) — 프로그램 유형 개요",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T21:52:36.756298Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "[libbpf and Skeletons](libbpf.md) — `ring_buffer__new` / `ring_buffer__poll`",
+      "source_hash": 5238658646933274503,
+      "context_hash": 16360704072472592545,
+      "translation": "[libbpf and Skeletons](libbpf.md) — `ring_buffer__new` / `ring_buffer__poll`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756298Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "[Kprobes and Tracepoints](../tracing/kprobes-tracepoints.md) — attaching to tracepoints",
+      "source_hash": 5874240021629899796,
+      "context_hash": 3224689055376080625,
+      "translation": "[Kprobes and Tracepoints](../tracing/kprobes-tracepoints.md) — 트레이스포인트에 연결하기",
+      "glossary_snapshot": {
+        "kprobes": "kprobe",
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T21:52:36.756298Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "`kernel/bpf/ringbuf.c` — ring buffer implementation",
+      "source_hash": 5953996150235699799,
+      "context_hash": 63343829385236764,
+      "translation": "`kernel/bpf/ringbuf.c` — 링 버퍼 구현",
+      "glossary_snapshot": {
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T21:52:36.756298Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "`tools/lib/bpf/ringbuf.c` — libbpf consumer",
+      "source_hash": 10381052843304746135,
+      "context_hash": 2065623937791085726,
+      "translation": "`tools/lib/bpf/ringbuf.c` — libbpf 소비자",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:36.756298Z",
+      "issues": []
+    }
+  ]
+}

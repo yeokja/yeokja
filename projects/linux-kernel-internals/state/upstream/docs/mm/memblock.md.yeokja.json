@@ -1,0 +1,1822 @@
+{
+  "version": 1,
+  "source_hash": 16035135630264796422,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "memblock: The Boot-Time Memory Allocator",
+      "source_hash": 5687567951563640982,
+      "context_hash": 8924422291881629215,
+      "translation": "memblock: 부팅 시점 메모리 할당자",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:20.740971Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Before the buddy system can manage memory, something has to manage memory first",
+      "source_hash": 3748434377395750873,
+      "context_hash": 2093012951938766342,
+      "translation": "buddy 시스템이 메모리를 관리하기 전에, 무언가가 먼저 메모리를 관리해야 합니다",
+      "glossary_snapshot": {
+        "buddy": "buddy",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What is memblock?",
+      "source_hash": 2788382140513607777,
+      "context_hash": 7108849960211216806,
+      "translation": "memblock이란 무엇인가",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:20.740972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "memblock is the kernel's early boot-time memory allocator.",
+      "source_hash": 2334458433639560730,
+      "context_hash": 16600242690938477526,
+      "translation": "memblock은 커널의 초기 부팅 시점 메모리 할당자입니다.",
+      "glossary_snapshot": {
+        "Memory Allocator": "메모리 할당자",
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:20.740972Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "It tracks which physical memory regions exist and which are already reserved, allowing the kernel to allocate memory during the earliest stages of boot -- long before the buddy allocator (page allocator) is initialized.",
+      "source_hash": 18226983032785381406,
+      "context_hash": 14942254668980417420,
+      "translation": "memblock은 어떤 물리 메모리 영역이 존재하고 어떤 영역이 이미 예약되었는지를 추적하여, buddy 할당자(페이지 할당자)가 초기화되기 훨씬 전인 부팅의 가장 이른 단계에서도 커널이 메모리를 할당할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자",
+        "kernel": "커널",
+        "memory": "메모리",
+        "page allocator": "페이지 할당자",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "The Chicken-and-Egg Problem",
+      "source_hash": 8695220821284680385,
+      "context_hash": 7309065523570245558,
+      "translation": "닭이 먼저냐 달걀이 먼저냐 문제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The buddy allocator is the kernel's primary physical memory manager at runtime.",
+      "source_hash": 6688940242497724823,
+      "context_hash": 2824070576163097478,
+      "translation": "buddy 할당자는 런타임에 커널의 주요 물리 메모리 관리자입니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자",
+        "kernel": "커널",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "But setting it up requires memory:",
+      "source_hash": 6610351210709492958,
+      "context_hash": 8246338641725625533,
+      "translation": "하지만 이를 설정하려면 메모리가 필요합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "**Zone structures** (`struct zone`) need to be allocated for each memory zone",
+      "source_hash": 8750920549201306111,
+      "context_hash": 13202506797196151551,
+      "translation": "각 메모리 존마다 할당해야 하는 **존 구조체**(`struct zone`)",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "**Page frame metadata** (`struct page`) needs one entry per physical page -- on a 16GB system that's millions of entries",
+      "source_hash": 17941262980982260686,
+      "context_hash": 5476739315811575167,
+      "translation": "물리 페이지당 하나의 항목이 필요한 **페이지 프레임 메타데이터**(`struct page`) -- 16GB 시스템에서는 수백만 개의 항목",
+      "glossary_snapshot": {
+        "metadata": "메타데이터",
+        "physical page": "물리 페이지"
+      },
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "**Per-CPU data structures** for allocation caches",
+      "source_hash": 15618699208781587720,
+      "context_hash": 4582130103964087956,
+      "translation": "할당 캐시를 위한 **per-CPU 자료 구조**",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "caches": "캐시",
+        "data structures": "자료 구조"
+      },
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "**Free lists** for the buddy system itself",
+      "source_hash": 2324063097090200672,
+      "context_hash": 6289879578179804070,
+      "translation": "buddy 시스템 자체를 위한 **free list**",
+      "glossary_snapshot": {
+        "buddy": "buddy"
+      },
+      "translated_at": "2026-11-14T22:29:20.740973Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "But you cannot allocate memory without a memory allocator.",
+      "source_hash": 13915359845171142789,
+      "context_hash": 17249335333617097589,
+      "translation": "하지만 메모리 할당자 없이는 메모리를 할당할 수 없습니다.",
+      "glossary_snapshot": {
+        "Memory Allocator": "메모리 할당자",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "Something simpler must come first.",
+      "source_hash": 17454286422978892370,
+      "context_hash": 9778547318122476134,
+      "translation": "더 단순한 무언가가 먼저 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "memblock solves this bootstrap problem with a deliberately minimal design: two flat arrays that track memory regions.",
+      "source_hash": 10993377819997482488,
+      "context_hash": 743915915499076185,
+      "translation": "memblock은 의도적으로 최소화한 설계, 즉 메모리 영역을 추적하는 두 개의 평면 배열로 이 부트스트랩 문제를 해결합니다.",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "memblock": "memblock",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "No page tables, no locking, no per-CPU caches -- just \"here's what exists\" and \"here's what's taken.\"",
+      "source_hash": 4565254412709649141,
+      "context_hash": 5778144394807450080,
+      "translation": "페이지 테이블도, 락도, per-CPU 캐시도 없이 오직 \"여기에 무엇이 있는지\"와 \"무엇이 사용 중인지\"만 다룹니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "caches": "캐시",
+        "page tables": "페이지 테이블"
+      },
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "How memblock Works",
+      "source_hash": 14594044301084182321,
+      "context_hash": 16405397930186785759,
+      "translation": "memblock의 동작 방식",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Two Arrays: memory and reserved",
+      "source_hash": 5082408291883624754,
+      "context_hash": 3150293379449496993,
+      "translation": "두 개의 배열: memory와 reserved",
+      "glossary_snapshot": {
+        "arrays": "배열"
+      },
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "The core data structure is simple. memblock maintains two collections of regions:",
+      "source_hash": 1908167144144179783,
+      "context_hash": 17265120500889550258,
+      "translation": "핵심 자료 구조는 단순합니다. memblock은 두 개의 영역 집합을 유지합니다.",
+      "glossary_snapshot": {
+        "data structure": "자료 구조",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Each `memblock_type` holds a dynamically-growing array of regions:",
+      "source_hash": 15543669888537360027,
+      "context_hash": 1498017046815185391,
+      "translation": "각 `memblock_type`은 동적으로 커지는 영역 배열을 가지고 있습니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:29:20.740974Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "The `memory` array describes what physical memory exists (as reported by firmware).",
+      "source_hash": 17539802860364105144,
+      "context_hash": 6287311094765572610,
+      "translation": "`memory` 배열은 (펌웨어가 보고한) 어떤 물리 메모리가 존재하는지를 기술합니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "firmware": "펌웨어",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "The `reserved` array describes what's already been claimed -- the kernel image itself, device tree blob, initrd, early allocations, etc.",
+      "source_hash": 14504223479348896223,
+      "context_hash": 834140611626678323,
+      "translation": "`reserved` 배열은 이미 점유된 영역, 즉 커널 이미지 자체, 디바이스 트리 blob, initrd, 초기 할당 등을 기술합니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:36:37.357560Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "**Free memory** is implicitly defined as: regions in `memory` that are not covered by `reserved`.",
+      "source_hash": 2758724800908199126,
+      "context_hash": 2482812098348827218,
+      "translation": "**여유 메모리**는 암묵적으로 `memory`의 영역 중 `reserved`에 포함되지 않는 영역으로 정의됩니다.",
+      "glossary_snapshot": {
+        "free memory": "여유 메모리"
+      },
+      "translated_at": "2026-11-14T23:36:37.357561Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "Region Merging",
+      "source_hash": 13466284535217258347,
+      "context_hash": 6312334435878922378,
+      "translation": "영역 병합",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:20.740975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "When adjacent or overlapping regions are added, memblock automatically merges them.",
+      "source_hash": 5101418896428391687,
+      "context_hash": 17973236300661705453,
+      "translation": "인접하거나 겹치는 영역이 추가되면 memblock은 이를 자동으로 병합합니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:20.740975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:1",
+      "source": "This keeps the arrays compact:",
+      "source_hash": 15140848516843750014,
+      "context_hash": 17865183247235397876,
+      "translation": "이를 통해 배열을 간결하게 유지합니다.",
+      "glossary_snapshot": {
+        "arrays": "배열"
+      },
+      "translated_at": "2026-11-14T22:29:20.740975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "Static Bootstrap",
+      "source_hash": 6879196224067421397,
+      "context_hash": 7418184554754635862,
+      "translation": "정적 부트스트랩",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:20.740975Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "The initial region arrays are statically allocated:",
+      "source_hash": 12863014043185296755,
+      "context_hash": 92847201102394874,
+      "translation": "초기 영역 배열은 정적으로 할당됩니다.",
+      "glossary_snapshot": {
+        "arrays": "배열"
+      },
+      "translated_at": "2026-11-14T22:29:20.740976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "`INIT_MEMBLOCK_REGIONS` defaults to 128.",
+      "source_hash": 16809961238037407709,
+      "context_hash": 7616492992007679077,
+      "translation": "`INIT_MEMBLOCK_REGIONS`의 기본값은 128입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:20.740976Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:1",
+      "source": "If more regions are needed, memblock doubles the array using `memblock_double_array()`, which allocates new space from memblock itself -- a neat self-referential trick that works because the old array remains valid until the copy is complete.",
+      "source_hash": 8600191710155956178,
+      "context_hash": 10388210014135904204,
+      "translation": "더 많은 영역이 필요하면 memblock은 `memblock_double_array()`를 사용하여 배열 크기를 두 배로 늘리며, 이 함수는 memblock 자체에서 새 공간을 할당합니다. 이는 복사가 완료될 때까지 기존 배열이 유효하게 유지되기 때문에 동작하는 깔끔한 자기 참조 기법입니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:20.740976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Key APIs",
+      "source_hash": 11643437180855566506,
+      "context_hash": 3313927031175944438,
+      "translation": "주요 API",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:20.740976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Adding and Removing Memory",
+      "source_hash": 2741108953195531722,
+      "context_hash": 17751556039028747574,
+      "translation": "메모리 추가 및 제거",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:20.740976Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Allocating Memory",
+      "source_hash": 6028554662549098834,
+      "context_hash": 3616092048517401745,
+      "translation": "메모리 할당",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:25.167707Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "`memblock_alloc()` does two things: finds a free physical region and maps it into the kernel's virtual address space (via `memblock_alloc_internal()` which calls `memblock_alloc_range_nid()` then `memblock_reserve()` on the result).",
+      "source_hash": 18327682018113199449,
+      "context_hash": 12215496254126785503,
+      "translation": "`memblock_alloc()`은 두 가지 일을 합니다. 비어 있는 물리 영역을 찾고, 그 영역을 커널의 가상 주소 공간에 매핑합니다(`memblock_alloc_internal()`을 통해 이루어지며, 이 함수는 `memblock_alloc_range_nid()`를 호출한 뒤 그 결과에 대해 `memblock_reserve()`를 호출합니다).",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "virtual address space": "가상 주소 공간"
+      },
+      "translated_at": "2026-11-14T22:29:25.167708Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "The returned pointer is a kernel virtual address ready to use.",
+      "source_hash": 1390708222962906253,
+      "context_hash": 14684623849033410392,
+      "translation": "반환된 포인터는 바로 사용할 수 있는 커널 가상 주소입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "virtual address": "가상 주소"
+      },
+      "translated_at": "2026-11-14T22:29:25.167708Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Querying Memory",
+      "source_hash": 11493876669962635141,
+      "context_hash": 14344714274751131431,
+      "translation": "메모리 조회",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:25.167708Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Memory Discovery: Device Tree and ACPI",
+      "source_hash": 6297433825264242465,
+      "context_hash": 6796380600795878882,
+      "translation": "메모리 탐색: 디바이스 트리와 ACPI",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:36:37.357562Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "memblock does not discover memory on its own.",
+      "source_hash": 1658540391863764018,
+      "context_hash": 1600790789639960775,
+      "translation": "memblock은 스스로 메모리를 탐지하지 않습니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:25.167708Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "Architecture-specific code populates it using firmware information.",
+      "source_hash": 833427733167069330,
+      "context_hash": 2809386784848386320,
+      "translation": "아키텍처별 코드가 펌웨어 정보를 사용해 memblock을 채웁니다.",
+      "glossary_snapshot": {
+        "firmware": "펌웨어"
+      },
+      "translated_at": "2026-11-14T22:29:25.167708Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Device Tree (ARM, RISC-V, PowerPC, etc.)",
+      "source_hash": 3207806886967540271,
+      "context_hash": 8415846589740630226,
+      "translation": "디바이스 트리(ARM, RISC-V, PowerPC 등)",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:36:37.357562Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "On device-tree platforms, the `/memory` nodes describe physical RAM:",
+      "source_hash": 11437422584220609742,
+      "context_hash": 9498378175034807769,
+      "translation": "디바이스 트리 플랫폼에서는 `/memory` 노드가 물리 RAM을 기술합니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "device": "디바이스",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T23:36:37.357563Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "The kernel's early DT scanning code (`early_init_dt_scan_memory()` in [`drivers/of/fdt.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/of/fdt.c)) parses these nodes and calls `memblock_add()` for each region.",
+      "source_hash": 14942522088868121337,
+      "context_hash": 14262555342562239031,
+      "translation": "커널의 초기 DT 스캔 코드([`drivers/of/fdt.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/of/fdt.c)의 `early_init_dt_scan_memory()`)는 이 노드들을 파싱하고 각 영역에 대해 `memblock_add()`를 호출합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "Reserved memory nodes (`/reserved-memory`) result in `memblock_reserve()` calls.",
+      "source_hash": 13337262840305578331,
+      "context_hash": 16776752726321576004,
+      "translation": "예약 메모리 노드(`/reserved-memory`)는 `memblock_reserve()` 호출로 이어집니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "ACPI (x86, ARM servers)",
+      "source_hash": 13375061433470099071,
+      "context_hash": 1799413007909026276,
+      "translation": "ACPI(x86, ARM 서버)",
+      "glossary_snapshot": {
+        "ACPI": "ACPI"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "On ACPI systems, the firmware provides memory maps through different mechanisms:",
+      "source_hash": 6089139616626723732,
+      "context_hash": 10016788846938472824,
+      "translation": "ACPI 시스템에서는 펌웨어가 여러 가지 메커니즘을 통해 메모리 맵을 제공합니다.",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "firmware": "펌웨어",
+        "memory maps": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "**x86**: The BIOS/UEFI provides an **e820 memory map** -- a table of address ranges with types (usable, reserved, ACPI reclaimable, etc.).",
+      "source_hash": 14102796379216413062,
+      "context_hash": 11490543139916082493,
+      "translation": "**x86**: BIOS/UEFI는 **e820 메모리 맵**을 제공합니다. 이는 유형(usable, reserved, ACPI reclaimable 등)이 붙은 주소 범위의 테이블입니다.",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "address": "주소",
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:1",
+      "source": "The function `e820__memblock_setup()` in [`arch/x86/kernel/e820.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/e820.c) translates e820 entries into `memblock_add()` and `memblock_reserve()` calls.",
+      "source_hash": 8734202741291170030,
+      "context_hash": 9613501527960630047,
+      "translation": "[`arch/x86/kernel/e820.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/e820.c)의 `e820__memblock_setup()` 함수는 e820 항목을 `memblock_add()` 및 `memblock_reserve()` 호출로 변환합니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "**ARM64 with ACPI**: Uses EFI memory map entries, processed by `efi_init()`.",
+      "source_hash": 4108778530561421728,
+      "context_hash": 8104652810940431019,
+      "translation": "**ACPI를 사용하는 ARM64**: `efi_init()`가 처리하는 EFI 메모리 맵 항목을 사용합니다.",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "The Pattern",
+      "source_hash": 5368602880832146384,
+      "context_hash": 6595026742119898925,
+      "translation": "패턴은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "The pattern:": "패턴은 다음과 같습니다."
+      },
+      "translated_at": "2026-11-14T23:36:37.357563Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Regardless of platform, the flow is the same:",
+      "source_hash": 8275290692933808403,
+      "context_hash": 7263841431532684134,
+      "translation": "플랫폼과 관계없이 흐름은 동일합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "The Handoff to the Buddy Allocator",
+      "source_hash": 15763677628912827764,
+      "context_hash": 8817459740435604363,
+      "translation": "buddy 할당자로의 인계",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Once the kernel has used memblock to set up all the data structures the buddy allocator needs, memblock's job is nearly done.",
+      "source_hash": 8796571231438638917,
+      "context_hash": 4534862500015798266,
+      "translation": "커널이 memblock을 사용해 buddy 할당자에 필요한 모든 자료 구조를 설정하고 나면 memblock의 역할은 거의 끝납니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자",
+        "data structures": "자료 구조",
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.167709Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "The handoff happens through `memblock_free_all()`:",
+      "source_hash": 2977262267739510536,
+      "context_hash": 15869971700208788284,
+      "translation": "인계는 `memblock_free_all()`을 통해 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "This function walks all memblock memory regions, and for each page that is **not** reserved, calls `__free_pages_core()` to hand it to the buddy allocator.",
+      "source_hash": 690823912815865977,
+      "context_hash": 1911240241017458602,
+      "translation": "이 함수는 모든 memblock 메모리 영역을 순회하면서 예약되지 **않은** 각 페이지에 대해 `__free_pages_core()`를 호출하여 해당 페이지를 buddy 할당자에 넘깁니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자",
+        "function": "함수",
+        "memblock": "memblock",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "After this point, the buddy system owns all free physical memory and memblock is no longer needed for allocation.",
+      "source_hash": 9697008889560550816,
+      "context_hash": 6406606503018002869,
+      "translation": "이 시점 이후에는 buddy 시스템이 모든 빈 물리 메모리를 소유하며, 더 이상 할당에 memblock이 필요하지 않습니다.",
+      "glossary_snapshot": {
+        "buddy": "buddy",
+        "memblock": "memblock",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "The memblock data structures themselves are marked `__initdata`, meaning they live in the kernel's init section.",
+      "source_hash": 255935364634131592,
+      "context_hash": 12671295560806922547,
+      "translation": "memblock 자료 구조 자체는 `__initdata`로 표시되어 있으며, 이는 커널의 init 섹션에 존재한다는 뜻입니다.",
+      "glossary_snapshot": {
+        "data structures": "자료 구조",
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "After boot completes (`free_initmem()`), this memory is reclaimed -- unless `CONFIG_ARCH_KEEP_MEMBLOCK` is enabled (which preserves memblock data for later queries, useful for kexec and memory hotplug).",
+      "source_hash": 15546237922436826274,
+      "context_hash": 297132216567515819,
+      "translation": "부팅이 완료되면(`free_initmem()`) 이 메모리는 회수됩니다. 단, `CONFIG_ARCH_KEEP_MEMBLOCK`이 활성화된 경우는 예외입니다(이 옵션은 이후 조회를 위해 memblock 데이터를 보존하며, kexec와 메모리 핫플러그에 유용합니다).",
+      "glossary_snapshot": {
+        "kexec": "kexec",
+        "memblock": "memblock",
+        "memory hotplug": "메모리 핫플러그"
+      },
+      "translated_at": "2026-11-14T23:36:37.357564Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "History and Evolution",
+      "source_hash": 577386929816482100,
+      "context_hash": 2530290488581067885,
+      "translation": "역사와 발전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "bootmem: The Original Approach (Linux 2.4 through early 3.x)",
+      "source_hash": 3006087296515267948,
+      "context_hash": 4543884353228392340,
+      "translation": "bootmem: 초기 방식(Linux 2.4부터 초기 3.x까지)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "Before memblock, the kernel used a **bitmap-based** boot allocator called `bootmem`.",
+      "source_hash": 15230521238926088606,
+      "context_hash": 7394599743019496078,
+      "translation": "memblock 이전에 커널은 `bootmem`이라는 **비트맵 기반** 부트 할당자를 사용했습니다.",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "bitmap": "비트맵",
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "Each bit represented one physical page: 1 = allocated, 0 = free.",
+      "source_hash": 7371443077337365438,
+      "context_hash": 2769841409081254684,
+      "translation": "각 비트는 하나의 물리 페이지를 나타냈습니다. 1 = 할당됨, 0 = 비어 있음입니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "physical page": "물리 페이지"
+      },
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "The problems with bootmem:",
+      "source_hash": 12351230097517776037,
+      "context_hash": 5703896400596098371,
+      "translation": "bootmem의 문제점:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.167710Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "**Bitmap overhead**: A 64GB system needs a 2MB bitmap just for accounting",
+      "source_hash": 785268851740065014,
+      "context_hash": 9000177702103349518,
+      "translation": "**비트맵 오버헤드**: 64GB 시스템은 어카운팅만을 위해 2MB 비트맵이 필요함",
+      "glossary_snapshot": {
+        "accounting": "어카운팅",
+        "bitmap": "비트맵",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T23:36:37.357564Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "**Linear search**: Finding free memory required scanning the bitmap -- O(n) in the number of pages",
+      "source_hash": 3912554916886564365,
+      "context_hash": 9944147632868861103,
+      "translation": "**선형 탐색**: 여유 메모리를 찾으려면 비트맵을 스캔해야 했음 -- 페이지 수에 대해 O(n)",
+      "glossary_snapshot": {
+        "bitmap": "비트맵",
+        "free memory": "여유 메모리"
+      },
+      "translated_at": "2026-11-14T23:36:37.357564Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "**No NUMA awareness**: The original bootmem had no concept of memory nodes",
+      "source_hash": 13381728703509508016,
+      "context_hash": 7011198336471006149,
+      "translation": "**NUMA 미지원**: 원래의 bootmem에는 메모리 노드라는 개념이 없었습니다",
+      "glossary_snapshot": {
+        "NUMA": "NUMA",
+        "memory": "메모리",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:29:49.107217Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "**Fragile**: The bitmap itself needed to live somewhere in memory, creating another bootstrap problem",
+      "source_hash": 14183259215032540638,
+      "context_hash": 18084994244213601065,
+      "translation": "**취약성**: 비트맵 자체도 메모리 어딘가에 있어야 했기 때문에 또 다른 부트스트랩 문제가 생겼습니다",
+      "glossary_snapshot": {
+        "bitmap": "비트맵",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:49.107218Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "The Rise of memblock (Logical Memory Blocks)",
+      "source_hash": 1386650319043936366,
+      "context_hash": 2114956471091280543,
+      "translation": "memblock(Logical Memory Blocks)의 등장",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107219Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "memblock's predecessor was called **lmb** (Logical Memory Blocks), used on PowerPC.",
+      "source_hash": 1640453155499365828,
+      "context_hash": 4891523591787923304,
+      "translation": "memblock의 전신은 PowerPC에서 사용되던 **lmb**(Logical Memory Blocks)였습니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107219Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:1",
+      "source": "It tracked memory as a list of regions rather than a per-page bitmap -- far more efficient when memory is mostly contiguous.",
+      "source_hash": 5174932500963432765,
+      "context_hash": 3198887414390170394,
+      "translation": "lmb는 메모리를 페이지별 비트맵이 아니라 영역(region)의 목록으로 관리했으며, 메모리가 대부분 연속적인 경우 훨씬 효율적이었습니다.",
+      "glossary_snapshot": {
+        "bitmap": "비트맵",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:49.107219Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "**Commit**: [95f72d1ed41a](https://git.kernel.org/linus/95f72d1ed41a) (\"lmb: rename to memblock\") | [LWN coverage](https://lwn.net/Articles/382559/) **Kernel**: v2.6.35 (2010) **Author**: Yinghai Lu",
+      "source_hash": 13488393771215926856,
+      "context_hash": 1857196323198211334,
+      "translation": "**커밋**: [95f72d1ed41a](https://git.kernel.org/linus/95f72d1ed41a) (\"lmb: rename to memblock\") | [LWN 기사](https://lwn.net/Articles/382559/) **커널**: v2.6.35 (2010) **작성자**: Yinghai Lu",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107220Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "Yinghai Lu renamed lmb to memblock and began extending it for use on x86.",
+      "source_hash": 16015177886728219309,
+      "context_hash": 2009874961326747702,
+      "translation": "Yinghai Lu는 lmb의 이름을 memblock으로 바꾸고 x86에서 사용할 수 있도록 확장하기 시작했습니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107220Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:1",
+      "source": "The rename was the first step in making it architecture-independent.",
+      "source_hash": 186668617993203840,
+      "context_hash": 2961835974436673136,
+      "translation": "이 이름 변경은 memblock을 아키텍처 독립적으로 만드는 첫 단계였습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107220Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "memblock Replaces bootmem",
+      "source_hash": 13527360715591925617,
+      "context_hash": 11517096800519077281,
+      "translation": "memblock의 bootmem 대체",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107220Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "Over several kernel releases, architectures migrated from bootmem to memblock:",
+      "source_hash": 2456427659306898687,
+      "context_hash": 2637572860514842334,
+      "translation": "여러 커널 릴리스에 걸쳐 각 아키텍처가 bootmem에서 memblock으로 이전했습니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107221Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "**ARM**: One of the early adopters alongside PowerPC",
+      "source_hash": 7158034395893469022,
+      "context_hash": 3202400479905860524,
+      "translation": "**ARM**: PowerPC와 함께 초기에 도입한 아키텍처 중 하나",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107221Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "**x86**: Migrated in the v2.6.35 -- v3.x timeframe",
+      "source_hash": 2740039975793063107,
+      "context_hash": 11872088321349898913,
+      "translation": "**x86**: v2.6.35 -- v3.x 시기에 이전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107221Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "**Commit**: [9a8dd708d547](https://git.kernel.org/linus/9a8dd708d547) (\"memblock: remove bootmem dependency on memblock\") **Kernel**: v3.12 (2013)",
+      "source_hash": 275669117220439129,
+      "context_hash": 6761014228448813133,
+      "translation": "**커밋**: [9a8dd708d547](https://git.kernel.org/linus/9a8dd708d547) (\"memblock: remove bootmem dependency on memblock\") **커널**: v3.12 (2013)",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107221Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:17/seg:0",
+      "source": "The final removal of bootmem happened when all architectures had been converted:",
+      "source_hash": 8104251518407654531,
+      "context_hash": 17726292231823946543,
+      "translation": "모든 아키텍처의 전환이 끝난 뒤 bootmem이 최종적으로 제거되었습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107222Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:0",
+      "source": "**Commit**: [355c45affca7](https://git.kernel.org/linus/355c45affca7114ab510e296a5b7012943aeea17) (\"mm: remove bootmem allocator implementation\") **Kernel**: v4.20 (2018) **Author**: Mike Rapoport (IBM)",
+      "source_hash": 6161131788394903855,
+      "context_hash": 5679647427155287024,
+      "translation": "**커밋**: [355c45affca7](https://git.kernel.org/linus/355c45affca7114ab510e296a5b7012943aeea17) (\"mm: remove bootmem allocator implementation\") **커널**: v4.20 (2018) **작성자**: Mike Rapoport (IBM)",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:29:49.107222Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:0",
+      "source": "This was a significant cleanup -- the bootmem code had accumulated decades of workarounds and special cases.",
+      "source_hash": 8532397753641994048,
+      "context_hash": 14696114421587061965,
+      "translation": "이는 대대적인 정리 작업이었습니다 -- bootmem 코드에는 수십 년에 걸친 우회책과 특수 사례가 누적되어 있었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107222Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:20/seg:0",
+      "source": "Recent Improvements",
+      "source_hash": 16944227914118776116,
+      "context_hash": 5167107858014082489,
+      "translation": "최근의 개선 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107222Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:21/seg:0",
+      "source": "**Commit**: [35fd0808de0e](https://git.kernel.org/linus/35fd0808de0e) (\"memblock: introduce memblock_phys_free()\") **Kernel**: v6.1 (2022) **Author**: Mike Rapoport",
+      "source_hash": 11658509619300566502,
+      "context_hash": 15882406742703176523,
+      "translation": "**커밋**: [35fd0808de0e](https://git.kernel.org/linus/35fd0808de0e) (\"memblock: introduce memblock_phys_free()\") **커널**: v6.1 (2022) **작성자**: Mike Rapoport",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107223Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:22/seg:0",
+      "source": "Part of a broader effort to clean up early memory management and reduce the use of `memblock_free()` which had confusing semantics (it freed from the reserved list, not the memory list).",
+      "source_hash": 10089179163889643823,
+      "context_hash": 15905124971937719052,
+      "translation": "초기 메모리 관리를 정리하고, 의미가 혼란스러웠던(memory 목록이 아니라 reserved 목록에서 해제하던) `memblock_free()`의 사용을 줄이려는 더 큰 노력의 일환이었습니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "memory management": "메모리 관리"
+      },
+      "translated_at": "2026-11-14T22:29:49.107223Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Observing memblock",
+      "source_hash": 8464764949233931403,
+      "context_hash": 5579501670960160766,
+      "translation": "memblock 관찰하기",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107223Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "debugfs Interface",
+      "source_hash": 13897128070412832053,
+      "context_hash": 5209859449337313614,
+      "translation": "debugfs 인터페이스",
+      "glossary_snapshot": {
+        "debugfs": "debugfs"
+      },
+      "translated_at": "2026-11-14T22:29:49.107223Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "If `CONFIG_ARCH_KEEP_MEMBLOCK` is enabled, you can inspect the memblock state after boot:",
+      "source_hash": 4158342180090372875,
+      "context_hash": 9549829318374935184,
+      "translation": "`CONFIG_ARCH_KEEP_MEMBLOCK`이 활성화되어 있으면 부팅 후에 memblock 상태를 확인할 수 있습니다:",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107223Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Early Boot Messages",
+      "source_hash": 16598245927751634549,
+      "context_hash": 10812057052754801109,
+      "translation": "초기 부팅 메시지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107223Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "memblock logs its activity to dmesg during early boot.",
+      "source_hash": 11343339809714961217,
+      "context_hash": 16801677154904307842,
+      "translation": "memblock은 초기 부팅 중에 자신의 동작을 dmesg에 기록합니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107223Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:1",
+      "source": "Look for lines with the `memblock` prefix:",
+      "source_hash": 8691364877773563752,
+      "context_hash": 3333776053022829835,
+      "translation": "`memblock` 접두사가 붙은 줄을 찾아보십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107224Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "For more verbose output, pass `memblock=debug` on the kernel command line.",
+      "source_hash": 13701867506393473428,
+      "context_hash": 6021787667300055067,
+      "translation": "더 자세한 출력을 원하면 커널 명령줄에 `memblock=debug`를 전달하십시오.",
+      "glossary_snapshot": {
+        "command line": "명령줄",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:29:49.107224Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:1",
+      "source": "This enables detailed logging of every memblock operation:",
+      "source_hash": 1058323587006410511,
+      "context_hash": 4287452365730257371,
+      "translation": "이렇게 하면 모든 memblock 작업에 대한 상세 로깅이 활성화됩니다:",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107224Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "e820 Table (x86)",
+      "source_hash": 199517841141336864,
+      "context_hash": 13420744377661993262,
+      "translation": "e820 테이블 (x86)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:49.107224Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "On x86 systems, you can see the firmware memory map that feeds into memblock:",
+      "source_hash": 1277022296538197286,
+      "context_hash": 9736261988533800270,
+      "translation": "x86 시스템에서는 memblock에 입력되는 펌웨어 메모리 맵을 확인할 수 있습니다:",
+      "glossary_snapshot": {
+        "firmware": "펌웨어",
+        "memblock": "memblock",
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T22:29:49.107224Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Try It Yourself",
+      "source_hash": 15329900578796528184,
+      "context_hash": 14216510617759655624,
+      "translation": "직접 해 보기",
+      "glossary_snapshot": {
+        "Try It Yourself": "직접 해 보기"
+      },
+      "translated_at": "2026-11-14T22:29:49.107224Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Inspect memblock Regions",
+      "source_hash": 9970477507703580517,
+      "context_hash": 17288756743363255955,
+      "translation": "memblock 영역 확인",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:49.107224Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "Trace the Boot Memory Setup",
+      "source_hash": 9050665050101241555,
+      "context_hash": 14866977138556443797,
+      "translation": "부팅 메모리 설정 추적",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:49.107225Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "Enable Verbose memblock Logging",
+      "source_hash": 14052610888306800905,
+      "context_hash": 3211306392731753932,
+      "translation": "상세한 memblock 로그 활성화",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474696Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "Compare memblock with Runtime View",
+      "source_hash": 10168027834145060073,
+      "context_hash": 2838845704018915932,
+      "translation": "memblock과 런타임 뷰 비교",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Key Data Structures",
+      "source_hash": 7328033660847976833,
+      "context_hash": 4216659388858725903,
+      "translation": "주요 자료 구조",
+      "glossary_snapshot": {
+        "Key Data Structures": "주요 자료 구조",
+        "data structures": "자료 구조"
+      },
+      "translated_at": "2026-11-14T22:29:25.474697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "struct memblock (Global State)",
+      "source_hash": 7776960637508984307,
+      "context_hash": 3796028725765918609,
+      "translation": "struct memblock (전역 상태)",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "The entire memblock state lives in a single global variable:",
+      "source_hash": 5007031357449039695,
+      "context_hash": 7882016815472627603,
+      "translation": "memblock의 전체 상태는 하나의 전역 변수에 저장됩니다.",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474698Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "The `__initdata_memblock` annotation means this data is either `__initdata` (freed after boot) or `__meminitdata` (kept for memory hotplug), depending on `CONFIG_ARCH_KEEP_MEMBLOCK`.",
+      "source_hash": 16031337559988368088,
+      "context_hash": 14883709224069434727,
+      "translation": "`__initdata_memblock` 어노테이션은 `CONFIG_ARCH_KEEP_MEMBLOCK`에 따라 이 데이터가 `__initdata`(부팅 후 해제됨) 또는 `__meminitdata`(메모리 핫플러그를 위해 유지됨)가 됨을 의미합니다.",
+      "glossary_snapshot": {
+        "memory hotplug": "메모리 핫플러그"
+      },
+      "translated_at": "2026-11-14T22:29:25.474699Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "memblock_flags",
+      "source_hash": 2093882259600514557,
+      "context_hash": 17398286166663747088,
+      "translation": "memblock_flags",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474699Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "References",
+      "source_hash": 17861670083855418992,
+      "context_hash": 15709425627046067537,
+      "translation": "참고 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474700Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Key Code",
+      "source_hash": 18201499083106829163,
+      "context_hash": 6543925151525785802,
+      "translation": "핵심 코드",
+      "glossary_snapshot": {
+        "Key Code": "핵심 코드"
+      },
+      "translated_at": "2026-11-14T23:36:37.357565Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 7757844548157086682,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:29:25.474700Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "Description",
+      "source_hash": 1758583599421982602,
+      "context_hash": 4907998629215958892,
+      "translation": "설명",
+      "glossary_snapshot": {
+        "Description": "설명"
+      },
+      "translated_at": "2026-11-14T22:29:25.474700Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "[`mm/memblock.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memblock.c)",
+      "source_hash": 12188621568130124722,
+      "context_hash": 4343832760050504144,
+      "translation": "[`mm/memblock.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memblock.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474701Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "Core memblock implementation",
+      "source_hash": 9547782254298804397,
+      "context_hash": 13573366370149528621,
+      "translation": "memblock 핵심 구현",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474701Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "[`include/linux/memblock.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/memblock.h)",
+      "source_hash": 7453621340439593167,
+      "context_hash": 9293150465222673017,
+      "translation": "[`include/linux/memblock.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/memblock.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "Public API and data structures",
+      "source_hash": 6197073573333283712,
+      "context_hash": 593740198938757699,
+      "translation": "공개 API 및 자료 구조",
+      "glossary_snapshot": {
+        "API": "API",
+        "data structures": "자료 구조"
+      },
+      "translated_at": "2026-11-14T22:29:25.474702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "[`drivers/of/fdt.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/of/fdt.c)",
+      "source_hash": 12226797192468569609,
+      "context_hash": 5281177007527889738,
+      "translation": "[`drivers/of/fdt.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/of/fdt.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "Device tree memory scanning",
+      "source_hash": 15731110215858322008,
+      "context_hash": 7009452837877060550,
+      "translation": "디바이스 트리 메모리 스캔",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:29:25.474702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "[`arch/x86/kernel/e820.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/e820.c)",
+      "source_hash": 16091954422973454727,
+      "context_hash": 14925958674697533173,
+      "translation": "[`arch/x86/kernel/e820.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/e820.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "x86 e820 to memblock translation",
+      "source_hash": 4770233129804462101,
+      "context_hash": 10419369303429813923,
+      "translation": "x86 e820에서 memblock으로의 변환",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "Key Commits",
+      "source_hash": 11812948720465760243,
+      "context_hash": 10001561765416325441,
+      "translation": "주요 커밋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "Commit",
+      "source_hash": 4295602649295318468,
+      "context_hash": 16661896032420747293,
+      "translation": "커밋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "Kernel",
+      "source_hash": 4599234422248537704,
+      "context_hash": 14941249570447941387,
+      "translation": "커널",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:29:25.474703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "Description",
+      "source_hash": 1758583599421982602,
+      "context_hash": 12238654423763635206,
+      "translation": "설명",
+      "glossary_snapshot": {
+        "Description": "설명"
+      },
+      "translated_at": "2026-11-14T22:29:25.474703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "[95f72d1ed41a](https://git.kernel.org/linus/95f72d1ed41a)",
+      "source_hash": 4937135496594034993,
+      "context_hash": 10738430857938037876,
+      "translation": "[95f72d1ed41a](https://git.kernel.org/linus/95f72d1ed41a)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474704Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "v2.6.35",
+      "source_hash": 16793687545374287325,
+      "context_hash": 1811950314338895914,
+      "translation": "v2.6.35",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474704Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:18/seg:0",
+      "source": "Rename lmb to memblock",
+      "source_hash": 12818254258474567791,
+      "context_hash": 3599628444073023436,
+      "translation": "Rename lmb to memblock",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474704Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:19/seg:0",
+      "source": "[9a8dd708d547](https://git.kernel.org/linus/9a8dd708d547)",
+      "source_hash": 2888225542272693316,
+      "context_hash": 18252506676852685400,
+      "translation": "[9a8dd708d547](https://git.kernel.org/linus/9a8dd708d547)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474704Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:20/seg:0",
+      "source": "v3.12",
+      "source_hash": 15504574297755372315,
+      "context_hash": 4569398545196322091,
+      "translation": "v3.12",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474704Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:21/seg:0",
+      "source": "Remove bootmem dependency on memblock",
+      "source_hash": 11533471651302612700,
+      "context_hash": 4655820943136012281,
+      "translation": "Remove bootmem dependency on memblock",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T22:29:25.474704Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:22/seg:0",
+      "source": "[355c45affca7](https://git.kernel.org/linus/355c45affca7114ab510e296a5b7012943aeea17)",
+      "source_hash": 8796309798673525513,
+      "context_hash": 18019149732681384662,
+      "translation": "[355c45affca7](https://git.kernel.org/linus/355c45affca7114ab510e296a5b7012943aeea17)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474705Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:23/seg:0",
+      "source": "v4.20",
+      "source_hash": 6000308010682768895,
+      "context_hash": 17400197462199145624,
+      "translation": "v4.20",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:29:25.474705Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:24/seg:0",
+      "source": "Remove bootmem allocator implementation",
+      "source_hash": 17650681165503872514,
+      "context_hash": 17512355591552343405,
+      "translation": "bootmem 할당자 구현 제거",
+      "glossary_snapshot": {
+        "allocator": "할당자"
+      },
+      "translated_at": "2026-11-14T22:29:25.474705Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:25/seg:0",
+      "source": "[35fd0808de0e](https://git.kernel.org/linus/35fd0808de0e)",
+      "source_hash": 16230664521122609290,
+      "context_hash": 9608214762253863670,
+      "translation": "[35fd0808de0e](https://git.kernel.org/linus/35fd0808de0e)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:56:05.363018Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:26/seg:0",
+      "source": "v6.1",
+      "source_hash": 15571669353183345134,
+      "context_hash": 3688628530681484798,
+      "translation": "v6.1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:56:05.363018Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:27/seg:0",
+      "source": "Introduce memblock_phys_free()",
+      "source_hash": 13657307991704909485,
+      "context_hash": 11201983352522427592,
+      "translation": "Introduce memblock_phys_free()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:56:05.363019Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:28/seg:0",
+      "source": "LWN Articles",
+      "source_hash": 4231737255466291420,
+      "context_hash": 7124337147291561841,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T21:56:05.363019Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:29/seg:0",
+      "source": "[A quick history of early-boot memory allocators](https://lwn.net/Articles/382559/) -- Coverage of the lmb-to-memblock rename and rationale",
+      "source_hash": 4033297415918241454,
+      "context_hash": 17887270868386044709,
+      "translation": "[A quick history of early-boot memory allocators](https://lwn.net/Articles/382559/) -- lmb에서 memblock으로의 이름 변경과 그 근거를 다룬 글",
+      "glossary_snapshot": {
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363019Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:30/seg:0",
+      "source": "[Improvements to memblock](https://lwn.net/Articles/761215/) -- Mike Rapoport's work cleaning up the early memory allocator",
+      "source_hash": 10012736505685845127,
+      "context_hash": 10983641524539559649,
+      "translation": "[Improvements to memblock](https://lwn.net/Articles/761215/) -- 초기 메모리 할당자를 정리한 Mike Rapoport의 작업",
+      "glossary_snapshot": {
+        "Memory Allocator": "메모리 할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363019Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:31/seg:0",
+      "source": "Related",
+      "source_hash": 15093278483956875061,
+      "context_hash": 2452597113942902752,
+      "translation": "관련 문서",
+      "glossary_snapshot": {
+        "Related": "관련 문서"
+      },
+      "translated_at": "2026-11-14T21:56:05.363020Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:32/seg:0",
+      "source": "[page-allocator](page-allocator.md) - The buddy allocator that memblock hands off to",
+      "source_hash": 3625430954622066384,
+      "context_hash": 14070169087994664776,
+      "translation": "[page-allocator](page-allocator.md) - memblock이 관리를 넘겨주는 buddy 할당자",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "buddy allocator": "buddy 할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363020Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:33/seg:0",
+      "source": "[overview](overview.md) - How memblock fits in the allocator hierarchy",
+      "source_hash": 3892420439892415224,
+      "context_hash": 2445883088871075176,
+      "translation": "[overview](overview.md) - 할당자 계층 구조에서 memblock이 차지하는 위치",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363020Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:34/seg:0",
+      "source": "[numa](numa.md) - NUMA-aware memblock allocation",
+      "source_hash": 7362103216719872706,
+      "context_hash": 16511495060631578709,
+      "translation": "[numa](numa.md) - NUMA를 고려한 memblock 할당",
+      "glossary_snapshot": {
+        "NUMA": "NUMA",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363020Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 6947145009899667454,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:56:05.363020Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "[page-allocator.md](page-allocator.md) — The buddy allocator that takes over from memblock after `memblock_free_all()`",
+      "source_hash": 10034726391101529646,
+      "context_hash": 14441485695016357881,
+      "translation": "[page-allocator.md](page-allocator.md) — `memblock_free_all()` 이후 memblock으로부터 관리를 넘겨받는 buddy 할당자",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363020Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[boot-page-tables.md](boot-page-tables.md) — Early page table setup that relies on memblock for its memory allocations",
+      "source_hash": 8867297536166871170,
+      "context_hash": 16087501837544759494,
+      "translation": "[boot-page-tables.md](boot-page-tables.md) — 메모리 할당을 memblock에 의존하는 초기 페이지 테이블 설정",
+      "glossary_snapshot": {
+        "memblock": "memblock",
+        "memory allocations": "메모리 할당",
+        "page table": "페이지 테이블"
+      },
+      "translated_at": "2026-11-14T21:56:05.363020Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[numa.md](numa.md) — NUMA node assignments tracked via `memblock_region.nid` during early boot",
+      "source_hash": 16159790769456914978,
+      "context_hash": 11900410162591196713,
+      "translation": "[numa.md](numa.md) — 초기 부팅 중 `memblock_region.nid`를 통해 추적되는 NUMA 노드 할당",
+      "glossary_snapshot": {
+        "NUMA node": "NUMA 노드"
+      },
+      "translated_at": "2026-11-14T21:56:05.363021Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "[memory-hotplug.md](memory-hotplug.md) — `CONFIG_ARCH_KEEP_MEMBLOCK` preserves memblock data for hotplug operations after boot",
+      "source_hash": 17823292140631703808,
+      "context_hash": 14901121504883476797,
+      "translation": "[memory-hotplug.md](memory-hotplug.md) — `CONFIG_ARCH_KEEP_MEMBLOCK`은 부팅 후 핫플러그 작업을 위해 memblock 데이터를 보존함",
+      "glossary_snapshot": {
+        "hotplug": "핫플러그",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T23:36:37.357565Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "[mm/memblock.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memblock.c) — Core memblock implementation; `memblock_alloc_range_nid()` is the central allocator",
+      "source_hash": 17411411874439620993,
+      "context_hash": 552471256094567266,
+      "translation": "[mm/memblock.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memblock.c) — memblock의 핵심 구현이며, `memblock_alloc_range_nid()`가 중심이 되는 할당자입니다",
+      "glossary_snapshot": {
+        "allocator": "할당자",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363021Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "[include/linux/memblock.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/memblock.h) — Public API, data structures, and iteration macros like `for_each_free_mem_range()`",
+      "source_hash": 13760614167538827871,
+      "context_hash": 13517667317018285240,
+      "translation": "[include/linux/memblock.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/memblock.h) — 공개 API, 자료 구조, 그리고 `for_each_free_mem_range()` 같은 순회 매크로",
+      "glossary_snapshot": {
+        "API": "API",
+        "data structures": "자료 구조",
+        "macros": "매크로"
+      },
+      "translated_at": "2026-11-14T21:56:05.363022Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "[arch/x86/kernel/e820.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/e820.c) — x86 firmware memory map translation into memblock regions",
+      "source_hash": 1672437173069411117,
+      "context_hash": 2307216561871714145,
+      "translation": "[arch/x86/kernel/e820.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/kernel/e820.c) — x86 펌웨어 메모리 맵을 memblock 영역으로 변환하는 코드",
+      "glossary_snapshot": {
+        "firmware": "펌웨어",
+        "memblock": "memblock",
+        "memory map": "메모리 맵"
+      },
+      "translated_at": "2026-11-14T21:56:05.363022Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "[drivers/of/fdt.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/of/fdt.c) — Device tree memory scanning that feeds `memblock_add()` on ARM and RISC-V",
+      "source_hash": 5809393862656235814,
+      "context_hash": 4042619559846582264,
+      "translation": "[drivers/of/fdt.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/of/fdt.c) — ARM과 RISC-V에서 `memblock_add()`에 정보를 공급하는 디바이스 트리 메모리 스캔",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:36:37.357565Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "[LWN: A quick history of early-boot memory allocators](https://lwn.net/Articles/382559/) — Context on the transition from bootmem bitmaps to the region-list approach",
+      "source_hash": 5824611822918652281,
+      "context_hash": 9676055035441223460,
+      "translation": "[LWN: A quick history of early-boot memory allocators](https://lwn.net/Articles/382559/) — bootmem 비트맵에서 영역 리스트(region-list) 방식으로 전환된 배경",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "bitmaps": "비트맵"
+      },
+      "translated_at": "2026-11-14T21:56:05.363022Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "[LWN: Improvements to memblock](https://lwn.net/Articles/761215/) — Mike Rapoport's cleanup work and the final removal of bootmem",
+      "source_hash": 3274628591179777703,
+      "context_hash": 11232049577773700923,
+      "translation": "[LWN: Improvements to memblock](https://lwn.net/Articles/761215/) — Mike Rapoport의 정리 작업과 bootmem의 최종 제거",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "memblock": "memblock"
+      },
+      "translated_at": "2026-11-14T21:56:05.363023Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "`Documentation/core-api/boot-time-mm.rst` — Kernel documentation on boot-time memory management APIs",
+      "source_hash": 14729249927792843857,
+      "context_hash": 7629590706365488057,
+      "translation": "`Documentation/core-api/boot-time-mm.rst` — 부팅 시점 메모리 관리 API에 관한 커널 문서",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory management": "메모리 관리"
+      },
+      "translated_at": "2026-11-14T21:56:05.363023Z",
+      "issues": []
+    }
+  ]
+}

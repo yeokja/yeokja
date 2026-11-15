@@ -1,0 +1,973 @@
+{
+  "version": 1,
+  "source_hash": 15459086105752119593,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "io_uring Multishot, Linked Requests, and Probing",
+      "source_hash": 8457980343616756239,
+      "context_hash": 5545774681831126940,
+      "translation": "io_uring 멀티샷, 연결된 요청, 프로빙",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734948Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "One SQE, many CQEs — persistent operations, chained I/O, and capability detection",
+      "source_hash": 15052504327777567878,
+      "context_hash": 17596109812986293386,
+      "translation": "하나의 SQE, 여러 CQE — 지속형 작업, 연쇄 I/O, 기능 탐지",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156255Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What multishot means",
+      "source_hash": 3478014265803062699,
+      "context_hash": 16228593830479256186,
+      "translation": "멀티샷의 의미",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734951Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A normal io_uring submission follows a one-to-one model: one SQE produces exactly one CQE.",
+      "source_hash": 1198223681008928133,
+      "context_hash": 11200975358340513971,
+      "translation": "일반적인 io_uring 제출은 일대일 모델을 따릅니다. 즉, 하나의 SQE가 정확히 하나의 CQE를 생성합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156255Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The SQE is consumed, the operation runs once, the result appears in the CQ.",
+      "source_hash": 10642248607355070506,
+      "context_hash": 1168991540384883507,
+      "translation": "SQE가 소비되고, 작업이 한 번 실행되며, 결과가 CQ에 나타납니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156256Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**Multishot** breaks that contract.",
+      "source_hash": 14758450417832400435,
+      "context_hash": 13754695654033263893,
+      "translation": "**멀티샷**은 이 계약을 깨뜨립니다.",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734952Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "One SQE stays armed in the kernel and continues producing CQEs — one per event — until it is explicitly cancelled or encounters a fatal error.",
+      "source_hash": 771473120249861970,
+      "context_hash": 15043793389542638336,
+      "translation": "하나의 SQE가 커널에서 활성화(armed) 상태로 유지되며, 명시적으로 취소되거나 치명적인 오류를 만날 때까지 이벤트마다 하나씩 CQE를 계속 생성합니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "SQE": "SQE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:33.156256Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "The `IORING_CQE_F_MORE` flag in `cqe->flags` is the signal that more completions are still coming from the same SQE:",
+      "source_hash": 5922425850829257160,
+      "context_hash": 12233641667883637557,
+      "translation": "`cqe->flags`의 `IORING_CQE_F_MORE` 플래그는 같은 SQE로부터 완료가 더 들어올 것임을 나타내는 신호입니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156256Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "When `IORING_CQE_F_MORE` is absent, the multishot SQE has been disarmed.",
+      "source_hash": 17842318687864454351,
+      "context_hash": 1071861092416828514,
+      "translation": "`IORING_CQE_F_MORE`가 없으면 해당 멀티샷 SQE는 해제(disarm)된 것입니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734953Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "This happens on cancellation, on certain errors, or when the underlying resource goes away.",
+      "source_hash": 11135582263551460367,
+      "context_hash": 3387401808347501272,
+      "translation": "이는 취소될 때, 특정 오류가 발생할 때, 또는 하위 리소스가 사라질 때 일어납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:33.156257Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "The application must resubmit if it wants to resume.",
+      "source_hash": 1053693170142774514,
+      "context_hash": 1052341229061118562,
+      "translation": "애플리케이션이 다시 재개하려면 재제출해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:33.156257Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "The multishot model eliminates the round-trip of resubmitting a new SQE after every accepted connection or every received message — critical for high-connection-rate servers.",
+      "source_hash": 13833171097953065600,
+      "context_hash": 12776289878954372412,
+      "translation": "멀티샷 모델은 연결을 수락하거나 메시지를 수신할 때마다 새 SQE를 다시 제출하는 왕복 과정을 없애 주며, 이는 연결 속도가 높은 서버에 매우 중요합니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734953Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Multishot accept (`IORING_OP_ACCEPT`)",
+      "source_hash": 14684119408001951225,
+      "context_hash": 16692124127346032495,
+      "translation": "멀티샷 accept (`IORING_OP_ACCEPT`)",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734953Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "**Added:** Linux 5.19 — `io_uring/net.c`",
+      "source_hash": 3470466949855430163,
+      "context_hash": 10236424949678587678,
+      "translation": "**추가:** Linux 5.19 — `io_uring/net.c`",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:33.156257Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "With `IORING_ACCEPT_MULTISHOT`, a single `IORING_OP_ACCEPT` SQE accepts connections indefinitely.",
+      "source_hash": 17154178174127264807,
+      "context_hash": 16641111807839744556,
+      "translation": "`IORING_ACCEPT_MULTISHOT`를 사용하면 단일 `IORING_OP_ACCEPT` SQE가 연결을 무기한 수락합니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156257Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Each incoming connection produces a CQE whose `res` field holds the new client file descriptor, exactly as a successful blocking `accept()` would return.",
+      "source_hash": 4432946577036393796,
+      "context_hash": 7166882047617930258,
+      "translation": "들어오는 각 연결은 CQE를 생성하며, 그 `res` 필드에는 성공한 블로킹 `accept()`가 반환하는 것과 똑같이 새 클라이언트 파일 디스크립터가 담깁니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:44:33.156257Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "To cancel the multishot accept, submit an `IORING_OP_ASYNC_CANCEL` targeting the same `user_data`:",
+      "source_hash": 2378180215991669386,
+      "context_hash": 17579552662733522351,
+      "translation": "멀티샷 accept를 취소하려면 같은 `user_data`를 대상으로 하는 `IORING_OP_ASYNC_CANCEL`을 제출하십시오.",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734954Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "The kernel implementation lives in `io_uring/net.c` (`io_accept_multishot()`).",
+      "source_hash": 13138094769363836157,
+      "context_hash": 17552050130154950280,
+      "translation": "커널 구현은 `io_uring/net.c`(`io_accept_multishot()`)에 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:33.156258Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "On each `inet_csk_accept()` return, the kernel posts a CQE and immediately re-arms the wait — no round-trip to userspace required between connections.",
+      "source_hash": 7068526284990674974,
+      "context_hash": 9766907763562946683,
+      "translation": "`inet_csk_accept()`가 반환될 때마다 커널은 CQE를 게시하고 즉시 대기를 다시 활성화하므로, 연결과 연결 사이에 사용자 공간으로의 왕복이 필요하지 않습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:33.156258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Multishot recv (`IORING_OP_RECV`)",
+      "source_hash": 1497681327728283178,
+      "context_hash": 13278083991771195972,
+      "translation": "멀티샷 recv (`IORING_OP_RECV`)",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "**Added:** Linux 5.20 / 6.0 — `io_uring/net.c`",
+      "source_hash": 2260211616511919190,
+      "context_hash": 9594149197239570961,
+      "translation": "**추가:** Linux 5.20 / 6.0 — `io_uring/net.c`",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:33.156259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "`IORING_RECV_MULTISHOT` on `IORING_OP_RECV` keeps reading from a socket and posting a CQE on each arrival.",
+      "source_hash": 16607567003404435364,
+      "context_hash": 16988919359824640479,
+      "translation": "`IORING_OP_RECV`에 `IORING_RECV_MULTISHOT`를 지정하면 소켓에서 계속 읽으면서 데이터가 도착할 때마다 CQE를 게시합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156259Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "Because the kernel doesn't know how large each message will be in advance, multishot recv **requires** provided buffers (`IOSQE_BUFFER_SELECT`): the kernel picks a buffer from a pre-registered pool for each receive, and the CQE's `flags` field carries the buffer ID via `IORING_CQE_BUFFER_SHIFT`.",
+      "source_hash": 11140687246257759869,
+      "context_hash": 4092303819250598675,
+      "translation": "커널은 각 메시지의 크기를 미리 알 수 없으므로 멀티샷 recv에는 제공 버퍼(provided buffer, `IOSQE_BUFFER_SELECT`)가 **반드시 필요합니다**. 커널은 수신할 때마다 미리 등록된 풀에서 버퍼를 하나 고르며, CQE의 `flags` 필드는 `IORING_CQE_BUFFER_SHIFT`를 통해 버퍼 ID를 전달합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "multishot": "멀티샷",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T23:35:29.734954Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "If the buffer pool runs dry, the multishot recv is automatically disarmed and posts a CQE with `res == -ENOBUFS` and `IORING_CQE_F_MORE` absent.",
+      "source_hash": 14145209229472689309,
+      "context_hash": 16773311154390609422,
+      "translation": "버퍼 풀이 바닥나면 멀티샷 recv는 자동으로 해제되고, `res == -ENOBUFS`이면서 `IORING_CQE_F_MORE`가 없는 CQE를 게시합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "buffer pool": "버퍼 풀",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734955Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "Refill the buffer ring and resubmit.",
+      "source_hash": 15260792927054198699,
+      "context_hash": 12441654388875017720,
+      "translation": "버퍼 링을 다시 채우고 재제출하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:33.156260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Linked requests (`IOSQE_IO_LINK` / `IOSQE_IO_HARDLINK`)",
+      "source_hash": 15539606221314798119,
+      "context_hash": 1820638817268072709,
+      "translation": "Linked request (`IOSQE_IO_LINK` / `IOSQE_IO_HARDLINK`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:33.156260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Linked requests let you express **ordering dependencies** between SQEs without any application involvement between steps.",
+      "source_hash": 18222237762749180372,
+      "context_hash": 10869722344570676685,
+      "translation": "Linked request를 사용하면 단계 사이에 애플리케이션이 전혀 개입하지 않고도 SQE 간의 **순서 의존성**을 표현할 수 있습니다.",
+      "glossary_snapshot": {
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The kernel executes the chain sequentially: SQE B does not start until SQE A completes.",
+      "source_hash": 14372254846537617451,
+      "context_hash": 13453595336165333351,
+      "translation": "커널은 체인을 순차적으로 실행합니다. 즉, SQE A가 완료될 때까지 SQE B는 시작하지 않습니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:33.156260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Set `IOSQE_IO_LINK` on each SQE that should be followed by the next.",
+      "source_hash": 4793240715765852219,
+      "context_hash": 7691667465985797691,
+      "translation": "다음 SQE가 뒤따라야 하는 각 SQE에 `IOSQE_IO_LINK`를 설정하십시오.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "The final SQE in the chain carries no link flag.",
+      "source_hash": 1097804238086164004,
+      "context_hash": 8570345781289086336,
+      "translation": "체인의 마지막 SQE에는 링크 플래그를 지정하지 않습니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:33.156261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`IOSQE_IO_LINK` — soft link",
+      "source_hash": 4731600249248382079,
+      "context_hash": 10695973309554842679,
+      "translation": "`IOSQE_IO_LINK` — 소프트 링크",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:33.156261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "If the linked SQE fails (non-zero `res`), all subsequent SQEs in the chain receive a CQE with `res == -ECANCELED`.",
+      "source_hash": 4138401913839320345,
+      "context_hash": 17587397804955280812,
+      "translation": "링크된 SQE가 실패하면(`res`가 0이 아닌 경우) 체인의 이후 모든 SQE는 `res == -ECANCELED`인 CQE를 받습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE",
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:36.560438Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "The chain is broken.",
+      "source_hash": 2461097565012751050,
+      "context_hash": 4249040295518977372,
+      "translation": "체인이 끊어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560440Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "`IOSQE_IO_HARDLINK` — hard link",
+      "source_hash": 17611118431583314009,
+      "context_hash": 14676612922877938738,
+      "translation": "`IOSQE_IO_HARDLINK` — 하드 링크",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560440Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "The chain continues regardless of whether the linked SQE succeeds or fails.",
+      "source_hash": 17388253490198762813,
+      "context_hash": 1453798587764645490,
+      "translation": "링크된 SQE의 성공 여부와 관계없이 체인이 계속 진행됩니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:36.560440Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "Each SQE runs in sequence unconditionally.",
+      "source_hash": 11749537135647910191,
+      "context_hash": 9081589257218341976,
+      "translation": "각 SQE는 조건 없이 순서대로 실행됩니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:36.560440Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:2",
+      "source": "Useful when you need cleanup steps that must run even after an error.",
+      "source_hash": 17531682428968848899,
+      "context_hash": 10263006797274272078,
+      "translation": "오류가 발생한 뒤에도 반드시 실행되어야 하는 정리 단계가 필요할 때 유용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560440Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Example: write then fsync",
+      "source_hash": 10043941133428106468,
+      "context_hash": 11654191493203159837,
+      "translation": "예시: write 후 fsync",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "A common pattern for durable writes: persist data, then flush.",
+      "source_hash": 3689231520608534455,
+      "context_hash": 12816240373014475008,
+      "translation": "내구성 있는 쓰기를 위한 일반적인 패턴은 데이터를 기록한 뒤 플러시하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:1",
+      "source": "A link guarantees `fsync` only runs after the write completes, and both are submitted in a single `io_uring_submit` call:",
+      "source_hash": 10484631701450423087,
+      "context_hash": 15271462332238816505,
+      "translation": "링크는 write가 완료된 후에만 `fsync`가 실행되도록 보장하며, 두 작업 모두 한 번의 `io_uring_submit` 호출로 제출됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "If the write fails, the fsync CQE arrives with `res == -ECANCELED` — no need to check the fsync result independently.",
+      "source_hash": 11732686752904924046,
+      "context_hash": 10339245550763677193,
+      "translation": "write가 실패하면 fsync CQE가 `res == -ECANCELED`로 도착하므로 fsync 결과를 따로 확인할 필요가 없습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:1",
+      "source": "To force the fsync regardless, replace `IOSQE_IO_LINK` with `IOSQE_IO_HARDLINK`.",
+      "source_hash": 8348477365658371641,
+      "context_hash": 16683261034244258965,
+      "translation": "어떤 경우에도 fsync를 강제로 실행하려면 `IOSQE_IO_LINK`를 `IOSQE_IO_HARDLINK`로 바꾸십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "Link timeouts",
+      "source_hash": 11926785303382956863,
+      "context_hash": 8171300501021397106,
+      "translation": "링크 타임아웃",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "A `IORING_OP_LINK_TIMEOUT` SQE can be appended to a chain to bound its total duration.",
+      "source_hash": 538788153880115298,
+      "context_hash": 917359804122631672,
+      "translation": "체인에 `IORING_OP_LINK_TIMEOUT` SQE를 덧붙여 전체 소요 시간을 제한할 수 있습니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:1",
+      "source": "If the linked operation doesn't complete within the timeout, it is cancelled:",
+      "source_hash": 1616633803818970511,
+      "context_hash": 1311641818635365043,
+      "translation": "링크된 작업이 타임아웃 안에 완료되지 않으면 취소됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "`IORING_OP_POLL_ADD` multishot",
+      "source_hash": 5278183566692351641,
+      "context_hash": 8503406786859079289,
+      "translation": "`IORING_OP_POLL_ADD` 멀티샷",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734955Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "**Added:** Linux 5.13 — `io_uring/poll.c`",
+      "source_hash": 2245167813178430722,
+      "context_hash": 16412906291697148180,
+      "translation": "**추가된 버전:** Linux 5.13 — `io_uring/poll.c`",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:36.560441Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Normal `IORING_OP_POLL_ADD` fires once and is consumed.",
+      "source_hash": 17199332483064953205,
+      "context_hash": 2477565016092167681,
+      "translation": "일반적인 `IORING_OP_POLL_ADD`는 한 번 발생하고 소비됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560442Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "Adding `IORING_POLL_ADD_MULTI` makes it persistent: the SQE stays registered and a CQE is posted every time the polled events occur on the fd.",
+      "source_hash": 16782643700655788472,
+      "context_hash": 3849455517157862433,
+      "translation": "`IORING_POLL_ADD_MULTI`를 추가하면 지속적으로 동작합니다. SQE가 등록된 상태로 유지되며, fd에서 poll 대상 이벤트가 발생할 때마다 CQE가 게시됩니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:36.560442Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "This provides an alternative to `epoll` for persistent fd readiness notification inside an io_uring event loop — all events go through the same CQ, avoiding the context switch to `epoll_wait`.",
+      "source_hash": 9738954409222781015,
+      "context_hash": 16342979248885424022,
+      "translation": "이는 io_uring 이벤트 루프 안에서 지속적인 fd 준비 상태 알림을 위한 `epoll`의 대안을 제공합니다. 모든 이벤트가 같은 CQ를 거치므로 `epoll_wait`로의 컨텍스트 스위치를 피할 수 있습니다.",
+      "glossary_snapshot": {
+        "context switch": "컨텍스트 스위치"
+      },
+      "translated_at": "2026-11-14T22:44:36.560442Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "To cancel:",
+      "source_hash": 16998134372297163211,
+      "context_hash": 6346673490263276473,
+      "translation": "취소하는 방법:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560442Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Probing capabilities (`io_uring_probe`)",
+      "source_hash": 14584186285499010774,
+      "context_hash": 14428200808677756051,
+      "translation": "기능 탐색(`io_uring_probe`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "io_uring adds new opcodes and features frequently — and not all kernels support all operations.",
+      "source_hash": 1186278435812564282,
+      "context_hash": 2349919692266201811,
+      "translation": "io_uring에는 새로운 opcode와 기능이 자주 추가되며, 모든 커널이 모든 작업을 지원하는 것은 아닙니다.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "Calling an unsupported opcode produces `EINVAL` or `EOPNOTSUPP`, which is difficult to distinguish from a usage error.",
+      "source_hash": 11695094995522745325,
+      "context_hash": 6681086129004911405,
+      "translation": "지원되지 않는 opcode를 호출하면 `EINVAL` 또는 `EOPNOTSUPP`가 반환되는데, 이는 사용 오류와 구별하기 어렵습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:2",
+      "source": "The probe API lets you query the kernel's capabilities before committing to a code path.",
+      "source_hash": 6649662543913195121,
+      "context_hash": 5828657838965641737,
+      "translation": "probe API를 사용하면 특정 코드 경로를 택하기 전에 커널의 기능을 조회할 수 있습니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "code path": "코드 경로",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Raw probe via `io_uring_register`",
+      "source_hash": 3172750206746800035,
+      "context_hash": 16519036294028504688,
+      "translation": "`io_uring_register`를 통한 raw probe",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "liburing helper",
+      "source_hash": 14872243565473205007,
+      "context_hash": 10738922040464684830,
+      "translation": "liburing 헬퍼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "`io_uring_get_probe_ring()` calls `io_uring_register(IORING_REGISTER_PROBE)` internally and returns a heap-allocated `io_uring_probe`.",
+      "source_hash": 1366263596050737309,
+      "context_hash": 13800477098619573908,
+      "translation": "`io_uring_get_probe_ring()`은 내부적으로 `io_uring_register(IORING_REGISTER_PROBE)`를 호출하고 힙에 할당된 `io_uring_probe`를 반환합니다.",
+      "glossary_snapshot": {
+        "heap": "힙"
+      },
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:1",
+      "source": "Free it with `io_uring_free_probe()`.",
+      "source_hash": 7228331992648165874,
+      "context_hash": 3547610139850394772,
+      "translation": "`io_uring_free_probe()`로 해제하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "Why probing matters",
+      "source_hash": 16862281037009233325,
+      "context_hash": 15379112011076013408,
+      "translation": "기능 탐색이 중요한 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Approach",
+      "source_hash": 17398109157882005302,
+      "context_hash": 2263208425364002157,
+      "translation": "접근 방식",
+      "glossary_snapshot": {
+        "Approach": "접근 방식"
+      },
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Consequence of missing op",
+      "source_hash": 15711436525853614651,
+      "context_hash": 14372677207646864692,
+      "translation": "작업 미지원 시 결과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "Unconditional use",
+      "source_hash": 13479736850173196632,
+      "context_hash": 7005046488880577252,
+      "translation": "무조건 사용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:36.560443Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "`EINVAL` / `EOPNOTSUPP` at runtime, hard to diagnose",
+      "source_hash": 8230595180762559857,
+      "context_hash": 817583227749363542,
+      "translation": "런타임에 `EINVAL` / `EOPNOTSUPP` 발생, 진단이 어려움",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480135Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "Version check (`uname`)",
+      "source_hash": 17407795426184545752,
+      "context_hash": 190842247682695779,
+      "translation": "버전 확인(`uname`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480136Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "Fragile: backports, distribution kernels",
+      "source_hash": 11612040979710875343,
+      "context_hash": 5145288281722340817,
+      "translation": "취약함: 백포트, 배포판 커널",
+      "glossary_snapshot": {
+        "backports": "백포트",
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:03:58.480137Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "Feature flag check (`params.features`)",
+      "source_hash": 17376174200364380328,
+      "context_hash": 12535574506250536071,
+      "translation": "기능 플래그 확인(`params.features`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480137Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "Only covers ring-level features, not per-opcode",
+      "source_hash": 5735430784821233758,
+      "context_hash": 9188573761410486342,
+      "translation": "opcode별 기능이 아닌 링 수준 기능만 확인 가능",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480137Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "`io_uring_register(IORING_REGISTER_PROBE)`",
+      "source_hash": 13118059855290576335,
+      "context_hash": 5162847375287803488,
+      "translation": "`io_uring_register(IORING_REGISTER_PROBE)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480137Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "Definitive per-opcode answer from the running kernel",
+      "source_hash": 13805901817519314167,
+      "context_hash": 18022436750003149720,
+      "translation": "실행 중인 커널이 주는 opcode별 확정적 답",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:03:58.480138Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:0",
+      "source": "Probe once at startup, store the results, and branch on them.",
+      "source_hash": 15872892125124554804,
+      "context_hash": 11098888751194110802,
+      "translation": "시작 시 한 번 probe하고, 결과를 저장한 뒤, 그 결과에 따라 분기하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480138Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:1",
+      "source": "The probe syscall is cheap — one `io_uring_register` call.",
+      "source_hash": 14667913033858920577,
+      "context_hash": 10044525767363895090,
+      "translation": "probe 시스템 콜은 비용이 적습니다. `io_uring_register` 호출 한 번이면 됩니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:03:58.480138Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Putting it together: multishot accept with linked reads",
+      "source_hash": 1543115028254609227,
+      "context_hash": 11239176766034248326,
+      "translation": "종합: 연결된 읽기를 사용하는 멀티샷 accept",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734956Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "A sketch of a server that combines multishot accept, per-connection multishot recv, and linked write+fsync for log durability:",
+      "source_hash": 1175079164413589653,
+      "context_hash": 7505565695369417120,
+      "translation": "멀티샷 accept, 연결별 멀티샷 recv, 로그 내구성을 위한 연결된 write+fsync를 결합한 서버의 개요:",
+      "glossary_snapshot": {
+        "durability": "내구성",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.734956Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "All three operation types drain into the same CQ.",
+      "source_hash": 7207702678816491147,
+      "context_hash": 108082317136067901,
+      "translation": "세 가지 연산 유형은 모두 같은 CQ로 모입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480140Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "A single event loop harvests them by checking `user_data` tags to dispatch each CQE to the right handler.",
+      "source_hash": 10121883529250434439,
+      "context_hash": 8895868413505733113,
+      "translation": "하나의 이벤트 루프가 `user_data` 태그를 확인해 각 CQE를 알맞은 핸들러로 전달하는 방식으로 이들을 수확합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:03:58.480140Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:2",
+      "source": "No epoll, no thread-per-connection, no per-event syscall.",
+      "source_hash": 10993153266122263822,
+      "context_hash": 2369718007544963449,
+      "translation": "epoll도, 연결당 스레드도, 이벤트당 시스템 콜도 필요 없습니다.",
+      "glossary_snapshot": {
+        "epoll": "epoll",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:03:58.480141Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 14750092752756383250,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:03:58.480141Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "[Architecture and Rings](io-uring-arch.md) — SQE/CQE structures, ring layout, `io_uring_enter`",
+      "source_hash": 11759520772148722819,
+      "context_hash": 11222853120988953628,
+      "translation": "[아키텍처와 링](io-uring-arch.md) — SQE/CQE 구조체, 링 레이아웃, `io_uring_enter`",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:03:58.480141Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "[Operations and Advanced Features](io-uring-ops.md) — SQPOLL, fixed files, provided buffers",
+      "source_hash": 17190839875362924785,
+      "context_hash": 4932613801102532174,
+      "translation": "[연산과 고급 기능](io-uring-ops.md) — SQPOLL, 고정 파일, 제공 버퍼",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일",
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:03:58.480141Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "`io_uring/net.c` in the kernel tree — `io_accept_multishot()`, `io_recv_multishot()`",
+      "source_hash": 15587844036312846348,
+      "context_hash": 9777764774597016640,
+      "translation": "커널 트리의 `io_uring/net.c` — `io_accept_multishot()`, `io_recv_multishot()`",
+      "glossary_snapshot": {
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T22:03:58.480142Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "`io_uring/poll.c` in the kernel tree — `io_poll_multishot()`",
+      "source_hash": 896998192937675252,
+      "context_hash": 9819920275579281060,
+      "translation": "커널 트리의 `io_uring/poll.c` — `io_poll_multishot()`",
+      "glossary_snapshot": {
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T22:03:58.480142Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "`include/uapi/linux/io_uring.h` — `IORING_ACCEPT_MULTISHOT`, `IORING_RECV_MULTISHOT`, `IORING_POLL_ADD_MULTI`, `IORING_CQE_F_MORE`",
+      "source_hash": 17746983196025319353,
+      "context_hash": 18050111419831396977,
+      "translation": "`include/uapi/linux/io_uring.h` — `IORING_ACCEPT_MULTISHOT`, `IORING_RECV_MULTISHOT`, `IORING_POLL_ADD_MULTI`, `IORING_CQE_F_MORE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480142Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "`liburing` GitHub repository — `io_uring_prep_multishot_accept()`, `io_uring_get_probe_ring()`",
+      "source_hash": 6608895880233676268,
+      "context_hash": 17370051614863019745,
+      "translation": "`liburing` GitHub 저장소 — `io_uring_prep_multishot_accept()`, `io_uring_get_probe_ring()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:58.480142Z",
+      "issues": []
+    }
+  ]
+}

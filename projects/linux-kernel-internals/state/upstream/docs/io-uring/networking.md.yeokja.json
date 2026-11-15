@@ -1,0 +1,2648 @@
+{
+  "version": 1,
+  "source_hash": 17054315257129171457,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "io_uring Networking",
+      "source_hash": 643714845471633771,
+      "context_hash": 10738061426657680108,
+      "translation": "io_uring 네트워킹",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199416Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Zero-syscall network I/O, multishot accept, zero-copy send, and high-performance server patterns",
+      "source_hash": 11061136541026065080,
+      "context_hash": 14263072339752845322,
+      "translation": "시스템 콜 없는 네트워크 I/O, 멀티샷 accept, 제로 카피 송신, 고성능 서버 패턴",
+      "glossary_snapshot": {
+        "multishot": "멀티샷",
+        "syscall": "시스템 콜",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:37:08.154903Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why io_uring for networking?",
+      "source_hash": 4293116912243769791,
+      "context_hash": 8570741310223422330,
+      "translation": "네트워킹에 io_uring을 쓰는 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "The classic Linux networking stack pairs `epoll` with non-blocking sockets.",
+      "source_hash": 15633280618273026170,
+      "context_hash": 14011688522790135379,
+      "translation": "고전적인 Linux 네트워킹 스택은 `epoll`과 non-blocking 소켓을 함께 사용합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:35.199419Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "It works well, but every individual I/O operation still costs a syscall:",
+      "source_hash": 10557909281093849604,
+      "context_hash": 12454659552615837456,
+      "translation": "잘 동작하지만, 개별 I/O 연산마다 여전히 시스템 콜 비용이 듭니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:35.199420Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "`epoll_wait` blocks until a socket is readable/writable.",
+      "source_hash": 11200728431521650616,
+      "context_hash": 11389017081723375481,
+      "translation": "`epoll_wait`는 소켓이 읽기/쓰기 가능해질 때까지 블록됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199420Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "`recv`/`send` performs the actual transfer.",
+      "source_hash": 11899227140664501558,
+      "context_hash": 10303235931431538898,
+      "translation": "`recv`/`send`가 실제 전송을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199421Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "That is two syscalls per data transfer at minimum — more if you also call `accept` and `close`.",
+      "source_hash": 13548422990999422534,
+      "context_hash": 5830176371984601535,
+      "translation": "즉, 데이터 전송 한 번에 최소 두 번의 시스템 콜이 필요하며 `accept`와 `close`까지 호출하면 더 많아집니다.",
+      "glossary_snapshot": {
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:35.199422Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "Under high connection rates the syscall overhead accumulates and becomes measurable.",
+      "source_hash": 1854487327728003417,
+      "context_hash": 17844300215102054736,
+      "translation": "연결 빈도가 높으면 시스템 콜 오버헤드가 누적되어 측정 가능한 수준이 됩니다.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:35.199422Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "io_uring with `IORING_SETUP_SQPOLL` eliminates per-operation syscalls entirely.",
+      "source_hash": 10990104350747610332,
+      "context_hash": 316491193150262259,
+      "translation": "`IORING_SETUP_SQPOLL`을 사용하는 io_uring은 연산별 시스템 콜을 완전히 없앱니다.",
+      "glossary_snapshot": {
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:35.199422Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "After ring setup, the kernel's SQ polling thread monitors the submission queue continuously.",
+      "source_hash": 9360672753633976789,
+      "context_hash": 18296295629893711606,
+      "translation": "링을 설정하고 나면 커널의 SQ 폴링 스레드가 제출 큐를 지속적으로 감시합니다.",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:37:08.154905Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "Userspace drops SQEs into the ring and reads CQEs out without ever entering the kernel again.",
+      "source_hash": 3011324554048366546,
+      "context_hash": 11010798930494077760,
+      "translation": "사용자 공간은 다시는 커널에 진입하지 않고 링에 SQE를 넣고 CQE를 읽어 냅니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "SQEs": "SQE",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:35.199423Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:3",
+      "source": "For network servers processing tens of thousands of connections, this is the difference between the kernel being on the hot path and being completely out of it.",
+      "source_hash": 12900007108717910213,
+      "context_hash": 5578196840527661318,
+      "translation": "수만 개의 연결을 처리하는 네트워크 서버에서는, 이것이 커널이 핫 패스 위에 있느냐 완전히 벗어나 있느냐의 차이가 됩니다.",
+      "glossary_snapshot": {
+        "hot path": "핫 패스",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:35.199424Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Comparison: epoll+recv vs io_uring multishot recv",
+      "source_hash": 17877519508872855479,
+      "context_hash": 16454864377969082071,
+      "translation": "비교: epoll+recv 대 io_uring 멀티샷 recv",
+      "glossary_snapshot": {
+        "epoll": "epoll",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154906Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Aspect",
+      "source_hash": 10434066973382471756,
+      "context_hash": 8731556865816313916,
+      "translation": "항목",
+      "glossary_snapshot": {
+        "Aspect": "항목"
+      },
+      "translated_at": "2026-11-14T22:44:35.199424Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "epoll + non-blocking recv",
+      "source_hash": 15186562548414087375,
+      "context_hash": 15817146190503218168,
+      "translation": "epoll + non-blocking recv",
+      "glossary_snapshot": {
+        "epoll": "epoll"
+      },
+      "translated_at": "2026-11-14T22:44:35.199424Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "io_uring multishot recv",
+      "source_hash": 5726653451817979169,
+      "context_hash": 5290904877817892102,
+      "translation": "io_uring 멀티샷 recv",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154906Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "Syscalls per message",
+      "source_hash": 12969216220533004484,
+      "context_hash": 317784807429631147,
+      "translation": "메시지당 시스템 콜",
+      "glossary_snapshot": {
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:35.199425Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "2 (`epoll_wait` + `recv`)",
+      "source_hash": 17443952412604423631,
+      "context_hash": 3795151600819668488,
+      "translation": "2 (`epoll_wait` + `recv`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199425Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "0 (with SQPOLL after setup)",
+      "source_hash": 5936222920332497538,
+      "context_hash": 783287530932251871,
+      "translation": "0 (설정 후 SQPOLL 사용 시)",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:35.199425Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "Syscalls per connection",
+      "source_hash": 1235316719807247078,
+      "context_hash": 3545326939796923636,
+      "translation": "연결당 시스템 콜",
+      "glossary_snapshot": {
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:35.199425Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "4+ (`epoll_ctl` + `accept` + `epoll_ctl` + ...)",
+      "source_hash": 15430149249197711579,
+      "context_hash": 4500114178103204811,
+      "translation": "4+ (`epoll_ctl` + `accept` + `epoll_ctl` + ...)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199426Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "~0 (multishot accept)",
+      "source_hash": 14083304791198917440,
+      "context_hash": 14694851756981633829,
+      "translation": "~0 (멀티샷 accept)",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154907Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "Buffer management",
+      "source_hash": 9075449130577787032,
+      "context_hash": 3580469162591987366,
+      "translation": "버퍼 관리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199426Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "Caller allocates before each recv",
+      "source_hash": 1047563039689614357,
+      "context_hash": 14720624926977893720,
+      "translation": "호출자가 recv마다 미리 할당",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199426Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "Kernel picks from pre-registered pool",
+      "source_hash": 16839291535422490094,
+      "context_hash": 5885560413429113862,
+      "translation": "커널이 미리 등록된 풀에서 선택",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:44:35.199426Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "Unknown message size",
+      "source_hash": 12491780964283738055,
+      "context_hash": 15141401614595229701,
+      "translation": "알 수 없는 메시지 크기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199426Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "Caller must size buffer conservatively",
+      "source_hash": 14574665774129645403,
+      "context_hash": 3219616131731802089,
+      "translation": "호출자가 버퍼 크기를 넉넉하게 잡아야 함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:35.199427Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "Provided buffer ring; kernel uses what fits",
+      "source_hash": 6966831301693805813,
+      "context_hash": 10553704282054127240,
+      "translation": "provided buffer ring, 커널이 맞는 버퍼를 사용",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:35.199427Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "Zero-copy send",
+      "source_hash": 13578122254486462266,
+      "context_hash": 15895646016402477514,
+      "translation": "제로 카피 송신",
+      "glossary_snapshot": {
+        "Zero-copy send": "제로 카피 송신",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:37:08.154907Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "Via `MSG_ZEROCOPY` + error queue polling",
+      "source_hash": 2397265071227975972,
+      "context_hash": 16033681602610089135,
+      "translation": "`MSG_ZEROCOPY` + 에러 큐 폴링 사용",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:44:35.199427Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "`IORING_OP_SEND_ZC`, two clean CQEs",
+      "source_hash": 130996776940757930,
+      "context_hash": 15704593320748127291,
+      "translation": "`IORING_OP_SEND_ZC`, 깔끔한 CQE 두 개",
+      "glossary_snapshot": {
+        "CQEs": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:35.199427Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "API complexity",
+      "source_hash": 10793254156389732295,
+      "context_hash": 16116964527773071567,
+      "translation": "API 복잡도",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:44:37.884213Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "Familiar POSIX",
+      "source_hash": 16442676651164667688,
+      "context_hash": 17186918918889827922,
+      "translation": "익숙한 POSIX",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:0",
+      "source": "New but consistent SQE/CQE model",
+      "source_hash": 11676475504280604034,
+      "context_hash": 12212414375258834660,
+      "translation": "새롭지만 일관된 SQE/CQE 모델",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "Kernel version requirement",
+      "source_hash": 15985735999193058814,
+      "context_hash": 401492846342936338,
+      "translation": "커널 버전 요구 사항",
+      "glossary_snapshot": {
+        "kernel version": "커널 버전"
+      },
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:0",
+      "source": "Ubiquitous",
+      "source_hash": 4551213031672762205,
+      "context_hash": 17217479118549758707,
+      "translation": "어디서나 사용 가능",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "Linux 5.1+ (networking ops), 5.19+ (multishot)",
+      "source_hash": 17906378260054740616,
+      "context_hash": 2412825971236491444,
+      "translation": "Linux 5.1+ (네트워킹 연산), 5.19+ (멀티샷)",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154907Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Basic network operations",
+      "source_hash": 1456677571512517688,
+      "context_hash": 6829697751952480204,
+      "translation": "기본 네트워크 연산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "All network operations follow the same SQE model.",
+      "source_hash": 9946443196265323231,
+      "context_hash": 5991437695290334524,
+      "translation": "모든 네트워크 연산은 동일한 SQE 모델을 따릅니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "The liburing helpers paper over the raw struct fields.",
+      "source_hash": 16916600832141679674,
+      "context_hash": 3580385843096599725,
+      "translation": "liburing 헬퍼 함수가 raw 구조체 필드를 감춰 줍니다.",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "`IORING_OP_ACCEPT`",
+      "source_hash": 7327961263649510491,
+      "context_hash": 3662649382430738652,
+      "translation": "`IORING_OP_ACCEPT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Equivalent to `accept4(2)`. `res` in the CQE holds the new client file descriptor on success.",
+      "source_hash": 470561167094475140,
+      "context_hash": 5283777955847378495,
+      "translation": "`accept4(2)`에 해당합니다. 성공하면 CQE의 `res`에 새 클라이언트 파일 디스크립터가 담깁니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:44:37.884214Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "For multishot accept (Linux 5.19), use `io_uring_prep_multishot_accept` — covered in detail in the next section.",
+      "source_hash": 10607237081693952525,
+      "context_hash": 428864615508505631,
+      "translation": "멀티샷 accept(Linux 5.19)에는 `io_uring_prep_multishot_accept`를 사용하십시오 — 다음 절에서 자세히 다룹니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "`IORING_OP_CONNECT`",
+      "source_hash": 1950019896488968086,
+      "context_hash": 6065351360930329999,
+      "translation": "`IORING_OP_CONNECT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884215Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Equivalent to `connect(2)`.",
+      "source_hash": 13869559990704344921,
+      "context_hash": 5797382080919471457,
+      "translation": "`connect(2)`에 해당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884215Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "Non-blocking: the SQE is submitted and the CQE arrives when the connection completes (or fails). `res == 0` on success.",
+      "source_hash": 13665697411344852631,
+      "context_hash": 8480470917832385263,
+      "translation": "논블로킹 방식입니다. SQE를 제출하면 연결이 완료(또는 실패)될 때 CQE가 도착합니다. 성공하면 `res == 0`입니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:37.884215Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "`IORING_OP_SEND` and `IORING_OP_RECV`",
+      "source_hash": 7277367013678639908,
+      "context_hash": 11545114258028622012,
+      "translation": "`IORING_OP_SEND`와 `IORING_OP_RECV`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884215Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Direct equivalents of `send(2)` and `recv(2)`. `res` holds bytes transferred or `-errno`.",
+      "source_hash": 12273272571826944906,
+      "context_hash": 15234297870970895970,
+      "translation": "`send(2)`와 `recv(2)`에 직접 대응합니다. `res`에는 전송된 바이트 수 또는 `-errno`가 담깁니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:44:37.884215Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "For multishot recv, set `IORING_RECV_MULTISHOT` and `IOSQE_BUFFER_SELECT` — covered in the section on provided buffers.",
+      "source_hash": 4201680614987455651,
+      "context_hash": 4671079672080466167,
+      "translation": "멀티샷 recv에는 `IORING_RECV_MULTISHOT`와 `IOSQE_BUFFER_SELECT`를 설정하십시오 — 제공 버퍼(provided buffer)에 관한 절에서 다룹니다.",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "`IORING_OP_SENDMSG` and `IORING_OP_RECVMSG`",
+      "source_hash": 5465481510098977356,
+      "context_hash": 16132263989045594110,
+      "translation": "`IORING_OP_SENDMSG`와 `IORING_OP_RECVMSG`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Equivalents of `sendmsg(2)` and `recvmsg(2)`.",
+      "source_hash": 11735537423695856700,
+      "context_hash": 14149019036598579141,
+      "translation": "`sendmsg(2)`와 `recvmsg(2)`에 해당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:1",
+      "source": "Accept a pointer to `struct msghdr` in `sqe->addr`.",
+      "source_hash": 4951595275427348882,
+      "context_hash": 5894389685096420964,
+      "translation": "`sqe->addr`에 `struct msghdr`를 가리키는 포인터를 받습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:2",
+      "source": "Useful for scatter-gather I/O and sending ancillary data.",
+      "source_hash": 10573434084716522195,
+      "context_hash": 12152422402093731673,
+      "translation": "scatter-gather I/O와 보조 데이터(ancillary data) 전송에 유용합니다.",
+      "glossary_snapshot": {
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Key SQE flags for network operations",
+      "source_hash": 831163923203544283,
+      "context_hash": 15970302707538711823,
+      "translation": "네트워크 연산의 주요 SQE 플래그",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "Flag",
+      "source_hash": 7677103621892995957,
+      "context_hash": 9397313075196616463,
+      "translation": "플래그",
+      "glossary_snapshot": {
+        "Flag": "플래그"
+      },
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Effect",
+      "source_hash": 6420176389575395961,
+      "context_hash": 3615617552435865002,
+      "translation": "효과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "`IOSQE_FIXED_FILE`",
+      "source_hash": 5730080575566502250,
+      "context_hash": 8795666317542330954,
+      "translation": "`IOSQE_FIXED_FILE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "`fd` field is an index into the registered file table, not an OS fd",
+      "source_hash": 1815114939073490645,
+      "context_hash": 12187211788795505301,
+      "translation": "`fd` 필드가 OS fd가 아니라 등록된 파일 테이블의 인덱스임",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "`IOSQE_BUFFER_SELECT`",
+      "source_hash": 4848005750985078376,
+      "context_hash": 18404574247345225294,
+      "translation": "`IOSQE_BUFFER_SELECT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "Kernel picks a buffer from `buf_group`; required for multishot recv",
+      "source_hash": 1278372930346859025,
+      "context_hash": 13967643952852091985,
+      "translation": "커널이 `buf_group`에서 버퍼를 선택하며, 멀티샷 recv에 필수",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154909Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "`IOSQE_IO_LINK`",
+      "source_hash": 11312993986858950852,
+      "context_hash": 7724418256201722643,
+      "translation": "`IOSQE_IO_LINK`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "Chain this SQE to the next; next starts only after this one completes",
+      "source_hash": 11954745634442194978,
+      "context_hash": 15384955147510829685,
+      "translation": "이 SQE를 다음 SQE에 연결함; 다음 SQE는 이 SQE가 완료된 후에만 시작",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "`IOSQE_IO_HARDLINK`",
+      "source_hash": 10103695347678707294,
+      "context_hash": 17811149276635768983,
+      "translation": "`IOSQE_IO_HARDLINK`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:37.884216Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Chain unconditionally; next runs even if this one fails",
+      "source_hash": 821081634256169958,
+      "context_hash": 12522243455661723148,
+      "translation": "무조건 연결합니다. 이 작업이 실패하더라도 다음 작업이 실행됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032365Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "`IOSQE_ASYNC`",
+      "source_hash": 15935344887458455890,
+      "context_hash": 9252858260990551919,
+      "translation": "`IOSQE_ASYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "Force async execution (skip inline attempt; useful for known-blocking ops)",
+      "source_hash": 16649086412086846313,
+      "context_hash": 13258639161708748668,
+      "translation": "비동기 실행을 강제합니다(인라인 시도를 건너뜀. 블로킹이 확실한 작업에 유용함)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "High-performance accept loop",
+      "source_hash": 2559177386975165639,
+      "context_hash": 3124042451161374434,
+      "translation": "고성능 accept 루프",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Multishot accept (Linux 5.19)",
+      "source_hash": 7880738361268382392,
+      "context_hash": 808539308226946039,
+      "translation": "멀티샷 accept (Linux 5.19)",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154909Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "`IORING_ACCEPT_MULTISHOT` keeps a single `IORING_OP_ACCEPT` SQE armed indefinitely.",
+      "source_hash": 5819142989765181225,
+      "context_hash": 5323682910987605755,
+      "translation": "`IORING_ACCEPT_MULTISHOT`은 단일 `IORING_OP_ACCEPT` SQE를 무기한 armed 상태로 유지합니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "Each new connection produces a CQE with `res = new_client_fd`.",
+      "source_hash": 7006658997713706512,
+      "context_hash": 11228234754385433287,
+      "translation": "새 연결이 들어올 때마다 `res = new_client_fd`인 CQE가 하나씩 생성됩니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:2",
+      "source": "The SQE is never consumed — it remains active until explicitly cancelled or until a fatal error forces it to disarm.",
+      "source_hash": 2008626915851693689,
+      "context_hash": 5074957626508773751,
+      "translation": "이 SQE는 결코 소비되지 않습니다. 명시적으로 취소되거나 치명적인 오류로 인해 disarm될 때까지 활성 상태로 남습니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "The implementation lives in `io_uring/net.c`.",
+      "source_hash": 11639125242910927825,
+      "context_hash": 5563918753309743709,
+      "translation": "구현은 `io_uring/net.c`에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "The key function `io_accept_multishot()` calls `inet_csk_accept()`, posts a CQE for the returned socket, and immediately re-arms — entirely in kernel context, with no userspace round-trip between connections.",
+      "source_hash": 7686051719767640972,
+      "context_hash": 8018892112959115586,
+      "translation": "핵심 함수인 `io_accept_multishot()`은 `inet_csk_accept()`를 호출하고, 반환된 소켓에 대한 CQE를 게시한 뒤 즉시 다시 arm합니다. 이 모든 과정이 커널 컨텍스트에서 이루어지며, 연결과 연결 사이에 사용자 공간 왕복이 없습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "function": "함수",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:41.032366Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`IORING_CQE_F_MORE` absent means the SQE was disarmed.",
+      "source_hash": 8192320109801099562,
+      "context_hash": 10309106636730300057,
+      "translation": "`IORING_CQE_F_MORE`가 없으면 해당 SQE가 disarm되었다는 뜻입니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "This happens on `ECANCELED`, `EMFILE` (file descriptor table full), or certain socket errors.",
+      "source_hash": 2197984960424849408,
+      "context_hash": 11902100034052071731,
+      "translation": "이는 `ECANCELED`, `EMFILE`(파일 디스크립터 테이블이 가득 참) 또는 특정 소켓 오류가 발생했을 때 일어납니다.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:2",
+      "source": "Always check and resubmit.",
+      "source_hash": 9449625545890650369,
+      "context_hash": 10598375572193271572,
+      "translation": "항상 확인하고 다시 제출하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "To cancel the accept cleanly:",
+      "source_hash": 12381547618880091870,
+      "context_hash": 3594364286232183983,
+      "translation": "accept를 깔끔하게 취소하려면 다음과 같이 하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Multishot recv with provided buffers",
+      "source_hash": 1762993937383824943,
+      "context_hash": 9218774251308734417,
+      "translation": "제공 버퍼를 사용하는 멀티샷 recv",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154910Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Why provided buffers are required",
+      "source_hash": 12389967141036686552,
+      "context_hash": 3120445594927892213,
+      "translation": "provided buffer가 필요한 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "With normal `IORING_OP_RECV`, the caller specifies a buffer before submission.",
+      "source_hash": 1959876357479359253,
+      "context_hash": 13185485767938317870,
+      "translation": "일반 `IORING_OP_RECV`에서는 호출자가 제출 전에 버퍼를 지정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "The kernel knows exactly where to write data.",
+      "source_hash": 9581605783571084522,
+      "context_hash": 10589577034811388723,
+      "translation": "커널은 데이터를 어디에 써야 하는지 정확히 알고 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:2",
+      "source": "For multishot recv, data arrives at unpredictable times and in unpredictable sizes.",
+      "source_hash": 4535038272403811622,
+      "context_hash": 2786840249305356667,
+      "translation": "멀티샷 recv에서는 데이터가 예측할 수 없는 시점에 예측할 수 없는 크기로 도착합니다.",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154910Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:3",
+      "source": "The kernel cannot borrow userspace memory between events — it needs a buffer available the moment data arrives.",
+      "source_hash": 14341167653257187360,
+      "context_hash": 12208054985163918789,
+      "translation": "커널은 이벤트와 이벤트 사이에 사용자 공간 메모리를 빌려 둘 수 없습니다. 데이터가 도착하는 순간 사용할 수 있는 버퍼가 있어야 합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:41.032367Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Provided buffer rings solve this: the application pre-registers a pool of buffers.",
+      "source_hash": 9040307814526053143,
+      "context_hash": 1782943140439912572,
+      "translation": "provided buffer ring이 이 문제를 해결합니다. 애플리케이션이 버퍼 풀을 미리 등록해 둡니다.",
+      "glossary_snapshot": {
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "Each time the kernel needs one (for a recv, for an accept result, or for any `IOSQE_BUFFER_SELECT` operation), it atomically dequeues one from the ring.",
+      "source_hash": 1462155679970097694,
+      "context_hash": 12741680742444198577,
+      "translation": "커널은 버퍼가 필요할 때마다(recv, accept 결과, 또는 모든 `IOSQE_BUFFER_SELECT` 작업에 대해) 링에서 버퍼 하나를 원자적으로 꺼냅니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "The CQE carries the buffer ID so the application knows which buffer holds the data.",
+      "source_hash": 2164946008614957526,
+      "context_hash": 7359783507969128835,
+      "translation": "CQE에는 버퍼 ID가 담겨 있으므로 애플리케이션은 어느 버퍼에 데이터가 들어 있는지 알 수 있습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "`IORING_RECV_MULTISHOT` requires `IOSQE_BUFFER_SELECT`.",
+      "source_hash": 14205153818060805494,
+      "context_hash": 15838666309427443611,
+      "translation": "`IORING_RECV_MULTISHOT`에는 `IOSQE_BUFFER_SELECT`가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "Without it, the submission returns `EINVAL`.",
+      "source_hash": 10185553350381900425,
+      "context_hash": 17787758228595835410,
+      "translation": "이것이 없으면 제출 시 `EINVAL`이 반환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Buffer ring setup",
+      "source_hash": 9673228777356498704,
+      "context_hash": 17754116463662447578,
+      "translation": "버퍼 링 설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Submitting multishot recv",
+      "source_hash": 6945819610584129337,
+      "context_hash": 2913622489349860593,
+      "translation": "멀티샷 recv 제출",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154911Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Handling recv CQEs and recycling buffers",
+      "source_hash": 11788922810635175265,
+      "context_hash": 7465194580785147404,
+      "translation": "recv CQE 처리와 버퍼 재활용",
+      "glossary_snapshot": {
+        "CQEs": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "`-ENOBUFS` handling",
+      "source_hash": 8214060847989255182,
+      "context_hash": 2972512341895269856,
+      "translation": "`-ENOBUFS` 처리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "When the buffer pool is exhausted, the multishot SQE is automatically disarmed and a CQE with `res == -ENOBUFS` is posted (`IORING_CQE_F_MORE` will be absent).",
+      "source_hash": 13832975869563177203,
+      "context_hash": 16508243333937529658,
+      "translation": "버퍼 풀이 고갈되면 멀티샷 SQE는 자동으로 해제되고 `res == -ENOBUFS`인 CQE가 게시됩니다(`IORING_CQE_F_MORE`는 설정되지 않습니다).",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE",
+        "buffer pool": "버퍼 풀",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154911Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:1",
+      "source": "The application should:",
+      "source_hash": 9959788587096374479,
+      "context_hash": 6556144425986452303,
+      "translation": "애플리케이션은 다음을 수행해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "Return any already-processed buffers to the ring.",
+      "source_hash": 8951211549347361378,
+      "context_hash": 13657370231307276070,
+      "translation": "이미 처리한 버퍼를 모두 링에 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.032368Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Resubmit the multishot recv SQE.",
+      "source_hash": 12456589945542285929,
+      "context_hash": 16027272867652280391,
+      "translation": "멀티샷 recv SQE를 다시 제출하십시오.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154912Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "Tuning `NUM_BUFS` to match your expected concurrency avoids `ENOBUFS` entirely.",
+      "source_hash": 7644874867336057173,
+      "context_hash": 14784344268750104606,
+      "translation": "예상되는 동시성에 맞게 `NUM_BUFS`를 조정하면 `ENOBUFS`를 완전히 피할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729609Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "A useful heuristic: at least one buffer per active connection, plus slack for burst traffic.",
+      "source_hash": 1561193904339710270,
+      "context_hash": 10195821650975136323,
+      "translation": "유용한 경험칙은 활성 연결마다 버퍼를 최소 하나씩 두고, 버스트 트래픽을 위한 여유분을 더하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729609Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "`IORING_OP_SEND_ZC` — zero-copy send (Linux 6.1)",
+      "source_hash": 7641556138575895312,
+      "context_hash": 2467938084948646446,
+      "translation": "`IORING_OP_SEND_ZC` — 제로 카피 전송 (Linux 6.1)",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Background: MSG_ZEROCOPY before io_uring",
+      "source_hash": 3361582628171223692,
+      "context_hash": 10865618185290629615,
+      "translation": "배경: io_uring 이전의 MSG_ZEROCOPY",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "The kernel's `MSG_ZEROCOPY` flag (added in Linux 4.14) allows `send()` to avoid copying user data into kernel buffers.",
+      "source_hash": 14062057428679797419,
+      "context_hash": 9735029345374855508,
+      "translation": "커널의 `MSG_ZEROCOPY` 플래그(Linux 4.14에서 추가됨)를 사용하면 `send()`가 사용자 데이터를 커널 버퍼로 복사하지 않을 수 있습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "Instead, the kernel pins the user pages and transfers them directly.",
+      "source_hash": 15473970454692492768,
+      "context_hash": 13841718791245200225,
+      "translation": "대신 커널은 사용자 페이지를 고정(pin)하고 이를 직접 전송합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:2",
+      "source": "When the transmission is complete and the pages can be unpinned, the kernel notifies the application via a message on the socket's error queue, which the application must then read with `recvmsg(MSG_ERRQUEUE)`.",
+      "source_hash": 9500272210649188274,
+      "context_hash": 5418184676936397914,
+      "translation": "전송이 완료되어 페이지의 고정을 해제할 수 있게 되면, 커널은 소켓의 오류 큐에 메시지를 넣어 애플리케이션에 알리며, 애플리케이션은 이 메시지를 `recvmsg(MSG_ERRQUEUE)`로 읽어야 합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "The result works but is cumbersome: sending is one syscall, and collecting the completion notification is a second `recvmsg` call on a different code path.",
+      "source_hash": 5459778181206567242,
+      "context_hash": 10628075560285959304,
+      "translation": "이 방식은 동작은 하지만 번거롭습니다. 전송은 하나의 시스템 콜이고, 완료 알림을 수집하는 것은 다른 코드 경로에서 이루어지는 두 번째 `recvmsg` 호출입니다.",
+      "glossary_snapshot": {
+        "code path": "코드 경로",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "Zero-copy adds complexity proportional to the benefit.",
+      "source_hash": 11874891682344083928,
+      "context_hash": 10469789021165823640,
+      "translation": "제로 카피는 얻는 이점에 비례하는 만큼 복잡성을 더합니다.",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "How `IORING_OP_SEND_ZC` works",
+      "source_hash": 5283672858648854512,
+      "context_hash": 8890763503891062005,
+      "translation": "`IORING_OP_SEND_ZC`의 동작 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "`IORING_OP_SEND_ZC` integrates zero-copy directly into the io_uring model.",
+      "source_hash": 9831818081175307249,
+      "context_hash": 9058292393959641969,
+      "translation": "`IORING_OP_SEND_ZC`는 제로 카피를 io_uring 모델에 직접 통합합니다.",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:41.729610Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "A single SQE submission produces **two CQEs**:",
+      "source_hash": 4309706448979099225,
+      "context_hash": 11433101350978552385,
+      "translation": "SQE 하나를 제출하면 **CQE 두 개**가 생성됩니다:",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "**First CQE** (`res = bytes_sent`): The kernel has taken ownership of the data pages.",
+      "source_hash": 12279141054341010716,
+      "context_hash": 568551995945421993,
+      "translation": "**첫 번째 CQE** (`res = bytes_sent`): 커널이 데이터 페이지의 소유권을 가져갔습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "The send is committed.",
+      "source_hash": 2732772121766984876,
+      "context_hash": 10269850980997170516,
+      "translation": "전송이 확정되었습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:2",
+      "source": "The application must not modify the buffer yet.",
+      "source_hash": 14415514583437539267,
+      "context_hash": 12595348004080797606,
+      "translation": "애플리케이션은 아직 버퍼를 수정해서는 안 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "**Second CQE** (`res = 0`, `flags & IORING_CQE_F_NOTIF` set): The kernel has released the pages.",
+      "source_hash": 7155535506202355032,
+      "context_hash": 14673578157984780595,
+      "translation": "**두 번째 CQE** (`res = 0`, `flags & IORING_CQE_F_NOTIF` 설정됨): 커널이 페이지를 해제했습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "The buffer is now safe to reuse or free.",
+      "source_hash": 694885424501148398,
+      "context_hash": 9267624241804815893,
+      "translation": "이제 버퍼를 안전하게 재사용하거나 해제할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "When zero-copy helps",
+      "source_hash": 5727505167588690489,
+      "context_hash": 619070791334915883,
+      "translation": "제로 카피가 도움이 되는 경우",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "Zero-copy avoids a `memcpy` from userspace into kernel socket buffers.",
+      "source_hash": 13789968575648180554,
+      "context_hash": 6732556637069059239,
+      "translation": "제로 카피는 사용자 공간에서 커널 소켓 버퍼로의 `memcpy`를 피합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "userspace": "사용자 공간",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:1",
+      "source": "The benefit only materialises for large transfers; for small messages the pinning overhead exceeds the copy cost.",
+      "source_hash": 4174577952267797595,
+      "context_hash": 17052986337334046663,
+      "translation": "이 이점은 대용량 전송에서만 나타나며, 작은 메시지에서는 페이지 고정 오버헤드가 복사 비용보다 큽니다.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Message size",
+      "source_hash": 4851837867454187677,
+      "context_hash": 5848998676033610282,
+      "translation": "메시지 크기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Recommendation",
+      "source_hash": 3648059126806307078,
+      "context_hash": 2632911771898299854,
+      "translation": "권장 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "< ~10 KB",
+      "source_hash": 8025401042302977963,
+      "context_hash": 96867583341537318,
+      "translation": "< ~10 KB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "Use regular `IORING_OP_SEND`; copy is faster than page pinning",
+      "source_hash": 791328366211824318,
+      "context_hash": 4048393717184178009,
+      "translation": "일반 `IORING_OP_SEND` 사용, 복사가 페이지 고정보다 빠름",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729611Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "10 KB – 100 KB",
+      "source_hash": 12020062339045047284,
+      "context_hash": 13360371295713282616,
+      "translation": "10 KB – 100 KB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729612Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Benchmark; break-even is workload-dependent",
+      "source_hash": 16169381281156205658,
+      "context_hash": 1979431974196011313,
+      "translation": "벤치마크 필요, 손익분기점은 워크로드에 따라 다름",
+      "glossary_snapshot": {
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:41.729612Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "> 100 KB",
+      "source_hash": 12652141227438532232,
+      "context_hash": 15085640775004712011,
+      "translation": "\\> 100 KB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729612Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "`IORING_OP_SEND_ZC` is consistently faster",
+      "source_hash": 14876929824083457177,
+      "context_hash": 11085458068396525011,
+      "translation": "`IORING_OP_SEND_ZC`가 일관되게 더 빠름",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729612Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "A sensible approach: fall back to `IORING_OP_SEND` for small messages and promote to `IORING_OP_SEND_ZC` for large ones.",
+      "source_hash": 7915151644699089498,
+      "context_hash": 12818154288844737108,
+      "translation": "합리적인 접근 방식은 작은 메시지에는 `IORING_OP_SEND`로 대체하고, 큰 메시지에는 `IORING_OP_SEND_ZC`로 전환하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:41.729612Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "`IORING_OP_SENDMSG_ZC` — zero-copy sendmsg",
+      "source_hash": 15005528609939139917,
+      "context_hash": 5662402031338305892,
+      "translation": "`IORING_OP_SENDMSG_ZC` — 제로 카피 sendmsg",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:41.729612Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "`IORING_OP_SENDMSG_ZC` (Linux 6.1) extends zero-copy to scatter-gather I/O via `struct msghdr`.",
+      "source_hash": 3504013571981622491,
+      "context_hash": 12114786507224060004,
+      "translation": "`IORING_OP_SENDMSG_ZC`(Linux 6.1)는 `struct msghdr`를 통해 제로 카피를 scatter-gather I/O로 확장합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "scatter-gather": "scatter-gather",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:37:08.154912Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "It follows the same two-CQE protocol as `IORING_OP_SEND_ZC`: a result CQE then a `IORING_CQE_F_NOTIF` release CQE.",
+      "source_hash": 14697984885859035726,
+      "context_hash": 3575874694459096961,
+      "translation": "이는 `IORING_OP_SEND_ZC`와 동일한 두 개의 CQE 프로토콜을 따릅니다. 즉, 결과 CQE가 먼저 오고 그다음에 `IORING_CQE_F_NOTIF` 해제 CQE가 옵니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:51.045242Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Using `IORING_OP_SENDMSG_ZC` with fixed buffers",
+      "source_hash": 6722906630475999348,
+      "context_hash": 8689664220740894770,
+      "translation": "고정 버퍼와 함께 `IORING_OP_SENDMSG_ZC` 사용하기",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T23:37:08.154913Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "Pre-registering buffers with `io_uring_register_buffers()` allows the kernel to pin them once at registration time rather than per-send.",
+      "source_hash": 7439270796082008396,
+      "context_hash": 12745913099955967181,
+      "translation": "`io_uring_register_buffers()`로 버퍼를 미리 등록하면 커널이 전송할 때마다가 아니라 등록 시점에 한 번만 버퍼를 고정(pin)할 수 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:51.045242Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "Combine with `IORING_SENDMSG_FIXED_BUF` in `sqe->ioprio` to indicate the iovec references registered buffers:",
+      "source_hash": 11462110037772557362,
+      "context_hash": 17759833165375827108,
+      "translation": "`sqe->ioprio`에 `IORING_SENDMSG_FIXED_BUF`를 함께 지정하여 iovec이 등록된 버퍼를 참조함을 나타내십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Chaining network operations",
+      "source_hash": 16130909248834808739,
+      "context_hash": 6469642866343135054,
+      "translation": "네트워크 작업 연결하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Linked accept + recv",
+      "source_hash": 17978516470051712434,
+      "context_hash": 4684017700732295708,
+      "translation": "연결된 accept + recv",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "A newly accepted connection immediately needs a receive armed.",
+      "source_hash": 8264512460211852464,
+      "context_hash": 7416909175688753186,
+      "translation": "새로 수락된 연결에는 즉시 receive를 준비해 두어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "Using `IOSQE_IO_LINK` chains the recv to start the moment accept delivers a client fd — but note that with multishot accept the fd isn't known at submission time, so this pattern is more useful for one-shot accept:",
+      "source_hash": 13674013804192806702,
+      "context_hash": 9567203779848981033,
+      "translation": "`IOSQE_IO_LINK`를 사용하면 accept가 클라이언트 fd를 전달하는 즉시 recv가 시작되도록 연결할 수 있습니다 — 다만 멀티샷 accept에서는 제출 시점에 fd를 알 수 없으므로, 이 패턴은 단발성(one-shot) accept에 더 유용합니다:",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154913Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "Linked SQEs share the same ring submission but sequential execution.",
+      "source_hash": 3282527940349383749,
+      "context_hash": 17173281433738887416,
+      "translation": "연결된 SQE는 같은 링 제출을 공유하지만 순차적으로 실행됩니다.",
+      "glossary_snapshot": {
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "The kernel fills in results in order.",
+      "source_hash": 6574768248726946370,
+      "context_hash": 2974958828134586838,
+      "translation": "커널은 결과를 순서대로 채웁니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:2",
+      "source": "For network ops where the next fd depends on the current result, the multishot pattern (submit recv from the CQE handler) is cleaner.",
+      "source_hash": 9964526570966163804,
+      "context_hash": 5382008616304111858,
+      "translation": "다음 fd가 현재 결과에 의존하는 네트워크 연산에서는 멀티샷 패턴(CQE 핸들러에서 recv 제출)이 더 깔끔합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "handler": "핸들러",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154914Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "Linked send + close",
+      "source_hash": 5649080549037454511,
+      "context_hash": 12187986473408563966,
+      "translation": "연결된 send + close",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "After sending a response, close the connection.",
+      "source_hash": 18211436215457548556,
+      "context_hash": 16676569110690059415,
+      "translation": "응답을 보낸 후 연결을 닫으십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:1",
+      "source": "Using a hard link ensures `close` runs even if the send fails:",
+      "source_hash": 15817398413581441481,
+      "context_hash": 8747964556326900962,
+      "translation": "hard link를 사용하면 send가 실패하더라도 `close`가 실행되도록 보장할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045243Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "Connect with timeout",
+      "source_hash": 3322573183079841362,
+      "context_hash": 11518126269363063015,
+      "translation": "타임아웃이 있는 connect",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045244Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "`IORING_OP_LINK_TIMEOUT` cancels the preceding linked SQE if it does not complete within the deadline.",
+      "source_hash": 18060830420520174011,
+      "context_hash": 2096582389774062538,
+      "translation": "`IORING_OP_LINK_TIMEOUT`은 앞서 연결된 SQE가 기한 내에 완료되지 않으면 이를 취소합니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:51.045244Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:1",
+      "source": "Soft-link (`IOSQE_IO_LINK`) is correct here: if the connect succeeds before the timeout, the timeout SQE is automatically cancelled.",
+      "source_hash": 5007169482921660951,
+      "context_hash": 12021825692405190656,
+      "translation": "여기서는 soft link(`IOSQE_IO_LINK`)가 올바릅니다. 타임아웃 전에 connect가 성공하면 타임아웃 SQE는 자동으로 취소됩니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:51.045244Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Fixed files for sockets",
+      "source_hash": 4185331620970317062,
+      "context_hash": 15781399727071287956,
+      "translation": "소켓용 고정 파일",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T23:37:08.154914Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Every `IORING_OP_RECV`, `IORING_OP_SEND`, and `IORING_OP_ACCEPT` on a regular file descriptor calls `fdget` and `fdput` internally to look up and pin the file in the file descriptor table.",
+      "source_hash": 840429591479618050,
+      "context_hash": 9736200012293746654,
+      "translation": "일반 파일 디스크립터에 대한 모든 `IORING_OP_RECV`, `IORING_OP_SEND`, `IORING_OP_ACCEPT`는 내부적으로 `fdget`과 `fdput`을 호출하여 파일 디스크립터 테이블에서 파일을 조회하고 고정합니다.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:44:51.045244Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "Under high connection rates this adds up.",
+      "source_hash": 18040787901454133223,
+      "context_hash": 4879978287910288492,
+      "translation": "연결 속도가 높은 상황에서는 이 비용이 누적됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045244Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "**Fixed files** pre-register a table of file descriptors with the ring at startup.",
+      "source_hash": 264002421254646694,
+      "context_hash": 10282911325647821370,
+      "translation": "**고정 파일**은 시작 시점에 파일 디스크립터 테이블을 링에 미리 등록합니다.",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일",
+        "file descriptors": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T23:37:08.154915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "Each operation that sets `IOSQE_FIXED_FILE` skips `fdget`/`fdput` entirely — the kernel references the pre-pinned `struct file` directly.",
+      "source_hash": 3524201387800067329,
+      "context_hash": 15372837383837087649,
+      "translation": "`IOSQE_FIXED_FILE`을 설정한 각 작업은 `fdget`/`fdput`을 완전히 건너뜁니다. 커널은 미리 고정된 `struct file`을 직접 참조합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:51.045244Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "Registering the server socket",
+      "source_hash": 5614181863484129076,
+      "context_hash": 12144360553458226478,
+      "translation": "서버 소켓 등록",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045245Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Adding accepted client sockets dynamically",
+      "source_hash": 9009028667408764564,
+      "context_hash": 10014424292004515076,
+      "translation": "수락된 클라이언트 소켓의 동적 추가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045245Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "`IORING_REGISTER_FILES_UPDATE` updates individual slots without re-registering the entire table.",
+      "source_hash": 15794915173122578332,
+      "context_hash": 797849502756406652,
+      "translation": "`IORING_REGISTER_FILES_UPDATE`는 전체 테이블을 다시 등록하지 않고 개별 슬롯을 갱신합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.045245Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:1",
+      "source": "When a new client fd arrives from multishot accept, install it into the next free slot:",
+      "source_hash": 6050291592095987637,
+      "context_hash": 1618077360784274086,
+      "translation": "멀티샷 accept로부터 새 클라이언트 fd가 도착하면 다음 빈 슬롯에 설치하십시오:",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "Alternatively, `io_uring_prep_multishot_accept_direct()` submits a multishot accept that installs each new client fd directly into the fixed file table without any userspace `IORING_REGISTER_FILES_UPDATE` call.",
+      "source_hash": 17621894542760113648,
+      "context_hash": 8052954012154609260,
+      "translation": "또는 `io_uring_prep_multishot_accept_direct()`를 사용하면 사용자 공간에서 `IORING_REGISTER_FILES_UPDATE`를 호출하지 않고도 새 클라이언트 fd를 각각 고정 파일 테이블에 직접 설치하는 멀티샷 accept를 제출할 수 있습니다.",
+      "glossary_snapshot": {
+        "fixed file": "고정 파일",
+        "multishot": "멀티샷",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:37:08.154915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:1",
+      "source": "The CQE `res` field then carries the fixed file slot index, not an OS file descriptor.",
+      "source_hash": 7891141016850998585,
+      "context_hash": 11403619732558424626,
+      "translation": "이 경우 CQE의 `res` 필드에는 OS 파일 디스크립터가 아니라 고정 파일 슬롯 인덱스가 담깁니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "file descriptor": "파일 디스크립터",
+        "fixed file": "고정 파일"
+      },
+      "translated_at": "2026-11-14T23:37:08.154916Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:2",
+      "source": "Note that `io_uring_prep_accept_direct()` is a one-shot accept that installs the result into a fixed file slot; for multishot operation with direct fd installation, use `io_uring_prep_multishot_accept_direct()`.",
+      "source_hash": 8759887451180593109,
+      "context_hash": 14741855810831047539,
+      "translation": "`io_uring_prep_accept_direct()`는 결과를 고정 파일 슬롯에 설치하는 단발성 accept라는 점에 유의하십시오. fd를 직접 설치하는 멀티샷 연산에는 `io_uring_prep_multishot_accept_direct()`를 사용하십시오.",
+      "glossary_snapshot": {
+        "fixed file": "고정 파일",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154917Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "Using fixed files in subsequent operations",
+      "source_hash": 10904741484746915603,
+      "context_hash": 8433251500909417954,
+      "translation": "후속 연산에서 고정 파일 사용하기",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T23:37:08.154917Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "When closing a fixed file slot, use `IORING_OP_CLOSE` with `IOSQE_FIXED_FILE` set in `sqe->flags`, or the liburing wrapper `io_uring_prep_close_direct()`, to remove the entry from the registered table and close the underlying socket atomically.",
+      "source_hash": 528706176241470663,
+      "context_hash": 14673748016312845143,
+      "translation": "고정 파일 슬롯을 닫을 때는 `sqe->flags`에 `IOSQE_FIXED_FILE`을 설정한 `IORING_OP_CLOSE`나 liburing 래퍼 `io_uring_prep_close_direct()`를 사용하여, 등록된 테이블에서 항목을 제거하고 하부 소켓을 원자적으로 닫으십시오.",
+      "glossary_snapshot": {
+        "fixed file": "고정 파일"
+      },
+      "translated_at": "2026-11-14T23:37:08.154917Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Multishot accept + recv flow",
+      "source_hash": 18269284834489825754,
+      "context_hash": 881412660495838958,
+      "translation": "멀티샷 accept + recv 흐름",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154917Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "The following diagram shows the complete event flow for a server using multishot accept and per-connection multishot recv with provided buffers.",
+      "source_hash": 6467277126615357731,
+      "context_hash": 3304138578299361418,
+      "translation": "다음 다이어그램은 멀티샷 accept와 제공 버퍼를 사용하는 연결별 멀티샷 recv를 사용하는 서버의 전체 이벤트 흐름을 보여 줍니다.",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154918Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "All events drain into a single CQ; the event loop dispatches by `user_data` tag.",
+      "source_hash": 17616046997134126222,
+      "context_hash": 15218226234719068584,
+      "translation": "모든 이벤트는 하나의 CQ로 모이며, 이벤트 루프는 `user_data` 태그에 따라 이벤트를 분배합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477575Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "io_uring vs epoll for networking",
+      "source_hash": 10130504438823026350,
+      "context_hash": 11369099509668606710,
+      "translation": "네트워킹을 위한 io_uring과 epoll 비교",
+      "glossary_snapshot": {
+        "epoll": "epoll"
+      },
+      "translated_at": "2026-11-14T22:44:42.477575Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "Feature comparison",
+      "source_hash": 5741834320247043660,
+      "context_hash": 2131640401649810227,
+      "translation": "기능 비교",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477575Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "epoll + non-blocking sockets",
+      "source_hash": 7689114610725034195,
+      "context_hash": 7789163899927550029,
+      "translation": "epoll + 논블로킹 소켓",
+      "glossary_snapshot": {
+        "epoll": "epoll"
+      },
+      "translated_at": "2026-11-14T22:44:42.477575Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "io_uring",
+      "source_hash": 1747421447768605628,
+      "context_hash": 13953071072101013949,
+      "translation": "io_uring",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477576Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "Syscalls per message (steady state)",
+      "source_hash": 18372008529780828927,
+      "context_hash": 8450018203791332065,
+      "translation": "메시지당 시스템 콜 수(정상 상태)",
+      "glossary_snapshot": {
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:42.477576Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 13795238270072645855,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477576Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "0 (SQPOLL)",
+      "source_hash": 14803029348975274859,
+      "context_hash": 6311430309066720548,
+      "translation": "0 (SQPOLL)",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:42.477576Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "Multishot accept",
+      "source_hash": 14869138573625688031,
+      "context_hash": 12971212411668263561,
+      "translation": "멀티샷 accept",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154918Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "No — one accept per readiness event",
+      "source_hash": 2668427117001466907,
+      "context_hash": 6441835769760797627,
+      "translation": "아니요 — 준비 이벤트당 accept 1회",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477577Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "Yes — Linux 5.19",
+      "source_hash": 3715004001463509589,
+      "context_hash": 3903604249357134288,
+      "translation": "예 — Linux 5.19",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:42.477577Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:10/seg:0",
+      "source": "Multishot recv",
+      "source_hash": 10199966032825113096,
+      "context_hash": 8229296205477632221,
+      "translation": "멀티샷 recv",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:37:08.154918Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "No — one recv per EPOLLIN",
+      "source_hash": 235243365196919031,
+      "context_hash": 4271640666989464792,
+      "translation": "아니요 — EPOLLIN당 recv 1회",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477577Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:12/seg:0",
+      "source": "Yes — Linux 5.20/6.0",
+      "source_hash": 893605220668154959,
+      "context_hash": 18041594992941348342,
+      "translation": "예 — Linux 5.20/6.0",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:42.477577Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:0",
+      "source": "Zero-copy send",
+      "source_hash": 13578122254486462266,
+      "context_hash": 1534543487191593431,
+      "translation": "제로 카피 송신",
+      "glossary_snapshot": {
+        "Zero-copy send": "제로 카피 송신",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:14/seg:0",
+      "source": "`MSG_ZEROCOPY` + error queue",
+      "source_hash": 15496113529981951447,
+      "context_hash": 16157250683593267538,
+      "translation": "`MSG_ZEROCOPY` + 오류 큐",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:15/seg:0",
+      "source": "`IORING_OP_SEND_ZC`, clean two-CQE API",
+      "source_hash": 4633298290719280037,
+      "context_hash": 8588911403711478609,
+      "translation": "`IORING_OP_SEND_ZC`, 깔끔한 2-CQE API",
+      "glossary_snapshot": {
+        "API": "API",
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:16/seg:0",
+      "source": "Scatter-gather zero-copy",
+      "source_hash": 13166222832605509517,
+      "context_hash": 5207255855260108163,
+      "translation": "Scatter-gather 제로 카피",
+      "glossary_snapshot": {
+        "scatter-gather": "scatter-gather",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:0",
+      "source": "`MSG_ZEROCOPY` + `sendmsg`",
+      "source_hash": 14548386904775770790,
+      "context_hash": 140849227582540262,
+      "translation": "`MSG_ZEROCOPY` + `sendmsg`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:0",
+      "source": "`IORING_OP_SENDMSG_ZC`",
+      "source_hash": 11501875109578828329,
+      "context_hash": 3980976572655921503,
+      "translation": "`IORING_OP_SENDMSG_ZC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:0",
+      "source": "Per-op fd lookup overhead",
+      "source_hash": 8061841065914540691,
+      "context_hash": 3868866831501447323,
+      "translation": "연산별 fd 조회 오버헤드",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:20/seg:0",
+      "source": "`fdget`/`fdput` every op",
+      "source_hash": 16569382334400646732,
+      "context_hash": 978863199995229394,
+      "translation": "연산마다 `fdget`/`fdput`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477578Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:21/seg:0",
+      "source": "Eliminated with fixed files",
+      "source_hash": 14903344538033361661,
+      "context_hash": 6788796158546353544,
+      "translation": "고정 파일로 제거됨",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T23:35:39.367107Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:22/seg:0",
+      "source": "API familiarity",
+      "source_hash": 10396127104790413005,
+      "context_hash": 15294378224507279596,
+      "translation": "API 친숙도",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:44:42.477579Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:23/seg:0",
+      "source": "POSIX standard",
+      "source_hash": 970066295737255148,
+      "context_hash": 3339271926969422439,
+      "translation": "POSIX 표준",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:44:42.477579Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:24/seg:0",
+      "source": "New but well-documented",
+      "source_hash": 11122555914408572806,
+      "context_hash": 12485715045708638128,
+      "translation": "새롭지만 문서화가 잘 되어 있음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477579Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:25/seg:0",
+      "source": "Kernel version requirement",
+      "source_hash": 15985735999193058814,
+      "context_hash": 6695114772155968979,
+      "translation": "커널 버전 요구 사항",
+      "glossary_snapshot": {
+        "kernel version": "커널 버전"
+      },
+      "translated_at": "2026-11-14T22:44:42.477579Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:26/seg:0",
+      "source": "Linux 2.6+",
+      "source_hash": 16094023455367230710,
+      "context_hash": 886365519034457017,
+      "translation": "Linux 2.6+",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:42.477579Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:27/seg:0",
+      "source": "Linux 5.1+ (ops), 5.19+ (multishot)",
+      "source_hash": 4508634903885632681,
+      "context_hash": 1653494149104765217,
+      "translation": "Linux 5.1+ (연산), 5.19+ (멀티샷)",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:39.367111Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:28/seg:0",
+      "source": "Portability",
+      "source_hash": 6504621481927646726,
+      "context_hash": 4598952493335831458,
+      "translation": "이식성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:42.477579Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:29/seg:0",
+      "source": "Linux, BSD, macOS (kqueue analogue)",
+      "source_hash": 17017512813228608688,
+      "context_hash": 9532078700034859037,
+      "translation": "Linux, BSD, macOS (kqueue 유사 기능)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:51.815696Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:30/seg:0",
+      "source": "Linux only",
+      "source_hash": 16230736794118024825,
+      "context_hash": 8885884606845024678,
+      "translation": "Linux 전용",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:51.815696Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:31/seg:0",
+      "source": "Integration with existing codebases",
+      "source_hash": 16999770142590111559,
+      "context_hash": 6831065227332396016,
+      "translation": "기존 코드베이스와의 통합",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815696Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:32/seg:0",
+      "source": "Easy (drop-in for select/poll)",
+      "source_hash": 2630115859273933951,
+      "context_hash": 76177262374360616,
+      "translation": "쉬움 (select/poll을 바로 대체)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815696Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:33/seg:0",
+      "source": "Requires redesign of I/O loop",
+      "source_hash": 7734160135930254212,
+      "context_hash": 18206261320358797457,
+      "translation": "I/O 루프 재설계 필요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:34/seg:0",
+      "source": "When to keep epoll",
+      "source_hash": 4542607959640642990,
+      "context_hash": 8867874785246833369,
+      "translation": "epoll을 유지해야 하는 경우",
+      "glossary_snapshot": {
+        "epoll": "epoll"
+      },
+      "translated_at": "2026-11-14T22:44:51.815697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:35/seg:0",
+      "source": "**Existing codebases** where the I/O loop is structured around `epoll_fd` and event callbacks.",
+      "source_hash": 12873237936862702949,
+      "context_hash": 15430095352333193525,
+      "translation": "I/O 루프가 `epoll_fd`와 이벤트 콜백을 중심으로 구성된 **기존 코드베이스**입니다.",
+      "glossary_snapshot": {
+        "callbacks": "콜백"
+      },
+      "translated_at": "2026-11-14T22:44:51.815697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:35/seg:1",
+      "source": "The redesign cost outweighs the benefit for moderate workloads.",
+      "source_hash": 17502921625561253139,
+      "context_hash": 833043677139507113,
+      "translation": "중간 규모의 워크로드에서는 재설계 비용이 이점보다 큽니다.",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:51.815697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:36/seg:0",
+      "source": "**Libraries that expose file descriptors** to callers (e.g. libev, libevent integration). epoll's fd-centric model maps directly.",
+      "source_hash": 13293559727788626531,
+      "context_hash": 17370982892219655553,
+      "translation": "호출자에게 **파일 디스크립터를 노출하는 라이브러리**입니다(예: libev, libevent 통합). epoll의 fd 중심 모델이 그대로 대응됩니다.",
+      "glossary_snapshot": {
+        "epoll": "epoll",
+        "file descriptors": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:44:51.815697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:37/seg:0",
+      "source": "**Portability requirements** — epoll is Linux-specific, but applications that also target BSD or macOS may use libuv or a portability shim that unifies kqueue/epoll.",
+      "source_hash": 16907756542550139612,
+      "context_hash": 6359353189581988766,
+      "translation": "**이식성 요구 사항** — epoll은 Linux 전용이지만, BSD나 macOS도 대상으로 하는 애플리케이션은 libuv나 kqueue/epoll을 통합하는 이식성 shim을 사용할 수 있습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "epoll": "epoll"
+      },
+      "translated_at": "2026-11-14T22:44:51.815697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:38/seg:0",
+      "source": "**Simple workloads** — at fewer than ~10,000 connections, the syscall savings from io_uring are not the bottleneck.",
+      "source_hash": 8810815087931748087,
+      "context_hash": 7451376578569594587,
+      "translation": "**단순한 워크로드** — 연결 수가 약 10,000개 미만이면 io_uring으로 절감되는 시스템 콜 비용은 병목이 아닙니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:51.815697Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:39/seg:0",
+      "source": "When io_uring wins",
+      "source_hash": 10605363431814008186,
+      "context_hash": 14193633607409521882,
+      "translation": "io_uring이 유리한 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815698Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:40/seg:0",
+      "source": "**New high-performance servers** built without an existing event loop to preserve.",
+      "source_hash": 2414048459656664135,
+      "context_hash": 4728697388705421590,
+      "translation": "유지해야 할 기존 이벤트 루프 없이 구축하는 **새로운 고성능 서버**입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815698Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:41/seg:0",
+      "source": "**High connection rates** (>100,000 connections, or >1M connections with SO_REUSEPORT per-core rings).",
+      "source_hash": 17712026932236484891,
+      "context_hash": 16822879247283512709,
+      "translation": "**높은 연결 속도**(>100,000개 연결, 또는 SO_REUSEPORT와 코어별 링을 사용하는 >1M개 연결)입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815698Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:41/seg:1",
+      "source": "Multishot accept eliminates the accept syscall bottleneck.",
+      "source_hash": 799118808330117974,
+      "context_hash": 6632056492110567675,
+      "translation": "멀티샷 accept는 accept 시스템 콜 병목을 제거합니다.",
+      "glossary_snapshot": {
+        "multishot": "멀티샷",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:35:39.367112Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:42/seg:0",
+      "source": "**Large response bodies** — `IORING_OP_SEND_ZC` avoids copying multi-hundred-KB payloads into socket buffers.",
+      "source_hash": 4101520043516096996,
+      "context_hash": 15386797976231218881,
+      "translation": "**큰 응답 본문** — `IORING_OP_SEND_ZC`는 수백 KB 크기의 페이로드를 소켓 버퍼로 복사하는 것을 피합니다.",
+      "glossary_snapshot": {
+        "payloads": "페이로드"
+      },
+      "translated_at": "2026-11-14T22:44:51.815698Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:43/seg:0",
+      "source": "**Kernel bypass comparison** — io_uring does not bypass the kernel networking stack the way DPDK or io_uring + AF_XDP does, but it eliminates the userspace-kernel transition overhead for each individual operation.",
+      "source_hash": 8912787279479337343,
+      "context_hash": 7698337096204412752,
+      "translation": "**커널 우회 방식과의 비교** — io_uring은 DPDK나 io_uring + AF_XDP처럼 커널 네트워킹 스택을 우회하지는 않지만, 개별 연산마다 발생하는 사용자 공간-커널 전환 오버헤드를 제거합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "overhead": "오버헤드",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:51.815698Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:43/seg:1",
+      "source": "For applications that do not need raw packet access, io_uring is a pragmatic middle ground.",
+      "source_hash": 10320907005742048948,
+      "context_hash": 17886303820621595350,
+      "translation": "raw 패킷 접근이 필요하지 않은 애플리케이션에게 io_uring은 실용적인 절충안입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815699Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:44/seg:0",
+      "source": "**Mixed workloads** — disk I/O, timers, network, and `splice`/`tee` operations can all share a single event loop without a separate `aio` context or thread pool.",
+      "source_hash": 10748254022127191109,
+      "context_hash": 10303582169744203476,
+      "translation": "**혼합 워크로드** — 디스크 I/O, 타이머, 네트워크, `splice`/`tee` 연산이 별도의 `aio` 컨텍스트나 스레드 풀 없이 모두 하나의 이벤트 루프를 공유할 수 있습니다.",
+      "glossary_snapshot": {
+        "pool": "풀",
+        "timers": "타이머",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:51.815699Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Complete echo server example",
+      "source_hash": 13498091582351252876,
+      "context_hash": 14646023600358228664,
+      "translation": "완전한 echo 서버 예제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815699Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "A minimal but complete echo server demonstrating:",
+      "source_hash": 8635877110154089172,
+      "context_hash": 15971455510566888138,
+      "translation": "다음을 보여 주는 최소한이지만 완전한 echo 서버입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815699Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "Multishot accept for connection intake",
+      "source_hash": 1891267490168941618,
+      "context_hash": 1955078760841631791,
+      "translation": "연결 수락을 위한 멀티샷 accept",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:39.367114Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "Multishot recv with a provided buffer ring",
+      "source_hash": 12867823815942915642,
+      "context_hash": 16445725201065285905,
+      "translation": "제공 버퍼 링(provided buffer ring)을 사용하는 멀티샷 recv",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:39.367114Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "Direct `IORING_OP_SEND` to echo data back",
+      "source_hash": 1880488514780981604,
+      "context_hash": 2492315287343068350,
+      "translation": "데이터를 그대로 돌려보내는 직접 `IORING_OP_SEND`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815699Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "Fixed files for all socket operations",
+      "source_hash": 4549568765400973834,
+      "context_hash": 15286621694576952957,
+      "translation": "모든 소켓 연산에 고정 파일 사용",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T23:35:39.367115Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "A few notes on the example:",
+      "source_hash": 13980904864612489381,
+      "context_hash": 4205187749693201995,
+      "translation": "예제에 관한 몇 가지 참고 사항은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815699Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "`io_uring_prep_multishot_accept_direct` installs accepted sockets straight into the fixed file table.",
+      "source_hash": 2054457095851469428,
+      "context_hash": 11653416553876995230,
+      "translation": "`io_uring_prep_multishot_accept_direct`는 수락된 소켓을 고정 파일 테이블에 바로 설치합니다.",
+      "glossary_snapshot": {
+        "fixed file": "고정 파일"
+      },
+      "translated_at": "2026-11-14T23:35:39.367116Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:1",
+      "source": "The `cqe->res` is a fixed slot index, not an OS fd.",
+      "source_hash": 12224211003702197133,
+      "context_hash": 16130560496424458723,
+      "translation": "`cqe->res`는 OS fd가 아니라 fixed 슬롯 인덱스입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815700Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:2",
+      "source": "No `IORING_REGISTER_FILES_UPDATE` call is needed.",
+      "source_hash": 17687231222145590222,
+      "context_hash": 6155987440671993566,
+      "translation": "`IORING_REGISTER_FILES_UPDATE` 호출은 필요하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:51.815700Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "The send CQE handler doubles as buffer recycling: the `TAG_SEND` carries the `buf_id` so the buffer can be returned to the ring once the send completes.",
+      "source_hash": 15392364070076453572,
+      "context_hash": 7282674704672869548,
+      "translation": "send CQE 핸들러는 버퍼 재활용 역할도 겸합니다. `TAG_SEND`가 `buf_id`를 담고 있으므로 send가 완료되면 버퍼를 링에 반환할 수 있습니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:44:51.815700Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "All operations use `IOSQE_FIXED_FILE`, avoiding `fdget`/`fdput` on every SQE dispatch.",
+      "source_hash": 14222416066092360026,
+      "context_hash": 6216588300117742096,
+      "translation": "모든 연산이 `IOSQE_FIXED_FILE`을 사용하므로 SQE를 디스패치할 때마다 `fdget`/`fdput`을 호출하지 않습니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:51.815700Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "There is no `epoll_fd`, no separate poll thread, and no per-connection thread.",
+      "source_hash": 10339772551523171398,
+      "context_hash": 12115553000548019365,
+      "translation": "`epoll_fd`도, 별도의 poll 스레드도, 연결별 스레드도 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:56.207680Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:1",
+      "source": "A single CQ handles accept, recv, and send events for all connections.",
+      "source_hash": 13851110743578035829,
+      "context_hash": 547185733821351164,
+      "translation": "하나의 CQ가 모든 연결의 accept, recv, send 이벤트를 처리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:56.207681Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 10788030337039737285,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:04:56.207681Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "[Architecture and Rings](io-uring-arch.md) — SQE/CQE structures, ring layout, `io_uring_enter`",
+      "source_hash": 11759520772148722819,
+      "context_hash": 5933940170417853106,
+      "translation": "[아키텍처와 링](io-uring-arch.md) — SQE/CQE 구조체, 링 레이아웃, `io_uring_enter`",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:04:56.207682Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[Multishot, Linked Requests, and Probing](multishot-ops.md) — `IORING_CQE_F_MORE`, linked SQEs, capability probing",
+      "source_hash": 253232551106038823,
+      "context_hash": 14887720575492817211,
+      "translation": "[멀티샷, 연결된 요청, 프로빙](multishot-ops.md) — `IORING_CQE_F_MORE`, 연결된 SQE, 기능 프로빙",
+      "glossary_snapshot": {
+        "SQEs": "SQE",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T22:04:56.207683Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "`io_uring/net.c` in the kernel tree — `io_accept()`, `io_accept_multishot()`, `io_send_zc()`, `io_recv_multishot()`",
+      "source_hash": 5403355647219211237,
+      "context_hash": 11414061489017003061,
+      "translation": "커널 트리의 `io_uring/net.c` — `io_accept()`, `io_accept_multishot()`, `io_send_zc()`, `io_recv_multishot()`",
+      "glossary_snapshot": {
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T22:04:56.207683Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "`include/uapi/linux/io_uring.h` — `IORING_OP_SEND_ZC`, `IORING_ACCEPT_MULTISHOT`, `IORING_RECV_MULTISHOT`, `IORING_CQE_F_NOTIF`",
+      "source_hash": 786139496512906742,
+      "context_hash": 13731330695084297196,
+      "translation": "`include/uapi/linux/io_uring.h` — `IORING_OP_SEND_ZC`, `IORING_ACCEPT_MULTISHOT`, `IORING_RECV_MULTISHOT`, `IORING_CQE_F_NOTIF`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:56.207683Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "`liburing` GitHub repository — `io_uring_prep_send_zc()`, `io_uring_prep_multishot_accept_direct()`, `io_uring_setup_buf_ring()`",
+      "source_hash": 6948699090423564041,
+      "context_hash": 10288771207856567623,
+      "translation": "`liburing` GitHub 저장소 — `io_uring_prep_send_zc()`, `io_uring_prep_multishot_accept_direct()`, `io_uring_setup_buf_ring()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:56.207683Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "`tools/testing/selftests/net/` in the kernel tree — zero-copy send and recv selftests",
+      "source_hash": 8112246925639115122,
+      "context_hash": 9954090437749259380,
+      "translation": "커널 트리의 `tools/testing/selftests/net/` — 제로 카피 send 및 recv selftest",
+      "glossary_snapshot": {
+        "kernel tree": "커널 트리",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:04:56.207683Z",
+      "issues": []
+    }
+  ]
+}

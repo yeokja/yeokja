@@ -1,0 +1,993 @@
+{
+  "version": 1,
+  "source_hash": 13407924591173227248,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "War Stories: Virtualization (KVM) Bugs and Escapes",
+      "source_hash": 6964274138724430979,
+      "context_hash": 5820105964830305217,
+      "translation": "실전 사례: 가상화(KVM) 버그와 탈출",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "bugs": "버그",
+        "virtualization": "가상화",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T23:06:51.273940Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Five incidents spanning the whole KVM/QEMU stack — a guest-to-host escape through a device nobody configured, two speculative-execution mitigations whose exact timing turned out to matter as much as their existence, a use-after-free born from a refactor that quietly dropped an implicit invariant, and a heap overflow born from the same kind of gap in an edge case nobody had reasoned about",
+      "source_hash": 5681156800596626125,
+      "context_hash": 16809745295683723457,
+      "translation": "게스트에서 호스트로의 탈출이 아무도 구성하지 않은 디바이스를 통해 일어난 사례, 존재 여부만큼이나 정확한 타이밍이 중요한 것으로 드러난 투기적 실행(speculative execution) 완화 조치 두 건, 암묵적 불변식을 조용히 누락한 리팩터링에서 비롯된 use-after-free, 그리고 아무도 따져 보지 않은 엣지 케이스에서 같은 종류의 틈으로 생겨난 힙 오버플로까지, KVM/QEMU 스택 전체에 걸친 다섯 가지 사고",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "QEMU": "QEMU",
+        "device": "디바이스",
+        "guest": "게스트",
+        "heap": "힙",
+        "host": "호스트",
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T23:37:46.158161Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Virtualization's trust boundary is the sharpest one this site covers: a guest is, by design, an untrusted tenant that the host must contain completely, across both the device-emulation layer (QEMU, in userspace) and the hypervisor kernel module (KVM) that gives it hardware-accelerated CPU access.",
+      "source_hash": 7922050150929770590,
+      "context_hash": 13774134506067049923,
+      "translation": "가상화의 신뢰 경계는 이 사이트에서 다루는 경계 중 가장 날카로운 경계입니다. 게스트는 설계상 신뢰할 수 없는 테넌트이며, 호스트는 디바이스 에뮬레이션 계층(사용자 공간의 QEMU)과 게스트에 하드웨어 가속 CPU 접근을 제공하는 하이퍼바이저 커널 모듈(KVM) 양쪽 모두에서 게스트를 완전히 격리해야 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "KVM": "KVM",
+        "QEMU": "QEMU",
+        "device": "디바이스",
+        "guest": "게스트",
+        "host": "호스트",
+        "hypervisor": "하이퍼바이저",
+        "kernel module": "커널 모듈",
+        "userspace": "사용자 공간",
+        "virtualization": "가상화"
+      },
+      "translated_at": "2026-11-14T23:37:46.158167Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "The five incidents below span that entire boundary — one lives entirely in QEMU's userspace device model, two are host-kernel memory-corruption bugs (a use-after-free born from a refactor, and a heap overflow born from an edge case) that each dropped an implicit invariant, and two are CPU speculative-execution mitigations where getting the *mechanism* right wasn't enough — the exact placement and timing of the fix mattered just as much.",
+      "source_hash": 7715351457106252364,
+      "context_hash": 12575801134509137514,
+      "translation": "아래의 다섯 가지 사고는 이 경계 전체에 걸쳐 있습니다. 하나는 전적으로 QEMU의 사용자 공간 디바이스 모델에서 발생했고, 두 건은 각각 암묵적 불변식을 잃어버린 호스트 커널 메모리 손상 버그(리팩터링에서 비롯된 use-after-free와 엣지 케이스에서 비롯된 힙 오버플로)이며, 나머지 두 건은 *메커니즘*을 올바르게 구현하는 것만으로는 충분하지 않았던 CPU 투기적 실행 완화 조치입니다. 수정의 정확한 위치와 타이밍도 그만큼 중요했습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "QEMU": "QEMU",
+        "device model": "디바이스 모델",
+        "heap": "힙",
+        "host": "호스트",
+        "kernel memory": "커널 메모리",
+        "use-after-free": "use-after-free",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:37:46.158172Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Incidents",
+      "source_hash": 13222895534781683695,
+      "context_hash": 6166683167423586138,
+      "translation": "사고 목록",
+      "glossary_snapshot": {
+        "Incidents": "사고 목록"
+      },
+      "translated_at": "2026-11-14T23:37:46.158175Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Ordered reverse chronologically by when the fix landed — newest first.",
+      "source_hash": 5865409931142671081,
+      "context_hash": 15224709648293356273,
+      "translation": "수정이 반영된 시점 기준 역순으로 정렬 — 최신 항목 우선",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273944Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "[MDS: The Mitigation That Flushed the Buffers Too Early](war-stories/mds-verw-timing-gap.md)",
+      "source_hash": 15155036343909803263,
+      "context_hash": 17427040160928451036,
+      "translation": "[MDS: The Mitigation That Flushed the Buffers Too Early](war-stories/mds-verw-timing-gap.md)",
+      "glossary_snapshot": {
+        "MDS": "MDS"
+      },
+      "translated_at": "2026-11-14T23:06:51.273944Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Original mitigation 2019, real fix committed Feb 2024 (Linux 6.8, March 2024) · CVE-2018-12130** KVM's original defense against Microarchitectural Data Sampling flushed CPU buffers several instructions before actually entering the guest — and every register spill and stack push in between could refill those buffers with fresh host data.",
+      "source_hash": 11382822065244759182,
+      "context_hash": 4770014855010404049,
+      "translation": "**최초 완화책 2019년, 실제 수정 커밋 2024년 2월(Linux 6.8, 2024년 3월) · CVE-2018-12130** Microarchitectural Data Sampling에 대한 KVM의 최초 방어책은 실제로 게스트에 진입하기 몇 명령어 앞에서 CPU 버퍼를 비웠고, 그 사이의 모든 레지스터 스필과 스택 푸시가 새로운 호스트 데이터로 그 버퍼를 다시 채울 수 있었습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CVE": "CVE",
+        "KVM": "KVM",
+        "Linux": "Linux",
+        "guest": "게스트",
+        "host": "호스트"
+      },
+      "translated_at": "2026-11-14T23:06:51.273944Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "The gap sat unexamined for five years until a routine hardening pass closed it as a side effect.",
+      "source_hash": 319078252562646347,
+      "context_hash": 11840058815778189103,
+      "translation": "이 틈은 5년 동안 아무도 살펴보지 않은 채 남아 있다가, 일상적인 하드닝 작업이 부수 효과로 이를 막았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273944Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "[vhost: The Dirty-Log Counter That Forgot Zero-Length Descriptors](war-stories/vhost-migration-log-overflow.md)",
+      "source_hash": 17209946542984514724,
+      "context_hash": 15436549052009530744,
+      "translation": "[vhost: The Dirty-Log Counter That Forgot Zero-Length Descriptors](war-stories/vhost-migration-log-overflow.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273945Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**Linux 5.3 (September 2019) · CVE-2019-14835** Live-migration dirty-page logging assumed one log entry per descriptor could never outrun the descriptor count itself — an invariant a single guest-supplied zero-length descriptor could break, turning a routine migration into a guest-controlled kernel heap overflow.",
+      "source_hash": 9657197845634810127,
+      "context_hash": 15329333703299083541,
+      "translation": "**Linux 5.3(2019년 9월) · CVE-2019-14835** 라이브 마이그레이션의 dirty 페이지 로깅은 디스크립터당 하나의 로그 항목이 디스크립터 수 자체를 결코 넘어설 수 없다고 가정했습니다. 이는 게스트가 제공한 길이 0의 디스크립터 하나만으로도 깨질 수 있는 불변 조건이었고, 이로 인해 일상적인 마이그레이션이 게스트가 제어하는 커널 힙 오버플로로 바뀌었습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "descriptor": "디스크립터",
+        "guest": "게스트",
+        "heap": "힙",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:06:51.273945Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "[The Nested-VMX Refactor That Forgot One Field on the Error Path](war-stories/nested-vmx-posted-interrupt-uaf.md)",
+      "source_hash": 8030349174926799014,
+      "context_hash": 6812320730914166854,
+      "translation": "[The Nested-VMX Refactor That Forgot One Field on the Error Path](war-stories/nested-vmx-posted-interrupt-uaf.md)",
+      "glossary_snapshot": {
+        "VMX": "VMX"
+      },
+      "translated_at": "2026-11-14T23:06:51.273945Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "**Linux 4.20 (December 2018) · CVE-2018-16882** Removing a trivial wrapper function restructured a posted-interrupt setup path around an early return on failure — and that early return skipped resetting a pointer that used to be reset unconditionally on every call, dangling straight into a later use-after-free.",
+      "source_hash": 5555996512559614119,
+      "context_hash": 6649070933025623244,
+      "translation": "**Linux 4.20 (2018년 12월) · CVE-2018-16882** 사소한 래퍼 함수를 제거하면서 posted 인터럽트(posted-interrupt) 설정 경로가 실패 시 조기 반환하는 구조로 재편되었습니다. 그런데 그 조기 반환 때문에 예전에는 호출될 때마다 무조건 재설정되던 포인터의 재설정이 건너뛰어졌고, 이 포인터는 댕글링 상태로 남아 그대로 이후의 use-after-free로 이어졌습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "function": "함수",
+        "interrupt": "인터럽트",
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T23:06:51.273945Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "[L1TF: When a Not-Present Page Table Entry Wasn't Not-Present Enough](war-stories/l1tf-foreshadow-vmm.md)",
+      "source_hash": 2046974985891602301,
+      "context_hash": 5478825816685852943,
+      "translation": "[L1TF: 충분히 not-present하지 않았던 not-present 페이지 테이블 엔트리](war-stories/l1tf-foreshadow-vmm.md)",
+      "glossary_snapshot": {
+        "page table entry": "페이지 테이블 엔트리"
+      },
+      "translated_at": "2026-11-14T23:06:51.273945Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "**Linux 4.19 (August 2018) · CVE-2018-3646** A terminal page fault on a not-present EPT entry still let the CPU speculatively forward stale L1 data-cache contents — and in a virtualized guest, that cache is shared across every sibling hyperthread on the core, host and guests alike.",
+      "source_hash": 4309819312244039798,
+      "context_hash": 17558542001010305621,
+      "translation": "**Linux 4.19(2018년 8월) · CVE-2018-3646** not-present EPT 엔트리에서 발생한 종료성(terminal) 페이지 폴트도 여전히 CPU가 오래된 L1 데이터 캐시 내용을 추측적으로 전달하도록 허용했으며, 가상화된 게스트에서는 그 캐시가 호스트와 게스트를 막론하고 해당 코어의 모든 형제 하이퍼스레드 사이에서 공유됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CVE": "CVE",
+        "EPT": "EPT",
+        "Linux": "Linux",
+        "cache": "캐시",
+        "guest": "게스트",
+        "guests": "게스트",
+        "host": "호스트",
+        "page fault": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T23:06:51.273945Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "[VENOM: The Floppy Controller Nobody Turned Off](war-stories/venom-fdc-overflow.md)",
+      "source_hash": 3844800925260045578,
+      "context_hash": 5895074524057480545,
+      "translation": "[VENOM: The Floppy Controller Nobody Turned Off](war-stories/venom-fdc-overflow.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "**QEMU, May 2015 · CVE-2015-3456** QEMU's floppy disk controller emulation is instantiated for every default x86 machine type whether or not a guest has a floppy drive configured, and its command FIFO had no bounds check at all — a guest that never touched a floppy could still overflow it straight into the host's heap.",
+      "source_hash": 7112868049622777087,
+      "context_hash": 9980551391872907792,
+      "translation": "**QEMU, 2015년 5월 · CVE-2015-3456** QEMU의 플로피 디스크 컨트롤러 에뮬레이션은 게스트에 플로피 드라이브가 구성되어 있는지와 관계없이 모든 기본 x86 머신 타입에서 인스턴스화되었고, 그 명령 FIFO에는 경계 검사가 전혀 없었습니다. 그 결과 플로피를 한 번도 건드리지 않은 게스트라도 이를 오버플로시켜 호스트의 힙까지 곧바로 침범할 수 있었습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "FIFO": "FIFO",
+        "QEMU": "QEMU",
+        "bounds check": "경계 검사",
+        "controller": "컨트롤러",
+        "guest": "게스트",
+        "heap": "힙",
+        "host": "호스트"
+      },
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Common threads",
+      "source_hash": 15630519619683491239,
+      "context_hash": 13123397522249801986,
+      "translation": "공통점",
+      "glossary_snapshot": {
+        "Common threads": "공통점"
+      },
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Pattern",
+      "source_hash": 544911176319535475,
+      "context_hash": 9319872156517794272,
+      "translation": "패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "MDS timing gap",
+      "source_hash": 15519395716756260096,
+      "context_hash": 14057575099565937957,
+      "translation": "MDS 타이밍 틈",
+      "glossary_snapshot": {
+        "MDS": "MDS"
+      },
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "vhost log overflow",
+      "source_hash": 2515118401260968570,
+      "context_hash": 3084341311376278887,
+      "translation": "vhost 로그 오버플로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Nested-VMX UAF",
+      "source_hash": 5783620220445141887,
+      "context_hash": 12214690430080602349,
+      "translation": "Nested-VMX UAF",
+      "glossary_snapshot": {
+        "UAF": "UAF",
+        "VMX": "VMX"
+      },
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "L1TF",
+      "source_hash": 2409562677434237134,
+      "context_hash": 2166200398058560784,
+      "translation": "L1TF",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "VENOM",
+      "source_hash": 3955647044302030829,
+      "context_hash": 13647653250574218399,
+      "translation": "VENOM",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Lives in QEMU userspace, not the Linux kernel",
+      "source_hash": 11451993412096618564,
+      "context_hash": 2275342360899304679,
+      "translation": "Linux 커널이 아닌 QEMU 사용자 공간에 존재",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "QEMU": "QEMU",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:06:51.273946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 17042303623057049278,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:51.273947Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:51.273947Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:51.273947Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9508013301409225522,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:51.273947Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 10911804940132489534,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:51.273947Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Root cause: an implicit invariant a refactor or edge case quietly broke",
+      "source_hash": 5425354141287113922,
+      "context_hash": 16361932622599883170,
+      "translation": "근본 원인: 리팩터링이나 엣지 케이스가 조용히 깨뜨린 암묵적 불변 조건",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:51.273948Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 8040363737155182634,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:51.273948Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 9508013301409225522,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291612Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6723063674509391990,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291613Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 7259753640440472095,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.291613Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16740669178526518189,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291613Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "Root cause: a correct mechanism placed at the wrong point in the execution path",
+      "source_hash": 677363490357944727,
+      "context_hash": 7259753640440472095,
+      "translation": "근본 원인: 올바른 메커니즘이 실행 경로의 잘못된 지점에 배치됨",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.291614Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11851570857188047621,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291614Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291614Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 13234420381690464918,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291614Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Partial (SMT sharing, not placement)",
+      "source_hash": 6871373740191419213,
+      "context_hash": 7536943046141488671,
+      "translation": "부분적 (배치가 아닌 SMT 공유)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.291615Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 15714369973307705581,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291615Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Guest-to-host memory corruption (not just information disclosure)",
+      "source_hash": 1878901836272322570,
+      "context_hash": 7536943046141488671,
+      "translation": "게스트에서 호스트로의 메모리 손상 (단순한 정보 노출이 아님)",
+      "glossary_snapshot": {
+        "guest": "게스트",
+        "host": "호스트",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T23:06:34.291615Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 13663457585461519569,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291615Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7954651644863033849,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291615Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "Yes (UAF)",
+      "source_hash": 3912208444785260913,
+      "context_hash": 10581479143089499070,
+      "translation": "예 (UAF)",
+      "glossary_snapshot": {
+        "UAF": "UAF"
+      },
+      "translated_at": "2026-11-14T23:06:34.291615Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "No (side channel only)",
+      "source_hash": 6751057333592703471,
+      "context_hash": 804320773300063997,
+      "translation": "아니요 (사이드 채널만)",
+      "glossary_snapshot": {
+        "side channel": "사이드 채널"
+      },
+      "translated_at": "2026-11-14T23:06:34.291616Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 18029872263858289542,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291616Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "Fix required understanding hardware microarchitecture, not just software logic",
+      "source_hash": 9410969078983684727,
+      "context_hash": 7259753640440472095,
+      "translation": "수정에 소프트웨어 로직뿐 아니라 하드웨어 마이크로아키텍처에 대한 이해가 필요함",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T23:06:34.291616Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 9099792683646223792,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9508013301409225522,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:35/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7536943046141488671,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 15588248978183299176,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:37/seg:0",
+      "source": "CISA KEV-listed",
+      "source_hash": 11365093275529784481,
+      "context_hash": 7536943046141488671,
+      "translation": "CISA KEV 등재",
+      "glossary_snapshot": {
+        "CISA KEV": "CISA KEV",
+        "CISA KEV-listed": "CISA KEV 등재"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 2488711732798423372,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291617Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291618Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291618Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 6408120024806883895,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T23:06:34.291618Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:0",
+      "source": "Years between introduction and (eventual, full) fix",
+      "source_hash": 367339671228339826,
+      "context_hash": 17924952181713144948,
+      "translation": "도입부터 (최종적인 완전한) 수정까지 걸린 연수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.291618Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:0",
+      "source": "5 (2019→2024)",
+      "source_hash": 2496013030021161569,
+      "context_hash": 1186560838302996846,
+      "translation": "5 (2019→2024)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.291618Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:45/seg:0",
+      "source": "9 (2010→2019)",
+      "source_hash": 26562271763192589,
+      "context_hash": 2389850686617274690,
+      "translation": "9 (2010→2019)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.291618Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:46/seg:0",
+      "source": "1.3 (2017→2018)",
+      "source_hash": 14411944938354659533,
+      "context_hash": 14405401209793902732,
+      "translation": "1.3 (2017→2018)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.291618Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:47/seg:0",
+      "source": "N/A (hardware behavior)",
+      "source_hash": 7719703581517361145,
+      "context_hash": 17027495343236766600,
+      "translation": "N/A (하드웨어 동작)",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T23:06:34.236012Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:48/seg:0",
+      "source": "12+ (code dated 2003 at latest→2015)",
+      "source_hash": 14711899281860155475,
+      "context_hash": 15225476746242018168,
+      "translation": "12+ (늦어도 2003년에 작성된 코드→2015)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.236013Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:49/seg:0",
+      "source": "**Three of the five are the same shape of mistake: an invariant that held by construction, until a refactor or an edge case broke the thing nobody was checking directly.** The nested-VMX UAF lost an implicit reset-on-failure behavior when a wrapper-removal refactor changed unconditional assignment into an early return.",
+      "source_hash": 17517610910530052736,
+      "context_hash": 6484730594736505956,
+      "translation": "**다섯 건 중 세 건은 같은 형태의 실수입니다. 구조상 당연히 유지되던 불변 조건이, 아무도 직접 확인하지 않던 부분을 리팩터링이나 엣지 케이스가 깨뜨리기 전까지만 유지되었다는 점입니다.** nested-VMX UAF는 래퍼 제거 리팩터링이 무조건적인 대입을 조기 반환(early return)으로 바꾸면서, 실패 시 암묵적으로 이루어지던 초기화 동작을 잃었습니다.",
+      "glossary_snapshot": {
+        "UAF": "UAF",
+        "VMX": "VMX"
+      },
+      "translated_at": "2026-11-14T23:06:34.236013Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:49/seg:1",
+      "source": "The vhost overflow lost the \"log_num tracks in_num\" invariant to a completely ordinary, spec-legal zero-length descriptor nobody had reasoned about.",
+      "source_hash": 2407958427183705955,
+      "context_hash": 5990150698552455471,
+      "translation": "vhost 오버플로는 아무도 고려하지 않았던, 지극히 평범하고 사양상 허용되는 길이 0 디스크립터 때문에 \"log_num은 in_num을 따라간다\"는 불변 조건을 잃었습니다.",
+      "glossary_snapshot": {
+        "descriptor": "디스크립터"
+      },
+      "translated_at": "2026-11-14T23:06:34.236013Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:49/seg:2",
+      "source": "VENOM is the same pattern one layer down, at the device-emulation level: buffer-access code trusted command handlers to reset an index that two of them, each independently reasonable on its own terms, didn't.",
+      "source_hash": 17409977805876901968,
+      "context_hash": 4408969695280202924,
+      "translation": "VENOM은 한 계층 아래인 디바이스 에뮬레이션 수준에서 나타난 같은 패턴입니다. 버퍼 접근 코드는 명령 핸들러가 인덱스를 초기화할 것이라고 믿었지만, 그중 두 핸들러는 각자 자기 나름의 기준으로는 합리적이었음에도 인덱스를 초기화하지 않았습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "handlers": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:37:46.158177Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:50/seg:0",
+      "source": "**MDS and L1TF are both speculative-execution mitigations where getting the concept right wasn't the hard part — getting the exact mechanics right was.** L1TF's flush-on-VM-entry doesn't help against a sibling hyperthread sharing the same physical core; the kernel had to add SMT-disable as a separate, costlier lever for the cases that actually need it.",
+      "source_hash": 9593615932042261259,
+      "context_hash": 13385341187890118338,
+      "translation": "**MDS와 L1TF는 모두 개념을 올바르게 잡는 것이 아니라 정확한 동작 방식을 올바르게 구현하는 것이 어려웠던 투기적 실행(speculative execution) 완화책입니다.** L1TF의 VM 진입 시 flush는 같은 물리 코어를 공유하는 형제 하이퍼스레드에 대해서는 효과가 없으므로, 커널은 이것이 실제로 필요한 경우를 위해 별도의 더 비싼 수단으로 SMT 비활성화를 추가해야 했습니다.",
+      "glossary_snapshot": {
+        "MDS": "MDS",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:06:34.236013Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:50/seg:1",
+      "source": "MDS's VERW-based flush was conceptually correct from day one in 2019, but its literal position in the compiled code left a window where ordinary memory writes could undo the flush before the guest ever ran — a bug in *placement*, not in the mitigation's logic, that took five years to actually close, and nearly two years longer before anyone recognized what the closing commit had actually fixed.",
+      "source_hash": 7288090176457968625,
+      "context_hash": 4981218102772959945,
+      "translation": "MDS의 VERW 기반 flush는 2019년 첫날부터 개념적으로는 올바랐지만, 컴파일된 코드에서의 실제 위치 때문에 게스트가 실행되기도 전에 일반 메모리 쓰기가 flush를 무효화할 수 있는 틈이 남았습니다. 이는 완화책의 논리가 아니라 *배치*의 버그였으며, 실제로 막히기까지 5년이 걸렸고, 그 수정 커밋이 실제로 무엇을 고쳤는지 누군가 알아차리기까지는 다시 2년 가까이 더 걸렸습니다.",
+      "glossary_snapshot": {
+        "MDS": "MDS",
+        "bug": "버그",
+        "guest": "게스트",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T23:06:34.236013Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:51/seg:0",
+      "source": "**VENOM is the only incident here that isn't a Linux kernel bug at all.** It's included because the guest-facing trust boundary this site documents doesn't stop at KVM's kernel module — QEMU is the other half of the stack every KVM guest actually runs against, and a guest-to-host escape through QEMU's device emulation is exactly as real a break of the virtualization boundary as a bug in KVM itself.",
+      "source_hash": 2127228217251601323,
+      "context_hash": 9624762137156221753,
+      "translation": "**VENOM은 여기서 유일하게 Linux 커널 버그가 전혀 아닌 사고입니다.** 이 사이트가 다루는 게스트 대상 신뢰 경계는 KVM 커널 모듈에서 끝나지 않기 때문에 이 사고를 포함했습니다. QEMU는 모든 KVM 게스트가 실제로 맞닿아 실행되는 스택의 나머지 절반이며, QEMU의 디바이스 에뮬레이션을 통한 게스트에서 호스트로의 탈출은 KVM 자체의 버그와 똑같이 실제적인 가상화 경계의 붕괴입니다.",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "Linux": "Linux",
+        "QEMU": "QEMU",
+        "device": "디바이스",
+        "guest": "게스트",
+        "host": "호스트",
+        "kernel module": "커널 모듈",
+        "virtualization": "가상화"
+      },
+      "translated_at": "2026-11-14T23:37:46.158179Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "See also",
+      "source_hash": 5857332155845589011,
+      "context_hash": 12435301938826025192,
+      "translation": "함께 보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:34.236014Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "[KVM Architecture](kvm-arch.md) — the `/dev/kvm` API and QEMU's role as the userspace half of the stack",
+      "source_hash": 10014750497782925228,
+      "context_hash": 14061792105399873488,
+      "translation": "[KVM 아키텍처](kvm-arch.md) — `/dev/kvm` API와 스택의 사용자 공간 절반을 맡는 QEMU의 역할",
+      "glossary_snapshot": {
+        "API": "API",
+        "KVM": "KVM",
+        "QEMU": "QEMU",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:06:34.236014Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "[Nested Virtualization](nested-virt.md) — L0/L1/L2, vmcs12/vmcs02, the model behind the posted-interrupt UAF",
+      "source_hash": 1311064894884662073,
+      "context_hash": 3076823608780406896,
+      "translation": "[중첩 가상화](nested-virt.md) — L0/L1/L2, vmcs12/vmcs02, posted-인터럽트 UAF의 배경이 되는 모델",
+      "glossary_snapshot": {
+        "UAF": "UAF",
+        "interrupt": "인터럽트",
+        "virtualization": "가상화"
+      },
+      "translated_at": "2026-11-14T23:06:34.236014Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "[KVM Live Migration](live-migration.md) — dirty-page logging, the feature whose logging path the vhost bug lives in",
+      "source_hash": 15366212161343627926,
+      "context_hash": 9110955933972058968,
+      "translation": "[KVM 라이브 마이그레이션](live-migration.md) — dirty page 로깅, vhost 버그가 있는 로깅 경로를 가진 기능",
+      "glossary_snapshot": {
+        "KVM": "KVM",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T23:06:34.236014Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "[Locking War Stories](../locking/war-stories.md) and [VFS War Stories](../vfs/war-stories.md) — comparable local-CVE collections from other subsystems, for contrasting root-cause shapes",
+      "source_hash": 1153248005717359656,
+      "context_hash": 1701991303481329251,
+      "translation": "[락킹 실전 사례](../locking/war-stories.md)와 [VFS 실전 사례](../vfs/war-stories.md) — 근본 원인의 형태를 비교해 볼 수 있는, 다른 서브시스템의 유사한 로컬 CVE 모음",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "VFS": "VFS",
+        "subsystems": "서브시스템",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T23:06:34.236014Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "[GPU/DRM War Stories](../drm/war-stories.md) — reliability-only incidents (no CVEs) from a different kind of shared kernel-internal resource contention",
+      "source_hash": 3447445732154542544,
+      "context_hash": 5475557814658143153,
+      "translation": "[GPU/DRM 실전 사례](../drm/war-stories.md) — 다른 종류의 커널 내부 공유 자원 경합에서 비롯된, 신뢰성 문제에 한정된 사례(CVE 없음)",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "DRM": "DRM",
+        "GPU": "GPU",
+        "contention": "경합",
+        "kernel": "커널",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T23:06:34.236015Z",
+      "issues": []
+    }
+  ]
+}

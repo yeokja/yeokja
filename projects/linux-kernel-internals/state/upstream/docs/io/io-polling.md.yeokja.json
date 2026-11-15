@@ -1,0 +1,2592 @@
+{
+  "version": 1,
+  "source_hash": 18136214437389924700,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "I/O Polling: HIPRI, IOPOLL, and NOWAIT",
+      "source_hash": 2671285995869361590,
+      "context_hash": 6098411514011373609,
+      "translation": "I/O 폴링: HIPRI, IOPOLL, NOWAIT",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055342Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Eliminating interrupt and thread-switch overhead for NVMe I/O — how IOCB_HIPRI, io_uring IOPOLL, and IOCB_NOWAIT work inside the kernel",
+      "source_hash": 4243181145078401293,
+      "context_hash": 13776450539280766344,
+      "translation": "NVMe I/O에서 인터럽트와 스레드 전환 오버헤드 제거 — 커널 내부에서 IOCB_HIPRI, io_uring IOPOLL, IOCB_NOWAIT가 동작하는 방식",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "interrupt": "인터럽트",
+        "kernel": "커널",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:10:50.055343Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why polling?",
+      "source_hash": 6528953997808997604,
+      "context_hash": 5249010663507225038,
+      "translation": "왜 폴링인가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055343Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Traditional block I/O uses interrupts.",
+      "source_hash": 16714166153592988333,
+      "context_hash": 12113466841831161379,
+      "translation": "전통적인 블록 I/O는 인터럽트를 사용합니다.",
+      "glossary_snapshot": {
+        "interrupts": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:50.055344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "When a write or read completes, the NVMe controller asserts an MSI-X interrupt.",
+      "source_hash": 15848031495202766895,
+      "context_hash": 14047171545299497355,
+      "translation": "쓰기나 읽기가 완료되면 NVMe 컨트롤러가 MSI-X 인터럽트를 발생시킵니다.",
+      "glossary_snapshot": {
+        "MSI-X": "MSI-X",
+        "NVMe": "NVMe",
+        "controller": "컨트롤러",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:50.055344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "The CPU stops what it is doing, saves state, runs the interrupt handler, posts the completion, and returns.",
+      "source_hash": 832859021511552264,
+      "context_hash": 15271775689460883303,
+      "translation": "CPU는 하던 일을 멈추고, 상태를 저장하고, 인터럽트 핸들러를 실행하고, 완료를 게시한 뒤 복귀합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "interrupt handler": "인터럽트 핸들러"
+      },
+      "translated_at": "2026-11-14T22:10:50.055344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:3",
+      "source": "For a spinning disk with multi-millisecond latency, this overhead is negligible.",
+      "source_hash": 17976670494140398428,
+      "context_hash": 7588533129398189354,
+      "translation": "지연 시간이 수 밀리초에 이르는 회전 디스크에서는 이 오버헤드를 무시할 수 있습니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:10:50.055344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:4",
+      "source": "For a modern NVMe SSD with sub-100µs latency, the interrupt path starts to matter.",
+      "source_hash": 9414205383297101362,
+      "context_hash": 1371358436634776758,
+      "translation": "지연 시간이 100µs 미만인 최신 NVMe SSD에서는 인터럽트 경로가 중요해지기 시작합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "SSD": "SSD",
+        "interrupt": "인터럽트",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:10:50.055344Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Break down what happens on the interrupt path for a 50µs NVMe read:",
+      "source_hash": 8094410877732485884,
+      "context_hash": 10710552350727079895,
+      "translation": "50µs NVMe 읽기에서 인터럽트 경로에 무슨 일이 일어나는지 나누어 살펴보면 다음과 같습니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:50.055345Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "On a device with 50µs latency, that overhead is 15–30% of total observed latency.",
+      "source_hash": 10844872304737509336,
+      "context_hash": 12554293434377938946,
+      "translation": "지연 시간이 50µs인 디바이스에서는 이 오버헤드가 관찰되는 전체 지연 시간의 15–30%를 차지합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "latency": "지연 시간",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T23:26:16.462108Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "For p99 tail latency the problem is worse: interrupt coalescing, CPU c-states, and scheduler jitter all inflate the wake-up path.",
+      "source_hash": 6872554395230064314,
+      "context_hash": 16275117943625433879,
+      "translation": "p99 꼬리 지연 시간(tail latency)에서는 문제가 더 심각합니다. 인터럽트 병합(interrupt coalescing), CPU c-state, 스케줄러 지터가 모두 깨어나는 경로를 늘립니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "interrupt": "인터럽트",
+        "latency": "지연 시간",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:10:50.055345Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Polling eliminates the interrupt entirely:",
+      "source_hash": 16122425059616089257,
+      "context_hash": 15715400894675118931,
+      "translation": "폴링은 인터럽트를 완전히 없앱니다.",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:50.055345Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "The tradeoff is CPU: the polling core cannot go idle while waiting.",
+      "source_hash": 15743375737530443006,
+      "context_hash": 2119530658936157051,
+      "translation": "트레이드오프는 CPU입니다. 폴링하는 코어는 기다리는 동안 유휴 상태에 들어갈 수 없습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "tradeoff": "트레이드오프"
+      },
+      "translated_at": "2026-11-14T22:10:50.055346Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "One core is 100% busy for the duration of every I/O.",
+      "source_hash": 11794205290465753489,
+      "context_hash": 17083451363194722631,
+      "translation": "모든 I/O가 진행되는 동안 코어 하나가 100% 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055346Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "This is a reasonable trade for:",
+      "source_hash": 578377657680687098,
+      "context_hash": 15312057898827622127,
+      "translation": "이는 다음과 같은 경우에 합리적인 트레이드오프입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055346Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "**Latency-sensitive workloads**: database transaction commits, key-value stores, real-time analytics",
+      "source_hash": 16556239425247715186,
+      "context_hash": 231723179688109479,
+      "translation": "**지연 시간에 민감한 워크로드**: 데이터베이스 트랜잭션 커밋, 키-값 저장소, 실시간 분석",
+      "glossary_snapshot": {
+        "latency": "지연 시간",
+        "transaction": "트랜잭션",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:10:50.055346Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "**High-IOPS workloads**: where the polling core is always finding completions immediately and is therefore doing useful work",
+      "source_hash": 18153636151020465823,
+      "context_hash": 9187552087987247279,
+      "translation": "**높은 IOPS 워크로드**: 폴링하는 코어가 항상 완료를 즉시 발견하므로 유용한 작업을 하는 경우",
+      "glossary_snapshot": {
+        "IOPS": "IOPS",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:10:50.055346Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "**Tail-latency SLOs**: eliminating the interrupt jitter that inflates p99 and p999",
+      "source_hash": 18289563595957960872,
+      "context_hash": 17576014886487415534,
+      "translation": "**꼬리 지연 시간 SLO**: p99와 p999를 늘리는 인터럽트 지터 제거",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:10:50.055347Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "It is a poor trade for:",
+      "source_hash": 11534898918098515372,
+      "context_hash": 1856413176888040235,
+      "translation": "다음과 같은 경우에는 좋지 않은 트레이드오프입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055347Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "**Low-IOPS workloads**: the core spins doing nothing most of the time",
+      "source_hash": 12111955717602200952,
+      "context_hash": 2804030161199862018,
+      "translation": "**낮은 IOPS 워크로드**: 코어가 대부분의 시간 동안 아무 일도 하지 않고 스핀합니다",
+      "glossary_snapshot": {
+        "IOPS": "IOPS",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:10:50.055347Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "**Shared systems**: the polling core is stolen from other tenants",
+      "source_hash": 17161614289356738182,
+      "context_hash": 3466437966248499164,
+      "translation": "**공유 시스템**: 폴링하는 코어를 다른 테넌트에게서 빼앗게 됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055347Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "**Rotating media or slow SSDs**: latency is high enough that sleeping is always better",
+      "source_hash": 16736703487405217212,
+      "context_hash": 13616528442739315871,
+      "translation": "**회전 매체 또는 느린 SSD**: 지연 시간이 충분히 길어서 항상 잠드는 편이 낫습니다",
+      "glossary_snapshot": {
+        "SSDs": "SSD",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:10:50.055347Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "Interrupt path vs polling path",
+      "source_hash": 9605281804066215393,
+      "context_hash": 11341858994315492889,
+      "translation": "인터럽트 경로와 폴링 경로 비교",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:50.055347Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "HIPRI: the kernel polling interface",
+      "source_hash": 17812339122752781323,
+      "context_hash": 4243501773889620926,
+      "translation": "HIPRI: 커널 폴링 인터페이스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:10:50.055347Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The user-visible entry point for polling is the `RWF_HIPRI` flag on `preadv2()`/`pwritev2()`, or `IORING_SETUP_IOPOLL` on an io_uring ring.",
+      "source_hash": 9754377099831743710,
+      "context_hash": 16380673627844543495,
+      "translation": "사용자에게 보이는 폴링 진입점은 `preadv2()`/`pwritev2()`의 `RWF_HIPRI` 플래그 또는 io_uring 링의 `IORING_SETUP_IOPOLL`입니다.",
+      "glossary_snapshot": {
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T22:10:50.055348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "Both ultimately set `IOCB_HIPRI` in the kiocb's `ki_flags`.",
+      "source_hash": 10127410395168181321,
+      "context_hash": 12494526905765015759,
+      "translation": "둘 다 결국 kiocb의 `ki_flags`에 `IOCB_HIPRI`를 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Userspace API",
+      "source_hash": 15981764882140476807,
+      "context_hash": 4809042214570314097,
+      "translation": "사용자 공간 API",
+      "glossary_snapshot": {
+        "API": "API",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:10:50.055348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Both require `O_DIRECT`.",
+      "source_hash": 9119958175930643645,
+      "context_hash": 9257401619444680374,
+      "translation": "둘 다 `O_DIRECT`가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "HIPRI on a buffered file is rejected: the block layer has no way to poll for a page cache fill.",
+      "source_hash": 1891262368103491853,
+      "context_hash": 2680115808469073740,
+      "translation": "버퍼드 파일에 대한 HIPRI는 거부됩니다. 블록 계층에는 페이지 캐시 채우기를 폴링할 방법이 없기 때문입니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:10:50.055348Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "How RWF_HIPRI becomes IOCB_HIPRI",
+      "source_hash": 14540735537992632908,
+      "context_hash": 2466357512053702963,
+      "translation": "RWF_HIPRI가 IOCB_HIPRI가 되는 과정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055349Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "The `RWF_*` flags passed to `preadv2()` and `pwritev2()` are copied directly into `IOCB_*` flags.",
+      "source_hash": 1667721134141083524,
+      "context_hash": 10074577320778042218,
+      "translation": "`preadv2()`와 `pwritev2()`에 전달된 `RWF_*` 플래그는 `IOCB_*` 플래그로 그대로 복사됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055349Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "The values are deliberately equal:",
+      "source_hash": 8596083968848432651,
+      "context_hash": 15973799609957967313,
+      "translation": "두 값은 의도적으로 같게 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:50.055349Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "At VFS entry:",
+      "source_hash": 9434623328248900087,
+      "context_hash": 15118990220502561087,
+      "translation": "VFS 진입 시점:",
+      "glossary_snapshot": {
+        "VFS": "VFS"
+      },
+      "translated_at": "2026-11-14T22:10:57.818031Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "HIPRI flows through to the bio",
+      "source_hash": 1437526496094795586,
+      "context_hash": 8192871599567670390,
+      "translation": "HIPRI가 bio까지 전달되는 과정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818031Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Once `IOCB_HIPRI` is set on the kiocb, it propagates to the bio and then to the block-layer request:",
+      "source_hash": 15634069001922110829,
+      "context_hash": 5096389879224214650,
+      "translation": "kiocb에 `IOCB_HIPRI`가 설정되면 이 플래그는 bio로, 이어서 블록 계층 request로 전파됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818031Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "In the block layer, a `REQ_POLLED` bio is steered to a **poll hardware queue** — a separate set of hardware queues (`HCTX_TYPE_POLL`) that have no interrupt assigned.",
+      "source_hash": 5978990106843906664,
+      "context_hash": 5271502965541856599,
+      "translation": "블록 계층에서 `REQ_POLLED` bio는 **폴링 하드웨어 큐**로 보내집니다. 이는 인터럽트가 할당되지 않은 별도의 하드웨어 큐 집합(`HCTX_TYPE_POLL`)입니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "hardware queue": "하드웨어 큐",
+        "hardware queues": "하드웨어 큐",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:57.818032Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "Drivers opt in by carving out some of their queues for polling: NVMe, for example, dedicates part of its queue pool to the poll map, controlled by the `nvme.poll_queues` module parameter.",
+      "source_hash": 12576903239985696120,
+      "context_hash": 14428223526479977139,
+      "translation": "드라이버는 자신의 큐 일부를 폴링용으로 떼어 두는 방식으로 이 기능을 선택적으로 사용합니다. 예를 들어 NVMe는 큐 풀의 일부를 폴링 맵에 할당하며, 이는 `nvme.poll_queues` 모듈 파라미터로 제어됩니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "drivers": "드라이버",
+        "module parameter": "모듈 파라미터",
+        "pool": "풀",
+        "queue": "큐",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818032Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:2",
+      "source": "The block layer maintains up to three per-device queue maps — `HCTX_TYPE_DEFAULT`, `HCTX_TYPE_READ`, and `HCTX_TYPE_POLL` — and a `REQ_POLLED` request is dispatched to the poll map.",
+      "source_hash": 12441543059146189012,
+      "context_hash": 7631436928172705801,
+      "translation": "블록 계층은 디바이스마다 최대 세 개의 큐 맵(`HCTX_TYPE_DEFAULT`, `HCTX_TYPE_READ`, `HCTX_TYPE_POLL`)을 유지하며, `REQ_POLLED` request는 폴링 맵으로 디스패치됩니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "device": "디바이스",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818032Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Keeping poll queues interrupt-free is what makes polling safe: because no interrupt handler ever touches a poll queue's completion ring, the polling thread can read and advance it without racing the IRQ path.",
+      "source_hash": 5734478459538349141,
+      "context_hash": 1879257623385884046,
+      "translation": "폴링 큐에 인터럽트를 두지 않는 것이 폴링을 안전하게 만드는 핵심입니다. 어떤 인터럽트 핸들러도 폴링 큐의 completion ring을 건드리지 않으므로, 폴링 스레드는 IRQ 경로와 경쟁하지 않고 이를 읽고 진행시킬 수 있습니다.",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "interrupt": "인터럽트",
+        "interrupt handler": "인터럽트 핸들러",
+        "queue": "큐",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818033Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:1",
+      "source": "If polled and non-polled I/O shared a queue, the poll loop and the interrupt handler could both try to reap the same completion.",
+      "source_hash": 12782467373973540529,
+      "context_hash": 5352694736736312660,
+      "translation": "폴링 I/O와 비폴링 I/O가 큐를 공유한다면, 폴링 루프와 인터럽트 핸들러가 동시에 같은 completion을 회수하려 할 수 있습니다.",
+      "glossary_snapshot": {
+        "interrupt handler": "인터럽트 핸들러",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The iopoll hook: filesystem-level polling",
+      "source_hash": 4194992898650904677,
+      "context_hash": 18051386884262673922,
+      "translation": "iopoll 훅: 파일 시스템 수준 폴링",
+      "glossary_snapshot": {
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T22:10:57.818033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`file_operations` has an `iopoll` method that io_uring calls to check for completions without going to sleep:",
+      "source_hash": 3017661617349491126,
+      "context_hash": 6381896554756433521,
+      "translation": "`file_operations`에는 io_uring이 잠들지 않고 completion을 확인하기 위해 호출하는 `iopoll` 메서드가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "iocb_bio_iopoll: the common implementation",
+      "source_hash": 5515996536420599609,
+      "context_hash": 16155921755009114812,
+      "translation": "iocb_bio_iopoll: 공통 구현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Both ext4 and XFS delegate to the iomap layer, which stores the bio pointer in `kiocb->private` at submission time:",
+      "source_hash": 7855214892106556769,
+      "context_hash": 7031192518730910677,
+      "translation": "ext4와 XFS는 모두 iomap 계층에 처리를 위임하며, iomap 계층은 제출 시점에 bio 포인터를 `kiocb->private`에 저장합니다:",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "The `bio_poll` function walks down to the block layer:",
+      "source_hash": 13940520048988281820,
+      "context_hash": 16462550130976163226,
+      "translation": "`bio_poll` 함수는 블록 계층으로 내려갑니다:",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "The `cookie` is the hardware-queue identifier recorded on the bio at submission time.",
+      "source_hash": 16081754998592972453,
+      "context_hash": 4492888356469469006,
+      "translation": "`cookie`는 제출 시점에 bio에 기록된 하드웨어 큐 식별자입니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "Since the `blk_qc_t` rework (5.16) it is simply the hardware queue number, so `blk_mq_poll()` can go straight to the right queue — and thus the right NVMe completion queue — to check for completions.",
+      "source_hash": 886828251412216136,
+      "context_hash": 2695607253697498207,
+      "translation": "`blk_qc_t` 재작업(5.16) 이후로 이 값은 단순히 하드웨어 큐 번호이므로, `blk_mq_poll()`은 completion을 확인하기 위해 올바른 큐, 즉 올바른 NVMe completion 큐로 곧바로 갈 수 있습니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "hardware queue": "하드웨어 큐",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "NVMe polling: reading the completion queue directly",
+      "source_hash": 12296680475482664919,
+      "context_hash": 15391346454133613233,
+      "translation": "NVMe 폴링: completion 큐를 직접 읽기",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "NVMe controllers use a pair of rings per queue: a submission queue (SQ) that the driver writes commands into, and a completion queue (CQ) that the controller writes completions into.",
+      "source_hash": 18356048968437131301,
+      "context_hash": 18059195790313313977,
+      "translation": "NVMe 컨트롤러는 큐마다 한 쌍의 링을 사용합니다. 드라이버가 명령을 기록하는 submission 큐(SQ)와 컨트롤러가 completion을 기록하는 completion 큐(CQ)입니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "controller": "컨트롤러",
+        "controllers": "컨트롤러",
+        "driver": "드라이버",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The driver detects new CQ entries by checking the **phase bit** — a single bit that the controller toggles on each pass through the ring.",
+      "source_hash": 16569043434251120215,
+      "context_hash": 8407861465241479679,
+      "translation": "드라이버는 **phase bit**를 확인하여 새 CQ 엔트리를 감지합니다. phase bit는 컨트롤러가 링을 한 바퀴 돌 때마다 토글하는 단일 비트입니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "controller": "컨트롤러",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`nvme_poll_cq` walks pending CQ entries, completes each request, and updates the head pointer.",
+      "source_hash": 7949723875804833577,
+      "context_hash": 16123483954826836171,
+      "translation": "`nvme_poll_cq`는 대기 중인 CQ 엔트리를 순회하면서 각 request를 완료하고 head 포인터를 갱신합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "The phase bit check is a single memory read — no MMIO, no PCI transaction.",
+      "source_hash": 10670003677540054351,
+      "context_hash": 9353433168894453491,
+      "translation": "phase bit 확인은 한 번의 메모리 읽기일 뿐이며, MMIO도 PCI 트랜잭션도 없습니다.",
+      "glossary_snapshot": {
+        "MMIO": "MMIO",
+        "PCI": "PCI",
+        "memory": "메모리",
+        "transaction": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "This is why polling is so fast: detecting completion is a load from a DMA-mapped memory region that the controller writes to.",
+      "source_hash": 6405640358557154470,
+      "context_hash": 9850216621808973693,
+      "translation": "폴링이 이처럼 빠른 이유가 여기에 있습니다. completion 감지는 컨트롤러가 기록하는 DMA 매핑 메모리 영역에서 값을 한 번 로드하는 것에 불과합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "controller": "컨트롤러",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Phase bit mechanics",
+      "source_hash": 14272975307585014810,
+      "context_hash": 6894109239343260529,
+      "translation": "phase bit 동작 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "On the interrupt path, the driver does the same `nvme_poll_cq()` work — but triggered by the interrupt handler (`nvme_irq()`) rather than the poll loop.",
+      "source_hash": 5749647626375739318,
+      "context_hash": 11471179505979760480,
+      "translation": "인터럽트 경로에서도 드라이버는 동일한 `nvme_poll_cq()` 작업을 수행하지만, 폴링 루프가 아니라 인터럽트 핸들러(`nvme_irq()`)에 의해 트리거됩니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "interrupt": "인터럽트",
+        "interrupt handler": "인터럽트 핸들러"
+      },
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "The code path from `nvme_poll_cq()` onward is shared.",
+      "source_hash": 14196645841961323741,
+      "context_hash": 11990153554751560238,
+      "translation": "`nvme_poll_cq()` 이후의 코드 경로는 공유됩니다.",
+      "glossary_snapshot": {
+        "code path": "코드 경로"
+      },
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "io_uring IOPOLL mode",
+      "source_hash": 12011973306602296129,
+      "context_hash": 1763512978893973993,
+      "translation": "io_uring IOPOLL 모드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "io_uring's `IORING_SETUP_IOPOLL` is the highest-performance polling interface.",
+      "source_hash": 14905435911223121011,
+      "context_hash": 3465891664871953507,
+      "translation": "io_uring의 `IORING_SETUP_IOPOLL`은 가장 높은 성능의 폴링 인터페이스입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "It combines:",
+      "source_hash": 13118512003722640541,
+      "context_hash": 13795006995220614069,
+      "translation": "이 모드는 다음을 결합합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Asynchronous submission (no per-I/O syscall overhead)",
+      "source_hash": 13377228091688590668,
+      "context_hash": 1883106879548868495,
+      "translation": "비동기 제출(I/O마다 발생하는 시스템 콜 오버헤드 없음)",
+      "glossary_snapshot": {
+        "overhead": "오버헤드",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:10:57.818035Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Kernel-side completion polling (no interrupt, no wakeup)",
+      "source_hash": 18353458167807269227,
+      "context_hash": 667658728512251284,
+      "translation": "커널 측 completion 폴링(인터럽트 없음, wakeup 없음)",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:10:57.818036Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Optional submission-side polling (`IORING_SETUP_SQPOLL`, described below)",
+      "source_hash": 487945963475825743,
+      "context_hash": 8590285648884073470,
+      "translation": "선택적 제출 측 폴링(`IORING_SETUP_SQPOLL`, 아래에서 설명)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818036Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "Setup",
+      "source_hash": 5203101709995346796,
+      "context_hash": 3185140188203490677,
+      "translation": "설정",
+      "glossary_snapshot": {
+        "Setup": "설정"
+      },
+      "translated_at": "2026-11-14T22:10:57.818036Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "Submission and completion",
+      "source_hash": 8907426238957216877,
+      "context_hash": 15452737725677412782,
+      "translation": "제출과 완료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:57.818036Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Inside io_do_iopoll()",
+      "source_hash": 13302041499661016506,
+      "context_hash": 13562213101102742481,
+      "translation": "io_do_iopoll() 내부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141033Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "When `io_uring_enter()` is called with `IORING_ENTER_GETEVENTS` on a IOPOLL ring, the kernel enters the poll loop:",
+      "source_hash": 12336846830242030260,
+      "context_hash": 3534214157219186685,
+      "translation": "IOPOLL 링에서 `IORING_ENTER_GETEVENTS`와 함께 `io_uring_enter()`가 호출되면 커널은 폴링 루프에 진입합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:10:55.141035Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "The loop iterates `ctx->iopoll_list`, calling each file's `iopoll` method, until all requested completions have arrived.",
+      "source_hash": 10115978873888502067,
+      "context_hash": 2013570689995678670,
+      "translation": "이 루프는 요청한 모든 완료가 도착할 때까지 `ctx->iopoll_list`를 순회하면서 각 파일의 `iopoll` 메서드를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141035Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:1",
+      "source": "The caller in `io_uring_enter()` repeats this until `min_complete` CQEs are available:",
+      "source_hash": 5611161555199002267,
+      "context_hash": 13062754565824784679,
+      "translation": "`io_uring_enter()` 안의 호출자는 `min_complete`개의 CQE를 사용할 수 있을 때까지 이 과정을 반복합니다:",
+      "glossary_snapshot": {
+        "CQEs": "CQE"
+      },
+      "translated_at": "2026-11-14T22:10:55.141036Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "Request lifecycle in IOPOLL mode",
+      "source_hash": 17150335061438516172,
+      "context_hash": 14269030381300765487,
+      "translation": "IOPOLL 모드에서의 요청 생명주기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141037Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "SQPOLL: kernel-side submission polling",
+      "source_hash": 9478523882412100188,
+      "context_hash": 12147928221896829872,
+      "translation": "SQPOLL: 커널 측 제출 폴링",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:10:55.141037Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "`IORING_SETUP_SQPOLL` is a companion feature to IOPOLL that eliminates the submission-side syscall.",
+      "source_hash": 16314911593178481648,
+      "context_hash": 13813016086273980996,
+      "translation": "`IORING_SETUP_SQPOLL`은 제출 측 시스템 콜을 없애 주는, IOPOLL과 함께 쓰이는 기능입니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:10:55.141037Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "With SQPOLL, a dedicated kernel thread polls the SQ ring:",
+      "source_hash": 13118460024003386612,
+      "context_hash": 8031486461468618964,
+      "translation": "SQPOLL을 사용하면 전용 커널 스레드가 SQ 링을 폴링합니다:",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T22:10:55.141039Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "The SQPOLL thread (`io_sq_thread()`) runs as a real-time kernel thread bound to a CPU:",
+      "source_hash": 11740763818489474141,
+      "context_hash": 8261897697026443454,
+      "translation": "SQPOLL 스레드(`io_sq_thread()`)는 특정 CPU에 바인딩된 실시간 커널 스레드로 실행됩니다:",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T22:10:55.141039Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "With both SQPOLL and IOPOLL enabled, the userspace application:",
+      "source_hash": 5370201920657744336,
+      "context_hash": 2060692538621773156,
+      "translation": "SQPOLL과 IOPOLL을 모두 활성화하면 사용자 공간 애플리케이션은 다음과 같이 동작합니다:",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:10:55.141039Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "Writes SQEs into the shared SQ ring (no syscall)",
+      "source_hash": 10451092488382433511,
+      "context_hash": 17427740105661016692,
+      "translation": "공유 SQ 링에 SQE를 기록합니다(시스템 콜 없음)",
+      "glossary_snapshot": {
+        "SQEs": "SQE",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:10:55.141040Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "The SQPOLL kernel thread picks them up and submits them",
+      "source_hash": 14834456447040853144,
+      "context_hash": 288969737906880355,
+      "translation": "SQPOLL 커널 스레드가 이를 가져가 제출합니다",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T22:10:55.141041Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Calls `io_uring_enter(IORING_ENTER_GETEVENTS)` to collect completions (one syscall for a batch of results)",
+      "source_hash": 3354459198942617982,
+      "context_hash": 4545311673552687474,
+      "translation": "완료를 수집하기 위해 `io_uring_enter(IORING_ENTER_GETEVENTS)`를 호출합니다(결과 묶음 하나당 시스템 콜 한 번)",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:10:55.141041Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Or reads CQEs directly from the CQ ring if `IORING_FEAT_NODROP` is set",
+      "source_hash": 15221874509849552602,
+      "context_hash": 2943937853949841572,
+      "translation": "또는 `IORING_FEAT_NODROP`이 설정되어 있으면 CQ 링에서 CQE를 직접 읽습니다",
+      "glossary_snapshot": {
+        "CQEs": "CQE"
+      },
+      "translated_at": "2026-11-14T22:10:55.141042Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "Requirements for SQPOLL + IOPOLL",
+      "source_hash": 55793473305334926,
+      "context_hash": 5693219345474984358,
+      "translation": "SQPOLL + IOPOLL의 요구 사항",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:10:55.141042Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "Requirement",
+      "source_hash": 16743769196725951264,
+      "context_hash": 7494411181235904480,
+      "translation": "요구 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141042Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "Reason",
+      "source_hash": 364383163992093991,
+      "context_hash": 6345587716618045930,
+      "translation": "이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141043Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "`O_DIRECT`",
+      "source_hash": 10915146256532967978,
+      "context_hash": 3655164020500153306,
+      "translation": "`O_DIRECT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141043Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "Buffered I/O has no poll hook",
+      "source_hash": 16035259421010713420,
+      "context_hash": 4664998663054986668,
+      "translation": "버퍼드 I/O에는 폴링 훅이 없음",
+      "glossary_snapshot": {
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T22:10:55.141043Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "NVMe (or similar) device",
+      "source_hash": 6193176804408366999,
+      "context_hash": 10281127726517398770,
+      "translation": "NVMe(또는 유사한) 디바이스",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:26:16.462115Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "Polling requires a `mq_ops->poll` implementation",
+      "source_hash": 7282541430261937086,
+      "context_hash": 14213996868814591154,
+      "translation": "폴링에는 `mq_ops->poll` 구현이 필요함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141043Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "Fixed buffers (`io_uring_register_buffers`)",
+      "source_hash": 12213697143741861756,
+      "context_hash": 12681555168331826083,
+      "translation": "고정 버퍼(`io_uring_register_buffers`)",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:10:55.141043Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:0",
+      "source": "Avoids per-I/O `get_user_pages` overhead",
+      "source_hash": 11562489879782883001,
+      "context_hash": 14320703339744295312,
+      "translation": "I/O마다 발생하는 `get_user_pages` 오버헤드 방지",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:10:55.141044Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:19/seg:0",
+      "source": "Fixed files (`io_uring_register_files`)",
+      "source_hash": 1040159200515374949,
+      "context_hash": 16398256521821137989,
+      "translation": "고정 파일(`io_uring_register_files`)",
+      "glossary_snapshot": {
+        "Fixed files": "고정 파일"
+      },
+      "translated_at": "2026-11-14T22:10:55.141044Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:20/seg:0",
+      "source": "Avoids per-I/O `fdget` overhead",
+      "source_hash": 3667979253264388552,
+      "context_hash": 9413205570957946801,
+      "translation": "I/O마다 발생하는 `fdget` 오버헤드 방지",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:10:55.141044Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:21/seg:0",
+      "source": "`CAP_SYS_NICE` or privileged process",
+      "source_hash": 8097291781021607851,
+      "context_hash": 3874509775442633115,
+      "translation": "`CAP_SYS_NICE` 또는 특권 프로세스",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:10:55.141044Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:22/seg:0",
+      "source": "SQPOLL thread needs elevated priority",
+      "source_hash": 6401477805939644824,
+      "context_hash": 10947960167360696863,
+      "translation": "SQPOLL 스레드에 높은 우선순위가 필요함",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:10:55.141044Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "IOCB_NOWAIT: fail fast instead of block",
+      "source_hash": 9994506477027257969,
+      "context_hash": 10521606889696892605,
+      "translation": "IOCB_NOWAIT: 블록하는 대신 빠르게 실패",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141044Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "`IOCB_NOWAIT` is conceptually different from `IOCB_HIPRI`.",
+      "source_hash": 11488565790190496845,
+      "context_hash": 5046215038403321074,
+      "translation": "`IOCB_NOWAIT`는 개념적으로 `IOCB_HIPRI`와 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141045Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "Rather than polling for completion, NOWAIT says: \"if this I/O would have to wait for any reason, return `-EAGAIN` immediately instead.\"",
+      "source_hash": 2146828886543429677,
+      "context_hash": 3309287729921260271,
+      "translation": "NOWAIT는 완료를 폴링하는 대신 \"이 I/O가 어떤 이유로든 기다려야 한다면, 대신 즉시 `-EAGAIN`을 반환하라\"고 지시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141045Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "What causes NOWAIT to return EAGAIN?",
+      "source_hash": 8765209610020630844,
+      "context_hash": 15274465681697496526,
+      "translation": "무엇이 NOWAIT가 EAGAIN을 반환하게 합니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141045Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "Any operation that would require the calling context to sleep triggers the NOWAIT fast-path:",
+      "source_hash": 3476849927079623888,
+      "context_hash": 16162625382838844788,
+      "translation": "호출 컨텍스트가 슬립해야 하는 모든 동작은 NOWAIT 빠른 경로를 트리거합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.141045Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "NOWAIT in io_uring's fast path",
+      "source_hash": 12121309703787701042,
+      "context_hash": 87416710614021617,
+      "translation": "io_uring 빠른 경로에서의 NOWAIT",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T22:10:55.435697Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "io_uring's performance depends heavily on NOWAIT.",
+      "source_hash": 10568872842319715318,
+      "context_hash": 8440512184835044434,
+      "translation": "io_uring의 성능은 NOWAIT에 크게 좌우됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435699Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:1",
+      "source": "Each read is first issued on the submitting task in non-blocking mode: on that initial issue io_uring sets `IOCB_NOWAIT`, so the filesystem returns `-EAGAIN` rather than sleeping.",
+      "source_hash": 13560811851202292823,
+      "context_hash": 3877800288932200306,
+      "translation": "각 read는 먼저 제출한 태스크에서 논블로킹 모드로 발행됩니다. 이 최초 발행 시 io_uring이 `IOCB_NOWAIT`를 설정하므로 파일시스템은 잠드는 대신 `-EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435699Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "The io-wq fallback is what gives io_uring the ability to handle any I/O, even when the fast path cannot complete it.",
+      "source_hash": 16870013053644681383,
+      "context_hash": 11145314580161711683,
+      "translation": "io_uring이 빠른 경로에서 완료할 수 없는 경우에도 모든 I/O를 처리할 수 있는 것은 io-wq 폴백 덕분입니다.",
+      "glossary_snapshot": {
+        "fallback": "폴백",
+        "fast path": "빠른 경로",
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:10:55.435699Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:1",
+      "source": "But the important metric is the hit rate: for an O_DIRECT workload on an NVMe device where the queue is rarely full, nearly 100% of operations complete on the fast path — no thread pool, no context switch.",
+      "source_hash": 4625496806026319118,
+      "context_hash": 1475197470713762646,
+      "translation": "그러나 중요한 지표는 적중률입니다. 큐가 가득 차는 일이 드문 NVMe 디바이스에서 O_DIRECT 워크로드를 실행하면 거의 100%의 작업이 빠른 경로에서 완료됩니다. 스레드 풀도, 컨텍스트 스위치도 없습니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "context switch": "컨텍스트 스위치",
+        "device": "디바이스",
+        "fast path": "빠른 경로",
+        "pool": "풀",
+        "queue": "큐",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T23:26:16.462116Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "NOWAIT support by filesystem and operation",
+      "source_hash": 7275063148763901342,
+      "context_hash": 17594080159004222255,
+      "translation": "파일시스템 및 연산별 NOWAIT 지원",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435701Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Not all I/O types support NOWAIT equally.",
+      "source_hash": 3003118045915916173,
+      "context_hash": 7968410550766050476,
+      "translation": "모든 I/O 유형이 NOWAIT를 동일하게 지원하지는 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435701Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "The support depends on what locks and resources the operation needs:",
+      "source_hash": 16869557492740641892,
+      "context_hash": 15841550394462759187,
+      "translation": "지원 여부는 연산에 필요한 락과 자원에 따라 달라집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435701Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "O_DIRECT I/O",
+      "source_hash": 10794448994017617529,
+      "context_hash": 1795656259699432202,
+      "translation": "O_DIRECT I/O",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435701Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "For O_DIRECT, the main failure modes are:",
+      "source_hash": 17438070733177966751,
+      "context_hash": 14971645939739365456,
+      "translation": "O_DIRECT의 주요 실패 양상은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "failure modes": "실패 양상"
+      },
+      "translated_at": "2026-11-14T23:26:16.462118Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "`i_rwsem` held exclusively (rare, only during truncate/fallocate)",
+      "source_hash": 8995859046824051327,
+      "context_hash": 285216605305630341,
+      "translation": "`i_rwsem`이 배타적으로 점유된 경우(드묾, truncate/fallocate 중에만 발생)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435702Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "NVMe queue full (rare at normal utilization)",
+      "source_hash": 17577062751404655889,
+      "context_hash": 15070509815920367075,
+      "translation": "NVMe 큐가 가득 찬 경우(일반적인 사용률에서는 드묾)",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:10:55.435702Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "Extent map not yet in memory (XFS: extent tree may need a read)",
+      "source_hash": 11881944141145068186,
+      "context_hash": 4670148007261930690,
+      "translation": "extent 맵이 아직 메모리에 없는 경우(XFS: extent 트리를 읽어야 할 수 있음)",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:10:55.435702Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "Buffered I/O",
+      "source_hash": 13163466105211024558,
+      "context_hash": 8341321406330676943,
+      "translation": "버퍼드 I/O",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435702Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "Buffered NOWAIT reads are useful for workloads with a hot working set: if the page is in cache (common case), the read completes without any syscall overhead.",
+      "source_hash": 7565325955055389309,
+      "context_hash": 9784606687627318751,
+      "translation": "버퍼드 NOWAIT read는 워킹 셋이 hot한 워크로드에 유용합니다. 페이지가 캐시에 있으면(일반적인 경우) read가 시스템 콜 오버헤드 없이 완료됩니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "overhead": "오버헤드",
+        "syscall": "시스템 콜",
+        "working set": "워킹 셋",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:10:55.435703Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:1",
+      "source": "On a cache miss, NOWAIT hands off to io-wq, which handles the disk read in the background.",
+      "source_hash": 1732893591664722537,
+      "context_hash": 4516309240987939203,
+      "translation": "캐시 미스가 발생하면 NOWAIT는 io-wq로 작업을 넘기고, io-wq가 백그라운드에서 디스크 read를 처리합니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:10:55.435703Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "Operation support matrix",
+      "source_hash": 15364874972758581769,
+      "context_hash": 12154285124588975918,
+      "translation": "연산 지원 매트릭스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435703Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:12/seg:0",
+      "source": "Filesystem",
+      "source_hash": 14295338766297243313,
+      "context_hash": 394674207931427669,
+      "translation": "파일시스템",
+      "glossary_snapshot": {
+        "Filesystem": "파일시스템"
+      },
+      "translated_at": "2026-11-14T22:10:55.435703Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:13/seg:0",
+      "source": "O_DIRECT read",
+      "source_hash": 17812616842584837344,
+      "context_hash": 17501388279917270673,
+      "translation": "O_DIRECT read",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:14/seg:0",
+      "source": "O_DIRECT write",
+      "source_hash": 5677890033173681587,
+      "context_hash": 5665705082869257125,
+      "translation": "O_DIRECT write",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:15/seg:0",
+      "source": "Buffered read",
+      "source_hash": 12029584478235612332,
+      "context_hash": 892235881365550726,
+      "translation": "버퍼드 read",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:16/seg:0",
+      "source": "Buffered write",
+      "source_hash": 1549654206690692037,
+      "context_hash": 16291996365729979257,
+      "translation": "버퍼드 write",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:17/seg:0",
+      "source": "ext4",
+      "source_hash": 1457863797989375694,
+      "context_hash": 16526685220965014468,
+      "translation": "ext4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:18/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 3006872708339604566,
+      "translation": "완전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:19/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 3424593936336327245,
+      "translation": "완전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:20/seg:0",
+      "source": "Partial",
+      "source_hash": 9435579083518573509,
+      "context_hash": 3424593936336327245,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partial": "부분적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462119Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:21/seg:0",
+      "source": "Partial",
+      "source_hash": 9435579083518573509,
+      "context_hash": 6592772540331669360,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partial": "부분적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462119Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:22/seg:0",
+      "source": "XFS",
+      "source_hash": 393193099852662371,
+      "context_hash": 12057800078192979789,
+      "translation": "XFS",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:23/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 15750466624193375172,
+      "translation": "완전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435704Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:24/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 3424593936336327245,
+      "translation": "완전",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.435705Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:25/seg:0",
+      "source": "Partial",
+      "source_hash": 9435579083518573509,
+      "context_hash": 3424593936336327245,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partial": "부분적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462119Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:26/seg:0",
+      "source": "Partial",
+      "source_hash": 9435579083518573509,
+      "context_hash": 16287468200117473344,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partial": "부분적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462119Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:27/seg:0",
+      "source": "btrfs",
+      "source_hash": 505738589335084390,
+      "context_hash": 12057800078192979789,
+      "translation": "btrfs",
+      "glossary_snapshot": {
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:10:55.900552Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:28/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 2912583983942563487,
+      "translation": "완전 지원",
+      "glossary_snapshot": {
+        "Full": "완전 지원"
+      },
+      "translated_at": "2026-11-14T22:10:55.900553Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:29/seg:0",
+      "source": "Partial",
+      "source_hash": 9435579083518573509,
+      "context_hash": 3424593936336327245,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partial": "부분적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462120Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:30/seg:0",
+      "source": "Partial",
+      "source_hash": 9435579083518573509,
+      "context_hash": 12165608016275823547,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partial": "부분적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462120Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:31/seg:0",
+      "source": "Limited",
+      "source_hash": 9197690265505381160,
+      "context_hash": 18184331155516569131,
+      "translation": "제한적",
+      "glossary_snapshot": {
+        "Limited": "제한적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462120Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:32/seg:0",
+      "source": "tmpfs",
+      "source_hash": 14028718306892500628,
+      "context_hash": 5620879832074637978,
+      "translation": "tmpfs",
+      "glossary_snapshot": {
+        "tmpfs": "tmpfs"
+      },
+      "translated_at": "2026-11-14T22:10:55.900553Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:33/seg:0",
+      "source": "N/A",
+      "source_hash": 1573616554690886611,
+      "context_hash": 17222097006234538667,
+      "translation": "N/A",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900553Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:34/seg:0",
+      "source": "N/A",
+      "source_hash": 1573616554690886611,
+      "context_hash": 12008828348853796519,
+      "translation": "N/A",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900553Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:35/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 12008828348853796519,
+      "translation": "완전 지원",
+      "glossary_snapshot": {
+        "Full": "완전 지원"
+      },
+      "translated_at": "2026-11-14T22:10:55.900553Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:36/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 2377992200938529831,
+      "translation": "완전 지원",
+      "glossary_snapshot": {
+        "Full": "완전 지원"
+      },
+      "translated_at": "2026-11-14T22:10:55.900553Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:37/seg:0",
+      "source": "nfs",
+      "source_hash": 7923344006006419290,
+      "context_hash": 15905631907679689753,
+      "translation": "nfs",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900553Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:38/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 3233166679519245099,
+      "translation": "완전 지원",
+      "glossary_snapshot": {
+        "Full": "완전 지원"
+      },
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:39/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 549065604117151299,
+      "translation": "완전 지원",
+      "glossary_snapshot": {
+        "Full": "완전 지원"
+      },
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:40/seg:0",
+      "source": "Limited",
+      "source_hash": 9197690265505381160,
+      "context_hash": 549065604117151299,
+      "translation": "제한적",
+      "glossary_snapshot": {
+        "Limited": "제한적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462120Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:41/seg:0",
+      "source": "Limited",
+      "source_hash": 9197690265505381160,
+      "context_hash": 1761886551783917331,
+      "translation": "제한적",
+      "glossary_snapshot": {
+        "Limited": "제한적"
+      },
+      "translated_at": "2026-11-14T23:26:16.462121Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:42/seg:0",
+      "source": "block dev",
+      "source_hash": 17080729064559585970,
+      "context_hash": 14788147991586785987,
+      "translation": "블록 디바이스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:43/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 2298711930765473591,
+      "translation": "완전 지원",
+      "glossary_snapshot": {
+        "Full": "완전 지원"
+      },
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:44/seg:0",
+      "source": "Full",
+      "source_hash": 1710898184436768892,
+      "context_hash": 4183393545151361449,
+      "translation": "완전 지원",
+      "glossary_snapshot": {
+        "Full": "완전 지원"
+      },
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:45/seg:0",
+      "source": "N/A",
+      "source_hash": 1573616554690886611,
+      "context_hash": 4183393545151361449,
+      "translation": "N/A",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:46/seg:0",
+      "source": "N/A",
+      "source_hash": 1573616554690886611,
+      "context_hash": 16487828796482001612,
+      "translation": "N/A",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:47/seg:0",
+      "source": "\"Partial\" means: succeeds when resources are uncontested (which is the common case for well-tuned workloads), but falls back to io-wq on contention. \"Limited\" means: falls back frequently because the filesystem's write path has structural blocking points.",
+      "source_hash": 1040059197131901676,
+      "context_hash": 16260040022030048909,
+      "translation": "\"부분 지원\"은 리소스 경합이 없을 때(잘 튜닝된 워크로드에서는 이것이 일반적인 경우입니다)에는 성공하지만, 경합이 발생하면 io-wq로 폴백한다는 뜻입니다. \"제한적 지원\"은 파일시스템의 쓰기 경로에 구조적인 블로킹 지점이 있어 자주 폴백한다는 뜻입니다.",
+      "glossary_snapshot": {
+        "contention": "경합",
+        "io-wq": "io-wq",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "HIPRI vs IOPOLL vs NOWAIT: comparison",
+      "source_hash": 6518554418489365085,
+      "context_hash": 16260713535647067870,
+      "translation": "HIPRI, IOPOLL, NOWAIT 비교",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "These three flags are often mentioned together but solve different problems:",
+      "source_hash": 18107841559350236648,
+      "context_hash": 14412627715815001546,
+      "translation": "이 세 플래그는 자주 함께 언급되지만 서로 다른 문제를 해결합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900554Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Feature",
+      "source_hash": 15829752412308606062,
+      "context_hash": 8537690726956429856,
+      "translation": "기능",
+      "glossary_snapshot": {
+        "Feature": "기능"
+      },
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "HIPRI / IOPOLL",
+      "source_hash": 3892344741891327052,
+      "context_hash": 1850605966606563457,
+      "translation": "HIPRI / IOPOLL",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "NOWAIT",
+      "source_hash": 12049633378549504716,
+      "context_hash": 769705900049796680,
+      "translation": "NOWAIT",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "What it does",
+      "source_hash": 13594834282886189535,
+      "context_hash": 13037652436394880220,
+      "translation": "역할",
+      "glossary_snapshot": {
+        "What It Does": "역할"
+      },
+      "translated_at": "2026-11-14T23:26:16.462121Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "Polls NVMe CQ instead of sleeping on IRQ",
+      "source_hash": 17624586393370296298,
+      "context_hash": 16424732859319546927,
+      "translation": "IRQ를 기다리며 잠드는 대신 NVMe CQ를 폴링",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "Returns EAGAIN instead of sleeping",
+      "source_hash": 9454982001302339221,
+      "context_hash": 869135469592035253,
+      "translation": "잠드는 대신 EAGAIN을 반환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "Mechanism",
+      "source_hash": 559233746687605355,
+      "context_hash": 5988024377349787650,
+      "translation": "메커니즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "Busy-wait loop in kernel",
+      "source_hash": 2397434200753142865,
+      "context_hash": 15678851629599281959,
+      "translation": "커널 내 busy-wait 루프",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Trylock / non-blocking allocation",
+      "source_hash": 1174912711012658698,
+      "context_hash": 5217130502815913741,
+      "translation": "Trylock / 논블로킹 할당",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:55.900555Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "CPU cost",
+      "source_hash": 8111666905180014196,
+      "context_hash": 5477416653500411350,
+      "translation": "CPU 비용",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:10:59.177506Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "High — one core occupied while waiting",
+      "source_hash": 2881403823978183291,
+      "context_hash": 14550721280011822909,
+      "translation": "높음 — 대기하는 동안 코어 하나를 점유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177506Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "Low — just changes error handling",
+      "source_hash": 5880182860911165519,
+      "context_hash": 3355212106271276985,
+      "translation": "낮음 — 오류 처리 방식만 변경",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177507Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "Latency benefit",
+      "source_hash": 2991009226764543139,
+      "context_hash": 10951285728632739753,
+      "translation": "지연 시간 이점",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:10:59.177507Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "Eliminates IRQ delivery + wakeup (~5–15µs)",
+      "source_hash": 15002842084607221555,
+      "context_hash": 13986287204709743780,
+      "translation": "IRQ 전달 + wakeup 제거 (~5–15µs)",
+      "glossary_snapshot": {
+        "IRQ": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:10:59.177507Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:16/seg:0",
+      "source": "Eliminates thread context switch (~2–5µs)",
+      "source_hash": 15859535570628257586,
+      "context_hash": 17963394661851229769,
+      "translation": "스레드 컨텍스트 스위치 제거 (~2–5µs)",
+      "glossary_snapshot": {
+        "context switch": "컨텍스트 스위치"
+      },
+      "translated_at": "2026-11-14T22:10:59.177507Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:17/seg:0",
+      "source": "Works with",
+      "source_hash": 10467869915914359102,
+      "context_hash": 5977854519750796315,
+      "translation": "적용 대상",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:18/seg:0",
+      "source": "O_DIRECT only",
+      "source_hash": 1365894084676590256,
+      "context_hash": 3053693846539060121,
+      "translation": "O_DIRECT 전용",
+      "glossary_snapshot": {
+        "O_DIRECT only": "O_DIRECT 전용"
+      },
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:19/seg:0",
+      "source": "Buffered I/O and O_DIRECT",
+      "source_hash": 9290928325348091784,
+      "context_hash": 16000943285218572807,
+      "translation": "Buffered I/O 및 O_DIRECT",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:20/seg:0",
+      "source": "Fallback behavior",
+      "source_hash": 2270012000568998591,
+      "context_hash": 10192208917159684133,
+      "translation": "폴백 동작",
+      "glossary_snapshot": {
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:21/seg:0",
+      "source": "None — caller gets result or waits",
+      "source_hash": 7506130343895794643,
+      "context_hash": 3632572132805644664,
+      "translation": "없음 — 호출자가 결과를 받거나 대기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:22/seg:0",
+      "source": "io_uring falls back to io-wq thread",
+      "source_hash": 12539262029015506782,
+      "context_hash": 12289546146949483056,
+      "translation": "io_uring이 io-wq 스레드로 폴백",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:23/seg:0",
+      "source": "Best for",
+      "source_hash": 1230420313693226663,
+      "context_hash": 2988028887952075470,
+      "translation": "적합한 용도",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:24/seg:0",
+      "source": "Consistent low p99 on NVMe",
+      "source_hash": 6201645816846017787,
+      "context_hash": 15785745587862092902,
+      "translation": "NVMe에서 일관되게 낮은 p99",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:25/seg:0",
+      "source": "High concurrency, mixed workloads",
+      "source_hash": 5007990408486824143,
+      "context_hash": 16121636079541200713,
+      "translation": "높은 동시성, 혼합 워크로드",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:26/seg:0",
+      "source": "Requires dedicated hardware queue",
+      "source_hash": 7623245225693374721,
+      "context_hash": 1278499627141409292,
+      "translation": "전용 하드웨어 큐 필요 여부",
+      "glossary_snapshot": {
+        "hardware queue": "하드웨어 큐"
+      },
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:27/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 5616672150699600230,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:10:59.177508Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:28/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 240497448084914920,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:10:59.177509Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:29/seg:0",
+      "source": "Requires kernel IOPOLL support in driver",
+      "source_hash": 5104664637246828465,
+      "context_hash": 14100361020764552784,
+      "translation": "드라이버의 커널 IOPOLL 지원 필요 여부",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:10:59.177509Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:30/seg:0",
+      "source": "Yes (nvme, io_uring, virtio-blk)",
+      "source_hash": 18131118391060705468,
+      "context_hash": 18019483601384623790,
+      "translation": "예 (nvme, io_uring, virtio-blk)",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "virtio": "virtio"
+      },
+      "translated_at": "2026-11-14T22:10:59.177509Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:31/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 2691991055351127744,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:10:59.177509Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:32/seg:0",
+      "source": "Combined with io_uring",
+      "source_hash": 3697801426616657610,
+      "context_hash": 14671650840443608534,
+      "translation": "io_uring과 함께 사용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:33/seg:0",
+      "source": "`IORING_SETUP_IOPOLL`",
+      "source_hash": 16320723313893248229,
+      "context_hash": 4583426937183392828,
+      "translation": "`IORING_SETUP_IOPOLL`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:34/seg:0",
+      "source": "Default behavior, no flag needed",
+      "source_hash": 2702927753178894432,
+      "context_hash": 18298040018513600095,
+      "translation": "기본 동작, 플래그 불필요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:35/seg:0",
+      "source": "Choosing the right mode",
+      "source_hash": 1862836857843338939,
+      "context_hash": 6000103607858501503,
+      "translation": "적절한 모드 선택",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Measuring poll effectiveness",
+      "source_hash": 6770735267376104951,
+      "context_hash": 16844640990109317438,
+      "translation": "폴링 효과 측정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "Check that the NVMe driver supports polling",
+      "source_hash": 7421410233684747595,
+      "context_hash": 5796920173567915935,
+      "translation": "NVMe 드라이버의 폴링 지원 여부 확인",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "fio benchmark: interrupt vs poll",
+      "source_hash": 1548786457042324569,
+      "context_hash": 13513909077023530235,
+      "translation": "fio 벤치마크: 인터럽트 대 폴링",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "bpftrace: count interrupt vs poll completions",
+      "source_hash": 8324156222151463157,
+      "context_hash": 17876512304629959645,
+      "translation": "bpftrace: 인터럽트 완료와 폴링 완료 횟수 집계",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:10:59.177510Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "perf: NVMe interrupt rate",
+      "source_hash": 3374984563664805629,
+      "context_hash": 10725733887035631388,
+      "translation": "perf: NVMe 인터럽트 발생률",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "interrupt": "인터럽트",
+        "perf": "perf"
+      },
+      "translated_at": "2026-11-14T22:10:59.177511Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "io_uring statistics",
+      "source_hash": 5127505934865726251,
+      "context_hash": 7738886582172885068,
+      "translation": "io_uring 통계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177511Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "Verifying NOWAIT hit rate",
+      "source_hash": 2694856978531996618,
+      "context_hash": 2815560314623400021,
+      "translation": "NOWAIT 적중률 확인",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:10:59.177511Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Key source files",
+      "source_hash": 11048178491662595550,
+      "context_hash": 15515033832508436981,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T21:49:18.851108Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 12499940865558542434,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T21:49:18.851109Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "Contents",
+      "source_hash": 10242441547106091136,
+      "context_hash": 9583198008422014935,
+      "translation": "내용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851109Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "`include/linux/fs.h`",
+      "source_hash": 11366291457846241831,
+      "context_hash": 8637915940163164270,
+      "translation": "`include/linux/fs.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851109Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "`IOCB_HIPRI`, `IOCB_NOWAIT`, `struct kiocb`, `file_operations.iopoll`",
+      "source_hash": 1142734468014315863,
+      "context_hash": 7032146356067028288,
+      "translation": "`IOCB_HIPRI`, `IOCB_NOWAIT`, `struct kiocb`, `file_operations.iopoll`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851109Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "`include/uapi/linux/fs.h`",
+      "source_hash": 17368848939257249312,
+      "context_hash": 2812539796845937187,
+      "translation": "`include/uapi/linux/fs.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851110Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "`RWF_HIPRI`, `RWF_NOWAIT` (userspace-visible flags)",
+      "source_hash": 8828964175934392067,
+      "context_hash": 5235105717628156713,
+      "translation": "`RWF_HIPRI`, `RWF_NOWAIT`(사용자 공간에 노출되는 플래그)",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T21:49:18.851110Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "`include/uapi/linux/io_uring.h`",
+      "source_hash": 4167723071508632354,
+      "context_hash": 3256368317333057971,
+      "translation": "`include/uapi/linux/io_uring.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851110Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "`IORING_SETUP_IOPOLL`, `IORING_SETUP_SQPOLL`",
+      "source_hash": 10069654528723176737,
+      "context_hash": 14436525899747226076,
+      "translation": "`IORING_SETUP_IOPOLL`, `IORING_SETUP_SQPOLL`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "`fs/read_write.c`",
+      "source_hash": 2500510365210277400,
+      "context_hash": 14196747868572432653,
+      "translation": "`fs/read_write.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "`kiocb_set_rw_flags()`, `do_iter_readv_writev()`",
+      "source_hash": 10922064005133358819,
+      "context_hash": 12306803287183571636,
+      "translation": "`kiocb_set_rw_flags()`, `do_iter_readv_writev()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "`fs/iomap/direct-io.c`",
+      "source_hash": 13827537673530577531,
+      "context_hash": 15630904136199616858,
+      "translation": "`fs/iomap/direct-io.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "`iomap_dio_rw()`, `iocb_bio_iopoll()`, bio submission with `REQ_HIPRI`",
+      "source_hash": 13066111556562866091,
+      "context_hash": 16878209668634080423,
+      "translation": "`iomap_dio_rw()`, `iocb_bio_iopoll()`, `REQ_HIPRI`를 사용한 bio 제출",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "`block/bio.c`",
+      "source_hash": 1028203763632952178,
+      "context_hash": 13178597097270828410,
+      "translation": "`block/bio.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "`bio_poll()`",
+      "source_hash": 14003793556090690941,
+      "context_hash": 12790234604916553342,
+      "translation": "`bio_poll()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "`block/blk-mq.c`",
+      "source_hash": 17659682137136931246,
+      "context_hash": 8887457065486510960,
+      "translation": "`block/blk-mq.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "HIPRI request allocation, poll queue management",
+      "source_hash": 3746738253642648430,
+      "context_hash": 5501323525510961713,
+      "translation": "HIPRI 요청 할당, poll 큐 관리",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "`drivers/nvme/host/pci.c`",
+      "source_hash": 9266042402444025108,
+      "context_hash": 2553063901695545875,
+      "translation": "`drivers/nvme/host/pci.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851111Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:18/seg:0",
+      "source": "`nvme_poll()`, `nvme_cqe_pending()`, phase bit check",
+      "source_hash": 14527587844318957546,
+      "context_hash": 3811041201574797908,
+      "translation": "`nvme_poll()`, `nvme_cqe_pending()`, phase 비트 검사",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:49:18.851112Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:19/seg:0",
+      "source": "`io_uring/io_uring.c`",
+      "source_hash": 8244946503107112253,
+      "context_hash": 11818122358403721068,
+      "translation": "`io_uring/io_uring.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851112Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:20/seg:0",
+      "source": "`io_do_iopoll()`, `io_iopoll_check()`",
+      "source_hash": 6324634482990237369,
+      "context_hash": 3810664938846787446,
+      "translation": "`io_do_iopoll()`, `io_iopoll_check()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851112Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:21/seg:0",
+      "source": "`io_uring/rw.c`",
+      "source_hash": 3372980552076458296,
+      "context_hash": 7747396952355155055,
+      "translation": "`io_uring/rw.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851112Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:22/seg:0",
+      "source": "`io_read()`, `io_write()`, NOWAIT fast path and io-wq fallback",
+      "source_hash": 9367654347681160517,
+      "context_hash": 14868338858688559951,
+      "translation": "`io_read()`, `io_write()`, NOWAIT 빠른 경로와 io-wq 폴백",
+      "glossary_snapshot": {
+        "fallback": "폴백",
+        "fast path": "빠른 경로",
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T21:49:18.851112Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:23/seg:0",
+      "source": "`io_uring/sqpoll.c`",
+      "source_hash": 9229758975198953456,
+      "context_hash": 14243605092912041265,
+      "translation": "`io_uring/sqpoll.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851113Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:24/seg:0",
+      "source": "`io_sq_thread()`, SQPOLL kernel thread",
+      "source_hash": 12257021899011283579,
+      "context_hash": 15980750795972317979,
+      "translation": "`io_sq_thread()`, SQPOLL 커널 스레드",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T21:49:18.851113Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 5338640474896190658,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:49:18.851113Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "[Direct I/O](direct-io.md) — O_DIRECT requirement for HIPRI/IOPOLL",
+      "source_hash": 7012560782727477874,
+      "context_hash": 7026210228930825950,
+      "translation": "[Direct I/O](direct-io.md) — HIPRI/IOPOLL의 O_DIRECT 요구 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851113Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[Async I/O Evolution](async-io.md) — io_uring architecture and SQE/CQE model",
+      "source_hash": 16632872534047239377,
+      "context_hash": 10824611392073102576,
+      "translation": "[Async I/O Evolution](async-io.md) — io_uring 아키텍처와 SQE/CQE 모델",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T21:49:18.851113Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[Tuning storage](tuning-storage.md) — practical fio and io_uring performance tuning",
+      "source_hash": 5276406802188153355,
+      "context_hash": 15520186068703531957,
+      "translation": "[Tuning storage](tuning-storage.md) — fio와 io_uring을 활용한 실전 성능 튜닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851114Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "`Documentation/block/blk-mq.rst` — block multiqueue architecture",
+      "source_hash": 5152940576645586729,
+      "context_hash": 1321432638058588364,
+      "translation": "`Documentation/block/blk-mq.rst` — 블록 멀티큐 아키텍처",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851114Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "`Documentation/admin-guide/iostats.rst` — interpreting `/proc/diskstats`",
+      "source_hash": 1147163639461644408,
+      "context_hash": 11519148408691963023,
+      "translation": "`Documentation/admin-guide/iostats.rst` — `/proc/diskstats` 해석",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:18.851114Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "NVMe specification §4.6 — Completion Queue entry format and phase bit semantics",
+      "source_hash": 4693806930910283390,
+      "context_hash": 32886862279113467,
+      "translation": "NVMe 명세 §4.6 — Completion Queue(완료 큐) 엔트리 형식과 phase bit 의미론",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:26:16.462121Z",
+      "issues": []
+    }
+  ]
+}

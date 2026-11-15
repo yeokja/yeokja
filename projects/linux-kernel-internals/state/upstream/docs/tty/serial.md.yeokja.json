@@ -1,0 +1,1930 @@
+{
+  "version": 1,
+  "source_hash": 10870350634244873057,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Serial Core: One Abstraction Over Every UART",
+      "source_hash": 12343279261761458706,
+      "context_hash": 1070950105640845198,
+      "translation": "Serial Core: 모든 UART를 아우르는 하나의 추상화",
+      "glossary_snapshot": {
+        "UART": "UART"
+      },
+      "translated_at": "2026-11-14T22:45:06.294347Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "`drivers/tty/serial/serial_core.c` is the layer that lets a 16550 register set descended from the early-1980s 8250 and a modern SoC's memory-mapped UART both show up as `/dev/ttyS0`",
+      "source_hash": 11591823056708993268,
+      "context_hash": 11545926599508995814,
+      "translation": "`drivers/tty/serial/serial_core.c`는 1980년대 초 8250에서 이어져 온 16550 레지스터 세트와 최신 SoC의 메모리 맵 UART가 모두 `/dev/ttyS0`으로 나타나게 해 주는 계층입니다",
+      "glossary_snapshot": {
+        "SoC": "SoC",
+        "UART": "UART",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:45:06.294349Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem: a UART is not a UART",
+      "source_hash": 4835204776151825356,
+      "context_hash": 561825508702950086,
+      "translation": "문제: UART라고 다 같은 UART가 아님",
+      "glossary_snapshot": {
+        "UART": "UART"
+      },
+      "translated_at": "2026-11-14T22:45:06.294349Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Every UART chip moves bytes over a wire one bit at a time, but \"every UART\" is not one chip — it's a sprawl of them.",
+      "source_hash": 15589528203414869109,
+      "context_hash": 14725251811459665665,
+      "translation": "모든 UART 칩은 선을 통해 바이트를 한 번에 한 비트씩 전송하지만, \"모든 UART\"는 하나의 칩이 아니라 무질서하게 퍼져 있는 수많은 칩입니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "bit": "비트",
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:45:06.294350Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The venerable 8250/16550 family (and its many register-compatible descendants) is still the most common thing to find behind a PC-style serial port or a PCIe multiport card.",
+      "source_hash": 6311723562386372792,
+      "context_hash": 18370452419932954416,
+      "translation": "오랜 역사를 가진 8250/16550 계열(그리고 레지스터 호환되는 수많은 후속 칩)은 여전히 PC 방식의 시리얼 포트나 PCIe 멀티포트 카드 뒤에서 가장 흔히 찾아볼 수 있는 칩입니다.",
+      "glossary_snapshot": {
+        "PCIe": "PCIe"
+      },
+      "translated_at": "2026-11-14T22:45:06.294350Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "But almost every SoC vendor also ships its own UART IP block: Broadcom's, Freescale/NXP's `lpuart`, Qualcomm's `msm_serial`/`geni`, Samsung's, ARM's PL011, Xilinx's `uartlite`, and dozens more, each with its own register layout, its own FIFO depth, its own quirks for how modem control lines are wired (or not wired at all, on something with no RS-232 signaling at all). `drivers/tty/serial/` currently holds on the order of 70 individual per-chip driver source files (not counting the shared core files or the further ~45 files under `drivers/tty/serial/8250/` for 8250-family variants and add-in cards) for exactly this reason.",
+      "source_hash": 16087810611671807508,
+      "context_hash": 11507736276174033224,
+      "translation": "그러나 거의 모든 SoC 벤더 역시 자체 UART IP 블록을 제공합니다. Broadcom의 것, Freescale/NXP의 `lpuart`, Qualcomm의 `msm_serial`/`geni`, Samsung의 것, ARM의 PL011, Xilinx의 `uartlite` 외에도 수십 가지가 있으며, 각각 고유한 레지스터 배치, 고유한 FIFO 깊이, 그리고 모뎀 제어 라인의 배선 방식(RS-232 신호가 아예 없는 장치에서는 전혀 배선되지 않음)에 관한 고유한 특이 사항을 가지고 있습니다. 바로 이 때문에 `drivers/tty/serial/`에는 현재 칩별 드라이버 소스 파일이 약 70개 있습니다(공유 core 파일이나, 8250 계열 변형과 추가 카드용으로 `drivers/tty/serial/8250/` 아래에 있는 약 45개 파일은 별도입니다).",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "SoC": "SoC",
+        "Source Files": "소스 파일",
+        "UART": "UART",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:06.294351Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "None of that variety should be the generic TTY layer's problem. `drivers/tty/tty_io.c` and friends know about line disciplines, `termios`, job control, `/dev/ttyS0` as a character device — concepts that apply identically whether the bytes underneath came off an 8250 or a Bluetooth RFCOMM channel or a virtual console.",
+      "source_hash": 6490442144142078157,
+      "context_hash": 15222768065174265817,
+      "translation": "이러한 다양성은 어느 것도 범용 TTY 계층이 떠안을 문제가 아니어야 합니다. `drivers/tty/tty_io.c`와 관련 파일들은 라인 디시플린, `termios`, 작업 제어(job control), 문자 디바이스로서의 `/dev/ttyS0` 같은 개념을 다루는데, 이 개념들은 그 아래의 바이트가 8250에서 왔든, Bluetooth RFCOMM 채널에서 왔든, 가상 콘솔에서 왔든 똑같이 적용됩니다.",
+      "glossary_snapshot": {
+        "Line Disciplines": "라인 디시플린",
+        "bytes": "바이트",
+        "console": "콘솔",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:36:51.451599Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "What the TTY layer should not have to know is how to twiddle an `IER` register or decode a chip-specific FIFO-trigger-level encoding.",
+      "source_hash": 13627967261699686650,
+      "context_hash": 2160868792779932836,
+      "translation": "TTY 계층이 알 필요가 없어야 하는 것은 `IER` 레지스터를 조작하는 방법이나 칩별 FIFO 트리거 레벨 인코딩을 해석하는 방법입니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO"
+      },
+      "translated_at": "2026-11-14T22:45:06.294351Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "`serial_core.c` is the layer in between.",
+      "source_hash": 5745198674254414126,
+      "context_hash": 18317483606345037390,
+      "translation": "`serial_core.c`는 그 사이에 있는 계층입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:06.294351Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "It defines one hardware-facing contract — `struct uart_ops`, a table of callbacks every UART driver fills in — and one registration model — `struct uart_driver` for a chip family, `struct uart_port` for one physical instance of it.",
+      "source_hash": 8174610310027097839,
+      "context_hash": 14944151354712489388,
+      "translation": "이 계층은 하드웨어를 향한 하나의 계약, 즉 모든 UART 드라이버가 채워 넣는 콜백 테이블인 `struct uart_ops`와, 하나의 등록 모델, 즉 칩 계열을 나타내는 `struct uart_driver`와 그 칩의 물리적 인스턴스 하나를 나타내는 `struct uart_port`를 정의합니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "callbacks": "콜백",
+        "driver": "드라이버",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:06.294352Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "Every one of those 70-odd drivers implements the same handful of callbacks; `serial_core.c` is what turns those callbacks into a generic `tty_operations` table the TTY core drives, and turns TTY-core calls (open, write, set_termios, ioctl) into the right `uart_ops` callback on the right port.",
+      "source_hash": 8649212893976540023,
+      "context_hash": 11252738478241448791,
+      "translation": "약 70개의 드라이버는 모두 동일한 소수의 콜백을 구현하며, `serial_core.c`는 이 콜백들을 TTY core가 구동하는 범용 `tty_operations` 테이블로 바꾸고, TTY core 호출(open, write, set_termios, ioctl)을 올바른 포트의 올바른 `uart_ops` 콜백으로 바꾸어 주는 역할을 합니다.",
+      "glossary_snapshot": {
+        "callback": "콜백",
+        "callbacks": "콜백",
+        "drivers": "드라이버",
+        "ioctl": "ioctl"
+      },
+      "translated_at": "2026-11-14T22:45:06.294352Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:3",
+      "source": "A driver author who implements `.startup`, `.shutdown`, `.set_termios`, `.start_tx`, and a small handful of others gets `/dev/ttyS*` for free — line discipline handling, `termios` negotiation, `poll()`, `TIOCM*` modem-control ioctls, magic SysRq, kernel console support, all of it, without writing a line of TTY-layer code.",
+      "source_hash": 14527925602923546696,
+      "context_hash": 3244179362026844089,
+      "translation": "`.startup`, `.shutdown`, `.set_termios`, `.start_tx`와 그 밖의 몇 가지 콜백만 구현하는 드라이버 작성자는 `/dev/ttyS*`를 공짜로 얻습니다. 라인 디시플린 처리, `termios` 협상, `poll()`, `TIOCM*` 모뎀 제어 ioctl, magic SysRq, 커널 콘솔 지원까지 모두를 TTY 계층 코드는 한 줄도 작성하지 않고 얻습니다.",
+      "glossary_snapshot": {
+        "console": "콘솔",
+        "ioctls": "ioctl",
+        "line discipline": "라인 디시플린"
+      },
+      "translated_at": "2026-11-14T23:36:51.451601Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Core structures",
+      "source_hash": 14133343061242954334,
+      "context_hash": 14289874644042575167,
+      "translation": "핵심 구조체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:06.294353Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "`struct uart_ops`: the hardware contract",
+      "source_hash": 17316062197533362424,
+      "context_hash": 4475625034588230591,
+      "translation": "`struct uart_ops`: 하드웨어 계약",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:06.294353Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "`struct uart_ops` (`include/linux/serial_core.h`) is the vtable every UART driver builds and hands to `serial_core` via `uart_port.ops`.",
+      "source_hash": 14179789398530973066,
+      "context_hash": 14462649197579596695,
+      "translation": "`struct uart_ops`(`include/linux/serial_core.h`)는 모든 UART 드라이버가 구성하여 `uart_port.ops`를 통해 `serial_core`에 넘겨주는 vtable입니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:06.294353Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "It is the entire surface a driver has to implement to plug into the generic layer:",
+      "source_hash": 6407769320421990626,
+      "context_hash": 9001778886154453702,
+      "translation": "이것이 드라이버가 범용 계층에 연결되기 위해 구현해야 하는 인터페이스 전체입니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:06.294354Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "A few of these carry almost all of the day-to-day weight:",
+      "source_hash": 17681984669798586242,
+      "context_hash": 6484590722143105982,
+      "translation": "이 중 몇 가지가 일상적인 작업의 거의 전부를 담당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:06.294354Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "**`.startup`/`.shutdown`** — called when the port's first `open()` and last `close()` happen: request the IRQ, reset and enable the hardware FIFOs, program the interrupt-enable register; and undo all of that.",
+      "source_hash": 625348609272920249,
+      "context_hash": 7606356792224426982,
+      "translation": "**`.startup`/`.shutdown`** — 포트에 대한 첫 번째 `open()`과 마지막 `close()`가 일어날 때 호출됩니다. IRQ를 요청하고, 하드웨어 FIFO를 초기화하여 활성화하고, 인터럽트 활성화 레지스터를 설정하며, 반대로 이 모든 작업을 되돌립니다.",
+      "glossary_snapshot": {
+        "FIFOs": "FIFO",
+        "IRQ": "IRQ",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:45:06.294354Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "**`.set_termios`** — called whenever userspace changes baud rate, parity, stop bits, or flow control (`stty`, or a `termios` struct passed to `tcsetattr()`).",
+      "source_hash": 12751587183082685800,
+      "context_hash": 14860339070813601653,
+      "translation": "**`.set_termios`** — 사용자 공간이 보율(baud rate), 패리티, 정지 비트 또는 흐름 제어를 변경할 때마다(`stty`, 또는 `tcsetattr()`에 전달된 `termios` 구조체) 호출됩니다.",
+      "glossary_snapshot": {
+        "bits": "비트",
+        "struct": "구조체",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:45:06.294355Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "This is where a driver computes and programs a baud-rate divisor.",
+      "source_hash": 12490706137394164986,
+      "context_hash": 10694352745729852831,
+      "translation": "드라이버가 보율 분주값(divisor)을 계산하고 설정하는 곳이 바로 여기입니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:06.294355Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "**`.start_tx`/`.stop_tx`** — start or stop the transmit side.",
+      "source_hash": 1735120979261747462,
+      "context_hash": 3666634361641777591,
+      "translation": "**`.start_tx`/`.stop_tx`** — 송신 측을 시작하거나 중지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:06.294355Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "For an interrupt-driven driver, `.start_tx` typically just unmasks the \"THR empty\" interrupt and lets the interrupt handler feed the FIFO; `.stop_tx` masks it back off.",
+      "source_hash": 3773116593228412936,
+      "context_hash": 8504154830576771097,
+      "translation": "인터럽트 구동 드라이버에서 `.start_tx`는 보통 \"THR empty\" 인터럽트의 마스크를 해제하고 인터럽트 핸들러가 FIFO를 채우도록 맡기기만 하며, `.stop_tx`는 다시 마스크합니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "driver": "드라이버",
+        "interrupt": "인터럽트",
+        "interrupt handler": "인터럽트 핸들러"
+      },
+      "translated_at": "2026-11-14T22:45:06.294355Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "**`.stop_rx`** — stop delivering received data upward (used for `!CREAD` and for throttling).",
+      "source_hash": 9188751914707937627,
+      "context_hash": 14147877738230728064,
+      "translation": "**`.stop_rx`** — 수신한 데이터를 상위로 전달하는 것을 중단합니다(`!CREAD`와 스로틀링에 사용됩니다).",
+      "glossary_snapshot": {
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T23:36:51.451601Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "**`.set_mctrl`/`.get_mctrl`** — program and read back the modem control lines (RTS, DTR) and status lines (CTS, DSR, DCD, RI), each as `TIOCM_*` bits.",
+      "source_hash": 15170323980395331606,
+      "context_hash": 6419420152506801864,
+      "translation": "**`.set_mctrl`/`.get_mctrl`** — 모뎀 제어 라인(RTS, DTR)을 설정하고 상태 라인(CTS, DSR, DCD, RI)을 읽어 오며, 각각을 `TIOCM_*` 비트로 나타냅니다.",
+      "glossary_snapshot": {
+        "bits": "비트"
+      },
+      "translated_at": "2026-11-14T22:45:06.294356Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "**`.tx_empty`** — report whether the transmit path (FIFO plus shift register) has fully drained; backs `TIOCSER_TEMT`/`tcdrain()`.",
+      "source_hash": 9223152724056243467,
+      "context_hash": 10619055011175325840,
+      "translation": "**`.tx_empty`** — 송신 경로(FIFO와 시프트 레지스터)가 완전히 비워졌는지 보고하며, `TIOCSER_TEMT`/`tcdrain()`의 기반이 됩니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO"
+      },
+      "translated_at": "2026-11-14T22:45:06.294356Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "**`.type`/`.request_port`/`.release_port`/`.config_port`/`.verify_port`** — the `setserial`-era port-configuration and autodetection machinery: report a human-readable chip name, claim/release the I/O or MMIO region, autoprobe the exact chip variant, and validate a user-requested `struct serial_struct` change.",
+      "source_hash": 8992114536655401989,
+      "context_hash": 3276694557313981863,
+      "translation": "**`.type`/`.request_port`/`.release_port`/`.config_port`/`.verify_port`** — `setserial` 시대의 포트 구성 및 자동 감지 메커니즘으로, 사람이 읽을 수 있는 칩 이름을 보고하고, I/O 또는 MMIO 영역을 확보/해제하고, 정확한 칩 변형을 자동 탐지하며, 사용자가 요청한 `struct serial_struct` 변경을 검증합니다.",
+      "glossary_snapshot": {
+        "MMIO": "MMIO"
+      },
+      "translated_at": "2026-11-14T22:45:06.294356Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "`struct uart_port`: one physical port",
+      "source_hash": 14600525571537948508,
+      "context_hash": 9156518965723170025,
+      "translation": "`struct uart_port`: 하나의 물리적 포트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:06.294357Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "`struct uart_port` is the per-instance object — one per physical UART, allocated and filled in by the driver, one for each ttyS/ttyUL/ttyAMA/... minor number.",
+      "source_hash": 2348059837753810795,
+      "context_hash": 9560597334308986283,
+      "translation": "`struct uart_port`는 인스턴스별 객체로, 물리적 UART마다 하나씩 드라이버가 할당하고 채우며, ttyS/ttyUL/ttyAMA/... minor 번호마다 하나씩 존재합니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:06.294357Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "It carries the register-access strategy, the negotiated hardware state, and a back-pointer into the generic layer:",
+      "source_hash": 1152070759508893208,
+      "context_hash": 11998186816100984727,
+      "translation": "이 구조체는 레지스터 접근 전략, 협상된 하드웨어 상태, 그리고 범용 계층으로 되돌아가는 역포인터를 담고 있습니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:06.294357Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "A few fields worth calling out:",
+      "source_hash": 8610148730811696656,
+      "context_hash": 6073785032356304493,
+      "translation": "특별히 언급할 만한 필드 몇 가지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:06.294357Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "**`serial_in`/`serial_out`** — the register-access indirection that lets one driver support several bus widths/endiannesses (8/16/32-bit, big/little-endian MMIO, or legacy port I/O) by swapping these function pointers rather than `#ifdef`-ing every register access.",
+      "source_hash": 17714444190724076369,
+      "context_hash": 6032425735094380648,
+      "translation": "**`serial_in`/`serial_out`** — 모든 레지스터 접근을 `#ifdef`로 분기하는 대신 이 함수 포인터를 교체하여 하나의 드라이버가 여러 버스 폭/엔디언(8/16/32비트, 빅/리틀 엔디언 MMIO 또는 레거시 포트 I/O)을 지원할 수 있게 해 주는 레지스터 접근 간접 계층입니다.",
+      "glossary_snapshot": {
+        "MMIO": "MMIO",
+        "bit": "비트",
+        "driver": "드라이버",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:45:06.294357Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "**`iotype`** (`enum uart_iotype`: `UPIO_PORT`, `UPIO_MEM`, `UPIO_MEM32`, `UPIO_MEM32BE`, `UPIO_MEM16`, plus several chip-specific variants — `UPIO_HUB6`, `UPIO_AU`, `UPIO_TSI`) — which access style `serial_in`/`serial_out` implement.",
+      "source_hash": 9464763018396257787,
+      "context_hash": 4444842261141978674,
+      "translation": "**`iotype`**(`enum uart_iotype`: `UPIO_PORT`, `UPIO_MEM`, `UPIO_MEM32`, `UPIO_MEM32BE`, `UPIO_MEM16` 및 여러 칩별 변형인 `UPIO_HUB6`, `UPIO_AU`, `UPIO_TSI`) — `serial_in`/`serial_out`이 구현하는 접근 방식을 나타냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:06.294357Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "**`line`** — this port's index; it's what ties a `uart_port` back to a specific slot in its `uart_driver`'s state array (below).",
+      "source_hash": 13994991310687649100,
+      "context_hash": 14785852665403090432,
+      "translation": "**`line`** — 이 포트의 인덱스입니다. `uart_port`를 해당 `uart_driver`의 state 배열(아래 참조)에 있는 특정 슬롯과 연결해 주는 것이 바로 이 값입니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:45:13.990593Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "**`state`** — the back-pointer to `struct uart_state`, the object that ties this hardware port to a live `tty_port`.",
+      "source_hash": 3694887136759414293,
+      "context_hash": 5891290297680414917,
+      "translation": "**`state`** — `struct uart_state`를 가리키는 역포인터입니다. `struct uart_state`는 이 하드웨어 포트를 실제로 동작 중인 `tty_port`와 연결해 주는 객체입니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:13.990594Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "**`ops`** — the `uart_ops` vtable described above.",
+      "source_hash": 1841449400361221031,
+      "context_hash": 14712786863693260421,
+      "translation": "**`ops`** — 앞에서 설명한 `uart_ops` vtable입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990595Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "**`private_data`** — a driver-owned pointer for whatever per-instance state the callbacks need (clock handles, DMA channel, chip-specific config parsed from the device tree).",
+      "source_hash": 3958112116549644555,
+      "context_hash": 8398368584869358354,
+      "translation": "**`private_data`** — 콜백이 필요로 하는 인스턴스별 상태(클럭 핸들, DMA 채널, 디바이스 트리에서 파싱한 칩별 설정 등)를 담기 위해 드라이버가 소유하는 포인터",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "callbacks": "콜백",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:36:51.451602Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "`struct uart_driver`: the registration-level object",
+      "source_hash": 12490430189344697827,
+      "context_hash": 3181805462879013124,
+      "translation": "`struct uart_driver`: 등록 단위 객체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990596Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Where `uart_port` is one physical port, `struct uart_driver` is the registration for an entire chip family — one per driver module, not one per instance:",
+      "source_hash": 14240058356801236647,
+      "context_hash": 9590900956713411567,
+      "translation": "`uart_port`가 하나의 물리 포트라면, `struct uart_driver`는 칩 패밀리 전체에 대한 등록 정보로서 인스턴스마다 하나가 아니라 드라이버 모듈마다 하나씩 존재합니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T22:45:13.990596Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "`driver_name`/`dev_name` are the `setserial`-visible name and the `/dev` name stem (`\"ttyS\"`, `\"ttyUL\"`, ...); `nr` is the maximum number of ports this driver family will ever register — it sizes the `state` array `uart_register_driver()` allocates. `cons`, if set, wires up this driver as a kernel console (`console=ttyS0` on the kernel command line). `state` and `tty_driver` are exactly what the comment says: filled in by `serial_core`, not touched by the driver.",
+      "source_hash": 7070453258350968404,
+      "context_hash": 7002074598804165387,
+      "translation": "`driver_name`/`dev_name`은 각각 `setserial`에 보이는 이름과 `/dev` 이름의 어간(`\"ttyS\"`, `\"ttyUL\"`, ...)이며, `nr`은 이 드라이버 패밀리가 등록할 수 있는 최대 포트 수로서 `uart_register_driver()`가 할당하는 `state` 배열의 크기를 결정합니다. `cons`가 설정되어 있으면 이 드라이버를 커널 콘솔(커널 명령줄의 `console=ttyS0`)로 연결합니다. `state`와 `tty_driver`는 주석에 적힌 그대로 `serial_core`가 채우며 드라이버는 건드리지 않습니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "command line": "명령줄",
+        "console": "콘솔",
+        "driver": "드라이버",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:13.990596Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Bridging to the TTY layer",
+      "source_hash": 435585785560840276,
+      "context_hash": 8471887719409564163,
+      "translation": "TTY 계층과의 연결",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990597Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`struct uart_state`: the persistent-across-opens object",
+      "source_hash": 14008419876085557953,
+      "context_hash": 17824387935580091232,
+      "translation": "`struct uart_state`: 여러 번의 open에 걸쳐 유지되는 객체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990598Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "`struct uart_state` is the small object that survives across an individual `open()`/`close()` cycle — the thing `uart_driver.state[]` is an array of, one per possible port:",
+      "source_hash": 3491439858543530028,
+      "context_hash": 2674951858408043467,
+      "translation": "`struct uart_state`는 개별 `open()`/`close()` 주기를 넘어 유지되는 작은 객체이며, `uart_driver.state[]`는 가능한 포트마다 하나씩 이 객체를 담은 배열입니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:45:13.990598Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "`port` is a generic `struct tty_port` — the TTY-core-side object every character device with open/close/hangup semantics embeds. `uart_port` is the live hardware port currently attached to this state slot (it can be `NULL` if the driver has registered the state array via `uart_register_driver()` but a specific instance hasn't shown up yet — common on a platform where a UART is a hot-pluggable add-in card).",
+      "source_hash": 8012951619075656510,
+      "context_hash": 2075612435362163853,
+      "translation": "`port`는 범용 `struct tty_port`로서, open/close/hangup 의미론을 갖는 모든 문자 디바이스가 내장하는 TTY 코어 측 객체입니다. `uart_port`는 현재 이 state 슬롯에 연결된 실제 하드웨어 포트입니다(드라이버가 `uart_register_driver()`로 state 배열을 등록했지만 특정 인스턴스가 아직 나타나지 않은 경우 `NULL`일 수 있으며, 이는 UART가 핫플러그 가능한 확장 카드인 플랫폼에서 흔한 경우입니다).",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "array": "배열",
+        "device": "디바이스",
+        "driver": "드라이버",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:13.990598Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Registration: `uart_register_driver()` and `uart_add_one_port()`",
+      "source_hash": 1856327938723795806,
+      "context_hash": 6479482428917087633,
+      "translation": "등록: `uart_register_driver()`와 `uart_add_one_port()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990598Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Two calls wire everything up, and every UART driver's module init does both:",
+      "source_hash": 3862824002259463814,
+      "context_hash": 730787628626573769,
+      "translation": "두 번의 호출로 모든 것이 연결되며, 모든 UART 드라이버의 모듈 init은 두 호출을 모두 수행합니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "driver": "드라이버",
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T22:45:13.990599Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "`uart_register_driver()` (`drivers/tty/serial/serial_core.c`) allocates `drv->state` (`drv->nr` entries), allocates a generic `struct tty_driver`, and — this is the key line — points that generic `tty_driver` at a single, shared `tty_operations` table:",
+      "source_hash": 6369622626790689323,
+      "context_hash": 9749750958625065338,
+      "translation": "`uart_register_driver()`(`drivers/tty/serial/serial_core.c`)는 `drv->state`(`drv->nr`개 항목)를 할당하고 범용 `struct tty_driver`를 할당한 뒤, 핵심이 되는 부분으로서 그 범용 `tty_driver`가 공유되는 단일 `tty_operations` 테이블을 가리키도록 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990599Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "That `uart_ops` is *not* the same type as the `struct uart_ops` hardware vtable above — it's a file-local `static const struct tty_operations` in `serial_core.c` that every UART driver family shares, unmodified, regardless of chip:",
+      "source_hash": 17869193613684065791,
+      "context_hash": 10454262939351782666,
+      "translation": "이 `uart_ops`는 앞에서 본 `struct uart_ops` 하드웨어 vtable과 같은 타입이 *아닙니다*. 이것은 `serial_core.c` 안에 파일 로컬로 정의된 `static const struct tty_operations`이며, 모든 UART 드라이버 패밀리가 칩에 관계없이 수정 없이 공유합니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "driver": "드라이버",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:13.990599Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "Two structs, same identifier `uart_ops`, two different types — one is the per-driver hardware callback table (`struct uart_ops` from `serial_core.h`, chosen by each individual UART driver), the other is the single generic `struct tty_operations` table every serial-core-based `tty_driver` shares (defined once, privately, inside `serial_core.c`).",
+      "source_hash": 6038926772212300991,
+      "context_hash": 6043447274713223215,
+      "translation": "두 구조체가 같은 식별자 `uart_ops`를 쓰지만 타입은 서로 다릅니다. 하나는 드라이버별 하드웨어 콜백 테이블(`serial_core.h`의 `struct uart_ops`로, 각 UART 드라이버가 개별적으로 정함)이고, 다른 하나는 serial core 기반의 모든 `tty_driver`가 공유하는 단일 범용 `struct tty_operations` 테이블(`serial_core.c` 내부에 비공개로 한 번만 정의됨)입니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "callback": "콜백",
+        "driver": "드라이버",
+        "hardware": "하드웨어",
+        "structs": "구조체"
+      },
+      "translated_at": "2026-11-14T22:45:13.990600Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "It's a small but real naming collision worth being deliberate about when reading the source.",
+      "source_hash": 3861549531577722052,
+      "context_hash": 5044023525970996389,
+      "translation": "작지만 실제로 존재하는 이름 충돌이므로 소스를 읽을 때 의식적으로 구분할 필요가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990600Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "`uart_add_one_port()` is the second call, made once per physical port a driver finds (in a DT-enumerated platform driver, from `.probe()`; for a multi-port card driver, once per port on the card):",
+      "source_hash": 6265772442178518354,
+      "context_hash": 8255115061181730573,
+      "translation": "`uart_add_one_port()`는 두 번째 호출로서, 드라이버가 찾아낸 물리 포트마다 한 번씩 호출됩니다(DT로 열거되는 플랫폼 드라이버에서는 `.probe()`에서, 멀티 포트 카드 드라이버에서는 카드의 포트마다 한 번씩 호출됩니다).",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:13.990600Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "It associates the `uart_port` the driver just filled in with `drv->state[port->line]` — the indexing convention used throughout `serial_core.c` is literally `state = drv->state + uport->line` — and, if a `tty_port_register_device()`-equivalent registration is needed, brings up the `/dev` node. (Recent kernels route the internal plumbing through a small serial-core \"controller\"/\"port\" sub-device model in `serial_ctrl.c`/`serial_port.c`, layered under `uart_add_one_port()` for power-management and device-model integration; the entry points and the `drv->state[port->line]` association a driver author needs to know are unchanged.)",
+      "source_hash": 18188643601643822377,
+      "context_hash": 4285709514883333902,
+      "translation": "이 함수는 드라이버가 방금 채운 `uart_port`를 `drv->state[port->line]`에 연결하고(`serial_core.c` 전반에서 쓰이는 인덱싱 규칙은 문자 그대로 `state = drv->state + uport->line`입니다), `tty_port_register_device()`에 해당하는 등록이 필요하면 `/dev` 노드를 생성합니다. (최근 커널은 전원 관리 및 디바이스 모델 통합을 위해 `uart_add_one_port()` 아래에 계층화된, `serial_ctrl.c`/`serial_port.c`의 작은 serial-core \"컨트롤러\"/\"포트\" 하위 디바이스 모델을 통해 내부 배선을 처리합니다. 그러나 드라이버 작성자가 알아야 하는 진입점과 `drv->state[port->line]` 연결은 바뀌지 않았습니다.)",
+      "glossary_snapshot": {
+        "controller": "컨트롤러",
+        "device": "디바이스",
+        "device model": "디바이스 모델",
+        "entry points": "진입점",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T23:36:51.451602Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "How a TTY-core call reaches hardware",
+      "source_hash": 1449736775454037873,
+      "context_hash": 4849595140435002699,
+      "translation": "TTY 코어 호출이 하드웨어에 도달하는 경로",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:13.990601Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "Once registration is done, every `tty_operations` callback in the shared `uart_ops` table is generic serial-core logic that, at the point it needs to actually touch hardware, calls through `uport->ops`.",
+      "source_hash": 8487104973874519586,
+      "context_hash": 14060101573340854366,
+      "translation": "등록이 끝나면 공유 `uart_ops` 테이블에 있는 모든 `tty_operations` 콜백은 범용 serial core 로직이 되며, 실제로 하드웨어를 건드려야 하는 시점에 `uport->ops`를 통해 호출합니다.",
+      "glossary_snapshot": {
+        "callback": "콜백",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:13.990601Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:1",
+      "source": "A few concrete chains, taken directly from `serial_core.c`:",
+      "source_hash": 7062156673156203420,
+      "context_hash": 15754926894672839785,
+      "translation": "`serial_core.c`에서 그대로 가져온 구체적인 호출 체인 몇 가지는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990601Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "Opening a port ultimately calls `uart_port_startup()`, which calls `uport->ops->startup(uport)` — the driver's `.startup`.",
+      "source_hash": 15582402567190059138,
+      "context_hash": 16383909056496261765,
+      "translation": "포트를 열면 최종적으로 `uart_port_startup()`이 호출되고, 이 함수는 드라이버의 `.startup`인 `uport->ops->startup(uport)`를 호출합니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:13.990601Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "`tcsetattr()`/`stty` reaches the shared `.set_termios = uart_set_termios`, called while the tty core holds `tty->termios_rwsem` — `tty_set_termios()` in `tty_ioctl.c` takes it with `down_write()` before invoking any driver's `set_termios` hook, so it's the tty's lock, not something `uart_set_termios()` itself acquires (it takes its own `state->port.mutex` internally). `uart_set_termios()` then calls `uart_change_line_settings()`, which calls `uport->ops->set_termios(uport, termios, old_termios)` — the driver's `.set_termios`.",
+      "source_hash": 14654161849975987124,
+      "context_hash": 12043726756786817143,
+      "translation": "`tcsetattr()`/`stty`는 공유 테이블의 `.set_termios = uart_set_termios`에 도달하며, 이 함수는 tty 코어가 `tty->termios_rwsem`을 잡은 상태에서 호출됩니다. `tty_ioctl.c`의 `tty_set_termios()`가 드라이버의 `set_termios` 훅을 호출하기 전에 `down_write()`로 이 락을 획득하므로, 이것은 `uart_set_termios()`가 직접 획득하는 락이 아니라 tty의 락입니다(`uart_set_termios()`는 내부적으로 자체 `state->port.mutex`를 획득합니다). 이어서 `uart_set_termios()`는 `uart_change_line_settings()`를 호출하고, 이 함수는 드라이버의 `.set_termios`인 `uport->ops->set_termios(uport, termios, old_termios)`를 호출합니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T22:45:13.990602Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "Writing data (`uart_write()`) calls `__uart_start()` directly, which calls `port->ops->start_tx(port)` — the driver's `.start_tx`, which is where an interrupt-driven driver typically just unmasks the transmit-empty interrupt and lets the ISR do the rest (below). (`uart_start()` is a separate entry point — the `.start` tty hook, also reached via `uart_flush_chars()` — that just calls the same `__uart_start()`.)",
+      "source_hash": 1603120981704876284,
+      "context_hash": 18176677968406756901,
+      "translation": "데이터 쓰기(`uart_write()`)는 `__uart_start()`를 직접 호출하고, 이 함수는 드라이버의 `.start_tx`인 `port->ops->start_tx(port)`를 호출합니다. 인터럽트 기반 드라이버는 보통 여기서 transmit-empty 인터럽트의 마스크만 해제하고 나머지는 ISR에 맡깁니다(아래 참조). (`uart_start()`는 별도의 진입점으로, `uart_flush_chars()`를 통해서도 도달하는 `.start` tty 훅이며 단지 같은 `__uart_start()`를 호출합니다.)",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "entry point": "진입점",
+        "hook": "훅",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:45:13.990602Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "Setting RTS/DTR (`TIOCMSET`, or `CLOCAL`/`HUPCL` handling on open/close) calls `uart_update_mctrl()`, which calls `port->ops->set_mctrl(port, port->mctrl)`.",
+      "source_hash": 11707514740922780671,
+      "context_hash": 16946602805105092211,
+      "translation": "RTS/DTR 설정(`TIOCMSET`, 또는 open/close 시의 `CLOCAL`/`HUPCL` 처리)은 `uart_update_mctrl()`를 호출하고, 이 함수는 `port->ops->set_mctrl(port, port->mctrl)`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990603Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "None of that logic is chip-specific; it's identical for an 8250 and for `uartlite`.",
+      "source_hash": 13129114471399546867,
+      "context_hash": 1686987388829344427,
+      "translation": "이 로직 중 칩에 종속적인 것은 없으며, 8250이든 `uartlite`든 동일합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990603Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:1",
+      "source": "These four are the most common hot-path calls, but they're far from the only ones: in practice `serial_core.c` invokes roughly two dozen distinct `uart_ops` members somewhere in its logic — `release_port`, `get_mctrl`, `tx_empty`, `stop_rx`, `start_rx`, `request_port`, `verify_port`, `type`, `shutdown`, `set_ldisc`, `send_xchar`, `pm`, `ioctl`, `flush_buffer`, `enable_ms`, `config_port`, `break_ctl`, `throttle`, `unthrottle`, and the poll hooks among them — each dispatched from the specific TTY-core or `ioctl` path that needs it.",
+      "source_hash": 8538436755242113045,
+      "context_hash": 6025808985505636103,
+      "translation": "이 네 가지가 가장 흔한 hot path 호출이지만 결코 이것만 있는 것은 아닙니다. 실제로 `serial_core.c`는 로직 곳곳에서 대략 스무 개가 넘는 서로 다른 `uart_ops` 멤버를 호출하며, 그중에는 `release_port`, `get_mctrl`, `tx_empty`, `stop_rx`, `start_rx`, `request_port`, `verify_port`, `type`, `shutdown`, `set_ldisc`, `send_xchar`, `pm`, `ioctl`, `flush_buffer`, `enable_ms`, `config_port`, `break_ctl`, `throttle`, `unthrottle`, 그리고 poll 훅들이 있습니다. 각각은 그것을 필요로 하는 특정 TTY 코어 경로나 `ioctl` 경로에서 디스패치됩니다.",
+      "glossary_snapshot": {
+        "hooks": "훅"
+      },
+      "translated_at": "2026-11-14T22:45:13.990603Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "The 8250/16550 driver: the reference UART",
+      "source_hash": 3044186257332795992,
+      "context_hash": 4461282633003319051,
+      "translation": "8250/16550 드라이버: 기준이 되는 UART",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:13.990603Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "`drivers/tty/serial/8250/` is the 8250/16550-compatible family driver, and it's the one every other serial driver gets measured against, for a simple historical reason: the 16550 (and its UART-compatible successors) is a register-compatible descendant of the 8250 — the chip the original 1981 PC serial port used — so this lineage is the oldest, most heavily used, and most thoroughly hardened UART driver in the tree.",
+      "source_hash": 1023007191081412070,
+      "context_hash": 2211586679448719299,
+      "translation": "`drivers/tty/serial/8250/`는 8250/16550 호환 패밀리 드라이버이며, 다른 모든 시리얼 드라이버의 비교 기준이 되는 드라이버입니다. 그 이유는 단순히 역사적인 것으로, 16550(및 그 UART 호환 후속 칩들)은 1981년 최초의 PC 시리얼 포트에 쓰인 칩인 8250의 레지스터 호환 후손이기 때문에, 이 계보는 트리에서 가장 오래되고 가장 많이 쓰이며 가장 철저하게 다듬어진 UART 드라이버입니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:13.990604Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "New chip-specific drivers routinely reuse pieces of it — `8250_omap.c`, `8250_dw.c`, `8250_pci1xxxx.c` and similar files under `drivers/tty/serial/8250/` are all thin wrappers around the shared 8250 core (`8250_port.c`) that add chip-specific DMA, clocking, or errata handling on top, rather than reimplementing the FIFO/register logic from scratch.",
+      "source_hash": 16778925414411937746,
+      "context_hash": 13864670386271596934,
+      "translation": "새로운 칩별 드라이버는 이 드라이버의 일부를 일상적으로 재사용합니다. `drivers/tty/serial/8250/` 아래의 `8250_omap.c`, `8250_dw.c`, `8250_pci1xxxx.c` 및 이와 비슷한 파일들은 모두 공유 8250 코어(`8250_port.c`)를 감싸는 얇은 래퍼로서, FIFO/레지스터 로직을 처음부터 다시 구현하지 않고 그 위에 칩별 DMA, 클럭, 또는 errata 처리를 추가합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "FIFO": "FIFO",
+        "drivers": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:13.990604Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "The register model, briefly",
+      "source_hash": 14382603014907466480,
+      "context_hash": 12294385404896431926,
+      "translation": "레지스터 모델 개요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:13.990604Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "A 16550-compatible UART exposes a small bank of byte-wide registers, several of which are *aliased* — the same offset means something different depending on direction and on the state of a control bit — which is exactly the sort of gnarly, chip-specific detail `struct uart_ops` exists to hide from everything above it:",
+      "source_hash": 6163654949337228035,
+      "context_hash": 6951359155249310698,
+      "translation": "16550 호환 UART는 바이트 폭의 작은 레지스터 묶음을 노출하며, 그중 일부는 *별칭*(aliased)으로 되어 있습니다. 즉 같은 오프셋이라도 방향과 제어 비트의 상태에 따라 의미가 달라집니다. 이것이 바로 `struct uart_ops`가 그 위의 모든 계층으로부터 감추기 위해 존재하는 까다롭고 칩 고유한 세부 사항입니다.",
+      "glossary_snapshot": {
+        "UART": "UART",
+        "bit": "비트",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:44:54.807336Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Offset",
+      "source_hash": 6993866049447007576,
+      "context_hash": 16059439245006506046,
+      "translation": "오프셋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807336Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Read",
+      "source_hash": 14108975635050057389,
+      "context_hash": 15139024290688725657,
+      "translation": "읽기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807336Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Write",
+      "source_hash": 9111532057193861018,
+      "context_hash": 4796807347914623913,
+      "translation": "쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807336Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Purpose",
+      "source_hash": 5472923780897967966,
+      "context_hash": 3018558289988139481,
+      "translation": "용도",
+      "glossary_snapshot": {
+        "Purpose": "용도"
+      },
+      "translated_at": "2026-11-14T22:44:54.807337Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "0",
+      "source_hash": 7148434200721666028,
+      "context_hash": 8117833488601042848,
+      "translation": "0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807337Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "RBR (Receive Buffer)",
+      "source_hash": 4356673912602920405,
+      "context_hash": 10266291742419939144,
+      "translation": "RBR (Receive Buffer)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807337Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "THR (Transmit Holding)",
+      "source_hash": 6502788199265950602,
+      "context_hash": 16144028209713165570,
+      "translation": "THR (Transmit Holding)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807337Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "one byte in/out of the FIFO",
+      "source_hash": 17724192289841433500,
+      "context_hash": 11899644401034562982,
+      "translation": "FIFO로 들어오고 나가는 한 바이트",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:44:54.807337Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "1",
+      "source_hash": 13237225503670494420,
+      "context_hash": 5209426406110830272,
+      "translation": "1",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807337Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "IER (Interrupt Enable)",
+      "source_hash": 105057480580107344,
+      "context_hash": 7923096203801801369,
+      "translation": "IER (인터럽트 활성화, Interrupt Enable)",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:44:54.807337Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "IER",
+      "source_hash": 14237994551763249941,
+      "context_hash": 17654275147432686507,
+      "translation": "IER",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807338Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "which interrupt sources are unmasked",
+      "source_hash": 2964619091026908340,
+      "context_hash": 5978690158219661432,
+      "translation": "마스크 해제된 인터럽트 소스",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:44:54.807338Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "2",
+      "source_hash": 6927017134761466251,
+      "context_hash": 13796316179804359517,
+      "translation": "2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807338Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "IIR (Interrupt ID)",
+      "source_hash": 12294221848332176243,
+      "context_hash": 5115851720827322896,
+      "translation": "IIR (인터럽트 식별, Interrupt ID)",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:44:54.807338Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "FCR (FIFO Control)",
+      "source_hash": 8168538520531037635,
+      "context_hash": 16059050417941780363,
+      "translation": "FCR (FIFO Control)",
+      "glossary_snapshot": {
+        "FIFO": "FIFO"
+      },
+      "translated_at": "2026-11-14T22:44:54.807338Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "why an interrupt fired / FIFO reset & trigger level",
+      "source_hash": 5971512655900277864,
+      "context_hash": 14580164480525846326,
+      "translation": "인터럽트 발생 원인 / FIFO 리셋 & 트리거 레벨",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:44:54.807338Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "3",
+      "source_hash": 2744517546871237796,
+      "context_hash": 14180345219443638891,
+      "translation": "3",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "LCR (Line Control)",
+      "source_hash": 10160675487627978118,
+      "context_hash": 7948296031387648082,
+      "translation": "LCR (Line Control)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "LCR",
+      "source_hash": 4670992221141064579,
+      "context_hash": 15287898103753242328,
+      "translation": "LCR",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "data bits, stop bits, parity, and the DLAB latch bit",
+      "source_hash": 10062063024981889384,
+      "context_hash": 8542220482978547891,
+      "translation": "데이터 비트, 정지 비트, 패리티, DLAB 래치 비트",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "bits": "비트"
+      },
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "4",
+      "source_hash": 10464417414901951369,
+      "context_hash": 18180621246512514088,
+      "translation": "4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "MCR (Modem Control)",
+      "source_hash": 15381277055892158787,
+      "context_hash": 15857370577978159082,
+      "translation": "MCR (Modem Control)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "MCR",
+      "source_hash": 4150319039683229780,
+      "context_hash": 18281565559666141588,
+      "translation": "MCR",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:0",
+      "source": "drive RTS/DTR (and loopback mode)",
+      "source_hash": 6764020098799994796,
+      "context_hash": 10820969866602129463,
+      "translation": "RTS/DTR 구동 (및 루프백 모드)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:0",
+      "source": "5",
+      "source_hash": 7674613650421074157,
+      "context_hash": 15583173100036226146,
+      "translation": "5",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:0",
+      "source": "LSR (Line Status)",
+      "source_hash": 5323467526953962571,
+      "context_hash": 6717677157457443365,
+      "translation": "LSR (Line Status)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:30/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 1712772634477773848,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:31/seg:0",
+      "source": "data-ready, overrun/parity/framing-error, THR-empty, break flags",
+      "source_hash": 2373519041664054744,
+      "context_hash": 14966499074286667318,
+      "translation": "data-ready, overrun/parity/framing-error, THR-empty, break 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:0",
+      "source": "6",
+      "source_hash": 1310192797669293303,
+      "context_hash": 13959625065187357339,
+      "translation": "6",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:33/seg:0",
+      "source": "MSR (Modem Status)",
+      "source_hash": 6808926617793295297,
+      "context_hash": 2769852326322656311,
+      "translation": "MSR (Modem Status)",
+      "glossary_snapshot": {
+        "MSR": "MSR"
+      },
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:34/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 11992879903484779914,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:54.807339Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:35/seg:0",
+      "source": "CTS/DSR/DCD/RI current state and delta bits",
+      "source_hash": 17717938713758074575,
+      "context_hash": 934281065955675164,
+      "translation": "CTS/DSR/DCD/RI 현재 상태 및 델타 비트",
+      "glossary_snapshot": {
+        "bits": "비트"
+      },
+      "translated_at": "2026-11-14T22:45:14.899134Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:36/seg:0",
+      "source": "Offsets 0 and 1 mean something else entirely — the low and high byte of the baud-rate divisor latch (DLL/DLM) — while `LCR`'s DLAB bit is set, which is why `.set_termios` has to briefly toggle DLAB, program the divisor, then restore LCR to its normal meaning.",
+      "source_hash": 14445615485458631725,
+      "context_hash": 12108613032165103752,
+      "translation": "`LCR`의 DLAB 비트가 설정되어 있는 동안에는 오프셋 0과 1이 전혀 다른 의미, 즉 보율(baud rate) 제수 래치(DLL/DLM)의 하위 바이트와 상위 바이트를 뜻합니다. 그래서 `.set_termios`는 DLAB을 잠깐 토글하고 제수를 설정한 다음 LCR을 원래 의미로 되돌려야 합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:45:14.899135Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:36/seg:1",
+      "source": "This is the kind of bit-banging `struct uart_port.serial_in`/`serial_out` and the offset constants in `include/uapi/linux/serial_reg.h` exist to keep contained to one driver; nothing above `uart_ops` ever needs to know an `IIR` read and an `FCR` write share the same address.",
+      "source_hash": 18374336005558279867,
+      "context_hash": 12984083246366947491,
+      "translation": "`struct uart_port.serial_in`/`serial_out`과 `include/uapi/linux/serial_reg.h`의 오프셋 상수는 바로 이런 종류의 비트 조작을 하나의 드라이버 안에 가두어 두기 위해 존재합니다. `uart_ops` 위의 어떤 계층도 `IIR` 읽기와 `FCR` 쓰기가 같은 주소를 공유한다는 사실을 알 필요가 없습니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "bit": "비트",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:14.899136Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:37/seg:0",
+      "source": "`struct uart_8250_port`: 8250's `uart_port` subclass",
+      "source_hash": 17681815757303735750,
+      "context_hash": 12308291538827875531,
+      "translation": "`struct uart_8250_port`: 8250의 `uart_port` 하위 클래스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:14.899136Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:38/seg:0",
+      "source": "The 8250 driver's per-port object embeds a plain `uart_port` as its first member and adds 8250-specific state around it — the classic Linux \"subclassing by embedding\" pattern:",
+      "source_hash": 16537201220191653137,
+      "context_hash": 11888215197503223484,
+      "translation": "8250 드라이버의 포트별 객체는 일반 `uart_port`를 첫 번째 멤버로 내장하고 그 주위에 8250 고유의 상태를 덧붙입니다. 이는 Linux의 전형적인 \"내장을 통한 하위 클래스화(subclassing by embedding)\" 패턴입니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:14.899137Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:40/seg:0",
+      "source": "`ier`/`fcr`/`lcr`/`mcr` are shadow copies of the hardware registers.",
+      "source_hash": 15023520594090424228,
+      "context_hash": 10143487428827724104,
+      "translation": "`ier`/`fcr`/`lcr`/`mcr`는 하드웨어 레지스터의 섀도 사본입니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:14.899137Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:40/seg:1",
+      "source": "Of the four, only `FCR` is genuinely write-only (the same offset reads back as `IIR`); `IER`/`LCR`/`MCR` are readable.",
+      "source_hash": 15043544822932337324,
+      "context_hash": 11887326911293517623,
+      "translation": "네 가지 중 진정한 쓰기 전용 레지스터는 `FCR`뿐이며(같은 오프셋을 읽으면 `IIR`이 반환됩니다), `IER`/`LCR`/`MCR`는 읽을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:14.899138Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:40/seg:2",
+      "source": "The driver shadows all four anyway to avoid read-modify-write races and to sidestep registers where a read has side effects, rather than because they can't be read back. `serial8250_init_port()` (`drivers/tty/serial/8250/8250_port.c`) is what plugs this into `serial_core`: it sets `port->ops = &serial8250_pops`, the driver's `struct uart_ops` implementation:",
+      "source_hash": 10411169135717868898,
+      "context_hash": 829751264848689835,
+      "translation": "그럼에도 드라이버가 네 가지 모두를 섀도로 유지하는 것은 다시 읽을 수 없어서가 아니라, read-modify-write 경쟁 상태를 피하고 읽기에 부작용이 있는 레지스터를 우회하기 위해서입니다. 이를 `serial_core`에 연결하는 것은 `serial8250_init_port()`(`drivers/tty/serial/8250/8250_port.c`)입니다. 이 함수는 드라이버의 `struct uart_ops` 구현인 `port->ops = &serial8250_pops`를 설정합니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:14.899138Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "The interrupt-driven TX/RX path",
+      "source_hash": 17103657213287079715,
+      "context_hash": 4571962353893604650,
+      "translation": "인터럽트 기반 TX/RX 경로",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:45:14.899139Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "This is where the abstraction pays off end to end: an interrupt fires, and a fixed, generic sequence turns raw register reads into bytes the line discipline (and eventually userspace) can read, or turns buffered write() data into register writes.",
+      "source_hash": 10348077255700780350,
+      "context_hash": 3959771125022401087,
+      "translation": "이 추상화의 효과가 처음부터 끝까지 드러나는 곳이 바로 여기입니다. 인터럽트가 발생하면 고정된 범용 시퀀스가 원시 레지스터 읽기를 라인 디시플린(line discipline)이(그리고 결국에는 사용자 공간이) 읽을 수 있는 바이트로 바꾸거나, 버퍼에 쌓인 write() 데이터를 레지스터 쓰기로 바꿉니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "interrupt": "인터럽트",
+        "line discipline": "라인 디시플린",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:45:14.899140Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "RX: hardware → `uart_insert_char()` → `tty_flip_buffer_push()`",
+      "source_hash": 11723773563238286790,
+      "context_hash": 18325428920035400621,
+      "translation": "RX: 하드웨어 → `uart_insert_char()` → `tty_flip_buffer_push()`",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:14.899140Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "`serial8250_handle_irq_locked()` (`drivers/tty/serial/8250/8250_port.c`) is the heart of the 8250 ISR chain (reached from the registered IRQ handler `serial8250_interrupt()` via `port->handle_irq()`).",
+      "source_hash": 14885811998687532395,
+      "context_hash": 6957367726830985913,
+      "translation": "`serial8250_handle_irq_locked()`(`drivers/tty/serial/8250/8250_port.c`)는 8250 ISR 체인의 핵심입니다(등록된 IRQ 핸들러 `serial8250_interrupt()`에서 `port->handle_irq()`를 통해 도달합니다).",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:45:14.899141Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "On the receive side, it reads `LSR`, and if data is ready calls `serial8250_rx_chars()`:",
+      "source_hash": 8860370725985208199,
+      "context_hash": 13695801600276942213,
+      "translation": "수신 측에서는 `LSR`을 읽고, 데이터가 준비되어 있으면 `serial8250_rx_chars()`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:14.899141Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "`serial8250_rx_chars()` drains the FIFO byte-by-byte via `serial8250_read_char()`, then pushes the whole batch to the line discipline in one call:",
+      "source_hash": 8521373150420468097,
+      "context_hash": 708473809980477227,
+      "translation": "`serial8250_rx_chars()`는 `serial8250_read_char()`를 통해 FIFO를 바이트 단위로 비운 다음, 한 번의 호출로 전체 묶음을 라인 디시플린에 밀어 넣습니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "byte": "바이트",
+        "line discipline": "라인 디시플린"
+      },
+      "translated_at": "2026-11-14T22:45:14.899141Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "And `serial8250_read_char()` is where a raw register byte becomes a properly flagged (`TTY_NORMAL`/`TTY_BREAK`/`TTY_PARITY`/`TTY_FRAME`) character handed to the generic layer:",
+      "source_hash": 4313837502528880690,
+      "context_hash": 17525554560234667807,
+      "translation": "그리고 `serial8250_read_char()`는 원시 레지스터 바이트가 적절한 플래그(`TTY_NORMAL`/`TTY_BREAK`/`TTY_PARITY`/`TTY_FRAME`)가 붙은 문자로 바뀌어 범용 계층에 전달되는 곳입니다.",
+      "glossary_snapshot": {
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:45:14.899141Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "`uart_insert_char()` (`drivers/tty/serial/serial_core.c`) is `serial_core`'s generic RX entry point — every driver that doesn't need something more specialized calls it once per received byte:",
+      "source_hash": 17702145377418357447,
+      "context_hash": 1265837365941605002,
+      "translation": "`uart_insert_char()`(`drivers/tty/serial/serial_core.c`)는 `serial_core`의 범용 RX 진입점입니다. 더 특화된 처리가 필요하지 않은 모든 드라이버는 수신한 바이트마다 이 함수를 한 번씩 호출합니다.",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "driver": "드라이버",
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T22:45:14.899142Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "It checks the port's `ignore_status_mask` (set by `.set_termios`, from `termios` flags like `IGNPAR`/`IGNBRK`) before deciding whether the byte is worth keeping, then calls `tty_insert_flip_char()` — the generic TTY flip-buffer insert, which just queues the byte and its flag without waking anyone up yet.",
+      "source_hash": 8515516485083680705,
+      "context_hash": 15743483631749416114,
+      "translation": "이 함수는 바이트를 보관할 가치가 있는지 판단하기 전에 포트의 `ignore_status_mask`(`IGNPAR`/`IGNBRK` 같은 `termios` 플래그로부터 `.set_termios`가 설정합니다)를 확인한 다음, `tty_insert_flip_char()`를 호출합니다. 이는 범용 TTY flip 버퍼 삽입 함수로, 아직 아무도 깨우지 않고 바이트와 그 플래그를 큐에 넣기만 합니다.",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:45:14.899142Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:1",
+      "source": "The driver's own loop keeps calling `uart_insert_char()` for every byte in the hardware FIFO; only once the batch is drained does it call `tty_flip_buffer_push(&port->state->port)` (`include/linux/tty_flip.h`) to hand the whole batch to the line discipline in one shot and wake any reader.",
+      "source_hash": 97916816018680269,
+      "context_hash": 17461184991863210840,
+      "translation": "드라이버 자체의 루프는 하드웨어 FIFO의 모든 바이트에 대해 `uart_insert_char()`를 계속 호출하며, 묶음을 모두 비운 뒤에야 `tty_flip_buffer_push(&port->state->port)`(`include/linux/tty_flip.h`)를 호출하여 전체 묶음을 한 번에 라인 디시플린에 넘기고 대기 중인 읽기 측을 깨웁니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "byte": "바이트",
+        "driver": "드라이버",
+        "hardware": "하드웨어",
+        "line discipline": "라인 디시플린"
+      },
+      "translated_at": "2026-11-14T22:45:14.899142Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:2",
+      "source": "Batching the wakeup this way — one `tty_flip_buffer_push()` per interrupt instead of one per byte — is a deliberate throughput choice, not an incidental one.",
+      "source_hash": 3265082006476416915,
+      "context_hash": 4737246580496156400,
+      "translation": "이처럼 깨우기를 묶어서 처리하는 것, 즉 바이트마다가 아니라 인터럽트마다 `tty_flip_buffer_push()`를 한 번 호출하는 것은 우연이 아니라 처리량을 위한 의도적인 선택입니다.",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "interrupt": "인터럽트",
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:45:14.899142Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "TX: buffered data → `uart_fifo_get()` → hardware",
+      "source_hash": 18282233312404568903,
+      "context_hash": 3921612995559143248,
+      "translation": "TX: 버퍼링된 데이터 → `uart_fifo_get()` → 하드웨어",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:14.899143Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "The transmit half of the same handler runs when `LSR`'s THR-empty bit is set and the transmit-empty interrupt is enabled:",
+      "source_hash": 3141317079801132400,
+      "context_hash": 6865345693289821595,
+      "translation": "같은 핸들러의 송신 부분은 `LSR`의 THR-empty 비트가 설정되어 있고 송신 비어 있음(transmit-empty) 인터럽트가 활성화되어 있을 때 실행됩니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "handler": "핸들러",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:45:14.899143Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "`serial8250_tx_chars()` pulls bytes out of the port's transmit `kfifo` (the buffer `write()`/`tty_write()` filled) one at a time via `uart_fifo_get()` and writes them straight to the `THR` register, up to the FIFO's load size, until either the buffer empties or the load size is reached:",
+      "source_hash": 10795399594471528809,
+      "context_hash": 7617511108986552781,
+      "translation": "`serial8250_tx_chars()`는 `uart_fifo_get()`을 통해 포트의 송신 `kfifo`(`write()`/`tty_write()`가 채운 버퍼)에서 바이트를 하나씩 꺼내 `THR` 레지스터에 바로 쓰며, 버퍼가 비거나 FIFO의 적재 크기(load size)에 도달할 때까지 이를 반복합니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:45:14.899143Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "`uart_fifo_get()` (`include/linux/serial_core.h`) is the generic counterpart to `uart_insert_char()` on the TX side — pull one character out of `port->state->port.xmit_fifo` and bump `port->icount.tx`:",
+      "source_hash": 5316065857935045938,
+      "context_hash": 14892285909528423562,
+      "translation": "`uart_fifo_get()`(`include/linux/serial_core.h`)은 TX 측에서 `uart_insert_char()`에 대응하는 범용 함수로, `port->state->port.xmit_fifo`에서 문자 하나를 꺼내고 `port->icount.tx`를 증가시킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:14.899143Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "Once the FIFO empties, `.stop_tx` masks `UART_IER_THRI` back off, and the port goes idle until the next `write()` calls `__uart_start()` → `.start_tx` to unmask it again.",
+      "source_hash": 9481899572389633029,
+      "context_hash": 10653059891822413213,
+      "translation": "FIFO가 비면 `.stop_tx`가 `UART_IER_THRI`를 다시 마스킹하고, 다음 `write()`가 `__uart_start()` → `.start_tx`를 호출하여 마스크를 다시 해제할 때까지 포트는 유휴 상태가 됩니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO"
+      },
+      "translated_at": "2026-11-14T22:45:14.899143Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:1",
+      "source": "This start/feed/stop cycle — not a byte-at-a-time round trip through the TTY core — is what lets a 16-byte-deep 16550 FIFO sustain high baud rates without an interrupt per byte.",
+      "source_hash": 11242760165456293688,
+      "context_hash": 9596035301966221984,
+      "translation": "TTY 코어를 거쳐 바이트 단위로 왕복하는 방식이 아니라 바로 이 시작/공급/정지 주기 덕분에, 16바이트 깊이의 16550 FIFO가 바이트마다 인터럽트를 받지 않고도 높은 보율을 유지할 수 있습니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "byte": "바이트",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:45:14.899143Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Enumeration: how a UART gets probed",
+      "source_hash": 17921385485068878176,
+      "context_hash": 5956442655348733564,
+      "translation": "열거: UART가 probe되는 방식",
+      "glossary_snapshot": {
+        "UART": "UART"
+      },
+      "translated_at": "2026-11-14T22:45:14.899144Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "A UART is, from the device model's point of view, just another platform (or PCI, or USB, or I2C/SPI-attached) device, matched to its driver the same way any other platform driver is.",
+      "source_hash": 684290856441729523,
+      "context_hash": 11500943446046723932,
+      "translation": "디바이스 모델의 관점에서 UART는 다른 플랫폼(또는 PCI, USB, I2C/SPI 연결) 디바이스와 다를 바 없으며, 다른 플랫폼 드라이버와 같은 방식으로 드라이버와 매칭됩니다.",
+      "glossary_snapshot": {
+        "PCI": "PCI",
+        "UART": "UART",
+        "USB": "USB",
+        "device": "디바이스",
+        "device model": "디바이스 모델",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:45:14.899144Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "For a memory-mapped SoC UART described in the device tree, that's a `struct platform_driver` with an `of_device_id` match table:",
+      "source_hash": 4861673322452972429,
+      "context_hash": 10832641184122230479,
+      "translation": "디바이스 트리에 기술된 메모리 매핑 SoC UART의 경우, 이는 `of_device_id` 매칭 테이블을 가진 `struct platform_driver`입니다.",
+      "glossary_snapshot": {
+        "SoC": "SoC",
+        "UART": "UART",
+        "device": "디바이스",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:45:14.899144Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "When the kernel walks the device tree and finds a node whose `compatible` property matches one of these strings, the driver core calls `.probe()` with a `struct platform_device` carrying that node's resources — MMIO range, IRQ number, clock reference, and any vendor-specific properties (baud rate, parity, data bits, in `uartlite`'s case).",
+      "source_hash": 758713204304125127,
+      "context_hash": 7986221712624506059,
+      "translation": "커널이 디바이스 트리를 순회하다가 `compatible` 속성이 이 문자열 중 하나와 일치하는 노드를 찾으면, 드라이버 코어는 해당 노드의 리소스, 즉 MMIO 범위, IRQ 번호, 클록 참조, 그리고 벤더별 속성(`uartlite`의 경우 보율, 패리티, 데이터 비트)을 담은 `struct platform_device`와 함께 `.probe()`를 호출합니다.",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "MMIO": "MMIO",
+        "device": "디바이스",
+        "driver": "드라이버",
+        "kernel": "커널",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:45:14.899144Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "ACPI-described UARTs follow the same shape with an `acpi_device_id` table instead of (or alongside) `of_device_id` — the DesignWare 8250 wrapper (`drivers/tty/serial/8250/8250_dw.c`) registers both `dw8250_of_match[]` and `dw8250_acpi_match[]` against the same `platform_driver`, so the identical driver binds whether firmware describes the port via devicetree or ACPI.",
+      "source_hash": 16073250256257652442,
+      "context_hash": 9236288204464983129,
+      "translation": "ACPI로 기술된 UART도 `of_device_id` 대신(또는 함께) `acpi_device_id` 테이블을 사용하여 같은 형태를 따릅니다. DesignWare 8250 래퍼(`drivers/tty/serial/8250/8250_dw.c`)는 `dw8250_of_match[]`와 `dw8250_acpi_match[]`를 모두 같은 `platform_driver`에 등록하므로, 펌웨어가 포트를 devicetree로 기술하든 ACPI로 기술하든 동일한 드라이버가 바인딩됩니다.",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "UARTs": "UART",
+        "driver": "드라이버",
+        "firmware": "펌웨어"
+      },
+      "translated_at": "2026-11-14T22:45:14.899144Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:2",
+      "source": "There's also a separate, simpler 8250 platform driver (`drivers/tty/serial/8250/8250_platform.c`) and a devicetree-only one (`8250_of.c`) — several distinct platform drivers, all funneling into the same `serial8250_pops`/`uart_add_one_port()` core underneath. `8250_platform.c` registers legacy ISA-style ports as a plain `\"serial8250\"` platform device matched by name, not by its `acpi_platform_serial_table[]`; that ACPI table has only one real entry, a RISC-V generic-16550A match (`\"RSCV0003\"`). `.probe()`'s job is always the same regardless of firmware interface or which of these front-end drivers is involved: read the resources, fill in a `uart_port`, and call `uart_add_one_port()`.",
+      "source_hash": 2698640870861508769,
+      "context_hash": 14663602932845699619,
+      "translation": "이 밖에 별도의 더 단순한 8250 플랫폼 드라이버(`drivers/tty/serial/8250/8250_platform.c`)와 devicetree 전용 드라이버(`8250_of.c`)도 있습니다. 이처럼 서로 다른 여러 플랫폼 드라이버가 있지만, 모두 내부적으로는 같은 `serial8250_pops`/`uart_add_one_port()` 코어로 모입니다. `8250_platform.c`는 레거시 ISA 방식 포트를 `acpi_platform_serial_table[]`이 아니라 이름으로 매칭되는 일반 `\"serial8250\"` 플랫폼 디바이스로 등록하며, 이 ACPI 테이블에는 실제 항목이 RISC-V 범용 16550A 매칭(`\"RSCV0003\"`) 하나뿐입니다. 펌웨어 인터페이스나 어느 프런트엔드 드라이버가 관여하는지와 관계없이 `.probe()`가 하는 일은 항상 같습니다. 리소스를 읽고, `uart_port`를 채우고, `uart_add_one_port()`를 호출하는 것입니다.",
+      "glossary_snapshot": {
+        "ACPI": "ACPI",
+        "device": "디바이스",
+        "driver": "드라이버",
+        "drivers": "드라이버",
+        "firmware": "펌웨어"
+      },
+      "translated_at": "2026-11-14T22:45:14.899145Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Worked example: `drivers/tty/serial/uartlite.c`",
+      "source_hash": 1829583933501334473,
+      "context_hash": 10357273710010046449,
+      "translation": "실제 예제: `drivers/tty/serial/uartlite.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:14.899145Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Xilinx's `uartlite` driver is a good worked example precisely because it *isn't* 8250-compatible — no FIFO trigger levels, no aliased registers, no divisor latch (baud rate is fixed at synthesis time for this soft IP core) — just four registers (RX, TX, a status register, a control register) and a minimal `uart_ops` implementation, which makes the `serial_core` plumbing easier to see without 8250's register quirks in the way.",
+      "source_hash": 4456719122835285655,
+      "context_hash": 11760209549270263937,
+      "translation": "Xilinx의 `uartlite` 드라이버는 바로 8250과 호환되지 *않기* 때문에 좋은 실전 예제입니다. FIFO trigger level도, 별칭(aliased) 레지스터도, divisor latch도 없으며(이 soft IP 코어는 합성 시점에 baud rate가 고정됩니다), 레지스터 네 개(RX, TX, 상태 레지스터, 제어 레지스터)와 최소한의 `uart_ops` 구현만 있으므로, 8250의 레지스터 특이점에 방해받지 않고 `serial_core`의 연결 구조를 더 쉽게 볼 수 있습니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:21:19.920063Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "`.startup`/`.shutdown`",
+      "source_hash": 16813937431724108596,
+      "context_hash": 11468146398342878283,
+      "translation": "`.startup`/`.shutdown`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920064Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "`.startup` is the entire hardware bring-up: enable the clock, request the IRQ, reset both FIFOs, then enable the \"interrupt enable\" bit in the control register. `.shutdown` is the exact mirror.",
+      "source_hash": 10013618423621970684,
+      "context_hash": 1678482998486335952,
+      "translation": "`.startup`은 하드웨어 초기화(bring-up) 전체를 담당합니다. 클럭을 활성화하고, IRQ를 요청하고, 두 FIFO를 모두 리셋한 다음, 제어 레지스터의 \"인터럽트 활성화(interrupt enable)\" 비트를 켭니다. `.shutdown`은 이를 정확히 반대로 수행합니다.",
+      "glossary_snapshot": {
+        "FIFOs": "FIFO",
+        "IRQ": "IRQ",
+        "bit": "비트",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:21:19.920065Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "Note what's absent compared to an 8250-style driver: no baud-rate programming here, because `uartlite`'s baud rate is fixed hardware — this device's `.set_termios` (next) only ever *reports* the fixed rate back, never programs one.",
+      "source_hash": 545154760408113443,
+      "context_hash": 13642079926270542039,
+      "translation": "8250 방식의 드라이버와 비교해 무엇이 빠져 있는지 주목하십시오. 여기에는 보 레이트(baud rate) 설정이 없는데, `uartlite`의 보 레이트는 하드웨어에 고정되어 있기 때문입니다. 이 디바이스의 `.set_termios`(다음 항목)는 고정된 속도를 *보고*하기만 할 뿐, 속도를 설정하는 일은 결코 없습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:36:51.451605Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "`.set_termios`",
+      "source_hash": 7124548404648047326,
+      "context_hash": 9373075253983337124,
+      "translation": "`.set_termios`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920065Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "Rather than negotiate, `.set_termios` here *overwrites* whatever the caller asked for with what the hardware actually is (`pdata->baud`, and whatever parity/data-bits this synthesized core was built with), then calls `tty_termios_encode_baud_rate()` to report that back through the generic `ktermios`. `port->read_status_mask` is not something `uart_insert_char()` looks at — that helper only consults `ignore_status_mask`. `read_status_mask` is applied by the driver itself: `ulite_receive()` does `stat &= port->read_status_mask` before acting on the status bits (the 8250 driver does the equivalent with `lsr &= port->read_status_mask`), so it's this driver-side masking, not `uart_insert_char()`, that decides which status bits matter here.",
+      "source_hash": 10542057399405976126,
+      "context_hash": 8466212687020685039,
+      "translation": "여기서 `.set_termios`는 협상하는 대신, 호출자가 요청한 값을 하드웨어의 실제 값(`pdata->baud`, 그리고 이 합성된 코어에 적용된 parity/data-bits 설정)으로 *덮어쓴* 다음, `tty_termios_encode_baud_rate()`를 호출하여 그 값을 범용 `ktermios`를 통해 되돌려 보고합니다. `port->read_status_mask`는 `uart_insert_char()`가 참조하는 값이 아닙니다. 이 헬퍼는 `ignore_status_mask`만 참조합니다. `read_status_mask`는 드라이버 자신이 적용합니다. `ulite_receive()`는 상태 비트에 따라 동작하기 전에 `stat &= port->read_status_mask`를 수행하며(8250 드라이버는 `lsr &= port->read_status_mask`로 같은 일을 합니다), 따라서 여기서 어떤 상태 비트가 의미를 갖는지 결정하는 것은 `uart_insert_char()`가 아니라 이 드라이버 측 마스킹입니다.",
+      "glossary_snapshot": {
+        "bits": "비트",
+        "driver": "드라이버",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:21:19.920066Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "Interrupt handler and the RX/TX callbacks",
+      "source_hash": 2158826525330936443,
+      "context_hash": 13253282504701261505,
+      "translation": "인터럽트 핸들러와 RX/TX 콜백",
+      "glossary_snapshot": {
+        "callbacks": "콜백",
+        "interrupt handler": "인터럽트 핸들러"
+      },
+      "translated_at": "2026-11-14T22:21:19.920066Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "Where the 8250 ISR branches on which status bits are set, `uartlite`'s ISR just calls both `ulite_receive()` and `ulite_transmit()` every time it wakes up and loops until neither reports more work — a simpler, less register-count-sensitive shape that fits a UART with no programmable FIFO trigger levels. `uartlite` does have a genuine 16-deep hardware FIFO (`port->fifosize = 16`, with RX-full/TX-full status bits and a FIFO reset in `.startup`); what it lacks, unlike the 8250, is any batched, trigger-level-aware way to drain or load that FIFO — each interrupt moves data through the status/RX/TX registers one byte at a time rather than in an 8250-style `tx_loadsz` burst. `ulite_receive()` reaches the TTY layer directly with `tty_insert_flip_char()` rather than going through `uart_insert_char()`:",
+      "source_hash": 13614290629921473995,
+      "context_hash": 3610938041215767602,
+      "translation": "8250 ISR은 어떤 상태 비트가 설정되었는지에 따라 분기하지만, `uartlite`의 ISR은 깨어날 때마다 `ulite_receive()`와 `ulite_transmit()`를 모두 호출하고 둘 다 더 이상 처리할 작업이 없다고 보고할 때까지 반복합니다. 이는 프로그래밍 가능한 FIFO trigger level이 없는 UART에 맞는, 더 단순하고 레지스터 수에 덜 민감한 구조입니다. `uartlite`에는 실제로 16단 하드웨어 FIFO가 있습니다(`port->fifosize = 16`이며, RX-full/TX-full 상태 비트와 `.startup`에서의 FIFO 리셋이 있습니다). 8250과 달리 없는 것은 그 FIFO를 일괄적으로, trigger level을 고려하여 비우거나 채우는 방법입니다. 각 인터럽트는 8250 스타일의 `tx_loadsz` 버스트가 아니라 상태/RX/TX 레지스터를 통해 한 번에 한 바이트씩 데이터를 옮깁니다. `ulite_receive()`는 `uart_insert_char()`를 거치지 않고 `tty_insert_flip_char()`로 TTY 계층에 직접 접근합니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "UART": "UART",
+        "bits": "비트",
+        "byte": "바이트",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:21:19.920066Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "and `ulite_transmit()` mirrors 8250's `uart_fifo_get()` pattern exactly, just moving one byte per interrupt into the hardware FIFO rather than an 8250-style batched load:",
+      "source_hash": 9715873475453069218,
+      "context_hash": 1072170514805651191,
+      "translation": "그리고 `ulite_transmit()`는 8250의 `uart_fifo_get()` 패턴을 그대로 따르되, 8250 스타일의 일괄 적재 대신 인터럽트마다 한 바이트씩 하드웨어 FIFO로 옮길 뿐입니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "byte": "바이트",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:21:19.920067Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "Both `uart_insert_char()` and a driver's own direct `tty_insert_flip_char()` calls are legitimate, real, in-tree patterns — `uart_insert_char()` adds the `ignore_status_mask`/overrun bookkeeping most drivers want for free; a driver with simpler status semantics, like this one, sometimes just calls the TTY-layer primitive directly.",
+      "source_hash": 6852669901132507349,
+      "context_hash": 9472198445008363099,
+      "translation": "`uart_insert_char()`와 드라이버 자체의 직접적인 `tty_insert_flip_char()` 호출은 모두 정당하고 실제로 커널 트리에서 쓰이는 패턴입니다. `uart_insert_char()`는 대부분의 드라이버가 원하는 `ignore_status_mask`/overrun 처리를 공짜로 더해 주며, 이 드라이버처럼 상태 의미가 더 단순한 드라이버는 때때로 TTY 계층 기본 함수를 직접 호출하기도 합니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "drivers": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:21:19.920067Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "Registration",
+      "source_hash": 12581034211891611423,
+      "context_hash": 13460908108405167037,
+      "translation": "등록",
+      "glossary_snapshot": {
+        "Registration": "등록"
+      },
+      "translated_at": "2026-11-14T22:21:19.920067Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:17/seg:0",
+      "source": "and, inside `ulite_assign()` (called from `.probe()`), the two calls that tie a specific `uart_port` to that driver:",
+      "source_hash": 5595460726554149805,
+      "context_hash": 3181941857528215799,
+      "translation": "그리고 `ulite_assign()`(`.probe()`에서 호출됨) 내부에서 특정 `uart_port`를 그 드라이버에 연결하는 두 호출은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:21:19.920067Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:0",
+      "source": "`uart_register_driver(&ulite_uart_driver)` runs once, from module init, before any port shows up; `uart_add_one_port()` runs once per physical port `.probe()` finds — for `uartlite`, that means once per device-tree node, since each synthesized `uartlite` core is a separate device.",
+      "source_hash": 1083886793436474925,
+      "context_hash": 14131559759433969427,
+      "translation": "`uart_register_driver(&ulite_uart_driver)`는 어떤 포트도 나타나기 전에 모듈 초기화 과정에서 한 번 실행됩니다. `uart_add_one_port()`는 `.probe()`가 찾아낸 물리 포트마다 한 번씩 실행되는데, `uartlite`의 경우 합성된 각 `uartlite` 코어가 별개의 디바이스이므로 디바이스 트리 노드마다 한 번씩 실행된다는 뜻입니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T23:36:51.451606Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "The full path, hardware to userspace",
+      "source_hash": 450592404386924118,
+      "context_hash": 5167516512742083006,
+      "translation": "하드웨어에서 사용자 공간까지의 전체 경로",
+      "glossary_snapshot": {
+        "hardware": "하드웨어",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:21:19.920068Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 11786468687030026739,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:21:19.920069Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 7001000996847645765,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:21:19.920069Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "[`include/linux/serial_core.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/serial_core.h) — `struct uart_ops`, `struct uart_port`, `struct uart_driver`, `struct uart_state`, `uart_insert_char()`, `uart_fifo_get()`",
+      "source_hash": 14409883529598967785,
+      "context_hash": 16785928106950894447,
+      "translation": "[`include/linux/serial_core.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/serial_core.h) — `struct uart_ops`, `struct uart_port`, `struct uart_driver`, `struct uart_state`, `uart_insert_char()`, `uart_fifo_get()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920069Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "[`drivers/tty/serial/serial_core.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/serial_core.c) — `uart_register_driver()`, the shared `tty_operations`, `uart_start()`/`uart_port_startup()`/`uart_change_line_settings()`, `uart_insert_char()`",
+      "source_hash": 4658120815405744283,
+      "context_hash": 9510507413993414620,
+      "translation": "[`drivers/tty/serial/serial_core.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/serial_core.c) — `uart_register_driver()`, 공유 `tty_operations`, `uart_start()`/`uart_port_startup()`/`uart_change_line_settings()`, `uart_insert_char()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920069Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "[`drivers/tty/serial/serial_port.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/serial_port.c) — `uart_add_one_port()`/`uart_remove_one_port()`",
+      "source_hash": 17242289698552441124,
+      "context_hash": 14533728061368411527,
+      "translation": "[`drivers/tty/serial/serial_port.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/serial_port.c) — `uart_add_one_port()`/`uart_remove_one_port()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920069Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "[`include/linux/serial_8250.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/serial_8250.h) — `struct uart_8250_port`",
+      "source_hash": 5830934039032090320,
+      "context_hash": 3817434988953471602,
+      "translation": "[`include/linux/serial_8250.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/serial_8250.h) — `struct uart_8250_port`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920070Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "[`drivers/tty/serial/8250/8250_port.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/8250/8250_port.c) — `serial8250_pops`, `serial8250_handle_irq_locked()`, `serial8250_rx_chars()`/`serial8250_read_char()`, `serial8250_tx_chars()`",
+      "source_hash": 1946979064557225676,
+      "context_hash": 11764868096278350416,
+      "translation": "[`drivers/tty/serial/8250/8250_port.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/8250/8250_port.c) — `serial8250_pops`, `serial8250_handle_irq_locked()`, `serial8250_rx_chars()`/`serial8250_read_char()`, `serial8250_tx_chars()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920070Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "[`include/uapi/linux/serial_reg.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/serial_reg.h) — 8250/16550 register offsets and bit definitions (`UART_IER`, `UART_FCR`, `UART_LCR`, `UART_MCR`, `UART_LSR`, `UART_MSR`, ...)",
+      "source_hash": 699339555938364605,
+      "context_hash": 2764833021293105674,
+      "translation": "[`include/uapi/linux/serial_reg.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/serial_reg.h) — 8250/16550 레지스터 오프셋과 비트 정의(`UART_IER`, `UART_FCR`, `UART_LCR`, `UART_MCR`, `UART_LSR`, `UART_MSR`, ...)",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T22:21:19.920070Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "[`drivers/tty/serial/uartlite.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/uartlite.c) — the worked-example driver above",
+      "source_hash": 13884170795802920679,
+      "context_hash": 11986604933637713391,
+      "translation": "[`drivers/tty/serial/uartlite.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/tty/serial/uartlite.c) — 위의 실전 예제 드라이버",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:21:19.920070Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "[`include/linux/tty_flip.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/tty_flip.h) — `tty_insert_flip_char()`, `tty_flip_buffer_push()`",
+      "source_hash": 15970511593371118610,
+      "context_hash": 2718678060170720718,
+      "translation": "[`include/linux/tty_flip.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/tty_flip.h) — `tty_insert_flip_char()`, `tty_flip_buffer_push()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920070Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 5435058372946480438,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920070Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "[TTY Subsystem](README.md) — the generic TTY core, `tty_struct`, and where line disciplines and drivers each fit",
+      "source_hash": 3084520754417428744,
+      "context_hash": 9961441953092237341,
+      "translation": "[TTY 서브시스템](README.md) — 범용 TTY 코어, `tty_struct`, 그리고 라인 디시플린과 드라이버가 각각 들어맞는 위치",
+      "glossary_snapshot": {
+        "Line Disciplines": "라인 디시플린",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T23:36:51.451606Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "[Line Disciplines](line-disciplines.md) — what happens to a byte after `tty_flip_buffer_push()` hands it to `n_tty` or another ldisc",
+      "source_hash": 15406222616726281950,
+      "context_hash": 7660628221212095110,
+      "translation": "[라인 디시플린](line-disciplines.md) — `tty_flip_buffer_push()`가 바이트를 `n_tty`나 다른 ldisc에 넘긴 뒤 그 바이트에 일어나는 일",
+      "glossary_snapshot": {
+        "Line Disciplines": "라인 디시플린",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T23:36:51.451606Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "[TTY/Serial War Stories](war-stories.md) — real incidents from the layer this page describes",
+      "source_hash": 12300552509638637978,
+      "context_hash": 1884339770171575015,
+      "translation": "[TTY/Serial 실전 사례](war-stories.md) — 이 페이지가 설명하는 계층에서 실제로 일어난 사고",
+      "glossary_snapshot": {
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T22:21:19.920071Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "External",
+      "source_hash": 18173270850398166434,
+      "context_hash": 17909811972986887527,
+      "translation": "외부 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:21:19.920071Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "[Serial drivers](https://docs.kernel.org/driver-api/serial/driver.html) — the kernel's own driver-API reference for `uart_ops`, `uart_port`, and the helper functions serial drivers use",
+      "source_hash": 7574208338866287772,
+      "context_hash": 18191167322867389807,
+      "translation": "[Serial 드라이버](https://docs.kernel.org/driver-api/serial/driver.html) — `uart_ops`, `uart_port`, 그리고 serial 드라이버가 사용하는 헬퍼 함수에 대한 커널 자체의 드라이버 API 레퍼런스",
+      "glossary_snapshot": {
+        "API": "API",
+        "driver": "드라이버",
+        "drivers": "드라이버",
+        "functions": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:21:19.920071Z",
+      "issues": []
+    }
+  ]
+}

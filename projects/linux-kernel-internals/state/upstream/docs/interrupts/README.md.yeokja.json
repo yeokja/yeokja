@@ -1,0 +1,731 @@
+{
+  "version": 1,
+  "source_hash": 5642982507681890764,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Interrupts and Async Processing",
+      "source_hash": 9037368874772617467,
+      "context_hash": 13668327300399847929,
+      "translation": "인터럽트와 비동기 처리",
+      "glossary_snapshot": {
+        "interrupts": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:33:40.319621Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How hardware events reach kernel code, and how deferred work gets done",
+      "source_hash": 10890269966303320317,
+      "context_hash": 434841900232396516,
+      "translation": "하드웨어 이벤트가 커널 코드에 도달하는 방식과 지연 작업이 처리되는 방식",
+      "glossary_snapshot": {
+        "hardware": "하드웨어",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:33:40.319622Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The interrupt problem",
+      "source_hash": 7151840120168416161,
+      "context_hash": 7188507516706211640,
+      "translation": "인터럽트 문제",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:33:40.319622Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Hardware devices need to tell the CPU that something happened — a network packet arrived, a disk read completed, a timer expired.",
+      "source_hash": 7436118080840010809,
+      "context_hash": 14938475514546555634,
+      "translation": "하드웨어 디바이스는 무언가 일어났다는 사실을 CPU에 알려야 합니다. 네트워크 패킷이 도착했거나, 디스크 읽기가 완료되었거나, 타이머가 만료된 경우입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:40.302250Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The CPU can't poll everything constantly, so hardware uses **interrupts**: a signal that stops whatever the CPU is doing and runs an interrupt handler.",
+      "source_hash": 7078690006474882786,
+      "context_hash": 3910458993976675081,
+      "translation": "CPU가 모든 것을 끊임없이 폴링할 수는 없으므로 하드웨어는 **인터럽트**를 사용합니다. 인터럽트는 CPU가 하던 일을 멈추고 인터럽트 핸들러를 실행하게 하는 신호입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "hardware": "하드웨어",
+        "interrupt handler": "인터럽트 핸들러",
+        "interrupts": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:33:40.319623Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "But interrupt handlers must be fast — they run with interrupts (partially) disabled, blocking all other interrupts.",
+      "source_hash": 11881679109132316311,
+      "context_hash": 13735475302435963684,
+      "translation": "하지만 인터럽트 핸들러는 빨라야 합니다. 핸들러는 인터럽트가 (부분적으로) 비활성화된 상태에서 실행되어 다른 모든 인터럽트를 막기 때문입니다.",
+      "glossary_snapshot": {
+        "interrupt handlers": "인터럽트 핸들러",
+        "interrupts": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:33:40.319623Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "So kernel design divides work into two halves:",
+      "source_hash": 8472237120031908079,
+      "context_hash": 11178318146568417603,
+      "translation": "그래서 커널 설계는 작업을 두 부분으로 나눕니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:33:40.319623Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Why five deferred-work mechanisms, not one",
+      "source_hash": 11076245979948011363,
+      "context_hash": 8384130874286970885,
+      "translation": "지연 작업 메커니즘이 하나가 아니라 다섯 개인 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:40.319623Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "That two-half split is the easy part.",
+      "source_hash": 13616423551111424625,
+      "context_hash": 11093052491013411599,
+      "translation": "이렇게 두 부분으로 나누는 것은 쉬운 부분입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:40.319623Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "The harder question — one a newcomer to this part of the kernel reasonably asks — is why there are *five* different ways to implement the \"bottom half\" box above (softirqs, tasklets, workqueues, threaded IRQs, timers/hrtimers), rather than one obvious answer.",
+      "source_hash": 15187461473639802921,
+      "context_hash": 4821341172182135458,
+      "translation": "더 어려운 질문은, 커널의 이 영역을 처음 접하는 사람이 당연히 던질 만한 질문이기도 한데, 위의 \"bottom half\" 상자를 구현하는 방법이 명확한 하나의 답이 아니라 왜 *다섯 가지*(softirq, tasklet, workqueue, threaded IRQ, timer/hrtimer)나 되는가 하는 것입니다.",
+      "glossary_snapshot": {
+        "hrtimers": "hrtimer",
+        "softirqs": "softirq",
+        "tasklets": "tasklet",
+        "threaded IRQs": "threaded IRQ",
+        "workqueues": "workqueue"
+      },
+      "translated_at": "2026-11-14T22:33:40.319624Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "The short version: each one exists because an earlier mechanism turned out to be wrong for some real workload, and rather than replace the old one outright, the kernel usually kept it and added a new option alongside it.",
+      "source_hash": 14299678729123351613,
+      "context_hash": 7420353458955666036,
+      "translation": "간단히 말하면, 각 메커니즘은 이전 메커니즘이 실제 어떤 워크로드에 맞지 않는 것으로 드러났기 때문에 존재하며, 커널은 대개 기존 메커니즘을 완전히 대체하는 대신 그대로 유지하고 그 옆에 새로운 선택지를 추가했습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:33:40.319624Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:3",
+      "source": "The [Softirqs](softirq.md#from-bottom-halves-to-softirqs-to-threaded-irqs) page tells that lineage in full — the original single-lock \"bottom half\" (BH) mechanism from Linux 2.0–2.3 serialized *all* deferred work behind one global spinlock, which became an SMP scalability wall; softirqs replaced it by letting different deferred-work types run in parallel on different CPUs; tasklets then gave drivers a softirq-like mechanism without requiring every driver author to write reentrant, per-CPU-safe code.",
+      "source_hash": 1175310291428776917,
+      "context_hash": 2180935209377761037,
+      "translation": "[Softirqs](softirq.md#from-bottom-halves-to-softirqs-to-threaded-irqs) 페이지에서 그 계보를 자세히 설명합니다. Linux 2.0–2.3의 원래 단일 락 \"bottom half\"(BH) 메커니즘은 *모든* 지연 작업을 하나의 전역 스핀락 뒤에 직렬화했고, 이는 SMP 확장성의 벽이 되었습니다. softirq는 서로 다른 종류의 지연 작업이 서로 다른 CPU에서 병렬로 실행될 수 있게 하여 이를 대체했습니다. 이어서 tasklet은 모든 드라이버 작성자가 재진입 가능하고 per-CPU 환경에서 안전한 코드를 작성하지 않아도 되도록 드라이버에 softirq와 유사한 메커니즘을 제공했습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CPUs": "CPU",
+        "Linux": "Linux",
+        "driver": "드라이버",
+        "drivers": "드라이버",
+        "softirq": "softirq",
+        "softirqs": "softirq",
+        "spinlock": "스핀락",
+        "tasklets": "tasklet"
+      },
+      "translated_at": "2026-11-14T22:33:40.319624Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "None of those three can sleep, though, and by the mid-2000s a growing set of drivers genuinely needed to — I2C and SPI reads, anything that has to take a mutex.",
+      "source_hash": 12852349888785932150,
+      "context_hash": 17888387228882504973,
+      "translation": "그러나 이 세 가지는 모두 슬립할 수 없는데, 2000년대 중반이 되자 실제로 슬립해야 하는 드라이버가 점점 늘어났습니다. I2C와 SPI 읽기, 그리고 뮤텍스를 잡아야 하는 모든 작업이 그렇습니다.",
+      "glossary_snapshot": {
+        "drivers": "드라이버",
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:33:40.319625Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "That gap is what [threaded IRQs](threaded-irq.md#where-this-actually-came-from) and [workqueues](workqueues.md) fill, and threaded IRQs in particular have a specific, verifiable origin worth knowing up front: mainline didn't invent the idea in 2009, it imported one the out-of-tree [PREEMPT_RT](../locking/preempt-rt.md) patch set had already been relying on for years, because RT's whole premise — bounded worst-case latency — is incompatible with anything running for long with interrupts fully disabled.",
+      "source_hash": 18062495109736528286,
+      "context_hash": 5154004830130156733,
+      "translation": "그 공백을 메우는 것이 [threaded IRQ](threaded-irq.md#where-this-actually-came-from)와 [workqueue](workqueues.md)이며, 특히 threaded IRQ에는 미리 알아 둘 만한 구체적이고 검증 가능한 기원이 있습니다. 메인라인이 2009년에 이 아이디어를 고안한 것이 아니라, 트리 외부의 [PREEMPT_RT](../locking/preempt-rt.md) 패치 세트가 이미 수년간 의존해 온 아이디어를 가져온 것입니다. RT의 전제 자체인 제한된 최악 지연 시간(bounded worst-case latency)은 인터럽트가 완전히 비활성화된 상태로 오래 실행되는 어떤 것과도 양립할 수 없기 때문입니다.",
+      "glossary_snapshot": {
+        "interrupts": "인터럽트",
+        "latency": "지연 시간",
+        "mainline": "메인라인",
+        "threaded IRQs": "threaded IRQ",
+        "workqueues": "workqueue"
+      },
+      "translated_at": "2026-11-14T22:33:40.319626Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "The same pattern shows up twice more in this subsystem: [hrtimers](timers.md#hrtimer-high-resolution-timers) exist because integrating high-resolution timer patches into the RT tree forced a real answer to \"how does Linux represent a point in time precisely, across architectures,\" where before there had only been a scatter of single-purpose, single-architecture patches; and much of the pressure behind [deprecating tasklets](tasklets.md#the-deprecation-nobody-planned-to-start-then-couldnt-finish) in favor of threaded IRQs came from the same Linutronix-affiliated engineers (Thomas Gleixner, Sebastian Andrzej Siewior) who built and maintained the RT tree, because tasklets — atomic-context-only, unable to sleep or be preempted — are exactly the kind of thing RT's model has no room for.",
+      "source_hash": 13293067640020910876,
+      "context_hash": 8341055826620589168,
+      "translation": "같은 패턴이 이 서브시스템에서 두 번 더 나타납니다. [hrtimer](timers.md#hrtimer-high-resolution-timers)가 존재하는 이유는 고해상도 타이머 패치를 RT 트리에 통합하는 과정에서 \"Linux가 아키텍처 전반에 걸쳐 시점을 어떻게 정밀하게 표현하는가\"라는 질문에 제대로 답해야 했기 때문이며, 그 전에는 단일 목적, 단일 아키텍처용 패치가 흩어져 있었을 뿐입니다. 또한 threaded IRQ를 위해 [tasklet을 deprecated로 지정](tasklets.md#the-deprecation-nobody-planned-to-start-then-couldnt-finish)하자는 압력의 상당 부분은 RT 트리를 만들고 유지해 온 Linutronix 소속 엔지니어들(Thomas Gleixner, Sebastian Andrzej Siewior)에게서 나왔습니다. atomic 컨텍스트 전용이고 슬립하거나 선점될 수 없는 tasklet은 바로 RT 모델이 수용할 여지가 없는 종류의 것이기 때문입니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "Thomas": "Thomas",
+        "hrtimers": "hrtimer",
+        "subsystem": "서브시스템",
+        "tasklets": "tasklet",
+        "threaded IRQs": "threaded IRQ",
+        "timer": "타이머"
+      },
+      "translated_at": "2026-11-14T22:33:40.319627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "None of this means the older mechanisms disappeared.",
+      "source_hash": 14236537965601055632,
+      "context_hash": 1057985928063945606,
+      "translation": "그렇다고 해서 오래된 메커니즘이 사라졌다는 뜻은 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:40.319627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "Softirqs still exist because a handful of very hot paths (networking's `NET_RX_SOFTIRQ`, in particular) genuinely can't afford a thread-scheduling round trip; tasklets are still in the tree, deprecated but not removed, because a few drivers (AMD's `ccp` crypto engine, Intel's `i915` GPU driver) combine them with other mechanisms in ways that resist a one-line conversion.",
+      "source_hash": 7279954372236176673,
+      "context_hash": 13635898957322430409,
+      "translation": "softirq가 여전히 존재하는 이유는 소수의 매우 뜨거운 핫 패스(특히 네트워킹의 `NET_RX_SOFTIRQ`)가 스레드 스케줄링 왕복 비용을 실제로 감당할 수 없기 때문입니다. tasklet도 deprecated 상태이지만 제거되지 않고 여전히 트리에 남아 있는데, 몇몇 드라이버(AMD의 `ccp` 암호화 엔진, Intel의 `i915` GPU 드라이버)가 tasklet을 다른 메커니즘과 결합하는 방식 때문에 한 줄로 변환하기 어렵기 때문입니다.",
+      "glossary_snapshot": {
+        "AMD": "AMD",
+        "GPU": "GPU",
+        "Intel": "Intel",
+        "crypto": "암호화",
+        "driver": "드라이버",
+        "drivers": "드라이버",
+        "hot paths": "핫 패스",
+        "scheduling": "스케줄링",
+        "softirqs": "softirq",
+        "tasklets": "tasklet"
+      },
+      "translated_at": "2026-11-14T22:33:40.319627Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "What you're looking at across these pages is less a single coherent design than five answers accumulated over roughly three decades, each solving the specific problem in front of its author at the time — with the out-of-tree realtime effort acting as an unusually persistent source of pressure to eventually generalize the ad hoc fix into something every driver could use.",
+      "source_hash": 8720148034618194193,
+      "context_hash": 16903977422750421667,
+      "translation": "이 페이지들에서 보게 되는 것은 하나의 일관된 설계라기보다, 약 30년에 걸쳐 축적된 다섯 가지 답이며, 각각은 당시 작성자 앞에 놓인 특정 문제를 해결한 것입니다. 그리고 트리 외부의 리얼타임 작업은 임시방편적인 수정을 결국 모든 드라이버가 사용할 수 있는 것으로 일반화하도록 이례적으로 끈질기게 압력을 가하는 원천 역할을 했습니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:33:40.319627Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Contents",
+      "source_hash": 10242441547106091136,
+      "context_hash": 13431074218455320680,
+      "translation": "목차",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:40.319627Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Fundamentals",
+      "source_hash": 4494815123198641143,
+      "context_hash": 3896809683363411070,
+      "translation": "기초",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:40.319627Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "[Interrupt Handling Overview](interrupts.md) — From hardware to handler",
+      "source_hash": 13978194061696714649,
+      "context_hash": 13216148582707753154,
+      "translation": "[인터럽트 처리 개요](interrupts.md) — 하드웨어에서 핸들러까지",
+      "glossary_snapshot": {
+        "handler": "핸들러",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:33:40.319628Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "[IRQ Descriptor and irq_chip](irq-desc.md) — The kernel's interrupt abstraction",
+      "source_hash": 11177835115309334843,
+      "context_hash": 2476149720230853198,
+      "translation": "[IRQ 디스크립터와 irq_chip](irq-desc.md) — 커널의 인터럽트 추상화",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "descriptor": "디스크립터",
+        "interrupt": "인터럽트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:33:40.319628Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "[request_irq and free_irq](request-irq.md) — Registering interrupt handlers",
+      "source_hash": 10235195033024542134,
+      "context_hash": 11416282946693748711,
+      "translation": "[request_irq와 free_irq](request-irq.md) — 인터럽트 핸들러 등록",
+      "glossary_snapshot": {
+        "interrupt handlers": "인터럽트 핸들러"
+      },
+      "translated_at": "2026-11-14T22:33:40.319628Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "[Threaded IRQs](threaded-irq.md) — Moving work out of hardirq context",
+      "source_hash": 7195444923470669255,
+      "context_hash": 3363159125233314629,
+      "translation": "[Threaded IRQ](threaded-irq.md) — 작업을 hardirq 컨텍스트 밖으로 옮기기",
+      "glossary_snapshot": {
+        "threaded IRQs": "threaded IRQ"
+      },
+      "translated_at": "2026-11-14T22:33:40.319628Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Deferred Work (Bottom Halves)",
+      "source_hash": 14109041279917606037,
+      "context_hash": 4484741329608393939,
+      "translation": "지연 작업(Bottom Half)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:40.319628Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "[Softirqs](softirq.md) — The lowest-level deferral mechanism",
+      "source_hash": 3401004236606011957,
+      "context_hash": 1227301222647608447,
+      "translation": "[Softirq](softirq.md) — 가장 낮은 수준의 지연 메커니즘",
+      "glossary_snapshot": {
+        "softirqs": "softirq"
+      },
+      "translated_at": "2026-11-14T22:33:40.319628Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "[Tasklets](tasklets.md) — Per-CPU serialized softirq consumers",
+      "source_hash": 15049875211477453805,
+      "context_hash": 13173649257082448149,
+      "translation": "[Tasklet](tasklets.md) — CPU별로 직렬화된 softirq 소비자",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "softirq": "softirq",
+        "tasklets": "tasklet"
+      },
+      "translated_at": "2026-11-14T22:33:40.319628Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "[Workqueues](workqueues.md) — Process-context deferred work",
+      "source_hash": 12769600205452226590,
+      "context_hash": 13185386411475059836,
+      "translation": "[Workqueue](workqueues.md) — 프로세스 컨텍스트 지연 작업",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "workqueues": "workqueue"
+      },
+      "translated_at": "2026-11-14T22:33:40.319629Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "[Timers and hrtimers](timers.md) — Deferred work at a specific time",
+      "source_hash": 12099931318571387587,
+      "context_hash": 5691625431423812118,
+      "translation": "[Timer와 hrtimer](timers.md) — 특정 시점의 지연 작업",
+      "glossary_snapshot": {
+        "hrtimers": "hrtimer"
+      },
+      "translated_at": "2026-11-14T22:33:40.319629Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "War stories",
+      "source_hash": 16915861821013876642,
+      "context_hash": 16670865481749525697,
+      "translation": "실전 사례",
+      "glossary_snapshot": {
+        "War Stories": "실전 사례",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T22:33:40.319629Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "[War Stories](war-stories.md) — two CVEs and two long-standing bugs in the IRQ-affinity and vector-allocation machinery",
+      "source_hash": 17836213126047592923,
+      "context_hash": 3532288283526532680,
+      "translation": "[실전 사례](war-stories.md) — IRQ 어피니티 및 벡터 할당 메커니즘의 CVE 두 건과 오랫동안 존재해 온 버그 두 건",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "IRQ": "IRQ",
+        "affinity": "어피니티",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T23:29:40.302251Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Execution contexts",
+      "source_hash": 1802375995170338317,
+      "context_hash": 849531786960331228,
+      "translation": "실행 컨텍스트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:40.319629Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Understanding which context code runs in is critical for choosing the right locking:",
+      "source_hash": 4057249820394068849,
+      "context_hash": 14679427883731023655,
+      "translation": "어떤 컨텍스트에서 코드가 실행되는지 이해하는 것은 올바른 락킹(locking)을 선택하는 데 매우 중요합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426711Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Context",
+      "source_hash": 16963689554404632371,
+      "context_hash": 1432848931439386946,
+      "translation": "컨텍스트",
+      "glossary_snapshot": {
+        "Context": "컨텍스트"
+      },
+      "translated_at": "2026-11-14T21:52:58.426712Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`in_interrupt()`",
+      "source_hash": 2106881901544411271,
+      "context_hash": 11612098748489710496,
+      "translation": "`in_interrupt()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426712Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "May sleep?",
+      "source_hash": 17307956736400790631,
+      "context_hash": 14304116196549557865,
+      "translation": "슬립 가능 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426712Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Preemptible?",
+      "source_hash": 10970598631697029287,
+      "context_hash": 1558261741242164076,
+      "translation": "선점 가능 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426713Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Process context",
+      "source_hash": 6938601429545789159,
+      "context_hash": 5010920938109502004,
+      "translation": "프로세스 컨텍스트",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T21:52:58.426713Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "false",
+      "source_hash": 7872179778353117818,
+      "context_hash": 3722235018293716251,
+      "translation": "false",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426713Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11949505759454099939,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:58.426713Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11149822782952646584,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:58.426713Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "Softirq",
+      "source_hash": 17909425966028491513,
+      "context_hash": 6126223622354001330,
+      "translation": "Softirq",
+      "glossary_snapshot": {
+        "softirq": "softirq"
+      },
+      "translated_at": "2026-11-14T21:52:58.426714Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "true",
+      "source_hash": 15549163119024811594,
+      "context_hash": 5576103178694997822,
+      "translation": "true",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426714Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10353502672333290905,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:52:58.426714Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 5804390921327596680,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Hardirq",
+      "source_hash": 7435282033374205261,
+      "context_hash": 13420634333161790487,
+      "translation": "Hardirq",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "true",
+      "source_hash": 15549163119024811594,
+      "context_hash": 6385237421346743869,
+      "translation": "true",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10353502672333290905,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 2297424388512338082,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "Threaded IRQ",
+      "source_hash": 16567538955907707816,
+      "context_hash": 3429557479336306023,
+      "translation": "Threaded IRQ",
+      "glossary_snapshot": {
+        "threaded IRQ": "threaded IRQ"
+      },
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "false",
+      "source_hash": 7872179778353117818,
+      "context_hash": 7635315223477843813,
+      "translation": "false",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11949505759454099939,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:58.426715Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6600228254902565168,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:58.426716Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "Workqueue",
+      "source_hash": 10726936522807085225,
+      "context_hash": 6907198269943612780,
+      "translation": "Workqueue",
+      "glossary_snapshot": {
+        "workqueue": "workqueue"
+      },
+      "translated_at": "2026-11-14T21:52:58.426716Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "false",
+      "source_hash": 7872179778353117818,
+      "context_hash": 1169229220644026272,
+      "translation": "false",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:52:58.426716Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 11949505759454099939,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:58.426716Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 12242601153084380391,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:52:58.426716Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "`in_interrupt()` returns true in both softirq and hardirq context.",
+      "source_hash": 11452991600466559349,
+      "context_hash": 11382019764075159254,
+      "translation": "`in_interrupt()`는 softirq 컨텍스트와 hardirq 컨텍스트 모두에서 true를 반환합니다.",
+      "glossary_snapshot": {
+        "softirq": "softirq"
+      },
+      "translated_at": "2026-11-14T21:52:58.426717Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:1",
+      "source": "Use `in_hardirq()` for hardirq-only, `in_softirq()` for softirq-only.",
+      "source_hash": 9915528694951990075,
+      "context_hash": 17733259008411108803,
+      "translation": "hardirq만 확인하려면 `in_hardirq()`를, softirq만 확인하려면 `in_softirq()`를 사용하십시오.",
+      "glossary_snapshot": {
+        "softirq": "softirq"
+      },
+      "translated_at": "2026-11-14T21:52:58.426717Z",
+      "issues": []
+    }
+  ]
+}

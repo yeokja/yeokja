@@ -1,0 +1,2706 @@
+{
+  "version": 1,
+  "source_hash": 5506905992270164743,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "DMA Memory Allocation",
+      "source_hash": 7174869403612201861,
+      "context_hash": 6902280437090632124,
+      "translation": "DMA 메모리 할당",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory allocation": "메모리 할당"
+      },
+      "translated_at": "2026-11-14T23:03:43.830621Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How the kernel allocates and manages memory for devices that access RAM directly",
+      "source_hash": 5358700293577274596,
+      "context_hash": 7140546845277220936,
+      "translation": "커널이 RAM에 직접 접근하는 디바이스를 위해 메모리를 할당하고 관리하는 방식",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640938Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What is DMA?",
+      "source_hash": 8507081698392304492,
+      "context_hash": 11537299500738055390,
+      "translation": "DMA란 무엇인가?",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T23:03:43.830622Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Direct Memory Access (DMA) lets hardware devices read and write system memory without involving the CPU for every byte transferred.",
+      "source_hash": 7184953439643580926,
+      "context_hash": 9789959709361770757,
+      "translation": "직접 메모리 접근(Direct Memory Access, DMA)은 하드웨어 디바이스가 전송하는 바이트마다 CPU를 거치지 않고 시스템 메모리를 읽고 쓸 수 있게 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "byte": "바이트",
+        "devices": "디바이스",
+        "memory access": "메모리 접근"
+      },
+      "translated_at": "2026-11-14T23:29:36.640941Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "A network card receiving packets, a disk controller fetching blocks, or a GPU reading textures -- all bypass the CPU and talk to RAM directly.",
+      "source_hash": 12234331222200993375,
+      "context_hash": 10619544584133223033,
+      "translation": "패킷을 수신하는 네트워크 카드, 블록을 가져오는 디스크 컨트롤러, 텍스처를 읽는 GPU -- 모두 CPU를 우회하여 RAM과 직접 통신합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "GPU": "GPU",
+        "RAM": "RAM",
+        "controller": "컨트롤러"
+      },
+      "translated_at": "2026-11-14T23:03:43.830622Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "This is essential for performance.",
+      "source_hash": 4705406680138992799,
+      "context_hash": 6978612236820244156,
+      "translation": "이는 성능에 필수적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:43.830622Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "Without DMA, the CPU would spend its time copying bytes between device registers and memory instead of doing useful work.",
+      "source_hash": 10294989709375543859,
+      "context_hash": 11518521427083149648,
+      "translation": "DMA가 없다면 CPU는 유용한 작업을 하는 대신 디바이스 레지스터와 메모리 사이에서 바이트를 복사하는 데 시간을 쓰게 됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "bytes": "바이트",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640942Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "But DMA introduces a fundamental problem: **devices operate on physical addresses, not virtual ones**, and they may not be able to reach all of physical memory.",
+      "source_hash": 3120531237286584777,
+      "context_hash": 8960960268115278659,
+      "translation": "그러나 DMA는 근본적인 문제를 일으킵니다. **디바이스는 가상 주소가 아니라 물리 주소로 동작하며**, 물리 메모리 전체에 접근하지 못할 수도 있습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "devices": "디바이스",
+        "physical addresses": "물리 주소",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T23:29:36.640943Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Why DMA Needs Special Memory",
+      "source_hash": 7469289739337609097,
+      "context_hash": 17229150019942600848,
+      "translation": "DMA에 특별한 메모리가 필요한 이유",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T23:03:43.830623Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Three constraints make DMA memory allocation different from normal `kmalloc()`:",
+      "source_hash": 8396876184281345721,
+      "context_hash": 15567747465444544127,
+      "translation": "세 가지 제약으로 인해 DMA 메모리 할당은 일반적인 `kmalloc()`과 다릅니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory allocation": "메모리 할당"
+      },
+      "translated_at": "2026-11-14T23:03:43.830623Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "**Physical address limitations**: Many devices can only address a subset of physical memory.",
+      "source_hash": 9614456644760496716,
+      "context_hash": 5498541656681533744,
+      "translation": "**물리 주소 제한**: 많은 디바이스는 물리 메모리의 일부만 주소 지정할 수 있습니다.",
+      "glossary_snapshot": {
+        "devices": "디바이스",
+        "physical address": "물리 주소",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T23:29:36.640946Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "An old ISA sound card can only reach the first 16MB.",
+      "source_hash": 5993514404278118707,
+      "context_hash": 13225701257134313960,
+      "translation": "오래된 ISA 사운드 카드는 처음 16MB에만 접근할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:43.830624Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "A 32-bit PCI card can only reach the first 4GB.",
+      "source_hash": 9364994458078989742,
+      "context_hash": 15316904712773066296,
+      "translation": "32비트 PCI 카드는 처음 4GB에만 접근할 수 있습니다.",
+      "glossary_snapshot": {
+        "PCI": "PCI",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:03:43.830624Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:3",
+      "source": "If the kernel hands a device a buffer at physical address 8GB, the device simply cannot access it.",
+      "source_hash": 12820197185557576169,
+      "context_hash": 4167804021790868592,
+      "translation": "커널이 디바이스에 물리 주소 8GB에 있는 버퍼를 넘기면, 디바이스는 그 버퍼에 아예 접근할 수 없습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T23:29:36.640947Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "**Cache coherency**: The CPU uses caches (L1, L2, L3) between itself and RAM.",
+      "source_hash": 1793820233783003558,
+      "context_hash": 17824649264406616152,
+      "translation": "**캐시 일관성**: CPU는 자신과 RAM 사이에 캐시(L1, L2, L3)를 사용합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "RAM": "RAM",
+        "cache": "캐시",
+        "caches": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:43.830624Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "When a device writes to RAM via DMA, the CPU cache may still hold stale data for that address.",
+      "source_hash": 8318377738431111586,
+      "context_hash": 13155834092446429773,
+      "translation": "디바이스가 DMA로 RAM에 쓸 때, CPU 캐시에는 해당 주소의 오래된 데이터가 여전히 남아 있을 수 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "RAM": "RAM",
+        "device": "디바이스",
+        "stale data": "오래된 데이터"
+      },
+      "translated_at": "2026-11-14T23:29:36.640947Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "Conversely, if the CPU writes to cache but the data has not reached RAM yet, the device reads stale memory.",
+      "source_hash": 2877409989214848191,
+      "context_hash": 10253541184519253814,
+      "translation": "반대로 CPU가 캐시에 썼지만 데이터가 아직 RAM에 도달하지 않았다면, 디바이스는 오래된 메모리를 읽게 됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "RAM": "RAM",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640949Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:3",
+      "source": "The kernel must manage this explicitly.",
+      "source_hash": 18212601935780523099,
+      "context_hash": 16039495252923653279,
+      "translation": "커널은 이를 명시적으로 관리해야 합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:03:43.830624Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "**Contiguity requirements**: Devices see physical memory, not virtual.",
+      "source_hash": 16337167094644832458,
+      "context_hash": 18000772501676144710,
+      "translation": "**연속성 요구 사항**: 디바이스는 가상 메모리가 아니라 물리 메모리를 봅니다.",
+      "glossary_snapshot": {
+        "devices": "디바이스",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T23:29:36.640949Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "A buffer that looks contiguous in the kernel's virtual address space may be scattered across physical pages.",
+      "source_hash": 4378680014371377698,
+      "context_hash": 10316774327022151066,
+      "translation": "커널의 가상 주소 공간에서 연속적으로 보이는 버퍼도 물리 페이지들에 흩어져 있을 수 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "physical pages": "물리 페이지",
+        "virtual address space": "가상 주소 공간"
+      },
+      "translated_at": "2026-11-14T23:03:43.830625Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:2",
+      "source": "Without hardware support (IOMMU), the device needs physically contiguous memory.",
+      "source_hash": 736702089888915524,
+      "context_hash": 1299997615072768620,
+      "translation": "하드웨어 지원(IOMMU)이 없으면 디바이스에는 물리적으로 연속 메모리가 필요합니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "contiguous memory": "연속 메모리",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640950Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "DMA Zones",
+      "source_hash": 13423522562686441222,
+      "context_hash": 14497350396214813217,
+      "translation": "DMA 존",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T23:03:43.830625Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The kernel partitions physical memory into zones to handle device addressing limitations.",
+      "source_hash": 14243208425651073337,
+      "context_hash": 18181126149965348268,
+      "translation": "커널은 디바이스의 주소 지정 제한을 처리하기 위해 물리 메모리를 여러 존(zone)으로 나눕니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T23:29:36.640951Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "From [`include/linux/mmzone.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmzone.h):",
+      "source_hash": 16437025046908325370,
+      "context_hash": 13913336410181826983,
+      "translation": "[`include/linux/mmzone.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmzone.h)에서 발췌:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:43.830625Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "ZONE_DMA (first 16MB)",
+      "source_hash": 14499943813862014730,
+      "context_hash": 4035199088925101658,
+      "translation": "ZONE_DMA (처음 16MB)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:43.830625Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "A legacy zone for ISA bus devices.",
+      "source_hash": 11991181762274161339,
+      "context_hash": 11058930385481003918,
+      "translation": "ISA 버스 디바이스를 위한 레거시 존",
+      "glossary_snapshot": {
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640951Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "The ISA bus uses 24-bit addresses, limiting DMA to the first 2^24 = 16MB of RAM.",
+      "source_hash": 11921821651245560338,
+      "context_hash": 2280164846515030024,
+      "translation": "ISA 버스는 24비트 주소를 사용하므로 DMA가 RAM의 처음 2^24 = 16MB로 제한됩니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "RAM": "RAM",
+        "addresses": "주소",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:03:43.830625Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:2",
+      "source": "Modern systems rarely need this, but the zone persists because some architectures still define it.",
+      "source_hash": 11544191183781527334,
+      "context_hash": 14734522889697620097,
+      "translation": "최신 시스템에서는 이 존이 거의 필요하지 않지만, 일부 아키텍처가 여전히 이를 정의하고 있기 때문에 존이 유지되고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:43.830625Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Allocated with `GFP_DMA`.",
+      "source_hash": 11105325760324976868,
+      "context_hash": 14721405863980735588,
+      "translation": "`GFP_DMA`로 할당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:43.830625Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "ZONE_DMA32 (first 4GB)",
+      "source_hash": 6874696543227666434,
+      "context_hash": 10331058829633626165,
+      "translation": "ZONE_DMA32 (처음 4GB)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:43.830626Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "For 32-bit PCI devices that use 32-bit DMA addresses.",
+      "source_hash": 7272591307600192045,
+      "context_hash": 11956916652733249049,
+      "translation": "32비트 DMA 주소를 사용하는 32비트 PCI 디바이스용",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "PCI": "PCI",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640952Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:1",
+      "source": "On a system with 64GB of RAM, these devices can only access the bottom 4GB.",
+      "source_hash": 16613181737691347023,
+      "context_hash": 3797624396267255073,
+      "translation": "RAM이 64GB인 시스템에서 이러한 디바이스는 하위 4GB에만 접근할 수 있습니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640952Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:2",
+      "source": "This is still relevant -- many embedded devices and older PCIe cards have 32-bit DMA masks.",
+      "source_hash": 13223249088804009047,
+      "context_hash": 12387497078660540793,
+      "translation": "이는 여전히 중요합니다. 많은 임베디드 디바이스와 오래된 PCIe 카드가 32비트 DMA 마스크를 가지고 있기 때문입니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "PCIe": "PCIe",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.640952Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Allocated with `GFP_DMA32`.",
+      "source_hash": 6097284055341673317,
+      "context_hash": 13207877075295682095,
+      "translation": "`GFP_DMA32`로 할당합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527826Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "ZONE_NORMAL",
+      "source_hash": 13701634601897724103,
+      "context_hash": 8576519428436312757,
+      "translation": "ZONE_NORMAL",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527826Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Memory accessible by the kernel and by devices with full addressing capability (64-bit DMA).",
+      "source_hash": 2083886502586864779,
+      "context_hash": 6253319815783184744,
+      "translation": "커널과 전체 주소 지정 능력(64비트 DMA)을 갖춘 디바이스가 접근할 수 있는 메모리",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.641082Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:1",
+      "source": "No special constraints.",
+      "source_hash": 10321711550386829999,
+      "context_hash": 816014733753763771,
+      "translation": "특별한 제약은 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527826Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "The zone boundaries are architecture-specific.",
+      "source_hash": 16720933510774612015,
+      "context_hash": 1910449462530903432,
+      "translation": "zone 경계는 아키텍처마다 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527827Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:1",
+      "source": "ARM64 initially had no `ZONE_DMA` at all, but commit [1a8e1cef7603](https://git.kernel.org/linus/1a8e1cef7603) (\"arm64: use both ZONE_DMA and ZONE_DMA32\") added it to handle devices that can only address the lowest 1GB of physical memory — a constraint that exists on some ARM SoCs and PCIe devices regardless of what the architecture spec allows.",
+      "source_hash": 11555506958411429151,
+      "context_hash": 12961680764503095678,
+      "translation": "ARM64에는 처음에 `ZONE_DMA`가 전혀 없었지만, 커밋 [1a8e1cef7603](https://git.kernel.org/linus/1a8e1cef7603)(\"arm64: use both ZONE_DMA and ZONE_DMA32\")이 물리 메모리의 최하위 1GB만 주소 지정할 수 있는 디바이스를 처리하기 위해 이를 추가했습니다. 이는 아키텍처 사양이 무엇을 허용하든 관계없이 일부 ARM SoC와 PCIe 디바이스에 존재하는 제약입니다.",
+      "glossary_snapshot": {
+        "PCIe": "PCIe",
+        "SoCs": "SoC",
+        "devices": "디바이스",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T23:29:36.641083Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "The DMA API",
+      "source_hash": 16888004686505443913,
+      "context_hash": 255988487998318945,
+      "translation": "DMA API",
+      "glossary_snapshot": {
+        "DMA API": "DMA API"
+      },
+      "translated_at": "2026-11-14T23:03:44.527827Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "The kernel provides a unified DMA API that abstracts away the differences between architectures and IOMMUs.",
+      "source_hash": 8679822645350722851,
+      "context_hash": 15872395039753592582,
+      "translation": "커널은 아키텍처와 IOMMU 간의 차이를 추상화하는 통합 DMA API를 제공합니다.",
+      "glossary_snapshot": {
+        "DMA API": "DMA API",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:03:44.527827Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The API lives in [`include/linux/dma-mapping.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dma-mapping.h) with the core implementation in [`kernel/dma/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma).",
+      "source_hash": 11807840339553443460,
+      "context_hash": 1066938804663922677,
+      "translation": "이 API는 [`include/linux/dma-mapping.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dma-mapping.h)에 있으며, 핵심 구현은 [`kernel/dma/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma)에 있습니다.",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T23:03:44.527827Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "dma_alloc_coherent()",
+      "source_hash": 435355657662424825,
+      "context_hash": 13678261558673906850,
+      "translation": "dma_alloc_coherent()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527827Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Allocates a buffer that is simultaneously accessible by the CPU and the device, with hardware-enforced coherency (no manual cache management needed).",
+      "source_hash": 10259259740650122286,
+      "context_hash": 11830448001695627153,
+      "translation": "CPU와 디바이스가 동시에 접근할 수 있고 하드웨어가 일관성(coherency)을 보장하는 버퍼를 할당합니다(수동 캐시 관리가 필요 없습니다).",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.641084Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Returns two things: a CPU virtual address (the return value) and a device-visible DMA address (via `dma_handle`).",
+      "source_hash": 9624616674176583790,
+      "context_hash": 14945104305973374603,
+      "translation": "두 가지를 반환합니다. CPU 가상 주소(반환값)와 디바이스가 볼 수 있는 DMA 주소(`dma_handle`를 통해)입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "device": "디바이스",
+        "virtual address": "가상 주소"
+      },
+      "translated_at": "2026-11-14T23:29:36.641085Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "The driver uses the CPU address; it programs the device with the DMA address.",
+      "source_hash": 9981057725473472419,
+      "context_hash": 383943576508532956,
+      "translation": "드라이버는 CPU 주소를 사용하고, 디바이스에는 DMA 주소를 프로그래밍합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.641086Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "**When to use**: Long-lived buffers shared between CPU and device -- descriptor rings, command queues, firmware communication areas.",
+      "source_hash": 11519243712855487651,
+      "context_hash": 4072000324487270842,
+      "translation": "**사용 시점**: CPU와 디바이스가 공유하는 수명이 긴 버퍼, 즉 디스크립터 링, 명령 큐, 펌웨어 통신 영역입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "descriptor": "디스크립터",
+        "device": "디바이스",
+        "firmware": "펌웨어",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T23:29:36.641087Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "The coherency guarantee means neither side needs to flush or invalidate caches.",
+      "source_hash": 6385513571620155961,
+      "context_hash": 11549180086762813696,
+      "translation": "일관성이 보장되므로 어느 쪽도 캐시를 flush하거나 invalidate할 필요가 없습니다.",
+      "glossary_snapshot": {
+        "caches": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:44.527827Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "**Trade-off**: Coherent memory is often uncacheable on architectures without hardware cache coherency (e.g., some ARM SoCs).",
+      "source_hash": 12260499884864943086,
+      "context_hash": 9175175332119420864,
+      "translation": "**트레이드오프**: 하드웨어 캐시 일관성이 없는 아키텍처(예: 일부 ARM SoC)에서는 coherent 메모리가 캐시 불가능(uncacheable)한 경우가 많습니다.",
+      "glossary_snapshot": {
+        "SoCs": "SoC",
+        "cache": "캐시",
+        "hardware": "하드웨어",
+        "memory": "메모리",
+        "trade-off": "트레이드오프"
+      },
+      "translated_at": "2026-11-14T23:03:44.527827Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:1",
+      "source": "This makes CPU access slower.",
+      "source_hash": 4283068350553505462,
+      "context_hash": 10431857827380349748,
+      "translation": "이로 인해 CPU 접근이 느려집니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:03:44.527828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:2",
+      "source": "Do not use for large data buffers that the CPU will read/write intensively.",
+      "source_hash": 14532531947321679895,
+      "context_hash": 1977970702914321609,
+      "translation": "CPU가 집중적으로 읽고 쓸 대용량 데이터 버퍼에는 사용하지 마십시오.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:03:44.527828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "dma_map_single()",
+      "source_hash": 17103597105410992044,
+      "context_hash": 2188338141280507146,
+      "translation": "dma_map_single()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Maps an existing kernel buffer for DMA access by a device.",
+      "source_hash": 11524007481083394369,
+      "context_hash": 3176716452332293298,
+      "translation": "기존 커널 버퍼를 디바이스의 DMA 접근용으로 매핑합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.641088Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:1",
+      "source": "This is a \"streaming\" mapping -- it has a direction and a lifecycle.",
+      "source_hash": 4949325540365753433,
+      "context_hash": 7816804819265233723,
+      "translation": "이는 \"스트리밍\" 매핑입니다 -- 방향과 수명 주기를 가집니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T23:03:44.527828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "The direction tells the kernel which cache operations are needed:",
+      "source_hash": 4699767635884174073,
+      "context_hash": 18379914381895904664,
+      "translation": "방향은 어떤 캐시 작업이 필요한지 커널에 알려 줍니다:",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:03:44.527828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Direction",
+      "source_hash": 12791907831916761572,
+      "context_hash": 11595607377396790779,
+      "translation": "방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527829Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 16119311430042343413,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527829Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Cache Operation",
+      "source_hash": 9113884312195775804,
+      "context_hash": 14375166986216774848,
+      "translation": "캐시 작업",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:44.527829Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "`DMA_TO_DEVICE`",
+      "source_hash": 9322310660576913652,
+      "context_hash": 6808305580937006820,
+      "translation": "`DMA_TO_DEVICE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527829Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "CPU writes, device reads",
+      "source_hash": 16255253568034176190,
+      "context_hash": 16048588189268530551,
+      "translation": "CPU가 쓰고 디바이스가 읽음",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:36.641088Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "Flush CPU caches before DMA",
+      "source_hash": 12512698399909767423,
+      "context_hash": 13580936901654672810,
+      "translation": "DMA 전에 CPU 캐시 flush",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "caches": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:44.527829Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "`DMA_FROM_DEVICE`",
+      "source_hash": 6481429479274237086,
+      "context_hash": 7123731399052882327,
+      "translation": "`DMA_FROM_DEVICE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:44.527829Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "Device writes, CPU reads",
+      "source_hash": 7395324435407392481,
+      "context_hash": 6598757325489769143,
+      "translation": "디바이스가 쓰고 CPU가 읽음",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:48.219260Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "Invalidate CPU caches after DMA",
+      "source_hash": 1236784757827328242,
+      "context_hash": 18037005176727305487,
+      "translation": "DMA 후 CPU 캐시 무효화",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "caches": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:48.219261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "`DMA_BIDIRECTIONAL`",
+      "source_hash": 8116728938207312955,
+      "context_hash": 9469391106015869454,
+      "translation": "`DMA_BIDIRECTIONAL`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "Both directions",
+      "source_hash": 4300710451306857927,
+      "context_hash": 18050284433359046537,
+      "translation": "양방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "Flush before, invalidate after",
+      "source_hash": 17517047263033933416,
+      "context_hash": 12582608500388457688,
+      "translation": "전에 flush, 후에 invalidate",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "**When to use**: Temporary transfers -- sending a network packet, submitting a disk I/O request.",
+      "source_hash": 16907093628942313727,
+      "context_hash": 857285093238844586,
+      "translation": "**사용 시점**: 일시적인 전송 -- 네트워크 패킷 송신, 디스크 I/O 요청 제출 등입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:1",
+      "source": "Map before the transfer, unmap when it completes.",
+      "source_hash": 7508688590357244686,
+      "context_hash": 16748692595399342332,
+      "translation": "전송 전에 매핑하고, 전송이 완료되면 매핑을 해제하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "dma_map_sg()",
+      "source_hash": 14095974119465074554,
+      "context_hash": 8413118980220578065,
+      "translation": "dma_map_sg()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219261Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "Maps a scatter-gather list -- multiple non-contiguous memory regions -- for a single DMA operation.",
+      "source_hash": 3251767325326255010,
+      "context_hash": 965791127867536507,
+      "translation": "여러 개의 비연속 메모리 영역으로 이루어진 scatter-gather 리스트를 단일 DMA 작업용으로 매핑합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "contiguous memory": "연속 메모리",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T23:29:36.641089Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:1",
+      "source": "This is how the kernel handles I/O that spans multiple pages.",
+      "source_hash": 13774385888409098676,
+      "context_hash": 7491376390467271938,
+      "translation": "이것이 커널이 여러 페이지에 걸친 I/O를 처리하는 방식입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:03:48.219262Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:0",
+      "source": "`dma_map_sg()` returns the number of DMA-mapped entries, which may be *fewer* than the input entries.",
+      "source_hash": 7165381856564045597,
+      "context_hash": 15450868634603436754,
+      "translation": "`dma_map_sg()`는 DMA 매핑된 엔트리의 수를 반환하며, 이 값은 입력 엔트리 수보다 *적을* 수 있습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T23:03:48.219262Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:1",
+      "source": "With an IOMMU, the kernel can merge physically discontiguous pages into a single contiguous DMA region as seen by the device.",
+      "source_hash": 14165107529907563762,
+      "context_hash": 18309265027468232992,
+      "translation": "IOMMU가 있으면 커널은 물리적으로 불연속적인 페이지들을 디바이스가 보기에 하나의 연속된 DMA 영역으로 병합할 수 있습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "device": "디바이스",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:03:48.219262Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:0",
+      "source": "**When to use**: Block I/O, large network transfers, any case where data spans multiple pages.",
+      "source_hash": 15529048094971442060,
+      "context_hash": 11168062749338488999,
+      "translation": "**사용 시점**: 블록 I/O, 대용량 네트워크 전송 등 데이터가 여러 페이지에 걸치는 모든 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219262Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:1",
+      "source": "Most real device drivers use scatter-gather extensively.",
+      "source_hash": 9162186897090881576,
+      "context_hash": 6640703288638597168,
+      "translation": "실제 디바이스 드라이버 대부분은 scatter-gather를 광범위하게 사용합니다.",
+      "glossary_snapshot": {
+        "device drivers": "디바이스 드라이버",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T23:03:48.219262Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Coherent vs Streaming DMA Mappings",
+      "source_hash": 2253662444000082201,
+      "context_hash": 13818091925080418211,
+      "translation": "Coherent DMA 매핑과 Streaming DMA 매핑 비교",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "mappings": "매핑"
+      },
+      "translated_at": "2026-11-14T23:03:48.219262Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "This is the central design decision in the DMA API:",
+      "source_hash": 12484001946979366108,
+      "context_hash": 1338161244560197419,
+      "translation": "이것이 DMA API에서 가장 핵심적인 설계 결정입니다:",
+      "glossary_snapshot": {
+        "DMA API": "DMA API"
+      },
+      "translated_at": "2026-11-14T23:03:48.219262Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Property",
+      "source_hash": 12663700143509946447,
+      "context_hash": 17733432254184037054,
+      "translation": "속성",
+      "glossary_snapshot": {
+        "Property": "속성"
+      },
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Coherent",
+      "source_hash": 17004682698603404132,
+      "context_hash": 13130359231100439425,
+      "translation": "Coherent",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Streaming",
+      "source_hash": 7205479972431770820,
+      "context_hash": 12440913915559887037,
+      "translation": "Streaming",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "**API**",
+      "source_hash": 15852565632295514847,
+      "context_hash": 15343393553101508183,
+      "translation": "**API**",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "`dma_alloc_coherent()`",
+      "source_hash": 4541454547947557532,
+      "context_hash": 12143734227016784604,
+      "translation": "`dma_alloc_coherent()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "`dma_map_single()`, `dma_map_sg()`",
+      "source_hash": 6928324003469151822,
+      "context_hash": 8533896906568239200,
+      "translation": "`dma_map_single()`, `dma_map_sg()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "**Lifetime**",
+      "source_hash": 16555443081765704101,
+      "context_hash": 8463281984798755708,
+      "translation": "**수명**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Long-lived (driver load to unload)",
+      "source_hash": 5395330206533615366,
+      "context_hash": 15150863912838311262,
+      "translation": "장기간 유지(드라이버 로드부터 언로드까지)",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "Per-transfer (map, DMA, unmap)",
+      "source_hash": 6727525252120694511,
+      "context_hash": 16392234055224253845,
+      "translation": "전송 단위(매핑, DMA, 매핑 해제)",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "**Cache handling**",
+      "source_hash": 13089705943584331867,
+      "context_hash": 17687632726021583191,
+      "translation": "**캐시 처리**",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Automatic (hardware or uncached)",
+      "source_hash": 6455816682884312266,
+      "context_hash": 9288593628659472631,
+      "translation": "자동(하드웨어 또는 uncached)",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "Manual (flush/invalidate at map/unmap)",
+      "source_hash": 7715965284091215061,
+      "context_hash": 425593069705164156,
+      "translation": "수동(매핑/매핑 해제 시 flush/invalidate)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "**CPU access speed**",
+      "source_hash": 4695048016879045223,
+      "context_hash": 12139376397674159445,
+      "translation": "**CPU 접근 속도**",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "Potentially slow (uncached on some archs)",
+      "source_hash": 12059986442888406520,
+      "context_hash": 18024780862525368348,
+      "translation": "느릴 수 있음(일부 아키텍처에서는 uncached)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Normal (cached)",
+      "source_hash": 2494400354870493752,
+      "context_hash": 1923995674453777621,
+      "translation": "일반(cached)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:48.219263Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "**Use case**",
+      "source_hash": 3728050510796676295,
+      "context_hash": 4845565157345028414,
+      "translation": "**사용 사례**",
+      "glossary_snapshot": {
+        "Use case": "사용 사례"
+      },
+      "translated_at": "2026-11-14T23:03:48.219264Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "Descriptor rings, command queues",
+      "source_hash": 1452475491545626236,
+      "context_hash": 10679746686418800037,
+      "translation": "디스크립터 링, 커맨드 큐",
+      "glossary_snapshot": {
+        "descriptor": "디스크립터",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T23:03:54.972008Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "Data buffers, packets, disk blocks",
+      "source_hash": 9999178711132979586,
+      "context_hash": 9569610994247235187,
+      "translation": "데이터 버퍼, 패킷, 디스크 블록",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:54.972009Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "The key insight: **coherent mappings trade CPU performance for convenience, while streaming mappings trade convenience for CPU performance.** Most drivers use coherent mappings for small control structures and streaming mappings for data.",
+      "source_hash": 4463262471759050444,
+      "context_hash": 14418225257067332019,
+      "translation": "핵심은 다음과 같습니다. **coherent 매핑은 편의성을 위해 CPU 성능을 희생하고, streaming 매핑은 CPU 성능을 위해 편의성을 희생합니다.** 대부분의 드라이버는 작은 제어 구조체에는 coherent 매핑을, 데이터에는 streaming 매핑을 사용합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "drivers": "드라이버",
+        "mappings": "매핑"
+      },
+      "translated_at": "2026-11-14T23:03:54.972009Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "Sync Operations",
+      "source_hash": 16921154399121355186,
+      "context_hash": 6850518950680980378,
+      "translation": "Sync 연산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:54.972010Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "Between map and unmap, if the CPU needs to touch a streaming buffer, it must use sync operations:",
+      "source_hash": 7490711826212189205,
+      "context_hash": 118900622937002183,
+      "translation": "매핑(map)과 언매핑(unmap) 사이에 CPU가 streaming 버퍼에 접근해야 한다면 sync 연산을 사용해야 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:03:54.972011Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "These ensure cache coherency at the point of the sync call.",
+      "source_hash": 15949897795414727819,
+      "context_hash": 13030571787178308502,
+      "translation": "이 연산들은 sync 호출 시점에 캐시 일관성(cache coherency)을 보장합니다.",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:54.972011Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:1",
+      "source": "Without them, the CPU may read stale cached data.",
+      "source_hash": 5618892318825232145,
+      "context_hash": 4271029783389079319,
+      "translation": "이 연산들이 없으면 CPU가 캐시에 남아 있는 오래된 데이터를 읽을 수 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:03:54.972012Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "IOMMU",
+      "source_hash": 17258918200186020230,
+      "context_hash": 15633640132632267977,
+      "translation": "IOMMU",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU"
+      },
+      "translated_at": "2026-11-14T23:03:54.972012Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "An Input/Output Memory Management Unit (IOMMU) sits between devices and physical memory, translating device-visible \"I/O virtual addresses\" (IOVAs) to physical addresses.",
+      "source_hash": 3793821745581951689,
+      "context_hash": 5647088117190698340,
+      "translation": "IOMMU(Input/Output Memory Management Unit)는 디바이스와 물리 메모리 사이에 위치하여, 디바이스가 보는 \"I/O 가상 주소\"(IOVA)를 물리 주소로 변환합니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "IOVAs": "IOVA",
+        "device": "디바이스",
+        "devices": "디바이스",
+        "physical addresses": "물리 주소",
+        "physical memory": "물리 메모리",
+        "virtual addresses": "가상 주소"
+      },
+      "translated_at": "2026-11-14T23:03:54.972012Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "It is essentially a page table for devices.",
+      "source_hash": 8143677482896401503,
+      "context_hash": 13612119687033862377,
+      "translation": "본질적으로 디바이스를 위한 페이지 테이블입니다.",
+      "glossary_snapshot": {
+        "devices": "디바이스",
+        "page table": "페이지 테이블"
+      },
+      "translated_at": "2026-11-14T23:03:54.972013Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "What IOMMU enables",
+      "source_hash": 4952837132867716756,
+      "context_hash": 14623297193952463757,
+      "translation": "IOMMU로 가능해지는 것",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU"
+      },
+      "translated_at": "2026-11-14T23:03:54.972014Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "**Scatter-gather coalescing**: Map physically scattered pages as contiguous to the device.",
+      "source_hash": 1799776720011442039,
+      "context_hash": 2410056006337139343,
+      "translation": "**Scatter-gather 병합**: 물리적으로 흩어진 페이지들을 디바이스에게 연속된 것처럼 매핑합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T23:03:54.972014Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "A 64KB buffer spanning 16 scattered pages appears as one contiguous 64KB region to the device.",
+      "source_hash": 7820464629594142126,
+      "context_hash": 1285917189392423632,
+      "translation": "흩어진 16개 페이지에 걸친 64KB 버퍼가 디바이스에게는 하나의 연속된 64KB 영역으로 보입니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:54.972014Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "**Device isolation**: A buggy or malicious device can only access memory regions explicitly mapped in its IOMMU page table.",
+      "source_hash": 5330981925141486607,
+      "context_hash": 15828498523430712611,
+      "translation": "**디바이스 격리**: 버그가 있거나 악의적인 디바이스는 자신의 IOMMU 페이지 테이블에 명시적으로 매핑된 메모리 영역에만 접근할 수 있습니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "device": "디바이스",
+        "memory": "메모리",
+        "page table": "페이지 테이블"
+      },
+      "translated_at": "2026-11-14T23:03:54.972015Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "This is essential for secure device passthrough to virtual machines (VFIO).",
+      "source_hash": 16067251073651458967,
+      "context_hash": 12826067822651986325,
+      "translation": "이는 가상 머신으로의 안전한 디바이스 패스스루(VFIO)에 필수적입니다.",
+      "glossary_snapshot": {
+        "VFIO": "VFIO",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:54.972015Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "**Addressing limitations solved**: A 32-bit device can access memory above 4GB because the IOMMU maps high physical pages into the device's 32-bit address window.",
+      "source_hash": 12132783941682239753,
+      "context_hash": 10872883023778360063,
+      "translation": "**주소 지정 제약 해소**: IOMMU가 상위 물리 페이지를 디바이스의 32비트 주소 창에 매핑하므로 32비트 디바이스도 4GB 이상의 메모리에 접근할 수 있습니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "device": "디바이스",
+        "memory": "메모리",
+        "physical pages": "물리 페이지"
+      },
+      "translated_at": "2026-11-14T23:03:54.972015Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "**DMA remapping**: Intel calls it VT-d, AMD calls it AMD-Vi.",
+      "source_hash": 7829112808015522215,
+      "context_hash": 8730045955512003484,
+      "translation": "**DMA 리매핑**: Intel은 이를 VT-d라고 부르고, AMD는 AMD-Vi라고 부릅니다.",
+      "glossary_snapshot": {
+        "AMD": "AMD",
+        "DMA": "DMA",
+        "Intel": "Intel"
+      },
+      "translated_at": "2026-11-14T23:03:54.972015Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:1",
+      "source": "Both provide hardware IOMMU for PCIe devices.",
+      "source_hash": 3222713000254572960,
+      "context_hash": 7615177185069800730,
+      "translation": "둘 다 PCIe 디바이스를 위한 하드웨어 IOMMU를 제공합니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "PCIe": "PCIe",
+        "devices": "디바이스",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T23:03:54.972015Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "The IOMMU driver in Linux lives under [`drivers/iommu/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/iommu).",
+      "source_hash": 1542540971947316077,
+      "context_hash": 3087272039840246353,
+      "translation": "Linux의 IOMMU 드라이버는 [`drivers/iommu/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/iommu) 아래에 있습니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "Linux": "Linux",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:03:54.972015Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "The DMA API automatically uses the IOMMU when one is present -- drivers do not need to know or care.",
+      "source_hash": 2453492617904395769,
+      "context_hash": 13839663872911302563,
+      "translation": "DMA API는 IOMMU가 있으면 자동으로 이를 사용하므로, 드라이버는 이를 알거나 신경 쓸 필요가 없습니다.",
+      "glossary_snapshot": {
+        "DMA API": "DMA API",
+        "IOMMU": "IOMMU",
+        "drivers": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:03:54.972015Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "LWN coverage",
+      "source_hash": 10246528680684907816,
+      "context_hash": 5332114686422782675,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T23:03:54.972016Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "LWN's coverage of DMA addressing, cache coherency, and device isolation:",
+      "source_hash": 5846784712862467280,
+      "context_hash": 11422311222448540465,
+      "translation": "DMA 주소 지정, 캐시 일관성, 디바이스 격리에 관한 LWN 기사입니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "LWN's": "LWN",
+        "cache": "캐시",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:54.972016Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "[The trouble with 64-bit DMA](https://lwn.net/Articles/904210/) (2022) -- DMA addressing masks, IOVAs, and how the IOMMU maps device addresses",
+      "source_hash": 17493001960002136596,
+      "context_hash": 6429246096472525714,
+      "translation": "[The trouble with 64-bit DMA](https://lwn.net/Articles/904210/) (2022) -- DMA 주소 지정 마스크, IOVA, 그리고 IOMMU가 디바이스 주소를 매핑하는 방식",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "IOVAs": "IOVA",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:54.972016Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "[Noncoherent DMA mappings](https://lwn.net/Articles/855328/) (2021) -- coherent vs. streaming mappings and cache-coherency management",
+      "source_hash": 3323183110307069078,
+      "context_hash": 17341109017414336824,
+      "translation": "[Noncoherent DMA mappings](https://lwn.net/Articles/855328/) (2021) -- coherent 매핑과 streaming 매핑의 비교 및 캐시 일관성 관리",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "cache": "캐시",
+        "mappings": "매핑"
+      },
+      "translated_at": "2026-11-14T23:03:54.972016Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "[Restricted DMA](https://lwn.net/Articles/841916/) (2021) -- using SWIOTLB bounce buffering to isolate untrusted devices on systems without an IOMMU",
+      "source_hash": 3005194584024718298,
+      "context_hash": 16663338026812631749,
+      "translation": "[Restricted DMA](https://lwn.net/Articles/841916/) (2021) -- IOMMU가 없는 시스템에서 SWIOTLB 바운스 버퍼링을 사용한 신뢰할 수 없는 디바이스의 격리",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "devices": "디바이스",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:54.972016Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "SWIOTLB Bounce Buffers",
+      "source_hash": 10855061792627924235,
+      "context_hash": 8122386717280252503,
+      "translation": "SWIOTLB 바운스 버퍼",
+      "glossary_snapshot": {
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:54.972016Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "When there is no IOMMU and a device cannot address all of physical memory, the kernel falls back to SWIOTLB (Software I/O Translation Lookaside Buffer) -- a bounce buffer mechanism.",
+      "source_hash": 3437748374960108189,
+      "context_hash": 5178516729214147891,
+      "translation": "IOMMU가 없고 디바이스가 물리 메모리 전체를 주소 지정할 수 없는 경우, 커널은 바운스 버퍼 메커니즘인 SWIOTLB(Software I/O Translation Lookaside Buffer)로 대체합니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "device": "디바이스",
+        "kernel": "커널",
+        "physical memory": "물리 메모리",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:54.972016Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "How it works",
+      "source_hash": 16935900381963222246,
+      "context_hash": 2610220149208761396,
+      "translation": "동작 방식",
+      "glossary_snapshot": {
+        "How it works": "동작 방식"
+      },
+      "translated_at": "2026-11-14T23:03:54.972017Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "Kernel allocates a pool of low-memory bounce buffers at boot (typically 64MB from memory below 4GB)",
+      "source_hash": 12916120805991090653,
+      "context_hash": 8296646104121579836,
+      "translation": "커널이 부팅 시 하위 메모리 바운스 버퍼 풀을 할당합니다(일반적으로 4GB 미만 메모리에서 64MB)",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T23:03:54.972017Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "When `dma_map_single()` is called for a buffer the device cannot reach, the kernel:",
+      "source_hash": 84832858205897945,
+      "context_hash": 13481163382099938194,
+      "translation": "디바이스가 접근할 수 없는 버퍼에 대해 `dma_map_single()`이 호출되면 커널은 다음을 수행합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:03:54.972017Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "Allocates a bounce buffer from the SWIOTLB pool",
+      "source_hash": 18349861487827881647,
+      "context_hash": 15465689833897171377,
+      "translation": "SWIOTLB 풀에서 바운스 버퍼를 할당합니다",
+      "glossary_snapshot": {
+        "pool": "풀",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:54.972017Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "For `DMA_TO_DEVICE`: copies data from the original buffer to the bounce buffer",
+      "source_hash": 8969943406210344039,
+      "context_hash": 7930837619904064070,
+      "translation": "`DMA_TO_DEVICE`의 경우: 원본 버퍼의 데이터를 바운스 버퍼로 복사합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:54.972017Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "Gives the device the bounce buffer's physical address",
+      "source_hash": 17422396182001824984,
+      "context_hash": 10745509287391444878,
+      "translation": "디바이스에 bounce buffer의 물리 주소를 전달합니다",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T23:03:57.200891Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "When `dma_unmap_single()` is called:",
+      "source_hash": 3219354072692328182,
+      "context_hash": 9984251751381097943,
+      "translation": "`dma_unmap_single()`이 호출되면:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "For `DMA_FROM_DEVICE`: copies data from bounce buffer back to the original buffer",
+      "source_hash": 93340488326428935,
+      "context_hash": 8796397028216165729,
+      "translation": "`DMA_FROM_DEVICE`의 경우: bounce buffer의 데이터를 원래 버퍼로 다시 복사합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200893Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "Frees the bounce buffer",
+      "source_hash": 10591327905606125931,
+      "context_hash": 4738106007411111731,
+      "translation": "bounce buffer를 해제합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200894Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "The cost",
+      "source_hash": 17664534480277365132,
+      "context_hash": 858314146921855271,
+      "translation": "비용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200895Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "Bounce buffering means **double the memory copies** -- a significant performance penalty.",
+      "source_hash": 11385062411705959268,
+      "context_hash": 7117552891860538410,
+      "translation": "bounce buffering은 **메모리 복사가 두 배로 늘어남**을 의미하며, 이는 상당한 성능 저하입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T23:03:57.200895Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:1",
+      "source": "This is why IOMMUs are strongly preferred on modern systems.",
+      "source_hash": 499765422445882808,
+      "context_hash": 6092742660015233614,
+      "translation": "이 때문에 최신 시스템에서는 IOMMU가 강력히 선호됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200895Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "The SWIOTLB pool size can be configured at boot with `swiotlb=N` (number of 2KB slots).",
+      "source_hash": 14975331612655708467,
+      "context_hash": 5391629217148773231,
+      "translation": "SWIOTLB 풀 크기는 부팅 시 `swiotlb=N`(2KB 슬롯 수)으로 설정할 수 있습니다.",
+      "glossary_snapshot": {
+        "pool": "풀",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:57.200896Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:1",
+      "source": "The implementation lives in [`kernel/dma/swiotlb.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/swiotlb.c).",
+      "source_hash": 12262845413236186328,
+      "context_hash": 4100353093633866797,
+      "translation": "구현은 [`kernel/dma/swiotlb.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/swiotlb.c)에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200896Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "Confidential computing and SWIOTLB",
+      "source_hash": 5960300161275850954,
+      "context_hash": 3604589926315995919,
+      "translation": "기밀 컴퓨팅과 SWIOTLB",
+      "glossary_snapshot": {
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:57.200896Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "SWIOTLB gained renewed importance with confidential computing (AMD SEV, Intel TDX).",
+      "source_hash": 2462124954725086804,
+      "context_hash": 7810604870373757769,
+      "translation": "SWIOTLB는 기밀 컴퓨팅(confidential computing, AMD SEV, Intel TDX)과 함께 다시 중요해졌습니다.",
+      "glossary_snapshot": {
+        "AMD": "AMD",
+        "Intel": "Intel",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:57.200897Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:1",
+      "source": "In these environments, device DMA cannot access encrypted guest memory directly.",
+      "source_hash": 12356019192039393045,
+      "context_hash": 17095002432437687308,
+      "translation": "이러한 환경에서는 디바이스 DMA가 암호화된 게스트 메모리에 직접 접근할 수 없습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "device": "디바이스",
+        "guest": "게스트",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T23:03:57.200897Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:2",
+      "source": "The guest must use decrypted bounce buffers for all DMA operations.",
+      "source_hash": 606503352812410918,
+      "context_hash": 16975912469263577558,
+      "translation": "게스트는 모든 DMA 작업에 복호화된 bounce buffer를 사용해야 합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "guest": "게스트"
+      },
+      "translated_at": "2026-11-14T23:03:57.200897Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:3",
+      "source": "Commit [0b84e4f8b793](https://git.kernel.org/linus/0b84e4f8b793) (\"swiotlb: Add restricted DMA pool initialization\") added support for restricted DMA pools to handle these scenarios.",
+      "source_hash": 18195298369459640437,
+      "context_hash": 11719153973161166978,
+      "translation": "커밋 [0b84e4f8b793](https://git.kernel.org/linus/0b84e4f8b793)(\"swiotlb: Add restricted DMA pool initialization\")은 이러한 시나리오를 처리하기 위해 제한된 DMA 풀(restricted DMA pool) 지원을 추가했습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "pool": "풀",
+        "pools": "풀",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:57.200897Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "DMA Memory Pools",
+      "source_hash": 17231529603225667462,
+      "context_hash": 2534529088199562648,
+      "translation": "DMA 메모리 풀",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory": "메모리",
+        "pools": "풀"
+      },
+      "translated_at": "2026-11-14T23:03:57.200897Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "For drivers that frequently allocate and free small, fixed-size DMA-coherent buffers (like USB transfer descriptors or hardware command entries), the overhead of calling `dma_alloc_coherent()` each time is excessive.",
+      "source_hash": 16662511172035591586,
+      "context_hash": 3520168711475346654,
+      "translation": "작은 고정 크기의 DMA-coherent 버퍼(USB 전송 디스크립터나 하드웨어 명령 엔트리 등)를 자주 할당하고 해제하는 드라이버의 경우, 매번 `dma_alloc_coherent()`를 호출하는 오버헤드가 지나치게 큽니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "USB": "USB",
+        "descriptors": "디스크립터",
+        "drivers": "드라이버",
+        "hardware": "하드웨어",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T23:03:57.200897Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "The DMA pool API solves this.",
+      "source_hash": 9485921561032389301,
+      "context_hash": 12577092955405547961,
+      "translation": "DMA 풀 API가 이 문제를 해결합니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "DMA": "DMA",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T23:03:57.200898Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "From [`include/linux/dmapool.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dmapool.h):",
+      "source_hash": 13901667438060694928,
+      "context_hash": 17880685590009372694,
+      "translation": "[`include/linux/dmapool.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dmapool.h)에서:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200898Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "The pool pre-allocates large coherent regions and carves them into fixed-size chunks -- the same idea as the slab allocator, but for DMA-coherent memory.",
+      "source_hash": 7868840681830313882,
+      "context_hash": 2288349399929650419,
+      "translation": "풀은 큰 coherent 영역을 미리 할당한 뒤 이를 고정 크기 청크로 나눕니다. slab 할당자와 같은 발상이지만, DMA-coherent 메모리를 대상으로 한다는 점이 다릅니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory": "메모리",
+        "pool": "풀",
+        "slab allocator": "slab 할당자"
+      },
+      "translated_at": "2026-11-14T23:03:57.200898Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:1",
+      "source": "The `boundary` parameter prevents allocations from crossing a specified power-of-two boundary, which some hardware requires.",
+      "source_hash": 6806775521069175939,
+      "context_hash": 2978308690657168239,
+      "translation": "`boundary` 매개변수는 할당이 지정된 2의 거듭제곱 경계를 넘지 않도록 막아 주며, 일부 하드웨어는 이를 요구합니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T23:03:57.200899Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "The implementation lives in [`mm/dmapool.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/dmapool.c).",
+      "source_hash": 8275158866941485524,
+      "context_hash": 16869613380828948296,
+      "translation": "구현은 [`mm/dmapool.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/dmapool.c)에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200899Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Common Mistakes",
+      "source_hash": 7642106922695587488,
+      "context_hash": 16549443483730070635,
+      "translation": "흔한 실수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200899Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Forgetting to unmap",
+      "source_hash": 6171408728481499363,
+      "context_hash": 17350201690948370995,
+      "translation": "unmap 누락",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200899Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Every `dma_map_single()` must have a matching `dma_unmap_single()`.",
+      "source_hash": 11073793913918354560,
+      "context_hash": 14352215781495689746,
+      "translation": "모든 `dma_map_single()`에는 대응하는 `dma_unmap_single()`이 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200899Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:1",
+      "source": "Every `dma_map_sg()` must have a matching `dma_unmap_sg()`.",
+      "source_hash": 13143580945078379483,
+      "context_hash": 14342312669797978883,
+      "translation": "모든 `dma_map_sg()`에는 대응하는 `dma_unmap_sg()`가 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200899Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:2",
+      "source": "Leaked mappings exhaust IOMMU address space or SWIOTLB pool, eventually causing allocation failures.",
+      "source_hash": 16780691397865454338,
+      "context_hash": 13290547627884188492,
+      "translation": "누수된 매핑은 IOMMU 주소 공간이나 SWIOTLB 풀을 고갈시켜 결국 할당 실패를 일으킵니다.",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "address space": "주소 공간",
+        "allocation failures": "할당 실패",
+        "mappings": "매핑",
+        "pool": "풀",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:57.200900Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "Enable `CONFIG_DMA_API_DEBUG` to catch this.",
+      "source_hash": 7265924876796671219,
+      "context_hash": 14648820163462102083,
+      "translation": "이를 잡아내려면 `CONFIG_DMA_API_DEBUG`를 활성화하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200900Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:1",
+      "source": "It tracks all mappings and warns on driver unload if any remain:",
+      "source_hash": 10923831032159734968,
+      "context_hash": 17050166541455397679,
+      "translation": "이 옵션은 모든 매핑을 추적하고, 드라이버 언로드 시 남아 있는 매핑이 있으면 경고합니다:",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "mappings": "매핑"
+      },
+      "translated_at": "2026-11-14T23:03:57.200900Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "Using wrong GFP flags",
+      "source_hash": 10936596431242913924,
+      "context_hash": 5547673916195345456,
+      "translation": "잘못된 GFP 플래그 사용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:57.200900Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "Do not use `GFP_DMA` unless you actually need memory in ZONE_DMA (first 16MB).",
+      "source_hash": 12037232323201507691,
+      "context_hash": 15981796764172263443,
+      "translation": "ZONE_DMA(처음 16MB)의 메모리가 실제로 필요한 경우가 아니라면 `GFP_DMA`를 사용하지 마십시오.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T23:03:57.200900Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:1",
+      "source": "Most modern devices with 32-bit DMA limitations need `GFP_DMA32` instead.",
+      "source_hash": 17662737433433248780,
+      "context_hash": 17078821987711413547,
+      "translation": "32비트 DMA 제약이 있는 최신 디바이스 대부분은 대신 `GFP_DMA32`가 필요합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:57.200900Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:2",
+      "source": "But ideally, use the DMA API and let it handle zone selection:",
+      "source_hash": 14292534868807136918,
+      "context_hash": 3840567632356996315,
+      "translation": "하지만 가장 좋은 방법은 DMA API를 사용하여 zone 선택을 맡기는 것입니다:",
+      "glossary_snapshot": {
+        "DMA API": "DMA API"
+      },
+      "translated_at": "2026-11-14T23:03:57.200900Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "The DMA API consults the device's DMA mask to determine the correct zone automatically.",
+      "source_hash": 10272569960430472889,
+      "context_hash": 6225903856514639084,
+      "translation": "DMA API는 디바이스의 DMA 마스크를 참조하여 올바른 zone을 자동으로 결정합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "DMA API": "DMA API",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:53.213086Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "Cache coherency bugs",
+      "source_hash": 18269936128233674881,
+      "context_hash": 18159923147073174038,
+      "translation": "캐시 일관성(cache coherency) 버그",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T23:03:53.213087Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "On architectures without hardware-managed coherency, accessing a streaming DMA buffer without proper sync operations causes data corruption.",
+      "source_hash": 14913725036446409453,
+      "context_hash": 6869452509201497466,
+      "translation": "하드웨어가 일관성을 관리하지 않는 아키텍처에서 적절한 sync 연산 없이 streaming DMA 버퍼에 접근하면 데이터가 손상됩니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T23:03:53.213088Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:1",
+      "source": "This often manifests as intermittent failures that are extremely difficult to reproduce:",
+      "source_hash": 1348162946999017388,
+      "context_hash": 1817498996300867751,
+      "translation": "이 문제는 흔히 재현하기가 극히 어려운 간헐적 오류로 나타납니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:53.213089Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "Using virt_to_phys() for DMA",
+      "source_hash": 11732016890683518880,
+      "context_hash": 15557695333764750464,
+      "translation": "DMA에 virt_to_phys() 사용",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T23:03:53.213089Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "Never convert a virtual address to physical and hand it to a device.",
+      "source_hash": 82663789093593850,
+      "context_hash": 10968109174492104127,
+      "translation": "가상 주소를 물리 주소로 변환하여 디바이스에 넘기지 마십시오.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "virtual address": "가상 주소"
+      },
+      "translated_at": "2026-11-14T23:03:53.213089Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:1",
+      "source": "This bypasses the IOMMU, skips bounce buffering, and ignores the device's DMA mask.",
+      "source_hash": 17434893296407120214,
+      "context_hash": 3047776538267211163,
+      "translation": "이렇게 하면 IOMMU를 우회하고, bounce buffering을 건너뛰며, 디바이스의 DMA 마스크를 무시하게 됩니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:03:53.213090Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:2",
+      "source": "Always use the DMA API.",
+      "source_hash": 10604571101363071473,
+      "context_hash": 10391759646470117792,
+      "translation": "항상 DMA API를 사용하십시오.",
+      "glossary_snapshot": {
+        "DMA API": "DMA API"
+      },
+      "translated_at": "2026-11-14T23:03:53.213090Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "DMA to stack or module memory",
+      "source_hash": 13041993133231754096,
+      "context_hash": 4291036670742839906,
+      "translation": "스택 또는 모듈 메모리에 대한 DMA",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory": "메모리",
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T23:03:53.213090Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "Stack memory and module text may reside in vmalloc space, which is not guaranteed to be physically contiguous or DMA-addressable.",
+      "source_hash": 12719240091211249487,
+      "context_hash": 14948730320939678923,
+      "translation": "스택 메모리와 모듈 텍스트는 vmalloc 공간에 있을 수 있으며, 이 공간은 물리적으로 연속적이거나 DMA로 주소 지정이 가능하다는 보장이 없습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory": "메모리",
+        "module": "모듈",
+        "vmalloc": "vmalloc"
+      },
+      "translated_at": "2026-11-14T23:03:53.213090Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:1",
+      "source": "Always use `kmalloc()` or `dma_alloc_coherent()` for DMA buffers.",
+      "source_hash": 5088033633090901491,
+      "context_hash": 11990530616046024276,
+      "translation": "DMA 버퍼에는 항상 `kmalloc()` 또는 `dma_alloc_coherent()`를 사용하십시오.",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T23:03:53.213090Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Try It Yourself",
+      "source_hash": 15329900578796528184,
+      "context_hash": 2402581413841637988,
+      "translation": "직접 해 보기",
+      "glossary_snapshot": {
+        "Try It Yourself": "직접 해 보기"
+      },
+      "translated_at": "2026-11-14T23:03:53.213091Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "Check DMA zone sizes",
+      "source_hash": 15537899403195624635,
+      "context_hash": 1785036535513129237,
+      "translation": "DMA zone 크기 확인",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T23:03:53.213091Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "Inspect IOMMU state",
+      "source_hash": 7238421299225449737,
+      "context_hash": 11731092656692802850,
+      "translation": "IOMMU 상태 검사",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU"
+      },
+      "translated_at": "2026-11-14T23:03:53.213091Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "Monitor SWIOTLB usage",
+      "source_hash": 17982543823791453346,
+      "context_hash": 17526585258172546795,
+      "translation": "SWIOTLB 사용량 모니터링",
+      "glossary_snapshot": {
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:53.213091Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "Enable DMA API debug checking",
+      "source_hash": 10662509252157351028,
+      "context_hash": 12749412747463635494,
+      "translation": "DMA API 디버그 검사 활성화",
+      "glossary_snapshot": {
+        "DMA API": "DMA API"
+      },
+      "translated_at": "2026-11-14T23:03:53.213091Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "View DMA pool statistics",
+      "source_hash": 5905988971210893322,
+      "context_hash": 12335878075684754628,
+      "translation": "DMA 풀 통계 보기",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T23:29:36.641090Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Key Source Files",
+      "source_hash": 16514665536748640086,
+      "context_hash": 12494505766954664615,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T23:03:53.213091Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 18093235272305737123,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T23:03:53.213092Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "Description",
+      "source_hash": 1758583599421982602,
+      "context_hash": 12269239305579951547,
+      "translation": "설명",
+      "glossary_snapshot": {
+        "Description": "설명"
+      },
+      "translated_at": "2026-11-14T23:03:53.213092Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "[`kernel/dma/mapping.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/mapping.c)",
+      "source_hash": 11083253804307824820,
+      "context_hash": 6890190432433403332,
+      "translation": "[`kernel/dma/mapping.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/mapping.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "Core DMA mapping implementation",
+      "source_hash": 17474667078763534830,
+      "context_hash": 9578818373522292464,
+      "translation": "핵심 DMA 매핑 구현",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "[`kernel/dma/direct.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/direct.c)",
+      "source_hash": 14307982756251495954,
+      "context_hash": 18214998559865504018,
+      "translation": "[`kernel/dma/direct.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/direct.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "Direct DMA (no IOMMU) implementation",
+      "source_hash": 7891475446807008860,
+      "context_hash": 15001375843028546969,
+      "translation": "Direct DMA(IOMMU 없음) 구현",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU"
+      },
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "[`kernel/dma/swiotlb.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/swiotlb.c)",
+      "source_hash": 14785430625151399345,
+      "context_hash": 10518345830257064890,
+      "translation": "[`kernel/dma/swiotlb.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma/swiotlb.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "SWIOTLB bounce buffer implementation",
+      "source_hash": 17012780916571520498,
+      "context_hash": 6009551006703648494,
+      "translation": "SWIOTLB bounce buffer 구현",
+      "glossary_snapshot": {
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "[`include/linux/dma-mapping.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dma-mapping.h)",
+      "source_hash": 5623473575408748909,
+      "context_hash": 3504333352196959727,
+      "translation": "[`include/linux/dma-mapping.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dma-mapping.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "DMA API header",
+      "source_hash": 15429727603322585756,
+      "context_hash": 13497073834973607278,
+      "translation": "DMA API 헤더",
+      "glossary_snapshot": {
+        "DMA API": "DMA API"
+      },
+      "translated_at": "2026-11-14T23:03:53.213093Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "[`include/linux/dmapool.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dmapool.h)",
+      "source_hash": 8932366894422431157,
+      "context_hash": 15217739759080386852,
+      "translation": "[`include/linux/dmapool.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/dmapool.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:53.213094Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "DMA pool API header",
+      "source_hash": 118897471000272129,
+      "context_hash": 3459577334982271485,
+      "translation": "DMA 풀 API 헤더",
+      "glossary_snapshot": {
+        "API": "API",
+        "DMA": "DMA",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T23:29:36.641090Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "[`mm/dmapool.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/dmapool.c)",
+      "source_hash": 108569107729750476,
+      "context_hash": 3144253438151095507,
+      "translation": "[`mm/dmapool.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/dmapool.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:03:53.213094Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "DMA pool implementation",
+      "source_hash": 13332220281279668923,
+      "context_hash": 7987127209090180063,
+      "translation": "DMA 풀 구현",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T23:29:36.641090Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "[`drivers/iommu/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/iommu)",
+      "source_hash": 17782972098415707861,
+      "context_hash": 13883356807985574457,
+      "translation": "[`drivers/iommu/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/iommu)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:33.198493Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "IOMMU driver implementations",
+      "source_hash": 17715065703895459362,
+      "context_hash": 12547840211722064151,
+      "translation": "IOMMU 드라이버 구현",
+      "glossary_snapshot": {
+        "IOMMU": "IOMMU",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:11:33.198494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "[`include/linux/mmzone.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmzone.h)",
+      "source_hash": 7058938850040878660,
+      "context_hash": 5461713809988450054,
+      "translation": "[`include/linux/mmzone.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmzone.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:33.198494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:18/seg:0",
+      "source": "Zone type definitions",
+      "source_hash": 2613294861598545687,
+      "context_hash": 10063911075145057588,
+      "translation": "zone 타입 정의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:33.198494Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "References",
+      "source_hash": 17861670083855418992,
+      "context_hash": 9837998873728621266,
+      "translation": "참고 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:33.198494Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "Further Reading",
+      "source_hash": 16149536966054822133,
+      "context_hash": 11752936972191192339,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:11:33.198494Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[DMA API Guide](https://docs.kernel.org/core-api/dma-api.html) -- the authoritative kernel documentation on the DMA API",
+      "source_hash": 9238339778851221485,
+      "context_hash": 1543494645442788807,
+      "translation": "[DMA API Guide](https://docs.kernel.org/core-api/dma-api.html) -- DMA API에 관한 권위 있는 커널 문서",
+      "glossary_snapshot": {
+        "DMA API": "DMA API",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:11:33.198495Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[DMA API HOWTO](https://docs.kernel.org/core-api/dma-api-howto.html) -- practical guide for driver developers",
+      "source_hash": 9598768489919942961,
+      "context_hash": 3277251151010222748,
+      "translation": "[DMA API HOWTO](https://docs.kernel.org/core-api/dma-api-howto.html) -- 드라이버 개발자를 위한 실용 가이드",
+      "glossary_snapshot": {
+        "DMA API": "DMA API",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:11:33.198495Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "[Dynamic DMA mapping Guide](https://docs.kernel.org/core-api/dma-api-howto.html) -- when and how to use each mapping type",
+      "source_hash": 2182296507536338163,
+      "context_hash": 11627477169261113995,
+      "translation": "[Dynamic DMA mapping Guide](https://docs.kernel.org/core-api/dma-api-howto.html) -- 각 매핑 유형을 언제, 어떻게 사용하는지",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:11:33.198495Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "[LWN: The trouble with 64-bit DMA](https://lwn.net/Articles/904210/) (2022) -- DMA addressing masks, IOVAs, and the IOMMU",
+      "source_hash": 6721400001716499692,
+      "context_hash": 3091658291364022851,
+      "translation": "[LWN: The trouble with 64-bit DMA](https://lwn.net/Articles/904210/) (2022) -- DMA 주소 지정 마스크, IOVA, IOMMU",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "IOVAs": "IOVA",
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:11:33.198495Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "[LWN: Noncoherent DMA mappings](https://lwn.net/Articles/855328/) (2021) -- coherent vs. streaming mappings and cache coherency",
+      "source_hash": 9888088531181167366,
+      "context_hash": 2728003118595631442,
+      "translation": "[LWN: Noncoherent DMA mappings](https://lwn.net/Articles/855328/) (2021) -- coherent 매핑과 streaming 매핑의 비교, 캐시 일관성",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "LWN": "LWN",
+        "cache": "캐시",
+        "mappings": "매핑"
+      },
+      "translated_at": "2026-11-14T22:11:33.198495Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "[LWN: Restricted DMA](https://lwn.net/Articles/841916/) (2021) -- SWIOTLB bounce buffering to isolate untrusted devices",
+      "source_hash": 4760595944109863330,
+      "context_hash": 10693832947111387654,
+      "translation": "[LWN: Restricted DMA](https://lwn.net/Articles/841916/) (2021) -- 신뢰할 수 없는 디바이스를 격리하기 위한 SWIOTLB 바운스 버퍼링",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "LWN": "LWN",
+        "devices": "디바이스",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "Related",
+      "source_hash": 15093278483956875061,
+      "context_hash": 10015158345823703163,
+      "translation": "관련 문서",
+      "glossary_snapshot": {
+        "Related": "관련 문서"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "[Page Allocator](page-allocator.md) -- where DMA memory ultimately comes from",
+      "source_hash": 11298978747034440116,
+      "context_hash": 549367704651866011,
+      "translation": "[페이지 할당자](page-allocator.md) -- DMA 메모리의 궁극적인 출처",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory": "메모리",
+        "page allocator": "페이지 할당자"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "[vmalloc](vmalloc.md) -- virtual memory allocation (not suitable for DMA)",
+      "source_hash": 3050804102102116201,
+      "context_hash": 5033613147903701230,
+      "translation": "[vmalloc](vmalloc.md) -- 가상 메모리 할당(DMA에는 적합하지 않음)",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory allocation": "메모리 할당",
+        "vmalloc": "vmalloc"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "[NUMA](numa.md) -- NUMA-aware allocation and its interaction with DMA zones",
+      "source_hash": 8067851807920196654,
+      "context_hash": 18208623939259490005,
+      "translation": "[NUMA](numa.md) -- NUMA 인식 할당과 DMA zone과의 상호작용",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:12/seg:0",
+      "source": "[Overview](overview.md) -- how DMA allocation fits in the memory management hierarchy",
+      "source_hash": 12138298825146095644,
+      "context_hash": 6957712155866450518,
+      "translation": "[개요](overview.md) -- 메모리 관리 계층 구조에서 DMA 할당이 차지하는 위치",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "memory management": "메모리 관리"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 3700653114994426343,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "[Kernel docs: DMA API](https://docs.kernel.org/core-api/dma-api.html) — the authoritative reference for every function in the DMA API",
+      "source_hash": 5853749999927198272,
+      "context_hash": 784804185792029954,
+      "translation": "[커널 문서: DMA API](https://docs.kernel.org/core-api/dma-api.html) — DMA API의 모든 함수에 대한 권위 있는 레퍼런스",
+      "glossary_snapshot": {
+        "DMA API": "DMA API",
+        "Kernel docs": "커널 문서",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:0",
+      "source": "[Kernel docs: DMA API HOWTO](https://docs.kernel.org/core-api/dma-api-howto.html) — practical guide covering when and how to use each mapping type",
+      "source_hash": 9180132961690208561,
+      "context_hash": 17686911943828733729,
+      "translation": "[커널 문서: DMA API HOWTO](https://docs.kernel.org/core-api/dma-api-howto.html) — 각 매핑 유형을 언제, 어떻게 사용하는지 다루는 실용 가이드",
+      "glossary_snapshot": {
+        "DMA API": "DMA API",
+        "Kernel docs": "커널 문서",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:11:33.198496Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "[`Documentation/core-api/dma-api.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/core-api/dma-api.rst) — kernel source for the DMA API documentation",
+      "source_hash": 11587029480334227075,
+      "context_hash": 7720146361072773824,
+      "translation": "[`Documentation/core-api/dma-api.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/core-api/dma-api.rst) — DMA API 문서의 커널 소스",
+      "glossary_snapshot": {
+        "DMA API": "DMA API",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:11:33.198497Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:0",
+      "source": "[`kernel/dma/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma) — the full DMA subsystem source directory: mapping, direct, swiotlb, pool",
+      "source_hash": 15947004427244270379,
+      "context_hash": 4457436078297218512,
+      "translation": "[`kernel/dma/`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/dma) — 전체 DMA 서브시스템 소스 디렉터리: mapping, direct, swiotlb, 풀",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "pool": "풀",
+        "subsystem": "서브시스템",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T23:29:36.641091Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:0",
+      "source": "[LWN: The trouble with 64-bit DMA](https://lwn.net/Articles/904210/) — DMA addressing masks, IOVAs, and how the IOMMU maps device addresses (2022)",
+      "source_hash": 15643343552016740833,
+      "context_hash": 11268335014881891134,
+      "translation": "[LWN: The trouble with 64-bit DMA](https://lwn.net/Articles/904210/) — DMA 주소 지정 마스크, IOVA, IOMMU가 디바이스 주소를 매핑하는 방식(2022)",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "IOVAs": "IOVA",
+        "LWN": "LWN",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T22:11:33.198497Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "[LWN: Noncoherent DMA mappings](https://lwn.net/Articles/855328/) — coherent vs. streaming DMA mappings and cache-coherency management (2021)",
+      "source_hash": 815478040281674589,
+      "context_hash": 1909694369703924252,
+      "translation": "[LWN: Noncoherent DMA mappings](https://lwn.net/Articles/855328/) — coherent DMA 매핑과 streaming DMA 매핑의 비교 및 캐시 일관성 관리(2021)",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "LWN": "LWN",
+        "cache": "캐시",
+        "mappings": "매핑"
+      },
+      "translated_at": "2026-11-14T22:11:33.198497Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:7/seg:0",
+      "source": "[LWN: Restricted DMA](https://lwn.net/Articles/841916/) — SWIOTLB bounce buffering to isolate untrusted devices without an IOMMU (2021)",
+      "source_hash": 12863259167630351116,
+      "context_hash": 1733794217441828701,
+      "translation": "[LWN: Restricted DMA](https://lwn.net/Articles/841916/) — IOMMU 없이 신뢰할 수 없는 디바이스를 격리하기 위한 SWIOTLB 바운스 버퍼링(2021)",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "IOMMU": "IOMMU",
+        "LWN": "LWN",
+        "devices": "디바이스",
+        "swiotlb": "swiotlb"
+      },
+      "translated_at": "2026-11-14T22:11:33.198497Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:0",
+      "source": "[Device Memory Coherency](device-coherency.md) — cache maintenance rules that govern every DMA mapping",
+      "source_hash": 12187035548352069653,
+      "context_hash": 11357321977061767150,
+      "translation": "[디바이스 메모리 일관성](device-coherency.md) — 모든 DMA 매핑에 적용되는 캐시 유지 관리 규칙",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "cache": "캐시",
+        "device": "디바이스",
+        "mapping": "매핑",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:11:33.198497Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:0",
+      "source": "[CMA](cma.md) — how `dma_alloc_coherent()` sources physically contiguous memory via the Contiguous Memory Allocator",
+      "source_hash": 16789204528451604533,
+      "context_hash": 10139942371818918289,
+      "translation": "[CMA](cma.md) — `dma_alloc_coherent()`가 Contiguous Memory Allocator(연속 메모리 할당자)를 통해 물리적으로 연속된 메모리를 확보하는 방식",
+      "glossary_snapshot": {
+        "CMA": "CMA",
+        "Memory Allocator": "메모리 할당자",
+        "contiguous memory": "연속 메모리"
+      },
+      "translated_at": "2026-11-14T22:11:33.198497Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,1036 @@
+{
+  "version": 1,
+  "source_hash": 5857404797149138510,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Tuning I/O for Streaming and High-Throughput Workloads",
+      "source_hash": 175674289493463826,
+      "context_hash": 2981763674250695510,
+      "translation": "스트리밍 및 고처리량 워크로드를 위한 I/O 튜닝",
+      "glossary_snapshot": {
+        "throughput": "처리량",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:42:40.031254Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Maximizing sequential read and write throughput for video, backup, ETL, and data pipeline workloads",
+      "source_hash": 3314909507243388147,
+      "context_hash": 18226949773727032179,
+      "translation": "비디오, 백업, ETL, 데이터 파이프라인 워크로드의 순차 읽기 및 쓰기 처리량 극대화",
+      "glossary_snapshot": {
+        "throughput": "처리량",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:42:40.031255Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What streaming I/O looks like",
+      "source_hash": 11532088036206106787,
+      "context_hash": 17988218774419125327,
+      "translation": "스트리밍 I/O의 형태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031255Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Streaming workloads read or write data sequentially at high rates: video encoding/decoding, backup agents, log aggregation, ETL pipelines, Kafka brokers, and Hadoop/Spark.",
+      "source_hash": 4157645075617498804,
+      "context_hash": 13636947873503344419,
+      "translation": "스트리밍 워크로드는 데이터를 높은 속도로 순차적으로 읽거나 씁니다. 비디오 인코딩/디코딩, 백업 에이전트, 로그 집계, ETL 파이프라인, Kafka 브로커, Hadoop/Spark가 여기에 해당합니다.",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:42:40.031256Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Their I/O pattern is:",
+      "source_hash": 14607194002374823964,
+      "context_hash": 8291481026378185547,
+      "translation": "이러한 워크로드의 I/O 패턴은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031256Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "The kernel's default configuration already favors sequential I/O through readahead and writeback coalescing — but defaults leave significant throughput on the table for workloads that are *exclusively* sequential.",
+      "source_hash": 14467967581038743947,
+      "context_hash": 17049813558768980890,
+      "translation": "커널의 기본 설정은 이미 readahead와 writeback 병합을 통해 순차 I/O에 유리하게 되어 있습니다. 그러나 *오로지* 순차 I/O만 수행하는 워크로드에서는 기본값으로는 상당한 처리량을 활용하지 못한 채 남겨 두게 됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "throughput": "처리량",
+        "workloads": "워크로드",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:42:40.031256Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Readahead: the primary lever for streaming reads",
+      "source_hash": 7102708623773451643,
+      "context_hash": 16512860380487822169,
+      "translation": "Readahead: 스트리밍 읽기의 핵심 조정 수단",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031256Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The kernel's readahead mechanism pre-fetches data from disk ahead of the current read position.",
+      "source_hash": 14005932305885656258,
+      "context_hash": 13338729794625459304,
+      "translation": "커널의 readahead 메커니즘은 현재 읽기 위치보다 앞서 디스크에서 데이터를 미리 가져옵니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:40.031256Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "For streaming reads, aggressive readahead directly translates to throughput: the device stays busy reading while the application processes previously fetched data.",
+      "source_hash": 453338109649936877,
+      "context_hash": 9075744278337146580,
+      "translation": "스트리밍 읽기에서는 공격적인 readahead가 곧바로 처리량으로 이어집니다. 애플리케이션이 이전에 가져온 데이터를 처리하는 동안 디바이스는 계속 읽기 작업을 수행합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T23:32:17.785482Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "**Calculating the optimal readahead window:**",
+      "source_hash": 15707690412168998205,
+      "context_hash": 4323293341337188445,
+      "translation": "**최적의 readahead 윈도 계산:**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031256Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "The readahead window should keep the device busy during application processing time.",
+      "source_hash": 3461980657785155422,
+      "context_hash": 15094565135326925642,
+      "translation": "readahead 윈도는 애플리케이션이 처리하는 시간 동안 디바이스가 계속 작업하도록 유지해야 합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:32:17.785484Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "For a device delivering 2GB/s with 0.1ms latency per request at 128KB:",
+      "source_hash": 8521236521849935404,
+      "context_hash": 4014731024685676006,
+      "translation": "128KB 요청당 0.1ms의 지연 시간으로 2GB/s를 제공하는 디바이스의 경우는 다음과 같습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T23:32:17.785485Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "**Per-file readahead with `posix_fadvise`:**",
+      "source_hash": 17193537423053226791,
+      "context_hash": 10956796504048876389,
+      "translation": "**`posix_fadvise`를 사용한 파일별 readahead:**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031257Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "`POSIX_FADV_DONTNEED` on already-processed data prevents the page cache from filling with single-pass data and evicting working-set pages for other processes.",
+      "source_hash": 15504328522493437297,
+      "context_hash": 12750445451846907649,
+      "translation": "이미 처리한 데이터에 `POSIX_FADV_DONTNEED`를 적용하면 한 번만 사용하는 데이터가 페이지 캐시를 채워 다른 프로세스의 워킹 셋 페이지를 축출하는 일을 막을 수 있습니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:42:40.031257Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "This is critical on a server running both streaming workloads and other services.",
+      "source_hash": 2783859943237445337,
+      "context_hash": 17864168160896506832,
+      "translation": "이는 스트리밍 워크로드와 다른 서비스를 함께 실행하는 서버에서 매우 중요합니다.",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:42:40.031257Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Write buffering: letting the page cache absorb bursts",
+      "source_hash": 1998646622085536300,
+      "context_hash": 15536601243797695590,
+      "translation": "쓰기 버퍼링: 페이지 캐시가 버스트를 흡수하도록 하기",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:40.031257Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "For streaming writes, the page cache acts as a write buffer.",
+      "source_hash": 2388475595149332487,
+      "context_hash": 9968921790052472760,
+      "translation": "스트리밍 쓰기에서는 페이지 캐시가 쓰기 버퍼 역할을 합니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:40.031257Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Writes go to the page cache immediately and are flushed to storage asynchronously by writeback threads.",
+      "source_hash": 8387430313826346850,
+      "context_hash": 10990308633941705174,
+      "translation": "쓰기는 즉시 페이지 캐시로 들어가고, writeback 스레드가 비동기적으로 스토리지에 플러시합니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "The application can write faster than the device can absorb, up to the dirty limit.",
+      "source_hash": 4852156757685419902,
+      "context_hash": 5748402240413758533,
+      "translation": "애플리케이션은 dirty 한도에 이를 때까지 디바이스가 흡수할 수 있는 속도보다 빠르게 쓸 수 있습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:32:17.785486Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Dirty ratio and crash risk",
+      "source_hash": 1001667940719614286,
+      "context_hash": 13961839453133385556,
+      "translation": "Dirty 비율과 크래시 위험",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "A high `dirty_ratio` means more data is in memory but not yet on disk.",
+      "source_hash": 8752574122953936569,
+      "context_hash": 16122769906085719578,
+      "translation": "`dirty_ratio`가 높다는 것은 메모리에는 있지만 아직 디스크에 기록되지 않은 데이터가 더 많다는 의미입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "A system crash or power failure when 40% of RAM is dirty can lose gigabytes of data.",
+      "source_hash": 8794026377380910109,
+      "context_hash": 15383310116972592126,
+      "translation": "RAM의 40%가 dirty 상태일 때 시스템 크래시나 정전이 발생하면 수 기가바이트의 데이터를 잃을 수 있습니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:2",
+      "source": "Only use high dirty ratios for workloads where data loss is acceptable (ephemeral data, easily regenerated data) or where the storage has a battery-backed write cache.",
+      "source_hash": 15047657897100451182,
+      "context_hash": 4933174691125020067,
+      "translation": "높은 dirty 비율은 데이터 손실이 허용되는 워크로드(임시 데이터, 쉽게 다시 생성할 수 있는 데이터)이거나 스토리지에 배터리 백업 쓰기 캐시가 있는 경우에만 사용하십시오.",
+      "glossary_snapshot": {
+        "workloads": "워크로드",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Large I/O size alignment",
+      "source_hash": 16292221620151050141,
+      "context_hash": 2252165508570799030,
+      "translation": "대용량 I/O 크기 정렬",
+      "glossary_snapshot": {
+        "alignment": "정렬"
+      },
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Streaming workloads should write in large, aligned chunks.",
+      "source_hash": 8223518388107385958,
+      "context_hash": 15364979576831892764,
+      "translation": "스트리밍 워크로드는 크고 정렬된 단위로 써야 합니다.",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The kernel can submit large sequential I/Os as a single BIO (block I/O request), maximizing device efficiency.",
+      "source_hash": 7034143036870489080,
+      "context_hash": 9656136204696859820,
+      "translation": "커널은 큰 순차 I/O를 하나의 BIO(block I/O 요청)로 제출하여 디바이스 효율을 극대화할 수 있습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:32:17.785486Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "**In application code:**",
+      "source_hash": 15677359380974155698,
+      "context_hash": 7256408786410156009,
+      "translation": "**애플리케이션 코드에서:**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "For io_uring, use vectored writes with `IORING_OP_WRITEV` to submit multiple 256KB buffers at once, reducing syscall overhead.",
+      "source_hash": 13205992475711594563,
+      "context_hash": 15657491515245707349,
+      "translation": "io_uring에서는 `IORING_OP_WRITEV`로 벡터 쓰기를 사용하여 256KB 버퍼 여러 개를 한 번에 제출함으로써 시스템 콜 오버헤드를 줄이십시오.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:42:40.031258Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Bypass the page cache for single-pass streaming",
+      "source_hash": 12990703550676945958,
+      "context_hash": 8832735109612112269,
+      "translation": "한 번만 사용하는 스트리밍에서 페이지 캐시 우회하기",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:40.031259Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "When data will be read or written only once (backup dumps, log rotation, video encoding input), the page cache wastes RAM and evicts useful data without benefit.",
+      "source_hash": 15757460961700669932,
+      "context_hash": 13855993484048681633,
+      "translation": "데이터를 한 번만 읽거나 쓰는 경우(백업 덤프, 로그 로테이션, 비디오 인코딩 입력) 페이지 캐시는 아무런 이점 없이 RAM을 낭비하고 유용한 데이터를 축출합니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:40.031259Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "**For single-pass reads:**",
+      "source_hash": 12514652322791897286,
+      "context_hash": 3961373021206506341,
+      "translation": "**한 번만 읽는 경우:**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031259Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "**For single-pass writes (backup, dump):**",
+      "source_hash": 11957412972790014376,
+      "context_hash": 7018441024453374729,
+      "translation": "**한 번만 쓰는 경우(백업, 덤프):**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.031259Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "**Why this matters for a shared server:**",
+      "source_hash": 10629361808646873481,
+      "context_hash": 5783499407379015160,
+      "translation": "**공유 서버에서 이것이 중요한 이유:**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135911Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "A 100GB backup running with buffered I/O will fill the page cache with 100GB of data that will never be read again, evicting the working sets of databases, web servers, and other running processes.",
+      "source_hash": 7560280857000196933,
+      "context_hash": 8869460614220738905,
+      "translation": "buffered I/O로 실행되는 100GB 백업은 다시는 읽히지 않을 100GB의 데이터로 페이지 캐시를 채우며, 데이터베이스, 웹 서버 및 기타 실행 중인 프로세스의 워킹 셋을 축출합니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시",
+        "working sets": "워킹 셋"
+      },
+      "translated_at": "2026-11-14T23:32:17.785487Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "On a 64GB server, a full-cache backup can cause a 40-60% performance hit to other services for 10-20 minutes afterward as their working sets are re-faulted from disk.",
+      "source_hash": 6086365568862167565,
+      "context_hash": 829317992358185838,
+      "translation": "64GB 서버에서 캐시를 가득 채우는 백업은 다른 서비스의 워킹 셋이 디스크에서 다시 폴트되어 들어오는 동안, 이후 10-20분간 해당 서비스에 40-60%의 성능 저하를 일으킬 수 있습니다.",
+      "glossary_snapshot": {
+        "working sets": "워킹 셋"
+      },
+      "translated_at": "2026-11-14T23:32:17.785487Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Parallel I/O streams",
+      "source_hash": 17476201807377036580,
+      "context_hash": 13415019615419249108,
+      "translation": "병렬 I/O 스트림",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135912Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Modern NVMe devices have multiple hardware queues and are designed for parallel I/O.",
+      "source_hash": 1331702163251773030,
+      "context_hash": 5243202103353843077,
+      "translation": "최신 NVMe 디바이스는 여러 개의 하드웨어 큐를 갖추고 있으며 병렬 I/O를 위해 설계되었습니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "devices": "디바이스",
+        "hardware queues": "하드웨어 큐"
+      },
+      "translated_at": "2026-11-14T23:32:17.785487Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "A single sequential stream may not saturate the device:",
+      "source_hash": 5101310830427634136,
+      "context_hash": 1327958403264384179,
+      "translation": "단일 순차 스트림만으로는 디바이스를 포화시키지 못할 수 있습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:32:17.785488Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "For high-speed NVMe (7GB/s rated), a single stream may only achieve 4-5GB/s due to CPU/PCIe bottlenecks.",
+      "source_hash": 2624784779599636635,
+      "context_hash": 6440714345417439713,
+      "translation": "고속 NVMe(정격 7GB/s)에서 단일 스트림은 CPU/PCIe 병목으로 인해 4-5GB/s밖에 달성하지 못할 수 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "NVMe": "NVMe",
+        "PCIe": "PCIe"
+      },
+      "translated_at": "2026-11-14T22:42:40.135912Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "Parallel streams distribute across multiple CPU cores and PCIe lanes.",
+      "source_hash": 7978332827335127829,
+      "context_hash": 16418480225791327476,
+      "translation": "병렬 스트림은 여러 CPU 코어와 PCIe 레인에 분산됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "PCIe": "PCIe"
+      },
+      "translated_at": "2026-11-14T22:42:40.135912Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Kafka broker I/O tuning",
+      "source_hash": 16887353441316173153,
+      "context_hash": 17246439238903474953,
+      "translation": "Kafka 브로커 I/O 튜닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135912Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Kafka is a canonical streaming workload: producers write to partition logs sequentially, consumers read from different offsets on the same logs simultaneously.",
+      "source_hash": 7490038420066503628,
+      "context_hash": 3100899164253219635,
+      "translation": "Kafka는 대표적인 스트리밍 워크로드입니다. 생산자는 파티션 로그에 순차적으로 쓰고, 컨슈머는 같은 로그의 서로 다른 오프셋에서 동시에 읽습니다.",
+      "glossary_snapshot": {
+        "producers": "생산자",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T23:32:17.785489Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "**Why Kafka relies on the page cache:**",
+      "source_hash": 1242154884721325393,
+      "context_hash": 12740207373398582861,
+      "translation": "**Kafka가 페이지 캐시에 의존하는 이유:**",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:40.135912Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "Kafka intentionally does not maintain its own buffer pool.",
+      "source_hash": 10221325715809358036,
+      "context_hash": 12029038648419120141,
+      "translation": "Kafka는 의도적으로 자체 버퍼 풀을 유지하지 않습니다.",
+      "glossary_snapshot": {
+        "buffer pool": "버퍼 풀"
+      },
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "Consumer reads that are close behind producers (the common case: the same recently written data) are served directly from the page cache without a disk read.",
+      "source_hash": 4293296053005845047,
+      "context_hash": 42337366834482899,
+      "translation": "생산자를 바짝 뒤따르는 컨슈머 읽기(흔한 경우로, 최근에 쓰인 바로 그 데이터를 읽는 경우)는 디스크 읽기 없이 페이지 캐시에서 직접 처리됩니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시",
+        "producers": "생산자"
+      },
+      "translated_at": "2026-11-14T23:32:17.785489Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:2",
+      "source": "The kernel's readahead brings subsequent segments into cache proactively.",
+      "source_hash": 1378344940122003094,
+      "context_hash": 5963131856957960309,
+      "translation": "커널의 readahead가 후속 세그먼트를 선제적으로 캐시에 가져옵니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:3",
+      "source": "This zero-copy path from producer to consumer is Kafka's performance secret — see Kafka's performance documentation and the [splice/sendfile internals](splice-sendfile.md).",
+      "source_hash": 9480109646764045629,
+      "context_hash": 9743976380062291155,
+      "translation": "생산자에서 컨슈머로 이어지는 이 제로 카피 경로가 Kafka 성능의 비결입니다. Kafka의 성능 문서와 [splice/sendfile 내부 구조](splice-sendfile.md)를 참고하십시오.",
+      "glossary_snapshot": {
+        "producer": "생산자",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:32:17.785490Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "HDFS DataNode I/O tuning",
+      "source_hash": 3930779410145778180,
+      "context_hash": 13779076933395801421,
+      "translation": "HDFS DataNode I/O 튜닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Hadoop DataNodes receive large blocks (128MB-256MB) from clients and write them to local storage.",
+      "source_hash": 4562571665440127232,
+      "context_hash": 3495069026093432218,
+      "translation": "Hadoop DataNode는 클라이언트로부터 큰 블록(128MB-256MB)을 받아 로컬 스토리지에 씁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "The pattern is sequential write followed by sequential reads from multiple clients.",
+      "source_hash": 4467337218211059237,
+      "context_hash": 6802817346478901316,
+      "translation": "이 패턴은 순차 쓰기 후 여러 클라이언트의 순차 읽기가 이어지는 형태입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Video streaming server I/O tuning",
+      "source_hash": 11667650893996676815,
+      "context_hash": 1433911547328656526,
+      "translation": "비디오 스트리밍 서버 I/O 튜닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "A video streaming server reads large files sequentially and sends them to clients.",
+      "source_hash": 13320165051136125380,
+      "context_hash": 15034593993834875486,
+      "translation": "비디오 스트리밍 서버는 큰 파일을 순차적으로 읽어 클라이언트에 전송합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "The working set is large (active video catalog) and access is somewhat random by file but sequential within each file.",
+      "source_hash": 10858238356170231578,
+      "context_hash": 5379528458007730450,
+      "translation": "워킹 셋은 크며(활성 동영상 카탈로그), 접근은 파일 단위로는 다소 무작위이지만 각 파일 내에서는 순차적입니다.",
+      "glossary_snapshot": {
+        "working set": "워킹 셋"
+      },
+      "translated_at": "2026-11-14T23:32:17.785490Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Throughput measurement and validation",
+      "source_hash": 15385117113301912969,
+      "context_hash": 17347656838200714719,
+      "translation": "처리량 측정 및 검증",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Quick reference: streaming tuning by storage type",
+      "source_hash": 8281377478380992218,
+      "context_hash": 10115372019244465025,
+      "translation": "빠른 참조: 스토리지 유형별 스트리밍 튜닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Setting",
+      "source_hash": 7014127269451295908,
+      "context_hash": 7574559479309273154,
+      "translation": "설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135913Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "HDD",
+      "source_hash": 13236920105776451054,
+      "context_hash": 15562922284277185767,
+      "translation": "HDD",
+      "glossary_snapshot": {
+        "HDD": "HDD"
+      },
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "SATA SSD",
+      "source_hash": 1896775256077907188,
+      "context_hash": 18281123658451342242,
+      "translation": "SATA SSD",
+      "glossary_snapshot": {
+        "SSD": "SSD"
+      },
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "NVMe",
+      "source_hash": 18050440407397312222,
+      "context_hash": 16390556230299981465,
+      "translation": "NVMe",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "`read_ahead_kb`",
+      "source_hash": 17713269442715672499,
+      "context_hash": 11814482899333794002,
+      "translation": "`read_ahead_kb`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "8192",
+      "source_hash": 1472223302615985692,
+      "context_hash": 9729391567189003667,
+      "translation": "8192",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "4096",
+      "source_hash": 4089126680896252138,
+      "context_hash": 11129707976222545233,
+      "translation": "4096",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "2048-4096",
+      "source_hash": 16864931898172125952,
+      "context_hash": 7477047542572751512,
+      "translation": "2048-4096",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "`dirty_ratio`",
+      "source_hash": 14851505035255959295,
+      "context_hash": 16082216579798188698,
+      "translation": "`dirty_ratio`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:40.135914Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "40%",
+      "source_hash": 7005505253459420406,
+      "context_hash": 16839961821718696037,
+      "translation": "40%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129701Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "30%",
+      "source_hash": 3355301285978338446,
+      "context_hash": 10733259419239468698,
+      "translation": "30%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129701Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "20-30%",
+      "source_hash": 16684360864239288360,
+      "context_hash": 8511644518323489599,
+      "translation": "20-30%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129701Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "`dirty_background_ratio`",
+      "source_hash": 17264881927349958779,
+      "context_hash": 16551015483034298565,
+      "translation": "`dirty_background_ratio`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "20%",
+      "source_hash": 12053568581482347238,
+      "context_hash": 10835903608876198637,
+      "translation": "20%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "15%",
+      "source_hash": 18365162946674707354,
+      "context_hash": 5725092353870454448,
+      "translation": "15%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "10-15%",
+      "source_hash": 8972929454082111712,
+      "context_hash": 11784862174387246196,
+      "translation": "10-15%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "`scheduler`",
+      "source_hash": 9507757210421759929,
+      "context_hash": 1122099585951928406,
+      "translation": "`scheduler`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:18/seg:0",
+      "source": "`mq-deadline`",
+      "source_hash": 17315194614510852875,
+      "context_hash": 17297481161890008655,
+      "translation": "`mq-deadline`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:19/seg:0",
+      "source": "`mq-deadline`",
+      "source_hash": 17315194614510852875,
+      "context_hash": 11530452580889528586,
+      "translation": "`mq-deadline`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:20/seg:0",
+      "source": "`none`",
+      "source_hash": 5248207808621118690,
+      "context_hash": 2876230333575037297,
+      "translation": "`none`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:21/seg:0",
+      "source": "`nr_requests`",
+      "source_hash": 10591249963126269536,
+      "context_hash": 5943078456757209395,
+      "translation": "`nr_requests`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:22/seg:0",
+      "source": "256",
+      "source_hash": 16735158713216704576,
+      "context_hash": 5566098769971831279,
+      "translation": "256",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:23/seg:0",
+      "source": "256",
+      "source_hash": 16735158713216704576,
+      "context_hash": 4958148129667503397,
+      "translation": "256",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:24/seg:0",
+      "source": "1024",
+      "source_hash": 3767906248828085438,
+      "context_hash": 12724926492247638484,
+      "translation": "1024",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:25/seg:0",
+      "source": "I/O size",
+      "source_hash": 6500036064305210461,
+      "context_hash": 16306097923506909344,
+      "translation": "I/O 크기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129702Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:26/seg:0",
+      "source": "1-8MB",
+      "source_hash": 4005327379086857183,
+      "context_hash": 13433724885230291736,
+      "translation": "1-8MB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:27/seg:0",
+      "source": "256KB-1MB",
+      "source_hash": 9048838045079916485,
+      "context_hash": 15522408660898707188,
+      "translation": "256KB-1MB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:28/seg:0",
+      "source": "256KB-1MB",
+      "source_hash": 9048838045079916485,
+      "context_hash": 13741269383268241540,
+      "translation": "256KB-1MB",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:29/seg:0",
+      "source": "Parallel streams",
+      "source_hash": 16456970768953397697,
+      "context_hash": 4206640650686559871,
+      "translation": "병렬 스트림 수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:30/seg:0",
+      "source": "1-2",
+      "source_hash": 18268195188925566059,
+      "context_hash": 10676149051890270021,
+      "translation": "1-2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:31/seg:0",
+      "source": "2-4",
+      "source_hash": 16298944969984000505,
+      "context_hash": 5528735218639254852,
+      "translation": "2-4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:32/seg:0",
+      "source": "4-8",
+      "source_hash": 6054907582368492552,
+      "context_hash": 14978823267727868635,
+      "translation": "4-8",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 17961404033657027654,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "[Readahead](readahead.md) — how the kernel readahead algorithm works",
+      "source_hash": 4578856122688771852,
+      "context_hash": 5704305071120152252,
+      "translation": "[Readahead](readahead.md) — 커널 readahead 알고리즘의 동작 방식",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[splice, sendfile, and Zero-Copy](splice-sendfile.md) — zero-copy for network streaming",
+      "source_hash": 3820496517346392444,
+      "context_hash": 6388982743789641003,
+      "translation": "[splice, sendfile 및 제로 카피](splice-sendfile.md) — 네트워크 스트리밍을 위한 제로 카피",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:32:17.785491Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[Tuning Storage I/O](tuning-storage.md) — complete sysctl reference",
+      "source_hash": 9750277051314957915,
+      "context_hash": 9508689379215335724,
+      "translation": "[Tuning Storage I/O](tuning-storage.md) — sysctl 전체 레퍼런스",
+      "glossary_snapshot": {
+        "sysctl": "sysctl"
+      },
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "[Buffered I/O and the Page Cache](buffered-io.md) — how buffered writes work",
+      "source_hash": 18330205738165914671,
+      "context_hash": 9363048209288066175,
+      "translation": "[Buffered I/O와 페이지 캐시](buffered-io.md) — 버퍼드 쓰기가 동작하는 방식",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:54:42.129703Z",
+      "issues": []
+    }
+  ]
+}

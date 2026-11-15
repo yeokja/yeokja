@@ -1,0 +1,823 @@
+{
+  "version": 1,
+  "source_hash": 3514053931585328295,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "War Stories: Locking and Synchronization Bugs",
+      "source_hash": 13730963136634047536,
+      "context_hash": 11017283170451008092,
+      "translation": "실전 사례: 락과 동기화 버그",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T22:16:38.108765Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Three CVEs and one origin story, all from the same corner of the kernel — rt_mutex and PI-futexes, the priority-inheritance machinery that keeps a high-priority task from starving behind a low-priority lock holder, and the three separate ways getting that machinery's bookkeeping wrong has gone badly",
+      "source_hash": 17923563668905818318,
+      "context_hash": 12181518812875482535,
+      "translation": "세 건의 CVE와 하나의 기원 이야기로, 모두 커널의 같은 영역인 rt_mutex와 PI-futex에서 나왔습니다. 우선순위 상속(priority inheritance) 메커니즘은 높은 우선순위 태스크가 낮은 우선순위의 락 보유자 뒤에서 기아 상태에 빠지지 않게 하며, 이 메커니즘의 상태 관리를 잘못한 서로 다른 세 가지 방식이 각각 심각한 결과로 이어졌습니다",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "futexes": "futex",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:16:38.108766Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "All three CVEs here live in the same subsystem — priority-inheritance futexes and the rt_mutex they're built on.",
+      "source_hash": 5799475965605214343,
+      "context_hash": 2870286954632903280,
+      "translation": "여기서 다루는 세 CVE는 모두 같은 서브시스템, 즉 우선순위 상속 futex와 그 기반이 되는 rt_mutex에 속합니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "futexes": "futex",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:16:38.108767Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Two of the three are the mirror image of each other: rt_mutex has to keep several pieces of state (a userspace futex word, `pi_state`, the mutex's own owner field) consistent across code paths that don't all touch every piece at once, and one bug left that state inconsistent after an unhandled fault while the other missed a precondition check its sibling function already had.",
+      "source_hash": 17621054081040635368,
+      "context_hash": 16804257327615566196,
+      "translation": "세 건 중 두 건은 서로의 거울상입니다. rt_mutex는 여러 상태(사용자 공간 futex 워드, `pi_state`, 뮤텍스 자체의 owner 필드)를 모든 상태를 한꺼번에 건드리지는 않는 여러 코드 경로에 걸쳐 일관되게 유지해야 하는데, 한 버그는 처리되지 않은 폴트 이후 그 상태를 불일치한 채로 남겨 두었고, 다른 버그는 형제 함수에 이미 있던 사전 조건 검사를 빠뜨렸습니다.",
+      "glossary_snapshot": {
+        "bug": "버그",
+        "code paths": "코드 경로",
+        "function": "함수",
+        "futex": "futex",
+        "mutex": "뮤텍스",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:16:38.108767Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "The third CVE is a different kind of mistake entirely — a lock-discipline violation, not a state-consistency one.",
+      "source_hash": 2040834818505643260,
+      "context_hash": 1000683144280359900,
+      "translation": "세 번째 CVE는 완전히 다른 종류의 실수로, 상태 일관성 문제가 아니라 락 규율 위반입니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE"
+      },
+      "translated_at": "2026-11-14T22:16:38.108768Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:3",
+      "source": "The fourth page isn't a bug at all: it's why any of this machinery exists.",
+      "source_hash": 12746399968290407122,
+      "context_hash": 9690383716805560307,
+      "translation": "네 번째 페이지는 아예 버그가 아닙니다. 이 메커니즘이 애초에 왜 존재하는지에 관한 이야기입니다.",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:16:38.108768Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Incidents",
+      "source_hash": 13222895534781683695,
+      "context_hash": 2891406519403637042,
+      "translation": "사고 목록",
+      "glossary_snapshot": {
+        "Incidents": "사고 목록"
+      },
+      "translated_at": "2026-11-14T23:30:13.965712Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Ordered reverse chronologically by when the fix (or, for the origin story, the original merge) landed in mainline — newest first.",
+      "source_hash": 15073587847647906843,
+      "context_hash": 7810370070432494667,
+      "translation": "수정 사항(기원 이야기의 경우 최초 병합)이 메인라인에 들어간 시점을 기준으로 역순, 즉 최신순으로 정렬했습니다.",
+      "glossary_snapshot": {
+        "mainline": "메인라인"
+      },
+      "translated_at": "2026-11-14T22:16:38.108768Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "[The Deadlock Detector That Scheduled While Atomic](war-stories/rtmutex-deadlock-detector-atomic-sleep.md)",
+      "source_hash": 17480071901325874995,
+      "context_hash": 10907155486206498578,
+      "translation": "[원자적 컨텍스트에서 스케줄링한 교착 상태 탐지기](war-stories/rtmutex-deadlock-detector-atomic-sleep.md)",
+      "glossary_snapshot": {
+        "deadlock": "교착 상태"
+      },
+      "translated_at": "2026-11-14T22:16:38.108768Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Linux 6.11 (September 2024) · CVE-2024-46829** rt_mutex's own cycle detector confirmed a genuine deadlock and responded by warning and then looping forever calling `schedule()` — while still holding the raw spinlock every other waiter on the same lock needed to make progress.",
+      "source_hash": 8223016498013464100,
+      "context_hash": 6945244250074682394,
+      "translation": "**Linux 6.11 (2024년 9월) · CVE-2024-46829** rt_mutex 자체의 순환 탐지기가 실제 교착 상태를 확인하고는 경고를 출력한 뒤 `schedule()`을 호출하며 무한 루프를 돌았습니다. 그것도 같은 락의 다른 모든 대기자가 진행하는 데 필요한 raw 스핀락을 여전히 쥔 채였습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "deadlock": "교착 상태",
+        "spinlock": "스핀락"
+      },
+      "translated_at": "2026-11-14T22:16:38.108769Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "[The PI-Futex Fixup That Had No Answer for a Permanent Fault](war-stories/pi-futex-fixup-owner-uaf.md)",
+      "source_hash": 15397815695534057885,
+      "context_hash": 1613768521437529256,
+      "translation": "[The PI-Futex Fixup That Had No Answer for a Permanent Fault](war-stories/pi-futex-fixup-owner-uaf.md)",
+      "glossary_snapshot": {
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T22:16:38.108770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**Linux 5.11 (February 2021) · CVE-2021-3347** When the kernel couldn't write a new owner's TID back into a PI futex word, it gave up without reconciling its own rt_mutex and pi_state — and a subsequent unlock on that mismatch corrupted a waiter structure still resident on another task's kernel stack.",
+      "source_hash": 9136966915830506716,
+      "context_hash": 6598394557635038150,
+      "translation": "**Linux 5.11 (2021년 2월) · CVE-2021-3347** 커널이 새 소유자의 TID를 PI futex 워드에 다시 쓰지 못하면, 자신의 rt_mutex와 pi_state를 맞추지 않은 채 포기했습니다. 그리고 이 불일치 상태에서 이어진 unlock이 다른 태스크의 커널 스택에 아직 남아 있던 waiter 구조체를 손상시켰습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "futex": "futex",
+        "kernel": "커널",
+        "kernel stack": "커널 스택"
+      },
+      "translated_at": "2026-11-14T22:16:38.108770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "[Towelroot: The Missing Check on the Requeuer's Half of the Pair](war-stories/towelroot-futex-requeue.md)",
+      "source_hash": 5446077893308436586,
+      "context_hash": 7347884952946968986,
+      "translation": "[Towelroot: The Missing Check on the Requeuer's Half of the Pair](war-stories/towelroot-futex-requeue.md)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:38.108770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "**Linux 3.15 (June 2014) · CVE-2014-3153** `futex_requeue()` never checked that a PI-requeue's source and destination were different futexes — the identical check on the sibling function, added two years earlier for an unrelated crash, hadn't been enough to catch it.",
+      "source_hash": 18285859120117435648,
+      "context_hash": 1694965724524073011,
+      "translation": "**Linux 3.15 (2014년 6월) · CVE-2014-3153** `futex_requeue()`는 PI requeue의 원본과 대상이 서로 다른 futex인지 전혀 검사하지 않았습니다. 2년 전 무관한 크래시 때문에 형제 함수에 추가된 동일한 검사로는 이를 잡아내기에 충분하지 않았습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "function": "함수",
+        "futexes": "futex"
+      },
+      "translated_at": "2026-11-14T22:16:38.108770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "[The PI-Mutex Origin Story](war-stories/pi-mutex-origin.md)",
+      "source_hash": 16465506888787512978,
+      "context_hash": 9512911518136902087,
+      "translation": "[PI 뮤텍스의 기원](war-stories/pi-mutex-origin.md)",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:16:38.108770Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "**Linux 2.6.18 (September 2006) · not a CVE** A low-priority lock holder can be starved by a medium-priority task that has nothing to do with the lock at all — priority-inheritance mutexes exist because a plain mutex has no way to stop this, and it took a blunt public objection from Linus Torvalds before the kernel carried a mainline implementation anyway.",
+      "source_hash": 10328436084699140874,
+      "context_hash": 15443952538707243719,
+      "translation": "**Linux 2.6.18 (2006년 9월) · CVE 아님** 낮은 우선순위의 락 보유자는 그 락과 전혀 관계없는 중간 우선순위 태스크 때문에 기아 상태에 빠질 수 있습니다. 일반 뮤텍스에는 이를 막을 방법이 없기 때문에 우선순위 상속 뮤텍스가 존재하며, Linus Torvalds의 직설적인 공개 반대를 거친 뒤에야 결국 커널에 메인라인 구현이 들어갔습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Linus": "Linus",
+        "Linux": "Linux",
+        "Torvalds": "Torvalds",
+        "kernel": "커널",
+        "mainline": "메인라인",
+        "mutex": "뮤텍스",
+        "mutexes": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:16:38.108771Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Common threads",
+      "source_hash": 15630519619683491239,
+      "context_hash": 8157711034529571053,
+      "translation": "공통점",
+      "glossary_snapshot": {
+        "Common threads": "공통점"
+      },
+      "translated_at": "2026-11-14T22:16:38.108771Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Pattern",
+      "source_hash": 544911176319535475,
+      "context_hash": 271433682975581090,
+      "translation": "패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:38.108771Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Deadlock detector",
+      "source_hash": 8570768130047207335,
+      "context_hash": 6905536814183653708,
+      "translation": "교착 상태 탐지기",
+      "glossary_snapshot": {
+        "deadlock": "교착 상태"
+      },
+      "translated_at": "2026-11-14T22:16:38.108771Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "PI-futex fixup",
+      "source_hash": 3767599140353856179,
+      "context_hash": 13585587740507394092,
+      "translation": "PI-futex 수정 처리",
+      "glossary_snapshot": {
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T22:16:38.108771Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Towelroot",
+      "source_hash": 11578190754168937235,
+      "context_hash": 15853951647892026654,
+      "translation": "Towelroot",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:38.108771Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "PI-mutex origin",
+      "source_hash": 15775328509252512286,
+      "context_hash": 6182112969395397953,
+      "translation": "PI-뮤텍스 기원",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Involves rt_mutex/PI-futex bookkeeping specifically",
+      "source_hash": 8765889438926472260,
+      "context_hash": 11517471969577086253,
+      "translation": "특히 rt_mutex/PI-futex 상태 관리와 관련됨",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 2666468261558149087,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 4802839273489802322,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Yes (defines it)",
+      "source_hash": 7582786607763954377,
+      "context_hash": 6978984781130304466,
+      "translation": "예 (이를 정의함)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Root cause: a lock held across a call that shouldn't happen while holding it",
+      "source_hash": 9012806607880390140,
+      "context_hash": 12111290109154448522,
+      "translation": "근본 원인: 락을 쥔 채로 해서는 안 되는 호출을 락을 쥔 상태에서 수행함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7390999542329897403,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:16:38.108772Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:38.108773Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7737424900422878441,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:38.108773Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 9707748492530271941,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:38.108773Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Root cause: state left inconsistent after an unhandled failure path",
+      "source_hash": 17324486084561491541,
+      "context_hash": 14339229075725993992,
+      "translation": "근본 원인: 처리되지 않은 실패 경로 이후 일관되지 않게 남은 상태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108903Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 17537826143936748773,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108904Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7536943046141488671,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:16:40.108905Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 6723063674509391990,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108905Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 14796009163631459904,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108905Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "Root cause: a fix applied to one function, needed on its untouched sibling",
+      "source_hash": 17473446223848870444,
+      "context_hash": 14339229075725993992,
+      "translation": "근본 원인: 한 함수에 적용된 수정이 손대지 않은 짝 함수에도 필요했음",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:16:40.108906Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 4545748236659952451,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108906Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9508013301409225522,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108906Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7737424900422878441,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:16:40.108906Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 7986538316166407099,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108906Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Years between the bug's introduction and its fix",
+      "source_hash": 9495872471724842697,
+      "context_hash": 866020472788504102,
+      "translation": "버그 도입부터 수정까지 걸린 햇수",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:16:40.108907Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "10 (2014→2024)",
+      "source_hash": 6469253831797497599,
+      "context_hash": 14812594247647418263,
+      "translation": "10 (2014→2024)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108907Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "13 (2008→2021)",
+      "source_hash": 6144190009580665025,
+      "context_hash": 14838430065369313928,
+      "translation": "13 (2008→2021)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108907Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "~5 (2009→2014)",
+      "source_hash": 8108639840082788655,
+      "context_hash": 12055179686854741597,
+      "translation": "~5 (2009→2014)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108907Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 8677578520623864947,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108907Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "CISA KEV-listed",
+      "source_hash": 11365093275529784481,
+      "context_hash": 14339229075725993992,
+      "translation": "CISA KEV 등재",
+      "glossary_snapshot": {
+        "CISA KEV": "CISA KEV",
+        "CISA KEV-listed": "CISA KEV 등재"
+      },
+      "translated_at": "2026-11-14T23:30:13.965713Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 2488711732798423372,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108907Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 11185229189752046655,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "Yes (May 2022)",
+      "source_hash": 7686000397542586195,
+      "context_hash": 7737424900422878441,
+      "translation": "예 (2022년 5월)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:35/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 13179214648610382822,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "Public exploit tool published",
+      "source_hash": 6392162508241800107,
+      "context_hash": 14339229075725993992,
+      "translation": "공개 익스플로잇 도구 존재 여부",
+      "glossary_snapshot": {
+        "Exploit tool": "익스플로잇 도구"
+      },
+      "translated_at": "2026-11-14T22:16:40.108908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:37/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 18090769491253568342,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 11000718494907123696,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:16:40.108908Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "Yes (Towelroot)",
+      "source_hash": 1129449676885657791,
+      "context_hash": 7737424900422878441,
+      "translation": "예 (Towelroot)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108909Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 12772092273478441989,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108909Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:0",
+      "source": "**Two of the three CVEs are the same shape of mistake, from opposite directions.** The PI-futex fixup bug is a fault-handling path that left cross-referencing state inconsistent because the \"permanent failure\" branch was never written.",
+      "source_hash": 5451222283333875045,
+      "context_hash": 906149846676928066,
+      "translation": "**세 CVE 중 두 개는 반대 방향에서 비롯된 같은 형태의 실수입니다.** PI-futex fixup 버그는 \"영구 실패\" 분기가 끝내 작성되지 않았기 때문에 상호 참조하는 상태를 일관되지 않게 남긴 폴트 처리 경로입니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "bug": "버그",
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T22:16:40.108909Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:1",
+      "source": "Towelroot is a missing precondition check that *had* been written — just on the wrong half of a two-function pair.",
+      "source_hash": 12386156893595224915,
+      "context_hash": 2089929203218769627,
+      "translation": "Towelroot는 작성되어 *있기는* 했던 전제 조건 검사가 빠진 경우입니다. 다만 두 함수로 이루어진 쌍 중 엉뚱한 쪽에 작성되었을 뿐입니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:16:40.108910Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:2",
+      "source": "Both are failures to fully generalize a fix: the 2008 retry logic generalized \"the fault will eventually resolve\" without a fallback; the 2012 `trinity`-driven fix generalized \"check `uaddr != uaddr2`\" to exactly one function instead of the pair that shared the invariant.",
+      "source_hash": 13115720958211188705,
+      "context_hash": 12478049178927566519,
+      "translation": "두 경우 모두 수정을 완전히 일반화하지 못한 실패입니다. 2008년의 재시도 로직은 \"폴트는 결국 해결될 것\"이라는 가정을 폴백 없이 일반화했고, 2012년 `trinity`가 계기가 된 수정은 \"`uaddr != uaddr2`를 검사하라\"는 규칙을 그 불변 조건을 공유하는 함수 쌍이 아니라 정확히 한 함수에만 적용했습니다.",
+      "glossary_snapshot": {
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T23:30:13.965714Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "**The deadlock-detector bug is the odd one out: a lock-discipline violation in error-handling code, not a state-consistency bug.** Unlike the other two, nothing about *what* the code was tracking was wrong — the mistake was scheduling with a spinlock held, in a branch whose entire job was to report that no further progress was possible.",
+      "source_hash": 2617300651540117771,
+      "context_hash": 10527158641961501815,
+      "translation": "**교착 상태 감지기 버그는 이질적인 경우로, 상태 일관성 버그가 아니라 오류 처리 코드에서의 락 규율 위반입니다.** 나머지 두 경우와 달리 코드가 *무엇을* 추적하고 있었는지에는 아무 잘못이 없었습니다. 실수는 더 이상 진행이 불가능하다고 보고하는 것이 유일한 역할인 분기에서 스핀락을 잡은 채로 스케줄링한 것이었습니다.",
+      "glossary_snapshot": {
+        "bug": "버그",
+        "deadlock": "교착 상태",
+        "scheduling": "스케줄링",
+        "spinlock": "스핀락"
+      },
+      "translated_at": "2026-11-14T22:16:40.108910Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:1",
+      "source": "It's also the only one of the three not tied to PI-futexes at all: `CONFIG_DEBUG_RT_MUTEXES=y` kernels can hit it through any rt_mutex, not just the futex path.",
+      "source_hash": 585591119593206778,
+      "context_hash": 11418319850526235352,
+      "translation": "또한 세 가지 중 PI-futex와 전혀 관련이 없는 유일한 경우이기도 합니다. `CONFIG_DEBUG_RT_MUTEXES=y` 커널은 futex 경로뿐 아니라 어떤 rt_mutex를 통해서도 이 버그에 도달할 수 있습니다.",
+      "glossary_snapshot": {
+        "futex": "futex",
+        "futexes": "futex",
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:16:40.108911Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:0",
+      "source": "**None of the three CVEs here have a public exploit tool except Towelroot — and Towelroot's is one of the most consequential local root exploits the kernel has ever shipped.** Read alongside [the origin story](war-stories/pi-mutex-origin.md), there's a certain irony: the mechanism Torvalds worried was \"your system is broken anyway\" territory became, about eight years later, the exact subsystem whose bookkeeping mistakes produced the highest-impact bug on this page.",
+      "source_hash": 1220538265728331038,
+      "context_hash": 2473129877213872830,
+      "translation": "**여기 소개된 세 CVE 중 공개 익스플로잇 도구가 있는 것은 Towelroot뿐이며, Towelroot의 익스플로잇은 커널 역사상 가장 큰 파장을 일으킨 로컬 루트 익스플로잇 중 하나입니다.** [탄생 배경](war-stories/pi-mutex-origin.md)과 함께 읽으면 묘한 아이러니가 있습니다. Torvalds가 \"어차피 시스템이 망가진 상태\"의 영역이라고 우려했던 메커니즘이, 약 8년 뒤 바로 그 장부 관리 실수로 이 페이지에서 가장 영향력이 큰 버그를 낳은 서브시스템이 되었습니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "Exploit tool": "익스플로잇 도구",
+        "Torvalds": "Torvalds",
+        "bug": "버그",
+        "impact": "영향",
+        "kernel": "커널",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:16:40.108911Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "See also",
+      "source_hash": 5857332155845589011,
+      "context_hash": 9434327199287232705,
+      "translation": "함께 보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:16:40.108911Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "[Locking Overview](README.md) — spinlocks, mutexes, rt_mutex, and RCU",
+      "source_hash": 3265069738419073373,
+      "context_hash": 1539588639801211468,
+      "translation": "[락킹 개요](README.md) — 스핀락, 뮤텍스, rt_mutex, RCU",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "mutexes": "뮤텍스",
+        "spinlocks": "스핀락"
+      },
+      "translated_at": "2026-11-14T21:50:20.458479Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "[VFS War Stories](../vfs/war-stories.md) — a comparable set of local-privilege CVEs from a different subsystem, useful for contrasting root-cause shapes",
+      "source_hash": 2988433614702233875,
+      "context_hash": 11149099124841973285,
+      "translation": "[VFS 실전 사례](../vfs/war-stories.md) — 다른 서브시스템에서 발생한 유사한 로컬 권한 상승 CVE 모음으로, 근본 원인의 형태를 대조하는 데 유용합니다",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "VFS": "VFS",
+        "subsystem": "서브시스템",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T21:50:20.458481Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "[GPU/DRM War Stories](../drm/war-stories.md) — reliability-only incidents (no CVEs) from a different kind of shared kernel-internal scheduling problem",
+      "source_hash": 16118726888431777822,
+      "context_hash": 14868980606106171521,
+      "translation": "[GPU/DRM 실전 사례](../drm/war-stories.md) — 성격이 다른 커널 내부 공유 스케줄링 문제에서 발생한 안정성 관련 사고(CVE 없음) 모음",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "DRM": "DRM",
+        "GPU": "GPU",
+        "kernel": "커널",
+        "scheduling": "스케줄링",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T21:50:20.458482Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,637 @@
+{
+  "version": 1,
+  "source_hash": 2291310605320665280,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "The ftrace Ring Buffer and tracefs",
+      "source_hash": 584820751087249578,
+      "context_hash": 3890296240650808519,
+      "translation": "ftrace 링 버퍼와 tracefs",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T22:46:43.888370Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How the kernel records millions of trace events per second — from any context, with almost no overhead — and the filesystem you steer it through",
+      "source_hash": 10894418364020119085,
+      "context_hash": 13431344273655262838,
+      "translation": "커널이 어떤 컨텍스트에서든 오버헤드를 거의 들이지 않고 초당 수백만 개의 트레이스 이벤트를 기록하는 방법과, 이를 조종하는 데 사용하는 파일시스템",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:46:43.888371Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Tracing has a brutal constraint: the instrumentation has to be *cheaper* than the thing it measures, and it has to work in **any** context — process, softirq, hard IRQ, even NMI — without ever taking a lock that could deadlock.",
+      "source_hash": 11314775302522627131,
+      "context_hash": 5608179362591792103,
+      "translation": "트레이싱에는 가혹한 제약이 있습니다. 계측 코드는 측정 대상보다 *더 저렴해야* 하며, 교착 상태를 일으킬 수 있는 락을 절대 잡지 않고 프로세스, softirq, hard IRQ, 심지어 NMI에 이르기까지 **어떤** 컨텍스트에서든 동작해야 합니다.",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "deadlock": "교착 상태",
+        "process": "프로세스",
+        "softirq": "softirq",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:46:43.888371Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "A naive global, mutex-protected buffer fails on both counts.",
+      "source_hash": 11191123130501372247,
+      "context_hash": 5053308688792240302,
+      "translation": "뮤텍스로 보호되는 단순한 전역 버퍼는 두 조건을 모두 충족하지 못합니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:46:43.888372Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "The data structure that solves it is the **ftrace ring buffer** ([`kernel/trace/ring_buffer.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/trace/ring_buffer.c)), and **tracefs** is the interface you drive it through.",
+      "source_hash": 10280671111268456642,
+      "context_hash": 2373410586307786912,
+      "translation": "이 문제를 해결하는 자료 구조가 **ftrace 링 버퍼**([`kernel/trace/ring_buffer.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/trace/ring_buffer.c))이며, **tracefs**는 이 버퍼를 조작하는 인터페이스입니다.",
+      "glossary_snapshot": {
+        "data structure": "자료 구조",
+        "ftrace": "ftrace",
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T22:46:43.888372Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Per-CPU and lockless",
+      "source_hash": 2405872051653106768,
+      "context_hash": 9812442208856531152,
+      "translation": "Per-CPU와 락 없는 설계",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:46:43.888372Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Two design decisions make the buffer fast enough to leave on in production:",
+      "source_hash": 17260480323061680620,
+      "context_hash": 9515498969751775655,
+      "translation": "두 가지 설계 결정 덕분에 이 버퍼는 프로덕션 환경에서 켜 두어도 될 만큼 빠릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888372Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**Per-CPU.** Each CPU writes into its *own* ring buffer, so two CPUs tracing at once never contend — no shared lock, no cache line bouncing between cores.",
+      "source_hash": 11490099855791750609,
+      "context_hash": 12357584444285825705,
+      "translation": "**Per-CPU.** 각 CPU는 *자신만의* 링 버퍼에 기록하므로, 두 CPU가 동시에 트레이싱하더라도 경합이 전혀 발생하지 않습니다. 공유 락도 없고, 코어 사이에서 캐시 라인이 오가는 일도 없습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CPUs": "CPU",
+        "cache": "캐시",
+        "ring buffer": "링 버퍼",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "The cost is that reassembling a global, time-ordered view happens later, at read time, by merging the per-CPU streams.",
+      "source_hash": 17472249788920569964,
+      "context_hash": 13645865972146612431,
+      "translation": "그 대가로, 시간 순서로 정렬된 전역 뷰는 나중에 읽는 시점에 per-CPU 스트림을 병합하여 재구성해야 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Lockless writes.** Within a CPU, recording an event is a **reserve/commit** protocol built on local atomic operations, not a lock:",
+      "source_hash": 7381816099679089113,
+      "context_hash": 13720376258845920110,
+      "translation": "**락 없는 쓰기.** 하나의 CPU 안에서 이벤트를 기록하는 작업은 락이 아니라 로컬 원자적 연산 위에 구축된 **reserve/commit** 프로토콜입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "`ring_buffer_lock_reserve()` reserves space for an event,",
+      "source_hash": 13559764482804910671,
+      "context_hash": 6437630437514245063,
+      "translation": "`ring_buffer_lock_reserve()`가 이벤트를 위한 공간을 예약하고,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "the caller writes the event payload into that space,",
+      "source_hash": 10307170748380684304,
+      "context_hash": 18370937003900159249,
+      "translation": "호출자가 그 공간에 이벤트 페이로드를 기록하며,",
+      "glossary_snapshot": {
+        "payload": "페이로드"
+      },
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "`ring_buffer_unlock_commit()` finalizes it.",
+      "source_hash": 7184954966298086727,
+      "context_hash": 1658445506508772322,
+      "translation": "`ring_buffer_unlock_commit()`가 이를 확정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Because the protocol is per-CPU and lockless, it is safe for a hard IRQ — or even an NMI — to record an event *while it has interrupted another write on the same CPU*.",
+      "source_hash": 13479547332737833814,
+      "context_hash": 14541747919929526049,
+      "translation": "이 프로토콜은 per-CPU 방식이고 락이 없으므로, hard IRQ나 심지어 NMI가 *같은 CPU에서 진행 중이던 다른 쓰기를 인터럽트한 상태에서* 이벤트를 기록해도 안전합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "IRQ": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "The buffer is explicitly designed to handle these nested writes, which is exactly the property a global lock could never provide.",
+      "source_hash": 549522892172721838,
+      "context_hash": 13341197365192624713,
+      "translation": "이 버퍼는 이러한 중첩 쓰기를 처리하도록 명시적으로 설계되었으며, 이는 전역 락으로는 결코 제공할 수 없는 바로 그 특성입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Sub-buffers",
+      "source_hash": 14260407703578055577,
+      "context_hash": 10388700363075414960,
+      "translation": "서브 버퍼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888373Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "A per-CPU buffer is a ring of page-sized **sub-buffers**.",
+      "source_hash": 6844537440257229215,
+      "context_hash": 16578166318022470511,
+      "translation": "per-CPU 버퍼는 페이지 크기의 **서브 버퍼**(sub-buffer)들로 이루어진 링입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "Events pack tightly into the current page; when it fills, the writer advances to the next page in the ring.",
+      "source_hash": 3530213140348940046,
+      "context_hash": 10356944161600532352,
+      "translation": "이벤트는 현재 페이지에 빈틈없이 채워지며, 페이지가 가득 차면 기록자는 링의 다음 페이지로 넘어갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "Because reading and writing operate on *different* pages, a consumer can lift completed pages out while the producer keeps filling new ones — no coordination on the hot path.",
+      "source_hash": 11159478934812898354,
+      "context_hash": 14853001435886238316,
+      "translation": "읽기와 쓰기는 *서로 다른* 페이지에서 이루어지므로, 생산자가 새 페이지를 계속 채우는 동안 소비자는 완성된 페이지를 꺼내 갈 수 있습니다. 핫 패스에서 조율이 필요하지 않습니다.",
+      "glossary_snapshot": {
+        "hot path": "핫 패스",
+        "producer": "생산자"
+      },
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Two modes: flight recorder vs. lossless",
+      "source_hash": 11035245039370107281,
+      "context_hash": 15977415602185831521,
+      "translation": "두 가지 모드: 플라이트 레코더 대 무손실",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "What happens when the buffer fills depends on the mode:",
+      "source_hash": 17825352252643201807,
+      "context_hash": 15364364995608737370,
+      "translation": "버퍼가 가득 찼을 때 어떻게 동작하는지는 모드에 따라 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "**Overwrite (the default)** — the buffer is a circular \"flight recorder\": once full, the oldest events are overwritten to make room.",
+      "source_hash": 14268400652376963138,
+      "context_hash": 5004989517875172933,
+      "translation": "**덮어쓰기(기본값)** — 버퍼는 순환식 \"플라이트 레코더\"이며, 가득 차면 가장 오래된 이벤트를 덮어써서 공간을 확보합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "You always have the most *recent* history, which is what you want when arming a trace and waiting for a rare event to reproduce.",
+      "source_hash": 15996266541120078935,
+      "context_hash": 9906832927988691807,
+      "translation": "항상 가장 *최근의* 기록을 보유하게 되며, 이는 트레이스를 걸어 두고 드물게 발생하는 이벤트가 재현되기를 기다릴 때 원하는 동작입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "**Producer/consumer** — writing stops (events are dropped and counted) rather than overwriting, so nothing already recorded is lost.",
+      "source_hash": 15568575703508981884,
+      "context_hash": 2203802714072219659,
+      "translation": "**생산자/소비자** — 덮어쓰는 대신 쓰기를 중단하므로(이벤트는 버려지고 그 수가 집계됩니다) 이미 기록된 내용은 전혀 손실되지 않습니다.",
+      "glossary_snapshot": {
+        "producer": "생산자"
+      },
+      "translated_at": "2026-11-14T22:46:43.888374Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "You choose this when you must not miss events and have a consumer draining the buffer fast enough.",
+      "source_hash": 15673630017230562459,
+      "context_hash": 16778489407895216274,
+      "translation": "이벤트를 놓쳐서는 안 되고 버퍼를 충분히 빠르게 비워 내는 소비자가 있을 때 이 모드를 선택합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888375Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Buffer size is per-CPU and set through `buffer_size_kb`; the trade is memory for history.",
+      "source_hash": 8392188427406154329,
+      "context_hash": 5704685942187769200,
+      "translation": "버퍼 크기는 CPU별로 지정되며 `buffer_size_kb`를 통해 설정합니다. 메모리를 내주고 기록 분량을 얻는 절충입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:46:43.888375Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Reading: `trace` vs. `trace_pipe`",
+      "source_hash": 17868126937998083772,
+      "context_hash": 10003000057924411007,
+      "translation": "읽기: `trace` 대 `trace_pipe`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888375Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "tracefs exposes the buffer two ways, and the distinction matters:",
+      "source_hash": 16518669915732182593,
+      "context_hash": 17756190246997768291,
+      "translation": "tracefs는 버퍼를 두 가지 방식으로 노출하며, 그 차이가 중요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888375Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "**`trace`** — a *non-consuming snapshot*.",
+      "source_hash": 7224573376401022404,
+      "context_hash": 6558613303033409221,
+      "translation": "**`trace`** — *소비하지 않는 스냅샷*입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888375Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "Reading it does not remove events, so you can `cat` it repeatedly and diff the output.",
+      "source_hash": 9402291527872589870,
+      "context_hash": 14520403570518788565,
+      "translation": "읽어도 이벤트가 제거되지 않으므로 반복해서 `cat`하고 출력을 diff할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888375Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:2",
+      "source": "Good for \"arm, reproduce, then inspect.\"",
+      "source_hash": 7292009359777640327,
+      "context_hash": 8418828894416595017,
+      "translation": "\"트레이스를 걸고, 재현한 다음, 살펴보는\" 방식에 적합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:46:43.888375Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "**`trace_pipe`** — a *consuming, blocking stream*.",
+      "source_hash": 16536710820415332168,
+      "context_hash": 4847581942822358387,
+      "translation": "**`trace_pipe`** — *소비형 블로킹 스트림*",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386243Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "Events are delivered as they arrive and are gone once read.",
+      "source_hash": 3767639974457281350,
+      "context_hash": 5261934913212466520,
+      "translation": "이벤트는 도착하는 대로 전달되며, 한 번 읽으면 사라집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386245Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "This is the live-tail interface, the one to pipe into a tool.",
+      "source_hash": 13208754967588851197,
+      "context_hash": 14516872383216586821,
+      "translation": "실시간으로 이벤트를 따라가며 보는 인터페이스이며, 도구로 파이프할 때 사용하는 파일입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386245Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "**`per_cpu/cpuN/trace`** — the raw single-CPU streams, before any global merge.",
+      "source_hash": 9934442481225213840,
+      "context_hash": 9558624186540913970,
+      "translation": "**`per_cpu/cpuN/trace`** — 전역 병합을 거치기 전의 원시 단일 CPU 스트림",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:20:01.386245Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "tracefs: the control surface",
+      "source_hash": 8106231840615784726,
+      "context_hash": 2618411761483734976,
+      "translation": "tracefs: 제어 인터페이스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386246Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Everything is steered through `/sys/kernel/tracing`:",
+      "source_hash": 6889524432641504329,
+      "context_hash": 3649509156829937584,
+      "translation": "모든 제어는 `/sys/kernel/tracing`을 통해 이루어집니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386246Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 6860833674283097395,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:20:01.386246Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Purpose",
+      "source_hash": 5472923780897967966,
+      "context_hash": 6347202836318005347,
+      "translation": "용도",
+      "glossary_snapshot": {
+        "Purpose": "용도"
+      },
+      "translated_at": "2026-11-14T22:20:01.386246Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "`current_tracer`",
+      "source_hash": 17192435351414798995,
+      "context_hash": 13963630654901613781,
+      "translation": "`current_tracer`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386247Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "select the active tracer (`function`, `function_graph`, `nop`, …)",
+      "source_hash": 2747449404587760876,
+      "context_hash": 7356992419788817125,
+      "translation": "활성 tracer 선택(`function`, `function_graph`, `nop`, …)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386247Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "`tracing_on`",
+      "source_hash": 4822886491716115693,
+      "context_hash": 3048624282075888465,
+      "translation": "`tracing_on`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386247Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "master on/off switch (write `0`/`1`)",
+      "source_hash": 2792207083877036312,
+      "context_hash": 11653667141486409665,
+      "translation": "전체 on/off 스위치(`0`/`1` 쓰기)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386247Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "`buffer_size_kb`",
+      "source_hash": 13286439283188493818,
+      "context_hash": 11866612318425832402,
+      "translation": "`buffer_size_kb`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386247Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "per-CPU buffer size",
+      "source_hash": 5061636520813305873,
+      "context_hash": 4895053613488686936,
+      "translation": "CPU별 버퍼 크기",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:20:01.386247Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "`options/`",
+      "source_hash": 15972219672255924905,
+      "context_hash": 4879295115747498948,
+      "translation": "`options/`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386247Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "toggles, including overwrite mode",
+      "source_hash": 10819662553379183203,
+      "context_hash": 17936436806521282886,
+      "translation": "덮어쓰기 모드를 포함한 각종 토글",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386248Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "`trace_marker`",
+      "source_hash": 9014788316938236852,
+      "context_hash": 13207869277794861755,
+      "translation": "`trace_marker`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386248Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "write to it to inject *your own* event into the timeline",
+      "source_hash": 9784106967647741268,
+      "context_hash": 16770052992513495417,
+      "translation": "이 파일에 쓰면 *사용자 자신의* 이벤트를 타임라인에 삽입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386248Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "`instances/`",
+      "source_hash": 7201623516740830126,
+      "context_hash": 12911798445137891556,
+      "translation": "`instances/`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386248Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "create independent buffers so two tools don't fight over one",
+      "source_hash": 1156457789487705758,
+      "context_hash": 6384807156372623884,
+      "translation": "두 도구가 하나의 버퍼를 두고 다투지 않도록 독립적인 버퍼 생성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386248Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "`instances/` is the quietly important one: each instance is a fully separate ring buffer with its own tracer and events, so a background tracer and an ad-hoc investigation can run at once without corrupting each other's captures.",
+      "source_hash": 15222752430413002257,
+      "context_hash": 708453825604422198,
+      "translation": "`instances/`는 눈에 잘 띄지 않지만 중요한 항목입니다. 각 인스턴스는 자체 tracer와 이벤트를 갖춘 완전히 분리된 링 버퍼이므로, 백그라운드 tracer와 임시 조사를 서로의 수집 결과를 훼손하지 않고 동시에 실행할 수 있습니다.",
+      "glossary_snapshot": {
+        "ring buffer": "링 버퍼"
+      },
+      "translated_at": "2026-11-14T22:20:01.386249Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Try it yourself",
+      "source_hash": 18329884058255754057,
+      "context_hash": 16131843540017880550,
+      "translation": "직접 해 보기",
+      "glossary_snapshot": {
+        "Try It Yourself": "직접 해 보기"
+      },
+      "translated_at": "2026-11-14T22:20:01.386249Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 4608906259102624121,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:20:01.386249Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "[Kernel docs: ring buffer design](https://docs.kernel.org/trace/ring-buffer-design.html) — the lockless algorithm in full",
+      "source_hash": 15221923252617635365,
+      "context_hash": 17778297170477118419,
+      "translation": "[Kernel docs: ring buffer design](https://docs.kernel.org/trace/ring-buffer-design.html) — lockless 알고리즘 전체 설명",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386249Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "[`kernel/trace/ring_buffer.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/trace/ring_buffer.c) — the implementation",
+      "source_hash": 14953856945132917113,
+      "context_hash": 5791660695029231485,
+      "translation": "[`kernel/trace/ring_buffer.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/trace/ring_buffer.c) — 구현 코드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:20:01.386250Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "[ftrace](ftrace.md) — the tracer that fills this buffer",
+      "source_hash": 3572647324701154346,
+      "context_hash": 317007165168458503,
+      "translation": "[ftrace](ftrace.md) — 이 버퍼를 채우는 tracer",
+      "glossary_snapshot": {
+        "ftrace": "ftrace"
+      },
+      "translated_at": "2026-11-14T22:20:01.386250Z",
+      "issues": []
+    }
+  ]
+}

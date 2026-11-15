@@ -1,0 +1,783 @@
+{
+  "version": 1,
+  "source_hash": 16498459073363043651,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Helpers, kfuncs, and the JIT",
+      "source_hash": 5221483943045050814,
+      "context_hash": 2580210440070150036,
+      "translation": "헬퍼, kfunc, 그리고 JIT",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286668Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How a BPF program calls into the kernel, and how it actually runs once loaded",
+      "source_hash": 3772484219912783355,
+      "context_hash": 1775021786261734886,
+      "translation": "BPF 프로그램이 커널을 호출하는 방식과 로드된 뒤 실제로 실행되는 방식",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:11.286669Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "[Architecture and Program Types](bpf-overview.md) covers helpers as a flat list of callable functions.",
+      "source_hash": 7420995094707670584,
+      "context_hash": 8299239054988883873,
+      "translation": "[아키텍처와 프로그램 타입](bpf-overview.md)에서는 헬퍼를 호출 가능한 함수들의 단순한 목록으로 다룹니다.",
+      "glossary_snapshot": {
+        "functions": "함수"
+      },
+      "translated_at": "2026-11-14T21:54:11.286669Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "This page goes one level deeper: the actual calling-convention mechanics behind that list, the newer kfunc mechanism that grew up alongside it, and how a verified program turns into the code the CPU actually executes.",
+      "source_hash": 7983564223579885159,
+      "context_hash": 13534183724532789042,
+      "translation": "이 페이지에서는 한 단계 더 깊이 들어가, 그 목록 뒤에 있는 실제 호출 규약(calling convention)의 동작 원리, 그와 나란히 발전해 온 더 새로운 kfunc 메커니즘, 그리고 검증된 프로그램이 CPU가 실제로 실행하는 코드로 바뀌는 과정을 살펴봅니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T21:54:11.286669Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Helpers: a fixed, numbered ABI",
+      "source_hash": 1583369427228156599,
+      "context_hash": 2905418930154170905,
+      "translation": "헬퍼: 고정된 번호 기반 ABI",
+      "glossary_snapshot": {
+        "ABI": "ABI"
+      },
+      "translated_at": "2026-11-14T21:54:11.286669Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A BPF program can't call an arbitrary kernel symbol — the compiler has no way to link against kernel code, and the verifier has no way to reason about arbitrary function bodies.",
+      "source_hash": 1024820384533797037,
+      "context_hash": 3688531317825260043,
+      "translation": "BPF 프로그램은 임의의 커널 심볼을 호출할 수 없습니다. 컴파일러는 커널 코드에 링크할 방법이 없고, verifier는 임의의 함수 본문을 분석할 방법이 없기 때문입니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "function": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:11.286669Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Instead, the kernel exposes a fixed set of helper functions, each identified by a stable number baked into the instruction stream at compile time:",
+      "source_hash": 9987354211468092886,
+      "context_hash": 1747847422592126797,
+      "translation": "대신 커널은 고정된 헬퍼 함수 집합을 노출하며, 각 헬퍼는 컴파일 시점에 명령어 스트림에 새겨지는 안정적인 번호로 식별됩니다.",
+      "glossary_snapshot": {
+        "functions": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "`bpf_map_lookup_elem()` is helper 1 — the oldest, most-used helper, from before the numbered-list convention even needed a name.",
+      "source_hash": 18256504180741544623,
+      "context_hash": 13913323489193927844,
+      "translation": "`bpf_map_lookup_elem()`은 헬퍼 1번으로, 번호 목록 방식에 이름이 붙기도 전부터 존재한, 가장 오래되고 가장 많이 쓰이는 헬퍼입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "A `BPF_CALL` instruction in the compiled program doesn't reference a symbol; it carries this number as an immediate operand.",
+      "source_hash": 9482492626429075761,
+      "context_hash": 1212609665621554931,
+      "translation": "컴파일된 프로그램의 `BPF_CALL` 명령어는 심볼을 참조하지 않으며, 이 번호를 즉시 피연산자(immediate operand)로 담고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "The five-register calling convention",
+      "source_hash": 6967920223732778520,
+      "context_hash": 15310638733738206123,
+      "translation": "다섯 레지스터 호출 규약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "Every helper — regardless of its real signature — is called through exactly five 64-bit registers (`r1`–`r5`), because that's what a `BPF_CALL` instruction can pass.",
+      "source_hash": 8235402775683006412,
+      "context_hash": 7530665373864270149,
+      "translation": "모든 헬퍼는 실제 시그니처와 관계없이 정확히 다섯 개의 64비트 레지스터(`r1`–`r5`)를 통해 호출됩니다. `BPF_CALL` 명령어가 전달할 수 있는 것이 그것뿐이기 때문입니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "A helper implementation looks like an ordinary typed C function, but it's wrapped by a macro that generates the real, register-typed entry point:",
+      "source_hash": 16116349746889337449,
+      "context_hash": 17208872488237745154,
+      "translation": "헬퍼 구현은 평범한 타입이 지정된 C 함수처럼 보이지만, 실제 레지스터 타입 진입점을 생성하는 매크로로 감싸여 있습니다.",
+      "glossary_snapshot": {
+        "entry point": "진입점",
+        "function": "함수",
+        "macro": "매크로"
+      },
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "`BPF_CALL_2(bpf_map_lookup_elem, struct bpf_map *, map, void *, key)` expands to a real function taking two typed arguments (`____bpf_map_lookup_elem`), plus a second, register-typed wrapper (`bpf_map_lookup_elem`) that takes five `u64`s, casts the first two down to `struct bpf_map *`/`void *`, and calls through.",
+      "source_hash": 9597271418618181265,
+      "context_hash": 17597996485130546673,
+      "translation": "`BPF_CALL_2(bpf_map_lookup_elem, struct bpf_map *, map, void *, key)`는 타입이 지정된 인자 두 개를 받는 실제 함수(`____bpf_map_lookup_elem`)와, 다섯 개의 `u64`를 받아 처음 두 개를 `struct bpf_map *`/`void *`로 캐스트한 뒤 호출을 넘기는 두 번째 레지스터 타입 래퍼(`bpf_map_lookup_elem`)로 확장됩니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "The verifier and the JIT only ever see the register-typed wrapper; the typed inner function is what you actually write the helper's logic in.",
+      "source_hash": 16986338434152128134,
+      "context_hash": 16059349681196922449,
+      "translation": "verifier와 JIT는 레지스터 타입 래퍼만 보며, 헬퍼의 로직을 실제로 작성하는 곳은 타입이 지정된 내부 함수입니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "Type-checking a helper call",
+      "source_hash": 14501134987369100965,
+      "context_hash": 10538094520594613990,
+      "translation": "헬퍼 호출의 타입 검사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "The verifier has to know what each helper's arguments and return value actually mean — a `u64` register might hold a map pointer, a raw integer, or a pointer the program isn't allowed to touch.",
+      "source_hash": 4408742710939120373,
+      "context_hash": 16328469780077179160,
+      "translation": "verifier는 각 헬퍼의 인자와 반환값이 실제로 무엇을 의미하는지 알아야 합니다. `u64` 레지스터에는 맵 포인터, 원시 정수, 또는 프로그램이 접근해서는 안 되는 포인터가 들어 있을 수 있기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:1",
+      "source": "That metadata lives in a separate struct, one per helper:",
+      "source_hash": 17677645517753098411,
+      "context_hash": 10985283945156618253,
+      "translation": "이 메타데이터는 헬퍼마다 하나씩 있는 별도의 구조체에 들어 있습니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T21:54:11.286670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "Each program type has a `get_func_proto()` callback that maps a helper's numeric ID to its `bpf_func_proto` — which is also how the verifier enforces that, say, an XDP program can't call a helper that's only valid for tracing.",
+      "source_hash": 614680104725116281,
+      "context_hash": 2711706409402282479,
+      "translation": "각 프로그램 타입에는 헬퍼의 숫자 ID를 해당 `bpf_func_proto`에 매핑하는 `get_func_proto()` 콜백이 있으며, 이는 verifier가 예를 들어 XDP 프로그램이 트레이싱에서만 유효한 헬퍼를 호출하지 못하도록 강제하는 방식이기도 합니다.",
+      "glossary_snapshot": {
+        "XDP": "XDP",
+        "callback": "콜백",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:25:55.345264Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:1",
+      "source": "Because the numbering is permanent — a helper's ID is part of the userspace-facing BPF ABI — a program compiled against one kernel keeps working on any newer kernel that still recognizes the ID.",
+      "source_hash": 7146031225481799301,
+      "context_hash": 12473181091474566129,
+      "translation": "번호는 영구적이므로(헬퍼의 ID는 사용자 공간에 노출되는 BPF ABI의 일부입니다), 한 커널을 대상으로 컴파일된 프로그램은 그 ID를 여전히 인식하는 더 새로운 커널 어디에서나 계속 동작합니다.",
+      "glossary_snapshot": {
+        "ABI": "ABI",
+        "BPF": "BPF",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "New helpers essentially don't get added anymore, though. `include/uapi/linux/bpf.h` itself says so, right after the last entry in the helper list (a comment added in Linux **6.15**; confirmed by tag-diff — absent at v6.14, present at v6.15):",
+      "source_hash": 15983627539882278138,
+      "context_hash": 5725346701225546912,
+      "translation": "다만 이제 새 헬퍼는 사실상 추가되지 않습니다. `include/uapi/linux/bpf.h` 자체가 헬퍼 목록의 마지막 항목 바로 뒤에서 그렇게 밝히고 있습니다(Linux **6.15**에서 추가된 주석이며, 태그 diff로 확인했습니다. v6.14에는 없고 v6.15에는 있습니다).",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "That's not a recent policy shift so much as the comment catching up to years of practice: helper 211 (`cgrp_storage_delete`) is still the last one in the list as of Linux 7.2 — the same as it was at 6.19, 6.12, and 6.6.",
+      "source_hash": 7210160116274419883,
+      "context_hash": 1424796490500317937,
+      "translation": "이는 최근의 정책 변화라기보다는 수년간의 관행을 주석이 뒤늦게 반영한 것입니다. 헬퍼 211번(`cgrp_storage_delete`)은 Linux 7.2 기준으로도 여전히 목록의 마지막 항목이며, 이는 6.19, 6.12, 6.6에서도 마찬가지였습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "policy": "정책"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:1",
+      "source": "Every new BPF-callable kernel function added in that window went in as a kfunc instead.",
+      "source_hash": 12007301446957397362,
+      "context_hash": 15849546845348549959,
+      "translation": "그 기간에 추가된 BPF에서 호출 가능한 새 커널 함수는 모두 대신 kfunc로 들어갔습니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "function": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "kfuncs: how new BPF functionality actually gets added now",
+      "source_hash": 17370528625130999252,
+      "context_hash": 14676773678572003875,
+      "translation": "kfunc: 오늘날 새 BPF 기능이 실제로 추가되는 방식",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The helper list is a single, kernel-wide enum: every helper, from every subsystem, is added to the same list, gets the same permanent ABI guarantee, and needs review from BPF maintainers even if it's only useful to one subsystem.",
+      "source_hash": 17094183376306126115,
+      "context_hash": 4022291215399186705,
+      "translation": "헬퍼 목록은 커널 전체에 걸친 단일 enum입니다. 모든 서브시스템의 모든 헬퍼가 같은 목록에 추가되고, 같은 영구적 ABI 보장을 받으며, 한 서브시스템에만 유용하더라도 BPF 메인테이너의 리뷰가 필요합니다.",
+      "glossary_snapshot": {
+        "ABI": "ABI",
+        "BPF": "BPF",
+        "kernel": "커널",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "That doesn't scale to letting individual subsystems (or even individual kernel modules) expose their own narrow, possibly-unstable functions to BPF — and, per the freeze comment above, it isn't how new functionality is added at all anymore.",
+      "source_hash": 13111802006137514607,
+      "context_hash": 15616274189483135209,
+      "translation": "이 방식은 개별 서브시스템(혹은 개별 커널 모듈)이 자신만의 범위가 좁고 불안정할 수도 있는 함수를 BPF에 노출하도록 허용하는 데까지 확장되지 않으며, 위의 동결 주석에 따르면 더 이상 새 기능을 추가하는 방식도 전혀 아닙니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Kernel Modules": "커널 모듈",
+        "functions": "함수",
+        "subsystems": "서브시스템"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "Kfuncs aren't a side door next to the helper ABI; they're the only supported path for extending what BPF programs can call.",
+      "source_hash": 8756530871288655770,
+      "context_hash": 8521300121168261914,
+      "translation": "kfunc는 헬퍼 ABI 옆에 난 옆문이 아니라, BPF 프로그램이 호출할 수 있는 대상을 확장하기 위한 유일하게 지원되는 경로입니다.",
+      "glossary_snapshot": {
+        "ABI": "ABI",
+        "BPF programs": "BPF 프로그램"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The mechanism itself predates the freeze by years.",
+      "source_hash": 14651712217036570874,
+      "context_hash": 12228629031522426788,
+      "translation": "이 메커니즘 자체는 동결보다 수년 앞서 존재했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Calling a kernel function from BPF at all — the `BPF_PSEUDO_KFUNC_CALL` instruction-encoding bit — was introduced in Linux **5.13** (confirmed by tag-diff of `include/uapi/linux/bpf.h`: absent at v5.12, present at v5.13).",
+      "source_hash": 15810175960316699120,
+      "context_hash": 8976984410180317780,
+      "translation": "BPF에서 커널 함수를 호출하는 기능 자체, 즉 `BPF_PSEUDO_KFUNC_CALL` 명령어 인코딩 비트는 Linux **5.13**에서 도입되었습니다(`include/uapi/linux/bpf.h`의 태그 diff로 확인했습니다. v5.12에는 없고 v5.13에는 있습니다).",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Linux": "Linux",
+        "bit": "비트",
+        "function": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:11.286671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "The registration API shown below — `register_btf_kfunc_id_set()`, `struct btf_kfunc_id_set` — came later, in Linux **5.18** (confirmed by tag-diff of `include/linux/btf.h`: absent at v5.17, present at v5.18); it replaced an earlier, more cumbersome per-list API, `struct kfunc_btf_id_set` / `register_kfunc_btf_id_set()`, that existed in `include/linux/btf.h` at v5.16 and v5.17.",
+      "source_hash": 6593410009989716478,
+      "context_hash": 339683528901421838,
+      "translation": "아래에 보이는 등록 API인 `register_btf_kfunc_id_set()`, `struct btf_kfunc_id_set`은 그보다 나중인 Linux **5.18**에서 등장했으며(`include/linux/btf.h`의 태그 diff로 확인했습니다. v5.17에는 없고 v5.18에는 있습니다), v5.16과 v5.17의 `include/linux/btf.h`에 존재했던 이전의 더 번거로운 목록별 API인 `struct kfunc_btf_id_set` / `register_kfunc_btf_id_set()`를 대체했습니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T21:54:11.286672Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "A real kfunc set, from `kernel/bpf/helpers.c` as of Linux 7.2 (the bare `bpf_obj_new`/`bpf_obj_drop` entries and the `KF_IMPLICIT_ARGS` flag are recent additions — confirmed absent at v7.0, present at v7.1; before that, only the `_impl` entries existed and callers went through them directly):",
+      "source_hash": 1986873592667320118,
+      "context_hash": 8365763728406849526,
+      "translation": "Linux 7.2 기준 `kernel/bpf/helpers.c`에 있는 실제 kfunc 집합입니다(접미사가 없는 `bpf_obj_new`/`bpf_obj_drop` 항목과 `KF_IMPLICIT_ARGS` 플래그는 최근에 추가된 것으로, v7.0에는 없고 v7.1에는 있음을 확인했습니다. 그 이전에는 `_impl` 항목만 존재했으며 호출자는 이를 직접 거쳐 호출했습니다).",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T21:54:11.286672Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "That set is then registered per program type it should be visible to:",
+      "source_hash": 1185245651572616195,
+      "context_hash": 9653250230303181992,
+      "translation": "그런 다음 이 집합은 이를 볼 수 있어야 하는 프로그램 타입별로 등록됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:11.286672Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "The `KF_*` flags (`include/linux/btf.h`) are the verifier's substitute for `bpf_func_proto`'s argument-type checking, expressed in terms kfuncs actually need: `KF_ACQUIRE` marks a function that hands back a reference the program must eventually release; `KF_RELEASE` marks the function that releases it; `KF_RET_NULL` tells the verifier the return value must be null-checked before use.",
+      "source_hash": 11233082645343520748,
+      "context_hash": 7732509599542483279,
+      "translation": "`KF_*` 플래그(`include/linux/btf.h`)는 `bpf_func_proto`의 인자 타입 검사를 대신하는 verifier의 수단으로, kfunc에 실제로 필요한 관점에서 표현됩니다. `KF_ACQUIRE`는 프로그램이 결국 해제해야 하는 참조를 반환하는 함수를 표시하고, `KF_RELEASE`는 그 참조를 해제하는 함수를 표시하며, `KF_RET_NULL`은 반환값을 사용하기 전에 null 검사를 해야 한다고 verifier에 알립니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T21:54:19.168032Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "Unlike a helper's permanent numeric ID, a kfunc is resolved by name through BTF at load time — and `Documentation/bpf/kfuncs.rst` is explicit that this comes with no hard stability promise at all: \"A kfunc will never have any hard stability guarantees.",
+      "source_hash": 8012896766478347019,
+      "context_hash": 4534241888421880887,
+      "translation": "helper의 영구적인 숫자 ID와 달리 kfunc는 로드 시점에 BTF를 통해 이름으로 해석되며, `Documentation/bpf/kfuncs.rst`는 여기에 엄격한 안정성 약속이 전혀 따르지 않는다고 명시합니다: \"kfunc에는 결코 엄격한 안정성 보장이 주어지지 않습니다.",
+      "glossary_snapshot": {
+        "BTF": "BTF"
+      },
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:2",
+      "source": "BPF APIs cannot and will not ever hard-block a change in the kernel purely for stability reasons.\" Whether a given kfunc actually changes out from under callers is a case-by-case maintainer judgment call, not something a subsystem can commit to in advance — that lack of a permanent contract is the tradeoff for not needing central review to add one.",
+      "source_hash": 1970303041062713849,
+      "context_hash": 4401954549998656380,
+      "translation": "BPF API는 순전히 안정성을 이유로 커널의 변경을 강하게 가로막을 수 없으며 앞으로도 결코 그러지 않을 것입니다.\" 특정 kfunc가 호출자 모르게 실제로 바뀌는지는 메인테이너가 사안별로 내리는 판단이며, 서브시스템이 미리 약속할 수 있는 사항이 아닙니다. 이처럼 영구적인 계약이 없다는 점이 kfunc를 추가할 때 중앙 리뷰가 필요 없다는 이점에 대한 트레이드오프입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "kernel": "커널",
+        "subsystem": "서브시스템",
+        "tradeoff": "트레이드오프"
+      },
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The JIT: from bytecode to native code",
+      "source_hash": 2383596969201813452,
+      "context_hash": 14967591076369255088,
+      "translation": "JIT: 바이트코드에서 네이티브 코드로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "A verified BPF program is a sequence of fixed-width instructions — safe to run, but still bytecode that needs to be dispatched one instruction at a time by an interpreter unless it's compiled to real machine code first.",
+      "source_hash": 15789855537309672578,
+      "context_hash": 14494983400563216057,
+      "translation": "검증된 BPF 프로그램은 고정 폭 명령어의 나열로, 실행해도 안전하지만 먼저 실제 기계어 코드로 컴파일하지 않으면 여전히 인터프리터가 명령어를 하나씩 디스패치해야 하는 바이트코드입니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램"
+      },
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Linux has had a JIT for BPF since before eBPF existed: Eric Dumazet's x86-64 JIT for classic (socket-filter) BPF, covered by Jonathan Corbet on LWN in April 2011 ([LWN](https://lwn.net/Articles/437981/)) and confirmed landing in Linux **3.0** (July 2011) via tag-diff of `arch/x86/net/bpf_jit_comp.c` (absent at v2.6.39, present at v3.0).",
+      "source_hash": 7157982234133484081,
+      "context_hash": 9696644524986772012,
+      "translation": "Linux에는 eBPF가 존재하기 전부터 BPF용 JIT가 있었습니다. 바로 Eric Dumazet가 만든 classic(socket-filter) BPF용 x86-64 JIT로, 2011년 4월 LWN에서 Jonathan Corbet가 다루었으며([LWN](https://lwn.net/Articles/437981/)) `arch/x86/net/bpf_jit_comp.c`의 태그 간 diff(v2.6.39에는 없고 v3.0에는 있음)를 통해 Linux **3.0**(2011년 7월)에 들어갔음이 확인되었습니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Jonathan Corbet": "Jonathan Corbet",
+        "LWN": "LWN",
+        "Linux": "Linux",
+        "eBPF": "eBPF"
+      },
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:2",
+      "source": "The eBPF rewrite in 2014 replaced that JIT along with everything else, but the same file and the same idea — translate the whole program to native instructions once, instead of re-interpreting it on every run — carried forward.",
+      "source_hash": 1010793253083344626,
+      "context_hash": 12115008401878736815,
+      "translation": "2014년의 eBPF 재작성은 다른 모든 것과 함께 이 JIT도 교체했지만, 같은 파일과 같은 아이디어, 즉 실행할 때마다 프로그램을 다시 해석하는 대신 전체 프로그램을 한 번에 네이티브 명령어로 변환한다는 아이디어는 그대로 이어졌습니다.",
+      "glossary_snapshot": {
+        "eBPF": "eBPF"
+      },
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "As of Linux 7.2, each architecture provides its own JIT behind one function, but that function isn't called directly — it's wrapped by a step that can rewrite the program first.",
+      "source_hash": 6285536650650406040,
+      "context_hash": 7821735792180945985,
+      "translation": "Linux 7.2 기준으로 각 아키텍처는 하나의 함수 뒤에 자체 JIT를 제공하지만, 이 함수는 직접 호출되지 않고 프로그램을 먼저 재작성할 수 있는 단계로 감싸여 있습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "This wrapper is recent: it and the two-argument `bpf_int_jit_compile(env, prog)` signature it calls were both introduced in Linux **7.1** (confirmed by tag-diff of `kernel/bpf/core.c` — at v7.0 and every earlier release, including every current LTS, the caller is a bare, single-argument `bpf_int_jit_compile(fp)`, and constant blinding is handled separately, inside each architecture's own `bpf_int_jit_compile()`, via `bpf_jit_blind_constants()`).",
+      "source_hash": 7624503754367615291,
+      "context_hash": 11582274396068095040,
+      "translation": "이 래퍼는 최근에 도입되었습니다. 래퍼와 래퍼가 호출하는 인자 두 개짜리 `bpf_int_jit_compile(env, prog)` 시그니처는 모두 Linux **7.1**에서 도입되었습니다(`kernel/bpf/core.c`의 태그 간 diff로 확인됨. 현재의 모든 LTS를 포함해 v7.0 및 그 이전의 모든 릴리스에서는 호출부가 래퍼 없는 인자 하나짜리 `bpf_int_jit_compile(fp)`이며, constant blinding은 각 아키텍처의 자체 `bpf_int_jit_compile()` 안에서 `bpf_jit_blind_constants()`를 통해 별도로 처리됩니다).",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "`bpf_int_jit_compile(struct bpf_verifier_env *env, struct bpf_prog *prog)` (declared in `include/linux/filter.h`, defined per-architecture) is the real compiler.",
+      "source_hash": 16384357816591524231,
+      "context_hash": 3825320217940393628,
+      "translation": "`bpf_int_jit_compile(struct bpf_verifier_env *env, struct bpf_prog *prog)`(`include/linux/filter.h`에 선언되고 아키텍처별로 정의됨)가 실제 컴파일러입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168033Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "Every supported architecture defines its own version of this same function; `arch/x86/net/bpf_jit_comp.c` alone is over 4,000 lines, translating each fixed-width BPF opcode into the corresponding x86-64 instruction sequence, including the register-allocation and calling-convention work needed to make a JITed BPF function callable like any other.",
+      "source_hash": 17254853519693401012,
+      "context_hash": 3560062675687346640,
+      "translation": "지원되는 모든 아키텍처가 이 같은 함수의 자체 버전을 정의합니다. `arch/x86/net/bpf_jit_comp.c` 하나만 해도 4,000줄이 넘으며, 고정 폭 BPF opcode 각각을 대응하는 x86-64 명령어 시퀀스로 변환하고, JIT된 BPF 함수를 다른 함수처럼 호출할 수 있게 하는 데 필요한 레지스터 할당 및 호출 규약 작업까지 수행합니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:2",
+      "source": "An architecture that doesn't implement it at all falls back to a `__weak` stub in `kernel/bpf/core.c` that just returns the program unmodified — the interpreter path is what actually runs there.",
+      "source_hash": 1869318521620985583,
+      "context_hash": 14961814538751773701,
+      "translation": "이 함수를 아예 구현하지 않은 아키텍처는 `kernel/bpf/core.c`에 있는 `__weak` 스텁으로 폴백하며, 이 스텁은 프로그램을 수정 없이 그대로 반환합니다. 그런 아키텍처에서 실제로 실행되는 것은 인터프리터 경로입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:3",
+      "source": "Whether the JIT is even attempted is itself gated by a sysctl, `net.core.bpf_jit_enable` (`fp->jit_requested = ebpf_jit_enabled()`), separate from the always-on-or-off decision covered next.",
+      "source_hash": 7079021346797552267,
+      "context_hash": 14818384989324985733,
+      "translation": "JIT를 시도할지 여부 자체도 sysctl `net.core.bpf_jit_enable`(`fp->jit_requested = ebpf_jit_enabled()`)로 제어되며, 이는 다음에 다룰 상시 활성화 여부 결정과는 별개입니다.",
+      "glossary_snapshot": {
+        "sysctl": "sysctl"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Choosing JIT or interpreter",
+      "source_hash": 7622449056180100856,
+      "context_hash": 12128234658460907115,
+      "translation": "JIT와 인터프리터 중 선택",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Compilation isn't unconditional — it happens as part of finalizing a verified program, with a documented fallback if it fails:",
+      "source_hash": 15160814134970769797,
+      "context_hash": 18227479340895908709,
+      "translation": "컴파일은 무조건 일어나지 않습니다. 검증된 프로그램을 마무리하는 과정의 일부로 수행되며, 실패할 경우를 위한 문서화된 폴백이 있습니다:",
+      "glossary_snapshot": {
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "The comment names a real safety property: if the architecture can't (or, with constant blinding, chooses not to) produce JITed code, the interpreter is still a fully valid fallback — normally. `jit_required` starts out set from `IS_ENABLED(CONFIG_BPF_JIT_ALWAYS_ON)`, but the verifier (`kernel/bpf/verifier.c`) also forces it on for specific program shapes the interpreter simply cannot execute at all: any program that makes a kfunc call — the kfunc mechanism above has no interpreter-side implementation — plus programs that use BPF arena maps or the `BPF_MAP_TYPE_INSN_ARRAY` map type. `CONFIG_BPF_JIT_ALWAYS_ON` is the broadest of these, removing the interpreter from the kernel outright, specifically \"to avoid speculative execution of BPF instructions by the interpreter\" — a Spectre-class mitigation, since an unJITed BPF program is still walked instruction-by-instruction by real (speculatable) kernel code.",
+      "source_hash": 11038614022385616067,
+      "context_hash": 4963937089812116556,
+      "translation": "이 주석은 실제 안전성 속성을 가리킵니다. 아키텍처가 JIT된 코드를 생성할 수 없거나 (constant blinding의 경우) 생성하지 않기로 하더라도, 인터프리터는 여전히 완전히 유효한 폴백입니다. 다만 이는 일반적인 경우에 한합니다. `jit_required`는 처음에 `IS_ENABLED(CONFIG_BPF_JIT_ALWAYS_ON)`의 값으로 설정되지만, verifier(`kernel/bpf/verifier.c`)는 인터프리터가 아예 실행할 수 없는 특정 형태의 프로그램에 대해서도 이 값을 강제로 켭니다. kfunc를 호출하는 모든 프로그램(앞서 설명한 kfunc 메커니즘에는 인터프리터 측 구현이 없습니다)과, BPF arena 맵이나 `BPF_MAP_TYPE_INSN_ARRAY` 맵 타입을 사용하는 프로그램이 이에 해당합니다. `CONFIG_BPF_JIT_ALWAYS_ON`은 이 중 가장 범위가 넓은 경우로, 특히 \"인터프리터에 의한 BPF 명령어의 투기적 실행을 피하기 위해\" 커널에서 인터프리터를 완전히 제거합니다. 이는 Spectre 계열 완화책인데, JIT되지 않은 BPF 프로그램은 여전히 실제의 (투기적 실행이 가능한) 커널 코드가 명령어 단위로 순회하기 때문입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF program": "BPF 프로그램",
+        "Spectre": "Spectre",
+        "fallback": "폴백",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "The kfunc/arena/insn-array cases are narrower: only programs using those specific features lose the fallback.",
+      "source_hash": 5836866640188552702,
+      "context_hash": 5462044600477390926,
+      "translation": "kfunc/arena/insn-배열(insn-array) 사례는 범위가 더 좁습니다. 해당 기능을 사용하는 프로그램만 폴백을 잃습니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T23:25:55.345265Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 2196241707184231919,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 12618341376788172434,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "[include/linux/filter.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/filter.h) — the `BPF_CALL_x` macro family and `bpf_int_jit_compile()`'s declaration",
+      "source_hash": 14680259985264150587,
+      "context_hash": 13275154937678896461,
+      "translation": "[include/linux/filter.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/filter.h) — `BPF_CALL_x` 매크로 계열과 `bpf_int_jit_compile()`의 선언",
+      "glossary_snapshot": {
+        "macro": "매크로"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "[include/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/bpf.h) — `struct bpf_func_proto`, the verifier's per-helper type-checking metadata",
+      "source_hash": 2105636548545457225,
+      "context_hash": 12527483651848953952,
+      "translation": "[include/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/bpf.h) — verifier의 helper별 타입 검사 메타데이터인 `struct bpf_func_proto`",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T21:54:19.168034Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "[include/uapi/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/bpf.h) — `enum bpf_func_id`, generated from the `___BPF_FUNC_MAPPER` helper-name-to-number list",
+      "source_hash": 8203636575609403995,
+      "context_hash": 14928766344764373422,
+      "translation": "[include/uapi/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/bpf.h) — `___BPF_FUNC_MAPPER`의 helper 이름-번호 목록에서 생성되는 `enum bpf_func_id`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "[include/linux/btf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/btf.h) — `register_btf_kfunc_id_set()`, `struct btf_kfunc_id_set`, and the `KF_ACQUIRE`/`KF_RELEASE`/`KF_RET_NULL` flags",
+      "source_hash": 9965679076999579536,
+      "context_hash": 8663451375724681939,
+      "translation": "[include/linux/btf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/btf.h) — `register_btf_kfunc_id_set()`, `struct btf_kfunc_id_set`, 그리고 `KF_ACQUIRE`/`KF_RELEASE`/`KF_RET_NULL` 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "[include/linux/btf_ids.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/btf_ids.h) — `BTF_KFUNCS_START`/`BTF_ID_FLAGS`/`BTF_KFUNCS_END`",
+      "source_hash": 13384271598756402710,
+      "context_hash": 12806849689118926438,
+      "translation": "[include/linux/btf_ids.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/btf_ids.h) — `BTF_KFUNCS_START`/`BTF_ID_FLAGS`/`BTF_KFUNCS_END`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "[kernel/bpf/helpers.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/helpers.c) — `generic_btf_ids`, a real kfunc set covering `bpf_obj_new`/`bpf_obj_drop` and friends",
+      "source_hash": 11911459156784992939,
+      "context_hash": 11259621810484295901,
+      "translation": "[kernel/bpf/helpers.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/helpers.c) — `bpf_obj_new`/`bpf_obj_drop` 등을 포함하는 실제 kfunc 집합인 `generic_btf_ids`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "[kernel/bpf/core.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/core.c) — `__bpf_prog_select_runtime()`, the JIT-or-interpreter decision and constant-blinding fallback",
+      "source_hash": 17268990695493906523,
+      "context_hash": 15176615083376864697,
+      "translation": "[kernel/bpf/core.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/core.c) — JIT/인터프리터 결정과 constant blinding 폴백을 담당하는 `__bpf_prog_select_runtime()`",
+      "glossary_snapshot": {
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "[arch/x86/net/bpf_jit_comp.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/net/bpf_jit_comp.c) — the x86-64 JIT",
+      "source_hash": 8496932298458051623,
+      "context_hash": 15882140616011012718,
+      "translation": "[arch/x86/net/bpf_jit_comp.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/net/bpf_jit_comp.c) — x86-64 JIT",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 9609067986613242485,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "[A JIT for packet filters](https://lwn.net/Articles/437981/) — Jonathan Corbet, April 2011, covering Eric Dumazet's x86-64 classic-BPF JIT ahead of its Linux 3.0 merge",
+      "source_hash": 4253027750719487710,
+      "context_hash": 6773875499437484588,
+      "translation": "[A JIT for packet filters](https://lwn.net/Articles/437981/) — Jonathan Corbet, 2011년 4월, Linux 3.0 병합을 앞둔 Eric Dumazet의 x86-64 classic BPF JIT를 다룬 기사",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Jonathan Corbet": "Jonathan Corbet",
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 11254828765892589429,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "[BPF Architecture and Program Types](bpf-overview.md) — the helper list as used from a program, and the `bpf()` syscall's load path",
+      "source_hash": 849540316876054987,
+      "context_hash": 6824917225409287638,
+      "translation": "[BPF Architecture and Program Types](bpf-overview.md) — 프로그램에서 사용하는 helper 목록과 `bpf()` 시스템 콜의 로드 경로",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T21:54:19.168035Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "[BPF Verifier](bpf-verifier.md) — how `bpf_func_proto` and BTF type information feed the safety proof",
+      "source_hash": 10459956916276156728,
+      "context_hash": 15136428581712426711,
+      "translation": "[BPF 검증기](bpf-verifier.md) — `bpf_func_proto`와 BTF 타입 정보가 안전성 증명에 어떻게 활용되는지",
+      "glossary_snapshot": {
+        "BPF Verifier": "BPF 검증기",
+        "BTF": "BTF"
+      },
+      "translated_at": "2026-11-14T23:25:55.345265Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "[BTF and CO-RE](btf-core.md) — the BTF type-encoding machinery kfunc registration builds on",
+      "source_hash": 17791898987572988853,
+      "context_hash": 16503413025234887418,
+      "translation": "[BTF와 CO-RE](btf-core.md) — kfunc 등록의 기반이 되는 BTF 타입 인코딩 메커니즘",
+      "glossary_snapshot": {
+        "BTF": "BTF"
+      },
+      "translated_at": "2026-11-14T21:50:54.601799Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,1562 @@
+{
+  "version": 1,
+  "source_hash": 10327976004130468595,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "The Physical Memory Model",
+      "source_hash": 15905678097002873439,
+      "context_hash": 5639751019441043726,
+      "translation": "물리 메모리 모델",
+      "glossary_snapshot": {
+        "Memory Model": "메모리 모델",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:00.658427Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How the kernel tracks every page of RAM — FLATMEM, SPARSEMEM, and vmemmap — and how `struct page` itself is being dismantled into memory descriptors",
+      "source_hash": 5840306747838511274,
+      "context_hash": 166670128646301653,
+      "translation": "커널이 RAM의 모든 페이지를 추적하는 방식 — FLATMEM, SPARSEMEM, vmemmap — 그리고 `struct page` 자체가 메모리 디스크립터(memory descriptor)로 해체되고 있는 과정",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "descriptors": "디스크립터",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:00.658428Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "The kernel keeps a `struct page` for every physical page frame in the machine, and it needs to get from a **physical frame number (PFN)** to that `struct page` — and back — constantly, in the hottest paths of the allocator. *How it stores that giant array of `struct page`* is what \"the memory model\" means.",
+      "source_hash": 17339132842387070419,
+      "context_hash": 2544472313444547136,
+      "translation": "커널은 머신의 모든 물리 페이지 프레임마다 `struct page`를 하나씩 유지하며, 할당자의 가장 빈번하게 실행되는 경로에서 **물리 프레임 번호**(PFN)로부터 해당 `struct page`를 찾고 그 반대로도 변환하는 작업을 끊임없이 수행해야 합니다. *`struct page`의 그 거대한 배열을 어떻게 저장하는가*가 바로 \"메모리 모델\"이 뜻하는 바입니다.",
+      "glossary_snapshot": {
+        "Memory Model": "메모리 모델",
+        "allocator": "할당자",
+        "array": "배열",
+        "kernel": "커널",
+        "physical page": "물리 페이지"
+      },
+      "translated_at": "2026-11-14T22:31:00.658428Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "It has been rewritten several times, each rewrite forced by physical memory getting messier, and the `struct page` at the center of it is now being taken apart.",
+      "source_hash": 742280873195597351,
+      "context_hash": 3234506343045999659,
+      "translation": "메모리 모델은 여러 차례 다시 작성되었으며, 매번 물리 메모리 구성이 더 복잡해지면서 재작성이 불가피했습니다. 그리고 이제 그 중심에 있는 `struct page`가 해체되고 있습니다.",
+      "glossary_snapshot": {
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:00.658428Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "This page is about that abstraction: why it exists, the models the kernel has used, and where the whole thing is heading.",
+      "source_hash": 17220013483161883939,
+      "context_hash": 8618498336931964096,
+      "translation": "이 페이지는 그 추상화를 다룹니다. 즉 그것이 왜 존재하는지, 커널이 사용해 온 모델들, 그리고 전체가 어디로 향하고 있는지를 설명합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:00.658428Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:1",
+      "source": "For where the resulting array actually lives in the kernel address space, see [The Kernel Address Space](kernel-address-space.md); for the `struct page` itself as a data structure, [Life of a page](life-of-page.md).",
+      "source_hash": 15311598213432849033,
+      "context_hash": 5915632351966784344,
+      "translation": "이 배열이 커널 주소 공간에서 실제로 어디에 위치하는지는 [The Kernel Address Space](kernel-address-space.md)를, 자료 구조로서의 `struct page` 자체는 [Life of a page](life-of-page.md)를 참고하십시오.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "data structure": "자료 구조"
+      },
+      "translated_at": "2026-11-14T23:30:28.396297Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why there's a \"model\" at all",
+      "source_hash": 10573429041128987873,
+      "context_hash": 15190266018619818949,
+      "translation": "애초에 \"모델\"이 존재하는 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:00.658428Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Two facts collide:",
+      "source_hash": 13783376925113931769,
+      "context_hash": 2296139382342138655,
+      "translation": "두 가지 사실이 충돌합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:00.658428Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**`pfn_to_page()` and `page_to_pfn()` must be fast.** They run on every allocation, free, reclaim scan, and page-table walk.",
+      "source_hash": 10716874155048332639,
+      "context_hash": 15930884644268497397,
+      "translation": "**`pfn_to_page()`와 `page_to_pfn()`은 빨라야 합니다.** 이 함수들은 모든 할당, 해제, 회수 스캔, 페이지 테이블 탐색(page-table walk)에서 실행됩니다.",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:31:00.658428Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "Ideally they're a single array index.",
+      "source_hash": 6010555117737719018,
+      "context_hash": 10338253620447453067,
+      "translation": "이상적으로는 단 한 번의 배열 인덱싱이어야 합니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Physical memory is not a clean array.** Firmware carves out holes, memory-mapped devices claim windows, NUMA nodes start at aligned multi-terabyte offsets, and [hotplug](memory-hotplug.md) makes RAM appear and vanish at runtime.",
+      "source_hash": 325928882930188080,
+      "context_hash": 10860548697138494464,
+      "translation": "**물리 메모리는 깔끔한 배열이 아닙니다.** 펌웨어는 구멍(hole)을 만들어 내고, 메모리 맵 디바이스는 주소 창을 차지하며, NUMA 노드는 정렬된 수 테라바이트 오프셋에서 시작하고, [핫플러그](memory-hotplug.md)는 런타임에 RAM이 나타났다 사라지게 만듭니다.",
+      "glossary_snapshot": {
+        "NUMA nodes": "NUMA 노드",
+        "RAM": "RAM",
+        "array": "배열",
+        "devices": "디바이스",
+        "firmware": "펌웨어",
+        "hotplug": "핫플러그",
+        "memory": "메모리",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "A naive \"one `struct page` per PFN, indexed by PFN\" array is the fast option but wastes a 64-byte `struct page` on every hole — gigabytes of them on a machine with sparse physical layout.",
+      "source_hash": 16491594605622498704,
+      "context_hash": 9306485590465944732,
+      "translation": "\"PFN마다 `struct page` 하나, PFN으로 인덱싱\"하는 단순한 배열은 빠른 방법이지만 모든 구멍마다 64바이트짜리 `struct page`를 낭비하며, 물리 메모리 배치가 희소한 머신에서는 그 낭비가 기가바이트 단위에 이릅니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "The **memory model** is the kernel's answer to \"where is the `struct page` array and how do I index it *quickly* without paying for the holes.\" Each model, per [Documentation/mm/memory-model.rst](https://docs.kernel.org/mm/memory-model.html), simply defines its own `pfn_to_page()` / `page_to_pfn()`.",
+      "source_hash": 6128189975233958100,
+      "context_hash": 5871274392599604462,
+      "translation": "**메모리 모델**은 \"`struct page` 배열은 어디에 있으며, 구멍에 대한 비용을 치르지 않고 어떻게 *빠르게* 인덱싱할 수 있는가\"라는 질문에 대한 커널의 답입니다. [Documentation/mm/memory-model.rst](https://docs.kernel.org/mm/memory-model.html)에 따르면, 각 모델은 단순히 자신만의 `pfn_to_page()` / `page_to_pfn()`을 정의합니다.",
+      "glossary_snapshot": {
+        "Memory Model": "메모리 모델",
+        "array": "배열",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "FLATMEM: one flat array",
+      "source_hash": 1079761995339903460,
+      "context_hash": 3401914427926483297,
+      "translation": "FLATMEM: 하나의 평면 배열",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The simplest model.",
+      "source_hash": 17937578852175264305,
+      "context_hash": 7273998520841258427,
+      "translation": "가장 단순한 모델입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "A single global `mem_map[]` array covers the whole PFN range:",
+      "source_hash": 14091383433251090646,
+      "context_hash": 12733729161126593759,
+      "translation": "단일 전역 `mem_map[]` 배열이 PFN 범위 전체를 다룹니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "One subtraction, one index — as fast as it gets.",
+      "source_hash": 1738404911133437873,
+      "context_hash": 5319284722275673971,
+      "translation": "뺄셈 한 번, 인덱싱 한 번으로, 더 이상 빠를 수 없을 만큼 빠릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "FLATMEM is correct and efficient **when physical memory is essentially contiguous**, which is why it's still the model on many small and embedded systems.",
+      "source_hash": 5480843294097147376,
+      "context_hash": 671931314242314168,
+      "translation": "FLATMEM은 **물리 메모리가 본질적으로 연속적일 때** 올바르고 효율적이며, 이 때문에 여전히 많은 소형 시스템과 임베디드 시스템에서 사용되는 모델입니다.",
+      "glossary_snapshot": {
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "Its weakness is exactly the holes: a `struct page` is allocated for every PFN in the range, present or not, so a gap in the physical map is paid for in wasted RAM.",
+      "source_hash": 16264773781863229918,
+      "context_hash": 11097229497358180142,
+      "translation": "약점은 바로 구멍입니다. 범위 안의 모든 PFN에 대해 존재 여부와 관계없이 `struct page`가 할당되므로, 물리 메모리 맵의 빈틈은 낭비되는 RAM으로 대가를 치르게 됩니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "DISCONTIGMEM: per-node arrays (a dead end worth knowing)",
+      "source_hash": 14421827526372119733,
+      "context_hash": 17307933447054652902,
+      "translation": "DISCONTIGMEM: 노드별 배열 (알아 둘 가치가 있는 막다른 길)",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The first attempt to handle holes came from NUMA.",
+      "source_hash": 3872034853845795561,
+      "context_hash": 17039892024447590857,
+      "translation": "구멍을 처리하려는 첫 번째 시도는 NUMA에서 비롯되었습니다.",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Big NUMA machines have enormous gaps *between* nodes, so FLATMEM's single array would burn gigabytes on the inter-node void. **DISCONTIGMEM** gave each NUMA node its own `mem_map` (`pg_data_t.node_mem_map`), so only populated nodes cost memory; `pfn_to_page()` first found the owning node, then indexed within it.",
+      "source_hash": 2971184869991610290,
+      "context_hash": 1144227161609232839,
+      "translation": "대형 NUMA 머신은 노드 *사이에* 거대한 빈틈이 있으므로, FLATMEM의 단일 배열은 노드 사이의 빈 공간에 기가바이트 단위의 메모리를 소모하게 됩니다. **DISCONTIGMEM**은 각 NUMA 노드에 자체 `mem_map`(`pg_data_t.node_mem_map`)을 부여하여 실제로 메모리가 있는 노드만 메모리를 소비하도록 했습니다. `pfn_to_page()`는 먼저 소유 노드를 찾은 다음 그 안에서 인덱싱했습니다.",
+      "glossary_snapshot": {
+        "NUMA": "NUMA",
+        "NUMA node": "NUMA 노드",
+        "array": "배열",
+        "memory": "메모리",
+        "node": "노드",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "It was superseded because it conflated two *different* problems — \"which NUMA node\" and \"which parts of memory are present\" — into one mechanism.",
+      "source_hash": 10061678684930309030,
+      "context_hash": 17475588923672661627,
+      "translation": "이 모델이 대체된 이유는 \"어느 NUMA 노드인가\"와 \"메모리의 어느 부분이 존재하는가\"라는 두 가지 *서로 다른* 문제를 하나의 메커니즘으로 뒤섞었기 때문입니다.",
+      "glossary_snapshot": {
+        "NUMA node": "NUMA 노드",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "A single node can itself be sparse, which DISCONTIGMEM handled badly.",
+      "source_hash": 9331963278416705634,
+      "context_hash": 18036420627865596995,
+      "translation": "단일 노드 자체도 희소할 수 있는데, DISCONTIGMEM은 이를 제대로 처리하지 못했습니다.",
+      "glossary_snapshot": {
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:31:00.658429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:2",
+      "source": "SPARSEMEM (below) solved holes directly and independently of NUMA, and DISCONTIGMEM became dead weight: its last users (alpha, arc, m68k) were converted away by Linux 5.11, and the model was deleted entirely in 2021 ([LWN: Remove the DISCONTIGMEM memory model](https://lwn.net/Articles/858333/)).",
+      "source_hash": 4508951098827474806,
+      "context_hash": 13708107786848361245,
+      "translation": "SPARSEMEM(아래 참조)이 NUMA와 독립적으로 구멍 문제를 직접 해결하면서 DISCONTIGMEM은 쓸모없는 짐이 되었습니다. 마지막 사용자였던 alpha, arc, m68k는 Linux 5.11까지 모두 다른 모델로 전환되었고, 이 모델은 2021년에 완전히 삭제되었습니다([LWN: Remove the DISCONTIGMEM memory model](https://lwn.net/Articles/858333/)).",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "Linux": "Linux",
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:3",
+      "source": "It's covered here only because SPARSEMEM's design is a direct response to its shortcomings.",
+      "source_hash": 16973939969123037240,
+      "context_hash": 5651810719777075432,
+      "translation": "여기서 이 모델을 다루는 이유는 오로지 SPARSEMEM의 설계가 그 단점에 대한 직접적인 대응이기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "SPARSEMEM: sections",
+      "source_hash": 11233559837424599009,
+      "context_hash": 15157174744474317412,
+      "translation": "SPARSEMEM: 섹션",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "The model on essentially every modern 64-bit system.",
+      "source_hash": 7131702276329404744,
+      "context_hash": 357739042610598199,
+      "translation": "사실상 모든 현대 64비트 시스템에서 사용되는 모델입니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "It divides the physical address space into fixed-size **sections** and gives each *present* section its own independently-allocated `struct page` sub-array:",
+      "source_hash": 2005833474953119182,
+      "context_hash": 311489880176880807,
+      "translation": "이 모델은 물리 주소 공간을 고정 크기의 **섹션**(section)으로 나누고, *존재하는* 각 섹션에 독립적으로 할당된 자체 `struct page` 하위 배열을 부여합니다.",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "array": "배열",
+        "physical address": "물리 주소"
+      },
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "A section is `SECTION_SIZE_BITS` wide — **27 bits, i.e. 128 MB, on x86-64** ([arch/x86/include/asm/sparsemem.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/sparsemem.h)).",
+      "source_hash": 7935042189785167351,
+      "context_hash": 17732660701407282029,
+      "translation": "섹션의 폭은 `SECTION_SIZE_BITS`이며, **x86-64에서는 27비트, 즉 128 MB**입니다([arch/x86/include/asm/sparsemem.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/sparsemem.h)).",
+      "glossary_snapshot": {
+        "bits": "비트"
+      },
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "An array (or two-level radix for large machines) of `struct mem_section` records which sections exist and where their `struct page` sub-array lives.",
+      "source_hash": 14692663418312920959,
+      "context_hash": 2754678864219995127,
+      "translation": "`struct mem_section`의 배열(대형 머신에서는 2단계 radix)이 어떤 섹션이 존재하는지, 그리고 각 섹션의 `struct page` 하위 배열이 어디에 있는지를 기록합니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "See [Memory Hotplug](memory-hotplug.md) for the `mem_section` structure in detail — hotplug is SPARSEMEM's biggest beneficiary, since adding or removing a DIMM is adding or removing sections.",
+      "source_hash": 3396687439345202992,
+      "context_hash": 10926968312161929251,
+      "translation": "`mem_section` 구조체에 대한 자세한 내용은 [메모리 핫플러그](memory-hotplug.md)를 참고하십시오. DIMM을 추가하거나 제거하는 것은 곧 섹션을 추가하거나 제거하는 것이므로, 핫플러그는 SPARSEMEM의 가장 큰 수혜자입니다.",
+      "glossary_snapshot": {
+        "hotplug": "핫플러그",
+        "memory hotplug": "메모리 핫플러그"
+      },
+      "translated_at": "2026-11-14T22:31:00.658430Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "The cost is in the lookup. \"Classic\" SPARSEMEM's `pfn_to_page()` is no longer a bare index — it extracts the section from the PFN, finds the section's `struct page` base, and indexes within it:",
+      "source_hash": 16508217516479668065,
+      "context_hash": 1598633696442111445,
+      "translation": "비용은 조회에서 발생합니다. \"고전적인\" SPARSEMEM의 `pfn_to_page()`는 더 이상 단순한 인덱스가 아닙니다. PFN에서 섹션을 추출하고, 그 섹션의 `struct page` 기준 주소를 찾은 다음, 그 안에서 인덱싱합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279677Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "That extra indirection on *every* `pfn_to_page()` — a hot path — is the price SPARSEMEM pays to stop wasting `struct page` on holes.",
+      "source_hash": 12799151217656123901,
+      "context_hash": 1752773856655706021,
+      "translation": "*모든* `pfn_to_page()`(핫 패스)에 붙는 이 추가 간접 참조가, SPARSEMEM이 홀에 `struct page`를 낭비하지 않기 위해 치르는 대가입니다.",
+      "glossary_snapshot": {
+        "hot path": "핫 패스"
+      },
+      "translated_at": "2026-11-14T22:30:51.279678Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "It was merged in **2.6.13 (2005)**, originally to make [memory hotplug](memory-hotplug.md) possible.",
+      "source_hash": 5610657466955449820,
+      "context_hash": 10664377022354102955,
+      "translation": "이 모델은 **2.6.13** (2005)에서 병합되었으며, 원래는 [메모리 핫플러그](memory-hotplug.md)를 가능하게 하기 위한 것이었습니다.",
+      "glossary_snapshot": {
+        "memory hotplug": "메모리 핫플러그"
+      },
+      "translated_at": "2026-11-14T22:30:51.279679Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "SPARSEMEM_VMEMMAP: getting O(1) back",
+      "source_hash": 13733582461761954350,
+      "context_hash": 11463532473998959243,
+      "translation": "SPARSEMEM_VMEMMAP: O(1) 되찾기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279680Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The dominant configuration today, and the default on x86-64 and most 64-bit architectures, is a clever move that recovers FLATMEM's single-index speed *without* FLATMEM's wasted memory.",
+      "source_hash": 13855077385984179412,
+      "context_hash": 11459665291165061420,
+      "translation": "오늘날 가장 널리 쓰이며 x86-64와 대부분의 64비트 아키텍처에서 기본값인 구성은, FLATMEM의 메모리 낭비 *없이* FLATMEM의 단일 인덱스 속도를 되찾는 영리한 방법입니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:30:51.279680Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "The trick is to spend cheap **virtual** address space: map a virtually-contiguous `vmemmap` array of `struct page`, indexed directly by PFN — but only populate the backing pages for sections that actually exist.",
+      "source_hash": 17082079184402440042,
+      "context_hash": 5731841688884441489,
+      "translation": "요령은 값싼 **가상** 주소 공간을 쓰는 것입니다. PFN으로 직접 인덱싱되는, 가상으로 연속된 `struct page`의 `vmemmap` 배열을 매핑하되, 실제로 존재하는 섹션에 대해서만 뒷받침하는 페이지를 채웁니다.",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:30:51.279680Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "`pfn_to_page()` is a single addition again.",
+      "source_hash": 12319504450928358450,
+      "context_hash": 13343856063885096948,
+      "translation": "`pfn_to_page()`는 다시 단 한 번의 덧셈이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279680Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "The holes cost nothing but unmapped virtual address space, which on a 64-bit machine is free.",
+      "source_hash": 6569552946293533032,
+      "context_hash": 16249788802373757923,
+      "translation": "홀은 매핑되지 않은 가상 주소 공간 외에는 아무 비용도 들지 않으며, 64비트 머신에서 그 공간은 공짜입니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "virtual address space": "가상 주소 공간"
+      },
+      "translated_at": "2026-11-14T22:30:51.279681Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "This is the best of both worlds — flat-array speed, sparse-array density — and it's why the `vmemmap` region has a dedicated slot in the [kernel address space](kernel-address-space.md#vmemmap-the-struct-page-array-as-an-address-space-trick) (that page covers where it lives and how it's sized; this one is about why the model exists).",
+      "source_hash": 16219949706551396755,
+      "context_hash": 18404014109740097062,
+      "translation": "이는 평면 배열의 속도와 희소 배열의 밀도라는 두 장점을 모두 취한 것이며, `vmemmap` 영역이 [커널 주소 공간](kernel-address-space.md#vmemmap-the-struct-page-array-as-an-address-space-trick)에 전용 자리를 가지는 이유이기도 합니다(그 페이지는 이 영역이 어디에 있고 크기가 어떻게 정해지는지를 다루며, 이 페이지는 이 모델이 왜 존재하는지를 다룹니다).",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "array": "배열",
+        "kernel address": "커널 주소"
+      },
+      "translated_at": "2026-11-14T22:30:51.279681Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:3",
+      "source": "It arrived in **2.6.24 (2008)**, and it's also the substrate for `ZONE_DEVICE`, which hands out `struct page`s for device memory by populating vmemmap for a device's address range.",
+      "source_hash": 6376440336069544139,
+      "context_hash": 2412706616797697289,
+      "translation": "이 모델은 **2.6.24** (2008)에 도입되었으며, 디바이스의 주소 범위에 대해 vmemmap을 채워 디바이스 메모리용 `struct page`를 제공하는 `ZONE_DEVICE`의 기반이기도 합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:28.396300Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "Model",
+      "source_hash": 18220243909476570702,
+      "context_hash": 5842152569067549892,
+      "translation": "모델",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "`struct page` array",
+      "source_hash": 10781021947744405935,
+      "context_hash": 12182614634085414943,
+      "translation": "`struct page` 배열",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:30:51.279682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "`pfn_to_page()`",
+      "source_hash": 16503750583836822051,
+      "context_hash": 3851936420008335974,
+      "translation": "`pfn_to_page()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "Wastes memory on holes?",
+      "source_hash": 2885427014581004429,
+      "context_hash": 3024415921631991398,
+      "translation": "홀에 메모리 낭비 여부",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:30:51.279682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Handles hotplug?",
+      "source_hash": 18009491612893669187,
+      "context_hash": 15756875878240416899,
+      "translation": "핫플러그 지원 여부",
+      "glossary_snapshot": {
+        "hotplug": "핫플러그"
+      },
+      "translated_at": "2026-11-14T22:30:51.279683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "FLATMEM",
+      "source_hash": 5548739154782159618,
+      "context_hash": 17071178054476965350,
+      "translation": "FLATMEM",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "one flat `mem_map[]`",
+      "source_hash": 4956880966292068723,
+      "context_hash": 14377347859201899483,
+      "translation": "하나의 평면 `mem_map[]`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "index (fastest)",
+      "source_hash": 266531866300386597,
+      "context_hash": 6409230275639797357,
+      "translation": "인덱스(가장 빠름)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "**yes**",
+      "source_hash": 8450553226403694206,
+      "context_hash": 3583369696412763590,
+      "translation": "**예**",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:30:51.279683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 1802762672016981771,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:30:51.279683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "DISCONTIGMEM *(removed)*",
+      "source_hash": 4631979136178291952,
+      "context_hash": 3191262665640647189,
+      "translation": "DISCONTIGMEM *(제거됨)*",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "per-NUMA-node arrays",
+      "source_hash": 5907154794006106555,
+      "context_hash": 1137130387238657319,
+      "translation": "NUMA 노드별 배열",
+      "glossary_snapshot": {
+        "NUMA": "NUMA",
+        "arrays": "배열",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:30:51.279684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "find node, then index",
+      "source_hash": 1084192523774451111,
+      "context_hash": 2390167814579753335,
+      "translation": "노드를 찾은 뒤 인덱스",
+      "glossary_snapshot": {
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:30:51.279684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "between nodes only",
+      "source_hash": 18339963745887882026,
+      "context_hash": 15459153575984057910,
+      "translation": "노드 사이에서만",
+      "glossary_snapshot": {
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:30:51.279684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 3555545443897696173,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:30:51.279684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "SPARSEMEM",
+      "source_hash": 6058410410716621496,
+      "context_hash": 9819961185007197509,
+      "translation": "SPARSEMEM",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "per-section sub-arrays",
+      "source_hash": 6071743332153564366,
+      "context_hash": 14502055475477902557,
+      "translation": "섹션별 하위 배열",
+      "glossary_snapshot": {
+        "arrays": "배열"
+      },
+      "translated_at": "2026-11-14T22:30:51.279684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "section lookup, then index",
+      "source_hash": 8970094582869837094,
+      "context_hash": 14915009927877562987,
+      "translation": "섹션 조회 후 인덱스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279685Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 4811381502891025971,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:30:51.279685Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "**yes**",
+      "source_hash": 8450553226403694206,
+      "context_hash": 14724222299615207244,
+      "translation": "**예**",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:30:51.279685Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:25/seg:0",
+      "source": "SPARSEMEM_VMEMMAP",
+      "source_hash": 1752910876360870573,
+      "context_hash": 15683810824777154220,
+      "translation": "SPARSEMEM_VMEMMAP",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:51.279685Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:0",
+      "source": "virtual array, sparsely backed",
+      "source_hash": 10509786203844669516,
+      "context_hash": 16719618627336991102,
+      "translation": "희소하게 뒷받침되는 가상 배열",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:30:51.279685Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:27/seg:0",
+      "source": "index (fastest)",
+      "source_hash": 266531866300386597,
+      "context_hash": 3195343763496770330,
+      "translation": "인덱스 (가장 빠름)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187194Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:28/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 3698865013206734433,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:29/seg:0",
+      "source": "**yes**",
+      "source_hash": 8450553226403694206,
+      "context_hash": 13327009078533090656,
+      "translation": "**예**",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:30/seg:0",
+      "source": "(Strictly, `SPARSEMEM_VMEMMAP` is not a fourth model but SPARSEMEM's default *configuration* — same section machinery, a different `pfn_to_page()` — but the cost difference is large enough to list it separately.)",
+      "source_hash": 567350887350037771,
+      "context_hash": 473431750148558477,
+      "translation": "(엄밀히 말하면 `SPARSEMEM_VMEMMAP`은 네 번째 모델이 아니라 SPARSEMEM의 기본 *구성*입니다. 섹션 메커니즘은 같고 `pfn_to_page()`만 다르지만, 비용 차이가 충분히 크기 때문에 별도로 나열합니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:31/seg:0",
+      "source": "The historical arc — FLATMEM → DISCONTIGMEM → SPARSEMEM → vmemmap — is told well in Mike Rapoport's [Memory: the flat, the discontiguous, and the sparse](https://lwn.net/Articles/789304/).",
+      "source_hash": 10322534402401821036,
+      "context_hash": 4130843431127397449,
+      "translation": "FLATMEM → DISCONTIGMEM → SPARSEMEM → vmemmap으로 이어지는 역사적 흐름은 Mike Rapoport의 [Memory: the flat, the discontiguous, and the sparse](https://lwn.net/Articles/789304/)에 잘 정리되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "The other half of the problem: `struct page` itself",
+      "source_hash": 18210740129443279977,
+      "context_hash": 10878185664469734495,
+      "translation": "문제의 나머지 절반: `struct page` 자체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The memory model decides *where the array is*.",
+      "source_hash": 453122270664511775,
+      "context_hash": 11685960921715522581,
+      "translation": "메모리 모델은 *배열이 어디에 있는지*를 결정합니다.",
+      "glossary_snapshot": {
+        "Memory Model": "메모리 모델",
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "The other cost is *how big each element is* — and `struct page` is where the pressure now sits.",
+      "source_hash": 9128159490166159238,
+      "context_hash": 8578168204583698722,
+      "translation": "또 다른 비용은 *각 원소가 얼마나 큰지*이며, 현재 부담이 집중되는 곳은 바로 `struct page`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Each `struct page` is **64 bytes**, and there's one for every 4 KB of RAM.",
+      "source_hash": 9910862254905450729,
+      "context_hash": 13610404004939598111,
+      "translation": "각 `struct page`는 **64바이트**이며, RAM 4 KB마다 하나씩 존재합니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:31:03.187195Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "That's a fixed **~1.6% of all physical memory** spent just describing physical memory: ~16 GB of `struct page` on a 1 TB machine, before a single byte of it is used for anything.",
+      "source_hash": 7745306995952766356,
+      "context_hash": 17299319723598767017,
+      "translation": "이는 물리 메모리를 기술하는 데에만 **전체 물리 메모리의 약 1.6%가** 고정적으로 소비된다는 뜻입니다. 1 TB 머신에서는 그 메모리가 단 1바이트라도 어딘가에 쓰이기 전에 이미 약 16 GB가 `struct page`로 사용됩니다.",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "physical memory": "물리 메모리"
+      },
+      "translated_at": "2026-11-14T22:31:03.187196Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Worse, `struct page` is a union-of-unions that has accumulated meanings since 1995.",
+      "source_hash": 11581588024161339079,
+      "context_hash": 1619235984551262905,
+      "translation": "더 나쁜 점은 `struct page`가 1995년부터 의미가 누적되어 온 union들의 union이라는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187196Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "The same 64 bytes mean completely different things depending on whether the page is anonymous, file-backed, a slab object, a page-table page, free in the buddy allocator, or device memory — overlapping fields disambiguated only by context.",
+      "source_hash": 1350193570354735265,
+      "context_hash": 11502660016257075777,
+      "translation": "같은 64바이트가 해당 페이지가 익명 페이지인지, 파일 기반 페이지인지, slab 객체인지, 페이지 테이블 페이지인지, buddy 할당자에서 free 상태인지, 디바이스 메모리인지에 따라 완전히 다른 의미를 가지며, 겹치는 필드들은 오직 문맥으로만 구분됩니다.",
+      "glossary_snapshot": {
+        "buddy allocator": "buddy 할당자",
+        "bytes": "바이트",
+        "device": "디바이스",
+        "memory": "메모리",
+        "slab": "slab"
+      },
+      "translated_at": "2026-11-14T22:31:03.187196Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:2",
+      "source": "It is cramped and type-unsafe, and it's the reason [folios](folio.md) exist: folios were step one, giving file and anonymous memory a distinct, honestly-typed handle instead of a bare `struct page`.",
+      "source_hash": 7228128374731835535,
+      "context_hash": 15496384710928638972,
+      "translation": "이 구조는 비좁고 타입 안전하지 않으며, 이것이 바로 [폴리오](folio.md)가 존재하는 이유입니다. 폴리오는 첫 단계로서, 파일 메모리와 익명 메모리에 맨 `struct page` 대신 별도의, 타입이 정직하게 지정된 핸들을 제공했습니다.",
+      "glossary_snapshot": {
+        "anonymous memory": "익명 메모리",
+        "folios": "폴리오"
+      },
+      "translated_at": "2026-11-14T22:31:03.187196Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Where it's going: memory descriptors (memdesc)",
+      "source_hash": 5724650522667396734,
+      "context_hash": 7459253088913172344,
+      "translation": "향후 방향: 메모리 디스크립터(memdesc)",
+      "glossary_snapshot": {
+        "descriptors": "디스크립터",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:31:03.187196Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "The long-term goal, driven by Matthew Wilcox out of the folio work, is to dismantle `struct page` entirely.",
+      "source_hash": 15108490989191511189,
+      "context_hash": 14125123419609976171,
+      "translation": "폴리오 작업에서 출발하여 Matthew Wilcox가 주도하는 장기 목표는 `struct page`를 완전히 해체하는 것입니다.",
+      "glossary_snapshot": {
+        "folio": "폴리오"
+      },
+      "translated_at": "2026-11-14T22:31:03.187196Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "In its place: an **8-byte \"memory descriptor\" (memdesc)** per page — a typed pointer whose low bits encode *what kind* of page this is and whose remaining bits point to a type-specific structure (a folio, a slab, a buddy record, a page-table descriptor…).",
+      "source_hash": 12546384066551981601,
+      "context_hash": 16891109021395433948,
+      "translation": "그 자리를 대신하는 것은 페이지당 <strong>8바이트 \"메모리 디스크립터(memdesc)\"</strong>입니다. 이는 하위 비트가 해당 페이지가 *어떤 종류*인지를 인코딩하고 나머지 비트가 타입별 구조체(폴리오, slab, buddy 레코드, 페이지 테이블 디스크립터 등)를 가리키는 타입 지정 포인터입니다.",
+      "glossary_snapshot": {
+        "bits": "비트",
+        "buddy": "buddy",
+        "byte": "바이트",
+        "descriptor": "디스크립터",
+        "folio": "폴리오",
+        "memory": "메모리",
+        "slab": "slab"
+      },
+      "translated_at": "2026-11-14T22:31:03.187196Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "The transition is well underway rather than theoretical:",
+      "source_hash": 9734699861515540107,
+      "context_hash": 13568175096543981829,
+      "translation": "이 전환은 이론에 머물러 있지 않고 상당히 진행되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "Type-specific descriptors are being **carved out of `struct page` one at a time** — [`struct slab`](https://lwn.net/Articles/881039/) (5.17) and `struct ptdesc` (page-table pages) and netmem descriptors have already been separated, each overlaying `struct page` during the migration.",
+      "source_hash": 8732073530967880738,
+      "context_hash": 318491911369848320,
+      "translation": "타입별 디스크립터가 **`struct page`에서 하나씩 떼어 내어지고** 있습니다. [`struct slab`](https://lwn.net/Articles/881039/)(5.17)과 `struct ptdesc`(페이지 테이블 페이지), netmem 디스크립터는 이미 분리되었으며, 각각은 이전 과정 동안 `struct page` 위에 겹쳐 놓입니다.",
+      "glossary_snapshot": {
+        "descriptors": "디스크립터"
+      },
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "The hard part is the **\"long tail\"**: kernel code all over the tree reaches into arbitrary `struct page` fields, and every such site has to be converted before the union can actually shrink.",
+      "source_hash": 3878669295291892823,
+      "context_hash": 1363831414084888575,
+      "translation": "어려운 부분은 \"**긴 꼬리(long tail)**\"입니다. 트리 곳곳의 커널 코드가 임의의 `struct page` 필드에 접근하고 있으며, union을 실제로 줄이려면 그러한 모든 지점을 변환해야 합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "The payoff: `struct page`'s memory tax drops from ~1.6% of RAM toward a fraction of that, the type confusion goes away, and memory management gets more flexible.",
+      "source_hash": 17334861304228763636,
+      "context_hash": 17340726608565913567,
+      "translation": "그 성과로 `struct page`의 메모리 부담이 RAM의 약 1.6%에서 그 일부 수준으로 줄어들고, 타입 혼동이 사라지며, 메모리 관리가 더 유연해집니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "memory": "메모리",
+        "memory management": "메모리 관리"
+      },
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "It's a distant end state, but a concrete one.",
+      "source_hash": 11470760229594579490,
+      "context_hash": 4631026824489222540,
+      "translation": "먼 최종 상태이지만, 구체적인 목표입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:1",
+      "source": "Jonathan Corbet's [Separating memory descriptors from struct page](https://lwn.net/Articles/1073425/) is the current-state snapshot; [The proper time to split struct page](https://lwn.net/Articles/937839/) and [Fleshing out memory descriptors](https://lwn.net/Articles/974937/) cover the design and the debate.",
+      "source_hash": 10753634288721170174,
+      "context_hash": 10871272131076658116,
+      "translation": "Jonathan Corbet의 [Separating memory descriptors from struct page](https://lwn.net/Articles/1073425/)는 현재 상태를 정리한 글이며, [The proper time to split struct page](https://lwn.net/Articles/937839/)와 [Fleshing out memory descriptors](https://lwn.net/Articles/974937/)는 설계와 논쟁을 다룹니다.",
+      "glossary_snapshot": {
+        "Jonathan Corbet": "Jonathan Corbet"
+      },
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Observing the model",
+      "source_hash": 6287211262611680378,
+      "context_hash": 9371398127835862351,
+      "translation": "모델 관찰하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Common issues",
+      "source_hash": 3832023493145155796,
+      "context_hash": 5606893349099441058,
+      "translation": "흔한 문제",
+      "glossary_snapshot": {
+        "Common Issues": "흔한 문제"
+      },
+      "translated_at": "2026-11-14T23:30:28.396303Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "**\"Why is ~1.5–2% of my RAM just… gone at boot?\"** That's the `struct page` array (plus other per-page metadata).",
+      "source_hash": 10199336329181513293,
+      "context_hash": 13207973340061417306,
+      "translation": "**\"부팅 시 RAM의 약 1.5–2%가 왜 그냥… 사라지나요?\"** 그것은 `struct page` 배열(및 기타 페이지별 메타데이터)입니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "array": "배열",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "It scales with total RAM, not usage, and it's the tax the memory model pays.",
+      "source_hash": 11683069478798630870,
+      "context_hash": 4823226476386032847,
+      "translation": "이는 사용량이 아니라 전체 RAM에 비례하며, 메모리 모델이 치르는 비용입니다.",
+      "glossary_snapshot": {
+        "Memory Model": "메모리 모델",
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:2",
+      "source": "The memdesc work above is the long-term fix.",
+      "source_hash": 16287533855603566148,
+      "context_hash": 15819832060910119583,
+      "translation": "위에서 설명한 memdesc 작업이 장기적인 해결책입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "**Huge machines and section overhead.** On systems with enormous but sparse physical maps, the choice of `SECTION_SIZE_BITS` trades granularity (smaller sections waste less on holes) against the size of the section arrays.",
+      "source_hash": 15586294892626376583,
+      "context_hash": 7986708885001702748,
+      "translation": "**대형 머신과 섹션 오버헤드.** 물리 맵이 거대하지만 희소한 시스템에서는 `SECTION_SIZE_BITS`의 선택이 세분성(섹션이 작을수록 hole로 낭비되는 공간이 줄어듦)과 섹션 배열의 크기 사이의 절충이 됩니다.",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:1",
+      "source": "This is an arch/config concern, rarely tuned by hand.",
+      "source_hash": 10528554593651242497,
+      "context_hash": 5997435462110992791,
+      "translation": "이는 아키텍처/설정 차원의 문제이며, 수동으로 조정하는 경우는 드뭅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187197Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "**`ZONE_DEVICE` / persistent memory needs `struct page`s.** Device and pmem ranges that want to participate in the normal mm machinery (DAX, `get_user_pages` on pmem) must have `struct page`s, which means populating vmemmap for the device range — sometimes storing that metadata in the device memory itself (`altmap`).",
+      "source_hash": 5145291087416648731,
+      "context_hash": 2019505828026514450,
+      "translation": "**`ZONE_DEVICE` / 영구 메모리에는 `struct page`가 필요합니다.** 일반적인 mm 메커니즘(DAX, pmem에 대한 `get_user_pages`)에 참여하려는 디바이스 및 pmem 영역은 반드시 `struct page`를 가져야 하며, 이는 해당 디바이스 영역에 대해 vmemmap을 채워야 함을 의미합니다. 때로는 그 메타데이터를 디바이스 메모리 자체에 저장하기도 합니다(`altmap`).",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "memory": "메모리",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:31:03.187198Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:1",
+      "source": "This only works under SPARSEMEM_VMEMMAP.",
+      "source_hash": 5788804326358656425,
+      "context_hash": 4226891929073959771,
+      "translation": "이는 SPARSEMEM_VMEMMAP에서만 동작합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:31:03.187198Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Version notes",
+      "source_hash": 17114096211539807460,
+      "context_hash": 3197240332695526080,
+      "translation": "버전 참고 사항",
+      "glossary_snapshot": {
+        "Version notes": "버전 참고 사항"
+      },
+      "translated_at": "2026-11-14T22:31:03.187198Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "Change",
+      "source_hash": 1932797102218492626,
+      "context_hash": 2727668421096413775,
+      "translation": "변경 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120158Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "Linux version",
+      "source_hash": 13187866262196511248,
+      "context_hash": 1839545052966421031,
+      "translation": "Linux 버전",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:30:55.120159Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "Why it matters here",
+      "source_hash": 943886716318293531,
+      "context_hash": 14876860637736070797,
+      "translation": "여기서 중요한 이유",
+      "glossary_snapshot": {
+        "Why it matters here": "여기서 중요한 이유"
+      },
+      "translated_at": "2026-11-14T23:30:28.396303Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "FLATMEM",
+      "source_hash": 5548739154782159618,
+      "context_hash": 10518658488620358297,
+      "translation": "FLATMEM",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120160Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "always",
+      "source_hash": 624945396139932196,
+      "context_hash": 5105434394024740792,
+      "translation": "항상",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120160Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "The original single-array model",
+      "source_hash": 10895890502374209849,
+      "context_hash": 4432785013380929744,
+      "translation": "원래의 단일 배열 모델",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:30:55.120160Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "SPARSEMEM",
+      "source_hash": 6058410410716621496,
+      "context_hash": 8043194161606533829,
+      "translation": "SPARSEMEM",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120160Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "2.6.13 (2005)",
+      "source_hash": 10023536072763976343,
+      "context_hash": 10204610118025212279,
+      "translation": "2.6.13 (2005)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120160Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "Per-section arrays; made hotplug possible",
+      "source_hash": 2788702021006436075,
+      "context_hash": 2821660875156751317,
+      "translation": "섹션별 배열; 핫플러그를 가능하게 함",
+      "glossary_snapshot": {
+        "arrays": "배열",
+        "hotplug": "핫플러그"
+      },
+      "translated_at": "2026-11-14T23:30:28.396304Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:10/seg:0",
+      "source": "SPARSEMEM_VMEMMAP",
+      "source_hash": 1752910876360870573,
+      "context_hash": 18237515297716377058,
+      "translation": "SPARSEMEM_VMEMMAP",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120161Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "2.6.24 ([8f6aac419bd5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8f6aac419bd5))",
+      "source_hash": 13427736510801897357,
+      "context_hash": 5785581779796428599,
+      "translation": "2.6.24 ([8f6aac419bd5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8f6aac419bd5))",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120161Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:12/seg:0",
+      "source": "O(1) `pfn_to_page()` with no waste on holes; today's default",
+      "source_hash": 6774611088935200703,
+      "context_hash": 17712611545076777985,
+      "translation": "구멍(hole)에 낭비가 없는 O(1) `pfn_to_page()`, 현재의 기본값",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120162Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:0",
+      "source": "DISCONTIGMEM removed",
+      "source_hash": 2317221540758513957,
+      "context_hash": 6237465147358667087,
+      "translation": "DISCONTIGMEM 제거",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120162Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:14/seg:0",
+      "source": "2021 (last users gone by 5.11)",
+      "source_hash": 6793539655097651289,
+      "context_hash": 9755959131773036040,
+      "translation": "2021 (5.11까지 마지막 사용처 제거)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120162Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:15/seg:0",
+      "source": "The NUMA-era model retired for good",
+      "source_hash": 10220998691735246161,
+      "context_hash": 16480004253309749492,
+      "translation": "NUMA 시대 모델의 완전한 퇴역",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:30:55.120162Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:16/seg:0",
+      "source": "Folios",
+      "source_hash": 14755004753699302439,
+      "context_hash": 623181258581819154,
+      "translation": "폴리오",
+      "glossary_snapshot": {
+        "folios": "폴리오"
+      },
+      "translated_at": "2026-11-14T22:30:55.120162Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:0",
+      "source": "5.16+",
+      "source_hash": 5877244552883523579,
+      "context_hash": 18121403658309590880,
+      "translation": "5.16+",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120163Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:0",
+      "source": "First honestly-typed replacement for bare `struct page`",
+      "source_hash": 16609119202482046589,
+      "context_hash": 4851178968509677605,
+      "translation": "맨 `struct page`를 대체하는 최초의 제대로 타입이 지정된 대안",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120163Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:0",
+      "source": "Memory descriptors (`struct slab`, `ptdesc`, …)",
+      "source_hash": 4912525512758091376,
+      "context_hash": 8676357253965524308,
+      "translation": "메모리 디스크립터(`struct slab`, `ptdesc`, …)",
+      "glossary_snapshot": {
+        "descriptors": "디스크립터",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:30:55.120164Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:20/seg:0",
+      "source": "ongoing",
+      "source_hash": 15154830925156289327,
+      "context_hash": 2918122273495984817,
+      "translation": "진행 중",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120164Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:21/seg:0",
+      "source": "`struct page` being dismantled toward an 8-byte typed descriptor",
+      "source_hash": 5758291668849519704,
+      "context_hash": 17744415605661693436,
+      "translation": "8바이트 크기의 타입 지정 디스크립터를 향해 해체 중인 `struct page`",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "descriptor": "디스크립터"
+      },
+      "translated_at": "2026-11-14T22:30:55.120164Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 1176205834837199414,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:30:55.120164Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Kernel source & documentation",
+      "source_hash": 207464746080709246,
+      "context_hash": 13333767996571502968,
+      "translation": "커널 소스 및 문서",
+      "glossary_snapshot": {
+        "Kernel source & documentation": "커널 소스 및 문서"
+      },
+      "translated_at": "2026-11-14T23:30:28.396305Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "[Documentation/mm/memory-model.rst](https://docs.kernel.org/mm/memory-model.html) — the authoritative description of FLATMEM and SPARSEMEM, and the `pfn_to_page()` definitions",
+      "source_hash": 7442044153377044412,
+      "context_hash": 5518278974679366719,
+      "translation": "[Documentation/mm/memory-model.rst](https://docs.kernel.org/mm/memory-model.html) — FLATMEM과 SPARSEMEM에 대한 공식 설명, 그리고 `pfn_to_page()` 정의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120165Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "[include/asm-generic/memory_model.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/asm-generic/memory_model.h) — the actual `pfn_to_page()`/`page_to_pfn()` macros for each model",
+      "source_hash": 12379979812811777243,
+      "context_hash": 1050374751235417746,
+      "translation": "[include/asm-generic/memory_model.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/asm-generic/memory_model.h) — 각 모델별 실제 `pfn_to_page()`/`page_to_pfn()` 매크로",
+      "glossary_snapshot": {
+        "macros": "매크로"
+      },
+      "translated_at": "2026-11-14T22:30:55.120165Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "[include/linux/mmzone.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmzone.h) — `struct mem_section` and the section machinery",
+      "source_hash": 17793561669200897881,
+      "context_hash": 9741502130916275081,
+      "translation": "[include/linux/mmzone.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmzone.h) — `struct mem_section`과 섹션 관련 메커니즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120165Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 15736363877807360394,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:30:55.120165Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "[The Kernel Address Space](kernel-address-space.md) — where the `vmemmap` array physically lives, and how it's sized",
+      "source_hash": 17653880384616946128,
+      "context_hash": 6665933533853822704,
+      "translation": "[커널 주소 공간](kernel-address-space.md) — `vmemmap` 배열이 물리적으로 위치하는 곳과 그 크기가 정해지는 방식",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "array": "배열",
+        "kernel address": "커널 주소"
+      },
+      "translated_at": "2026-11-14T22:30:55.120166Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "[Memory Hotplug](memory-hotplug.md) — SPARSEMEM sections in action: adding and removing memory at runtime",
+      "source_hash": 9380189880271368399,
+      "context_hash": 14935918737620535472,
+      "translation": "[메모리 핫플러그](memory-hotplug.md) — 실제로 동작하는 SPARSEMEM section: 런타임에 메모리 추가 및 제거",
+      "glossary_snapshot": {
+        "memory hotplug": "메모리 핫플러그"
+      },
+      "translated_at": "2026-11-14T23:30:28.396305Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "[Life of a page](life-of-page.md) — the `struct page` this whole model is an array of",
+      "source_hash": 8742974945863303820,
+      "context_hash": 12905379216744530229,
+      "translation": "[페이지의 일생](life-of-page.md) — 이 모델 전체가 배열로 구성하는 대상인 `struct page`",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:30:55.120166Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "[Folio Abstraction](folio.md) — the first step of the `struct page` → memdesc transition",
+      "source_hash": 8504684207692041217,
+      "context_hash": 13342283569619979351,
+      "translation": "[폴리오 추상화](folio.md) — `struct page` → memdesc 전환의 첫 단계",
+      "glossary_snapshot": {
+        "folio": "폴리오"
+      },
+      "translated_at": "2026-11-14T22:30:55.120166Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 7270898915578469488,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:30:55.120167Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "[Memory: the flat, the discontiguous, and the sparse](https://lwn.net/Articles/789304/) — the history of the memory models",
+      "source_hash": 2814915732119492902,
+      "context_hash": 1030862221784009453,
+      "translation": "[Memory: the flat, the discontiguous, and the sparse](https://lwn.net/Articles/789304/) — 메모리 모델의 역사",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "memory models": "메모리 모델"
+      },
+      "translated_at": "2026-11-14T22:03:49.987845Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "[Separating memory descriptors from struct page](https://lwn.net/Articles/1073425/) — the current state of the memdesc transition",
+      "source_hash": 10948102377822519535,
+      "context_hash": 9374299775100145866,
+      "translation": "[Separating memory descriptors from struct page](https://lwn.net/Articles/1073425/) — memdesc 전환의 현재 상태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:49.987846Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "[The proper time to split struct page](https://lwn.net/Articles/937839/) — the design debate behind memdesc",
+      "source_hash": 1338960134214996880,
+      "context_hash": 17133961579982267856,
+      "translation": "[The proper time to split struct page](https://lwn.net/Articles/937839/) — memdesc를 둘러싼 설계 논쟁",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:49.987847Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "[Fleshing out memory descriptors](https://lwn.net/Articles/974937/) — how the 8-byte typed descriptor is meant to work",
+      "source_hash": 14669684157070940192,
+      "context_hash": 3860215368471490735,
+      "translation": "[Fleshing out memory descriptors](https://lwn.net/Articles/974937/) — 8바이트 타입 디스크립터의 의도된 동작 방식",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "descriptor": "디스크립터"
+      },
+      "translated_at": "2026-11-14T22:03:49.987847Z",
+      "issues": []
+    }
+  ]
+}

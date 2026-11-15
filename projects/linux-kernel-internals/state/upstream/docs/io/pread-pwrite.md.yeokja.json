@@ -1,0 +1,3006 @@
+{
+  "version": 1,
+  "source_hash": 15634769797864946076,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "pread / pwrite / preadv2 / pwritev2",
+      "source_hash": 12862059259967873192,
+      "context_hash": 17067400373056691733,
+      "translation": "pread / pwrite / preadv2 / pwritev2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680631Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Positional I/O, scatter-gather, and per-call flags: the full API from pread64 to RWF_ATOMIC",
+      "source_hash": 18027914259178510157,
+      "context_hash": 15495585587526470589,
+      "translation": "위치 지정 I/O, scatter-gather, 호출별 플래그: pread64부터 RWF_ATOMIC까지의 전체 API",
+      "glossary_snapshot": {
+        "API": "API",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:22.680632Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem with read() / write() for concurrent I/O",
+      "source_hash": 16619525659540948984,
+      "context_hash": 13848701958905516522,
+      "translation": "동시 I/O에서 read() / write()의 문제점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680632Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "`read()` and `write()` use `file->f_pos` — the file position stored in the open file description.",
+      "source_hash": 1592164708826657589,
+      "context_hash": 6274272064590226751,
+      "translation": "`read()`와 `write()`는 열린 파일 기술(open file description)에 저장된 파일 위치인 `file->f_pos`를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680632Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Because an open file description is shared between all file descriptors that refer to it (after `dup`, `dup2`, `fork`, etc.), concurrent access creates a race:",
+      "source_hash": 5871685616532295480,
+      "context_hash": 10724535974766442042,
+      "translation": "열린 파일 기술은 (`dup`, `dup2`, `fork` 등 이후) 이를 참조하는 모든 파일 디스크립터 사이에서 공유되므로, 동시 접근 시 경쟁 상태(race)가 발생합니다:",
+      "glossary_snapshot": {
+        "file descriptors": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:41:22.680632Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Even when two threads each hold their own `fd` obtained from `open()` independently, `lseek()` + `read()` is still not atomic: another `read()` on the same thread can interleave between the seek and the read.",
+      "source_hash": 17375524630383025708,
+      "context_hash": 16443842910330734080,
+      "translation": "두 스레드가 각각 `open()`으로 독립적으로 얻은 자신만의 `fd`를 가지고 있더라도, `lseek()` + `read()`는 여전히 원자적이지 않습니다: 같은 스레드의 다른 `read()`가 seek과 read 사이에 끼어들 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680633Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "The kernel serializes `f_pos` updates with `file->f_pos_lock` (a mutex), but this serialization is per-operation — it does not make seek+read atomic as a unit.",
+      "source_hash": 18290625550495857490,
+      "context_hash": 11554645570318982828,
+      "translation": "커널은 `file->f_pos_lock`(뮤텍스)으로 `f_pos` 갱신을 직렬화하지만, 이 직렬화는 연산 단위로 이루어지므로 seek+read를 하나의 단위로 원자화하지는 않습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:41:22.680633Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Between those two lock acquisitions, Thread B can change `f_pos`.",
+      "source_hash": 684509864327072574,
+      "context_hash": 15515331758885352885,
+      "translation": "이 두 번의 락 획득 사이에 스레드 B가 `f_pos`를 변경할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680633Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "This is a TOCTOU problem at the application level.",
+      "source_hash": 10648761378390835001,
+      "context_hash": 5505891147431161377,
+      "translation": "이는 애플리케이션 수준의 TOCTOU 문제입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680633Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "`pread()` and `pwrite()` solve this: they accept an explicit `offset` argument and never read or write `f_pos`.",
+      "source_hash": 6036180292515845636,
+      "context_hash": 1846292300434401748,
+      "translation": "`pread()`와 `pwrite()`는 이 문제를 해결합니다: 명시적인 `offset` 인자를 받으며 `f_pos`를 읽거나 쓰지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680633Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "There is no race because the offset lives on the caller's stack.",
+      "source_hash": 6700697664051275021,
+      "context_hash": 3838992512868960818,
+      "translation": "오프셋이 호출자의 스택에 있으므로 경쟁 상태가 발생하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680633Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "pread() / pwrite()",
+      "source_hash": 2346779711584143518,
+      "context_hash": 17433501137931399442,
+      "translation": "pread() / pwrite()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680633Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Syscall implementation",
+      "source_hash": 11819126985209325317,
+      "context_hash": 6581931144922157693,
+      "translation": "시스템 콜 구현",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The kernel entry points are `pread64` and `pwrite64` (the `64` suffix indicates that the offset is a 64-bit `loff_t`, matching `off64_t` from glibc):",
+      "source_hash": 1079302570265922662,
+      "context_hash": 6534096113894837476,
+      "translation": "커널 진입점은 `pread64`와 `pwrite64`입니다(`64` 접미사는 오프셋이 glibc의 `off64_t`에 대응하는 64비트 `loff_t`임을 나타냅니다):",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "entry points": "진입점",
+        "glibc": "glibc",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The `FMODE_PREAD` / `FMODE_PWRITE` mode flags are set for regular files and block devices.",
+      "source_hash": 2066307374728838928,
+      "context_hash": 5842173643730713174,
+      "translation": "`FMODE_PREAD` / `FMODE_PWRITE` 모드 플래그는 일반 파일과 블록 디바이스에 설정됩니다.",
+      "glossary_snapshot": {
+        "block devices": "블록 디바이스"
+      },
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "Pipes, sockets, and other non-seekable file types do not set these flags and return `ESPIPE`.",
+      "source_hash": 17917751417459218720,
+      "context_hash": 6825820473164131769,
+      "translation": "파이프, 소켓 및 기타 seek할 수 없는 파일 유형은 이 플래그를 설정하지 않으며 `ESPIPE`를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "fdget vs fdget_pos — the key difference",
+      "source_hash": 8855220854759522935,
+      "context_hash": 2219002037521884583,
+      "translation": "fdget과 fdget_pos — 핵심 차이점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "`read()` uses `fdget_pos()`:",
+      "source_hash": 18224373453974114579,
+      "context_hash": 5611698197583996781,
+      "translation": "`read()`는 `fdget_pos()`를 사용합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "`pread()` uses `fdget()` (no lock, no position update):",
+      "source_hash": 1948818330944178989,
+      "context_hash": 8910900609292088574,
+      "translation": "`pread()`는 `fdget()`를 사용합니다(락 없음, 위치 갱신 없음):",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "`read()` / `write()`",
+      "source_hash": 9626862116283166125,
+      "context_hash": 11696918916676996339,
+      "translation": "`read()` / `write()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680634Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "`pread()` / `pwrite()`",
+      "source_hash": 14310705360094893233,
+      "context_hash": 7622649307593017849,
+      "translation": "`pread()` / `pwrite()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680635Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Lock acquired",
+      "source_hash": 17631745596219533045,
+      "context_hash": 6452040564103994063,
+      "translation": "획득하는 락",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680635Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "`f_pos_lock` (mutex)",
+      "source_hash": 2201590269678123759,
+      "context_hash": 14666094782209434933,
+      "translation": "`f_pos_lock`(뮤텍스)",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:41:22.680635Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "none",
+      "source_hash": 640747180730880794,
+      "context_hash": 9055931829476463385,
+      "translation": "없음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680635Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Position source",
+      "source_hash": 7905022179416521691,
+      "context_hash": 887353952435758845,
+      "translation": "위치 출처",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680635Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "`file->f_pos`",
+      "source_hash": 14215340502869667299,
+      "context_hash": 13723865911305846740,
+      "translation": "`file->f_pos`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680635Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "local stack variable",
+      "source_hash": 4210598822919605755,
+      "context_hash": 13617334853033582581,
+      "translation": "로컬 스택 변수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680636Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Position updated after",
+      "source_hash": 1564037514165706719,
+      "context_hash": 13447776403819970831,
+      "translation": "이후 위치 갱신",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680636Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 9394666771365464107,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:22.680636Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 12482538273065439044,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:22.680636Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "Safe for concurrent threads",
+      "source_hash": 3367864225927697854,
+      "context_hash": 9970594965656551555,
+      "translation": "동시 스레드에서의 안전성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680636Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "only sequentially",
+      "source_hash": 6190678916867142013,
+      "context_hash": 15923892259159822747,
+      "translation": "순차적인 경우에만",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:22.680636Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 8622467034944822338,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:23.909902Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "Because `pread()`/`pwrite()` do not touch `f_pos` and do not take `f_pos_lock`, multiple threads can issue concurrent positional reads on the same open file description without any serialization overhead.",
+      "source_hash": 18363538264667024674,
+      "context_hash": 680907437037802472,
+      "translation": "`pread()`/`pwrite()`는 `f_pos`를 건드리지 않고 `f_pos_lock`도 획득하지 않으므로, 여러 스레드가 동일한 open file description에 대해 직렬화 오버헤드 없이 위치 지정 읽기를 동시에 수행할 수 있습니다.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:41:23.909903Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Error cases",
+      "source_hash": 15938639109827994214,
+      "context_hash": 13985351042481928023,
+      "translation": "오류 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909903Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "preadv() / pwritev()",
+      "source_hash": 4570358597699958302,
+      "context_hash": 6585989695389486984,
+      "translation": "preadv() / pwritev()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`readv()` and `writev()` have had scatter-gather I/O since POSIX.1-2001, but there was no way to specify an explicit offset.",
+      "source_hash": 12017624768139832020,
+      "context_hash": 3272885538632305284,
+      "translation": "`readv()`와 `writev()`는 POSIX.1-2001부터 scatter-gather I/O를 지원해 왔지만, 명시적인 오프셋을 지정할 방법은 없었습니다.",
+      "glossary_snapshot": {
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "Linux 2.6.30 added `preadv()` and `pwritev()` to fill this gap:",
+      "source_hash": 15597542466073436052,
+      "context_hash": 78129949990495263,
+      "translation": "Linux 2.6.30은 이 공백을 메우기 위해 `preadv()`와 `pwritev()`를 추가했습니다:",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "These combine the offset semantics of `pread()`/`pwrite()` with the scatter-gather capability of `readv()`/`writev()`.",
+      "source_hash": 9850992252207166062,
+      "context_hash": 14304464871728370084,
+      "translation": "이 함수들은 `pread()`/`pwrite()`의 오프셋 의미론과 `readv()`/`writev()`의 scatter-gather 기능을 결합합니다.",
+      "glossary_snapshot": {
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "Like the non-vectored variants, they do not touch `f_pos` and require `FMODE_PREAD`/`FMODE_PWRITE`.",
+      "source_hash": 14898798230231813074,
+      "context_hash": 17725219944074727416,
+      "translation": "벡터가 아닌 변형과 마찬가지로, 이 함수들은 `f_pos`를 건드리지 않으며 `FMODE_PREAD`/`FMODE_PWRITE`를 요구합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Kernel path",
+      "source_hash": 124686124788740485,
+      "context_hash": 10929391423934222490,
+      "translation": "커널 경로",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "The split of `pos` into `pos_l` and `pos_h` is a 32-bit ABI artifact: on 32-bit architectures, a 64-bit `loff_t` is passed as two 32-bit registers.",
+      "source_hash": 14638757090704221735,
+      "context_hash": 2415764096999794035,
+      "translation": "`pos`를 `pos_l`과 `pos_h`로 나누는 것은 32비트 ABI의 산물입니다: 32비트 아키텍처에서는 64비트 `loff_t`가 두 개의 32비트 레지스터로 전달됩니다.",
+      "glossary_snapshot": {
+        "ABI": "ABI",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "On 64-bit architectures the ABI provides a single register.",
+      "source_hash": 2728109025310741288,
+      "context_hash": 534855132153793505,
+      "translation": "64비트 아키텍처에서는 ABI가 단일 레지스터를 제공합니다.",
+      "glossary_snapshot": {
+        "ABI": "ABI",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Why databases use preadv",
+      "source_hash": 10512671094122117422,
+      "context_hash": 5815683044587809528,
+      "translation": "데이터베이스가 preadv를 사용하는 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "A typical database page read looks like:",
+      "source_hash": 10262150456200710170,
+      "context_hash": 7431585582795654295,
+      "translation": "일반적인 데이터베이스 페이지 읽기는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Two benefits:",
+      "source_hash": 6344216026285532898,
+      "context_hash": 10606673851733306153,
+      "translation": "두 가지 이점:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "**No memcpy**: header and data land directly in separate structures — no need to read into a flat buffer and then split it.",
+      "source_hash": 1639351542297472543,
+      "context_hash": 15483973167521665872,
+      "translation": "**memcpy 없음**: 헤더와 데이터가 각각의 구조체에 바로 들어가므로, 평면 버퍼로 읽은 뒤 이를 나눌 필요가 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "**Thread-safe**: multiple threads can call `preadv()` on the same `fd` at different offsets simultaneously without any user-space locking.",
+      "source_hash": 13913673720646344479,
+      "context_hash": 8276953198012472389,
+      "translation": "**스레드 안전**: 여러 스레드가 사용자 공간 잠금 없이 동일한 `fd`에 대해 서로 다른 오프셋으로 `preadv()`를 동시에 호출할 수 있습니다.",
+      "glossary_snapshot": {
+        "user-space": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:41:23.909904Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "preadv2() / pwritev2(): per-call flags",
+      "source_hash": 7506224928384469475,
+      "context_hash": 11609353794129411259,
+      "translation": "preadv2() / pwritev2(): 호출별 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Linux 4.6 extended `preadv()`/`pwritev()` with a `flags` argument:",
+      "source_hash": 12184350016599800318,
+      "context_hash": 15520000490578494785,
+      "translation": "Linux 4.6은 `preadv()`/`pwritev()`에 `flags` 인자를 추가하여 확장했습니다:",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`flags` is of type `rwf_t` (defined as `__kernel_rwf_t`, an `int`).",
+      "source_hash": 2586063394158200208,
+      "context_hash": 5275740410197998434,
+      "translation": "`flags`는 `rwf_t` 타입입니다(`int`인 `__kernel_rwf_t`로 정의됨).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "It allows per-call control of I/O behaviour that was previously only settable at file-open time via `O_` flags or required a separate fcntl call.",
+      "source_hash": 12860025761583396073,
+      "context_hash": 9952013601849957253,
+      "translation": "이를 통해 이전에는 파일을 열 때 `O_` 플래그로만 설정할 수 있었거나 별도의 fcntl 호출이 필요했던 I/O 동작을 호출 단위로 제어할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "RWF_* flags",
+      "source_hash": 7638510021828386102,
+      "context_hash": 5809446374561268886,
+      "translation": "RWF_* 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Flag",
+      "source_hash": 7677103621892995957,
+      "context_hash": 3860833534182626468,
+      "translation": "플래그",
+      "glossary_snapshot": {
+        "Flag": "플래그"
+      },
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Value",
+      "source_hash": 5677987570053623659,
+      "context_hash": 15842222083290112439,
+      "translation": "값",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Kernel version",
+      "source_hash": 15542711200523525328,
+      "context_hash": 6084391971228156038,
+      "translation": "커널 버전",
+      "glossary_snapshot": {
+        "kernel version": "커널 버전"
+      },
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "Description",
+      "source_hash": 1758583599421982602,
+      "context_hash": 7866475796942415271,
+      "translation": "설명",
+      "glossary_snapshot": {
+        "Description": "설명"
+      },
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "`RWF_HIPRI`",
+      "source_hash": 17841362924873902357,
+      "context_hash": 13373052373039298496,
+      "translation": "`RWF_HIPRI`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "`0x01`",
+      "source_hash": 1845605336888508354,
+      "context_hash": 10741080635736617816,
+      "translation": "`0x01`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "4.6",
+      "source_hash": 12615145126407247132,
+      "context_hash": 747058632030697642,
+      "translation": "4.6",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "High-priority I/O; poll for completion (NVMe polled queues)",
+      "source_hash": 10109786035493371407,
+      "context_hash": 15829668578712054595,
+      "translation": "고우선순위 I/O; 완료 폴링(NVMe polled 큐)",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T23:30:25.763650Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "`RWF_DSYNC`",
+      "source_hash": 16811155187885537641,
+      "context_hash": 9613014043820301750,
+      "translation": "`RWF_DSYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "`0x02`",
+      "source_hash": 14507568904658196582,
+      "context_hash": 11850937038353051831,
+      "translation": "`0x02`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "4.7",
+      "source_hash": 13495075076196523942,
+      "context_hash": 11167268495519648763,
+      "translation": "4.7",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:23.909905Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "Data-sync semantics for this write (like `O_DSYNC` per call)",
+      "source_hash": 5446129752801109120,
+      "context_hash": 6491572180443579500,
+      "translation": "이 쓰기에 대한 데이터 동기화 시맨틱(호출 단위의 `O_DSYNC`와 같음)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021351Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "`RWF_SYNC`",
+      "source_hash": 14348504428349876353,
+      "context_hash": 1333253345777288683,
+      "translation": "`RWF_SYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "`0x04`",
+      "source_hash": 18381197353924069726,
+      "context_hash": 15516654257997302890,
+      "translation": "`0x04`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "4.7",
+      "source_hash": 13495075076196523942,
+      "context_hash": 7070827075537883163,
+      "translation": "4.7",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "Full sync for this write (like `O_SYNC` per call)",
+      "source_hash": 13741185071930684234,
+      "context_hash": 13939367548684401609,
+      "translation": "이 쓰기에 대한 완전 동기화(호출 단위의 `O_SYNC`와 같음)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "`RWF_NOWAIT`",
+      "source_hash": 2164351600500284842,
+      "context_hash": 6172270389849326823,
+      "translation": "`RWF_NOWAIT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "`0x08`",
+      "source_hash": 9628702996126026012,
+      "context_hash": 3203190696502946182,
+      "translation": "`0x08`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "4.14",
+      "source_hash": 2027413318580132522,
+      "context_hash": 17170294402404341167,
+      "translation": "4.14",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "Return `EAGAIN` immediately if I/O would block",
+      "source_hash": 500606832265937337,
+      "context_hash": 18076754550760845537,
+      "translation": "I/O가 블록될 경우 즉시 `EAGAIN` 반환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "`RWF_APPEND`",
+      "source_hash": 13082425731962359281,
+      "context_hash": 11430729492717945084,
+      "translation": "`RWF_APPEND`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021352Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "`0x10`",
+      "source_hash": 9818759393952698035,
+      "context_hash": 17530059397633857360,
+      "translation": "`0x10`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:0",
+      "source": "4.16",
+      "source_hash": 15469839831509841615,
+      "context_hash": 13682818495461064091,
+      "translation": "4.16",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:0",
+      "source": "Atomic append to end of file regardless of `offset`",
+      "source_hash": 2037332071485734080,
+      "context_hash": 8043856033924422279,
+      "translation": "`offset`과 관계없이 파일 끝에 원자적으로 추가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:0",
+      "source": "`RWF_NOAPPEND`",
+      "source_hash": 11467993296176488330,
+      "context_hash": 10816549614376417179,
+      "translation": "`RWF_NOAPPEND`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:30/seg:0",
+      "source": "`0x20`",
+      "source_hash": 1858122013747480714,
+      "context_hash": 17722519200301102331,
+      "translation": "`0x20`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:31/seg:0",
+      "source": "6.9",
+      "source_hash": 11681571237159924323,
+      "context_hash": 3939300462907002073,
+      "translation": "6.9",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:0",
+      "source": "Override `O_APPEND` for this call; write at given offset",
+      "source_hash": 10164005693343376105,
+      "context_hash": 10276726304851476231,
+      "translation": "이 호출에 한해 `O_APPEND`를 무시하고 지정한 오프셋에 쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:33/seg:0",
+      "source": "`RWF_ATOMIC`",
+      "source_hash": 6970890593462270378,
+      "context_hash": 15617867667214168406,
+      "translation": "`RWF_ATOMIC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:34/seg:0",
+      "source": "`0x40`",
+      "source_hash": 15166569465473862852,
+      "context_hash": 14452768895046075117,
+      "translation": "`0x40`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:35/seg:0",
+      "source": "6.11",
+      "source_hash": 10239983173828545583,
+      "context_hash": 7763925131097311348,
+      "translation": "6.11",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:36/seg:0",
+      "source": "Hardware-guaranteed atomic write",
+      "source_hash": 9961530468707727830,
+      "context_hash": 15289003327840604392,
+      "translation": "하드웨어가 보장하는 원자적 쓰기",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:37/seg:0",
+      "source": "Flags are defined in `include/uapi/linux/fs.h`.",
+      "source_hash": 16868703889689215830,
+      "context_hash": 11470223218988495582,
+      "translation": "플래그는 `include/uapi/linux/fs.h`에 정의되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:38/seg:0",
+      "source": "How flags reach the filesystem: kiocb_set_rw_flags",
+      "source_hash": 15694269294642321063,
+      "context_hash": 56772776172220177,
+      "translation": "플래그가 파일시스템에 전달되는 방식: kiocb_set_rw_flags",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:39/seg:0",
+      "source": "Every I/O operation in the kernel is represented by a `struct kiocb` (kernel I/O control block).",
+      "source_hash": 3153488039659388333,
+      "context_hash": 6317447793500497469,
+      "translation": "커널의 모든 I/O 작업은 `struct kiocb`(kernel I/O control block)로 표현됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:39/seg:1",
+      "source": "The `RWF_*` flags are translated to `IOCB_*` flags and stored in `kiocb.ki_flags`:",
+      "source_hash": 6221360933217187776,
+      "context_hash": 11942061474017737822,
+      "translation": "`RWF_*` 플래그는 `IOCB_*` 플래그로 변환되어 `kiocb.ki_flags`에 저장됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:41/seg:0",
+      "source": "Once `IOCB_*` flags are set on the `kiocb`, every layer that handles the I/O — the VFS, the filesystem (`ext4`, `xfs`), and the block layer — checks these flags to adjust behaviour.",
+      "source_hash": 3458978814120653438,
+      "context_hash": 6860027535356792396,
+      "translation": "`kiocb`에 `IOCB_*` 플래그가 설정되면, I/O를 처리하는 모든 계층, 즉 VFS, 파일시스템(`ext4`, `xfs`), 블록 계층이 이 플래그를 확인하여 동작을 조정합니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T22:41:28.021353Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:41/seg:1",
+      "source": "Filesystems check `iocb->ki_flags & IOCB_NOWAIT` before taking a lock that might sleep; the block layer checks `IOCB_HIPRI` to route to a polled NVMe queue.",
+      "source_hash": 4787951817328272598,
+      "context_hash": 4062033040175722659,
+      "translation": "파일시스템은 슬립할 수 있는 락을 잡기 전에 `iocb->ki_flags & IOCB_NOWAIT`를 확인하며, 블록 계층은 `IOCB_HIPRI`를 확인하여 폴링 방식의 NVMe 큐로 라우팅합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "block layer": "블록 계층",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:41:28.021354Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:42/seg:0",
+      "source": "offset = -1: use current f_pos",
+      "source_hash": 12171285658298850824,
+      "context_hash": 14640347902855777372,
+      "translation": "offset = -1: 현재 f_pos 사용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021354Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:43/seg:0",
+      "source": "When `offset` is `-1` (cast to `off_t`), `preadv2()` / `pwritev2()` behave like `readv()` / `writev()`: the current `f_pos` is used and updated afterward.",
+      "source_hash": 5741177704921510349,
+      "context_hash": 6035746637583795852,
+      "translation": "`offset`이 `-1`(`off_t`로 캐스트)이면 `preadv2()` / `pwritev2()`는 `readv()` / `writev()`처럼 동작합니다. 즉, 현재 `f_pos`를 사용하고 이후에 갱신합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021354Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:43/seg:1",
+      "source": "This makes it possible to use `RWF_*` flags without having an explicit offset:",
+      "source_hash": 9288115356139599068,
+      "context_hash": 15813606785991817402,
+      "translation": "이를 통해 명시적인 오프셋 없이도 `RWF_*` 플래그를 사용할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021354Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:45/seg:0",
+      "source": "When `offset == -1`, the syscall falls back to `fdget_pos()` and takes `f_pos_lock` — it behaves exactly like `readv()` plus flags.",
+      "source_hash": 2640708462807082205,
+      "context_hash": 8453509197607740352,
+      "translation": "`offset == -1`이면 시스템 콜은 `fdget_pos()`로 대체하여 `f_pos_lock`을 잡으며, 플래그가 추가된 `readv()`와 정확히 같이 동작합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:28.021354Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "RWF_NOWAIT in detail",
+      "source_hash": 2692708127899525998,
+      "context_hash": 8279222910705191054,
+      "translation": "RWF_NOWAIT 상세",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:28.021354Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "`RWF_NOWAIT` is the most commonly used per-call flag.",
+      "source_hash": 14895942868704293982,
+      "context_hash": 10599562520353038369,
+      "translation": "`RWF_NOWAIT`는 가장 흔히 쓰이는 호출 단위 플래그입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "It asks the kernel: \"complete this I/O only if you can do so without blocking.",
+      "source_hash": 588404794405370549,
+      "context_hash": 7995153453678083920,
+      "translation": "이 플래그는 커널에 다음과 같이 요청합니다: \"블로킹 없이 완료할 수 있는 경우에만 이 I/O를 완료하십시오.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:39.438711Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:2",
+      "source": "Otherwise return `EAGAIN`.\"",
+      "source_hash": 40339228878024616,
+      "context_hash": 3688787293167096261,
+      "translation": "그렇지 않으면 `EAGAIN`을 반환하십시오.\"",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438711Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "When preadv2 with RWF_NOWAIT returns EAGAIN",
+      "source_hash": 4830557229076997049,
+      "context_hash": 14879118345681392172,
+      "translation": "RWF_NOWAIT를 지정한 preadv2가 EAGAIN을 반환하는 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438712Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "The read returns `EAGAIN` without doing any I/O in these cases:",
+      "source_hash": 8195268469431717914,
+      "context_hash": 9987659177883818153,
+      "translation": "다음 경우에 read는 아무 I/O도 수행하지 않고 `EAGAIN`을 반환합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438712Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "**Page cache miss**: The requested pages are not in the page cache and fetching them would require submitting block I/O. `generic_file_read_iter` checks `IOCB_NOWAIT` in `filemap_get_pages` and returns `-EAGAIN` rather than calling `read_folio` to submit a bio.",
+      "source_hash": 17871484285494367982,
+      "context_hash": 5611603126486543283,
+      "translation": "**페이지 캐시 미스**: 요청한 페이지가 페이지 캐시에 없어 이를 가져오려면 블록 I/O를 제출해야 하는 경우입니다. `generic_file_read_iter`는 `filemap_get_pages`에서 `IOCB_NOWAIT`를 확인하고, bio를 제출하기 위해 `read_folio`를 호출하는 대신 `-EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:41:39.438713Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "**Inode lock contended**: For buffered reads, `generic_file_read_iter` may need the `inode->i_rwsem` in read mode.",
+      "source_hash": 2519139752443731415,
+      "context_hash": 7484675422216843838,
+      "translation": "**inode 락 경합**: buffered read의 경우 `generic_file_read_iter`는 `inode->i_rwsem`을 읽기 모드로 획득해야 할 수 있습니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:41:39.438713Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "If the lock is held by a writer and `IOCB_NOWAIT` is set, the kernel returns `-EAGAIN` rather than sleeping on the lock.",
+      "source_hash": 6608089855349169289,
+      "context_hash": 1578978519233135941,
+      "translation": "해당 락을 writer가 잡고 있고 `IOCB_NOWAIT`가 설정되어 있으면, 커널은 락을 기다리며 sleep하는 대신 `-EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:39.438714Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "**Filesystem journal congested**: Filesystems like ext4 may need journal resources even for reads in some paths.",
+      "source_hash": 8016478260613579147,
+      "context_hash": 11578928443343632002,
+      "translation": "**파일시스템 저널 혼잡**: ext4 같은 파일시스템은 일부 경로에서 읽기 작업에도 저널 자원이 필요할 수 있습니다.",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:41:39.438714Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "If `IOCB_NOWAIT` is set and the required resource is unavailable, `-EAGAIN` is returned.",
+      "source_hash": 13250876294837292034,
+      "context_hash": 11424046171895362944,
+      "translation": "`IOCB_NOWAIT`가 설정되어 있고 필요한 자원을 사용할 수 없으면 `-EAGAIN`이 반환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438714Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "**Direct I/O extent mapping**: For `O_DIRECT` reads, ext4 and XFS need to look up the extent map.",
+      "source_hash": 9366328007669152131,
+      "context_hash": 5473023487082930547,
+      "translation": "**Direct I/O extent 매핑**: `O_DIRECT` 읽기의 경우 ext4와 XFS는 extent 맵을 조회해야 합니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:41:39.438714Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:1",
+      "source": "If the extent does not exist (hole) and `IOCB_NOWAIT` is set, XFS returns `-EAGAIN` for allocating extents because that requires journal transactions.",
+      "source_hash": 1278294977981879388,
+      "context_hash": 12425878428396766743,
+      "translation": "extent가 존재하지 않고(hole) `IOCB_NOWAIT`가 설정되어 있으면, XFS는 extent 할당에 저널 트랜잭션이 필요하므로 `-EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "journal": "저널",
+        "transactions": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:41:39.438715Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "**Truncate or writeback lock**: Some filesystems hold `i_rwsem` exclusively during truncate.",
+      "source_hash": 10875329925615346536,
+      "context_hash": 10381380289059244748,
+      "translation": "**truncate 또는 writeback 락**: 일부 파일시스템은 truncate 중에 `i_rwsem`을 배타적으로 잡습니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:41:39.438715Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:1",
+      "source": "A concurrent `RWF_NOWAIT` read that cannot get a shared lock returns `-EAGAIN`.",
+      "source_hash": 349766046254841751,
+      "context_hash": 3398149170932274318,
+      "translation": "공유 락을 얻지 못한 동시 `RWF_NOWAIT` 읽기는 `-EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438715Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "Note: buffered reads rarely succeed with `RWF_NOWAIT` unless the pages are already in cache.",
+      "source_hash": 15709779110495101824,
+      "context_hash": 9066151559374416989,
+      "translation": "참고: buffered read는 페이지가 이미 캐시에 있지 않으면 `RWF_NOWAIT`로 성공하는 경우가 드뭅니다.",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T22:41:39.438716Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:1",
+      "source": "For a workload that frequently gets `EAGAIN`, `io_uring` with `IORING_OP_READ` is more efficient since it submits true async I/O rather than polling.",
+      "source_hash": 14147143377454967800,
+      "context_hash": 10827591510860909455,
+      "translation": "`EAGAIN`을 자주 받는 워크로드에는 `IORING_OP_READ`를 사용하는 `io_uring`이 더 효율적입니다. 폴링 대신 진정한 비동기 I/O를 제출하기 때문입니다.",
+      "glossary_snapshot": {
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:41:39.438716Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "The FMODE_NOWAIT gate",
+      "source_hash": 16520023051845148868,
+      "context_hash": 11923842525841931780,
+      "translation": "FMODE_NOWAIT 관문",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438716Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Not all file types support `RWF_NOWAIT`.",
+      "source_hash": 17044157392270193733,
+      "context_hash": 6585568784142372095,
+      "translation": "모든 파일 유형이 `RWF_NOWAIT`를 지원하지는 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438716Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:1",
+      "source": "The kernel checks `FMODE_NOWAIT` on the file before honouring the flag:",
+      "source_hash": 5540653437308589792,
+      "context_hash": 15879105365923241752,
+      "translation": "커널은 이 플래그를 적용하기 전에 파일의 `FMODE_NOWAIT`를 확인합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:39.438716Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "`FMODE_NOWAIT` is set for regular files opened on filesystems that support non-blocking I/O (ext4, XFS, btrfs) and for block devices.",
+      "source_hash": 5796349296222320127,
+      "context_hash": 4290047621913215795,
+      "translation": "`FMODE_NOWAIT`는 non-blocking I/O를 지원하는 파일시스템(ext4, XFS, btrfs)에서 연 일반 파일과 블록 디바이스에 설정됩니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "block devices": "블록 디바이스",
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:41:39.438717Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:1",
+      "source": "It is not set for sockets, pipes, or filesystems that have not opted in.",
+      "source_hash": 3346048102500343846,
+      "context_hash": 2518919454658882121,
+      "translation": "소켓, 파이프, 또는 이를 지원하도록 opt-in하지 않은 파일시스템에는 설정되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438717Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "RWF_DSYNC and RWF_SYNC",
+      "source_hash": 7932271838362882129,
+      "context_hash": 11617009817488345945,
+      "translation": "RWF_DSYNC와 RWF_SYNC",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438717Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "`O_DSYNC` and `O_SYNC` are per-fd flags set at open time.",
+      "source_hash": 2329521346324585956,
+      "context_hash": 14329849475000071321,
+      "translation": "`O_DSYNC`와 `O_SYNC`는 open 시점에 설정되는 fd 단위 플래그입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438717Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "They force data (and optionally metadata) to be written to stable storage before each write returns.",
+      "source_hash": 1865504777993477623,
+      "context_hash": 6639176456507506860,
+      "translation": "이 플래그들은 각 write가 반환되기 전에 데이터(그리고 선택적으로 메타데이터)를 안정 저장소에 기록하도록 강제합니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:41:39.438717Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:2",
+      "source": "The per-call equivalents avoid the overhead of opening the file with these flags when only some writes need durability:",
+      "source_hash": 15931194903704077599,
+      "context_hash": 9644253252169981607,
+      "translation": "일부 write에만 내구성이 필요한 경우, 호출 단위의 대응 플래그를 사용하면 이 플래그들로 파일을 여는 오버헤드를 피할 수 있습니다:",
+      "glossary_snapshot": {
+        "durability": "내구성",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:41:39.438717Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "`RWF_DSYNC` maps to `IOCB_DSYNC` and forces `vfs_fsync_range()` after the write completes, flushing data pages and the file's inode (but not the directory entry). `RWF_SYNC` maps to `IOCB_DSYNC | IOCB_SYNC` and also forces metadata (the `O_SYNC` equivalent).",
+      "source_hash": 14990590671811861229,
+      "context_hash": 18329227045789007118,
+      "translation": "`RWF_DSYNC`는 `IOCB_DSYNC`에 대응하며, write가 완료된 후 `vfs_fsync_range()`를 강제하여 데이터 페이지와 파일의 inode를 flush합니다(디렉터리 엔트리는 제외). `RWF_SYNC`는 `IOCB_DSYNC | IOCB_SYNC`에 대응하며 메타데이터까지 강제합니다(`O_SYNC`에 해당).",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:41:39.438718Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "The implementation in `do_iter_write`:",
+      "source_hash": 4066776119150743356,
+      "context_hash": 14076660850267127014,
+      "translation": "`do_iter_write`의 구현:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438718Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "RWF_APPEND",
+      "source_hash": 15790529291593954721,
+      "context_hash": 3300197138173378298,
+      "translation": "RWF_APPEND",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438718Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "`O_APPEND` makes all writes to an fd atomic appends: the file position is moved to EOF under the inode lock before each write, preventing two concurrent writers from overwriting each other.",
+      "source_hash": 7910412433554395071,
+      "context_hash": 12806082294613340214,
+      "translation": "`O_APPEND`는 fd에 대한 모든 write를 원자적 append로 만듭니다. 각 write 전에 inode 락을 잡은 상태에서 파일 위치를 EOF로 옮기므로, 두 writer가 동시에 쓰더라도 서로의 데이터를 덮어쓰지 않습니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:41:39.438718Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "But `O_APPEND` is a property of the open file description — you cannot toggle it per-call without `fcntl(F_SETFL)`.",
+      "source_hash": 17606369391818221807,
+      "context_hash": 15417056157574627665,
+      "translation": "하지만 `O_APPEND`는 open file description의 속성이므로 `fcntl(F_SETFL)` 없이는 호출 단위로 전환할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438719Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "`RWF_APPEND` provides the same atomic-append guarantee on a per-call basis:",
+      "source_hash": 9372264491288723780,
+      "context_hash": 15291745418020187981,
+      "translation": "`RWF_APPEND`는 동일한 원자적 append 보장을 호출 단위로 제공합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:39.438719Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "The `offset` argument is ignored when `RWF_APPEND` is set.",
+      "source_hash": 18236871178642668290,
+      "context_hash": 6392172532076520209,
+      "translation": "`RWF_APPEND`가 설정되면 `offset` 인자는 무시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122926Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:1",
+      "source": "The write position is determined by the filesystem under the inode lock, atomically with the write itself.",
+      "source_hash": 2754225582602158126,
+      "context_hash": 6794525987620428354,
+      "translation": "쓰기 위치는 inode 락을 잡은 상태에서 파일시스템이 결정하며, 쓰기 자체와 원자적으로 이루어집니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:41:37.122927Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "Implementation: `IOCB_APPEND` causes the VFS and filesystem to:",
+      "source_hash": 13887197269519522269,
+      "context_hash": 9159828291540151330,
+      "translation": "구현: `IOCB_APPEND`는 VFS와 파일시스템이 다음을 수행하도록 합니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS"
+      },
+      "translated_at": "2026-11-14T22:41:37.122928Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "Lock the inode exclusively.",
+      "source_hash": 4448233126545824198,
+      "context_hash": 2269801565819593967,
+      "translation": "inode를 배타적으로 잠금",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:41:37.122928Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "Read `i_size` to get the current EOF.",
+      "source_hash": 12103703630701200883,
+      "context_hash": 855591602686722298,
+      "translation": "`i_size`를 읽어 현재 EOF 확인",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122929Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "Write data starting at EOF.",
+      "source_hash": 16221361378953369750,
+      "context_hash": 11901559824358995411,
+      "translation": "EOF부터 데이터 쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122929Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "Update `i_size` atomically.",
+      "source_hash": 11796618087949742487,
+      "context_hash": 8105509693465450473,
+      "translation": "`i_size`를 원자적으로 갱신",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122929Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "Unlock.",
+      "source_hash": 15967400976103983351,
+      "context_hash": 11176179192541308370,
+      "translation": "잠금 해제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122930Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "This is the same code path as `O_APPEND`, just triggered by a per-call flag rather than a file mode.",
+      "source_hash": 16230685797218686949,
+      "context_hash": 10821861782712370179,
+      "translation": "이는 `O_APPEND`와 동일한 코드 경로이며, 파일 모드가 아니라 호출 단위 플래그로 동작이 트리거된다는 점만 다릅니다.",
+      "glossary_snapshot": {
+        "code path": "코드 경로"
+      },
+      "translated_at": "2026-11-14T22:41:37.122930Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "RWF_NOAPPEND (Linux 6.9)",
+      "source_hash": 4459081905466574450,
+      "context_hash": 15375040958762847414,
+      "translation": "RWF_NOAPPEND (Linux 6.9)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:37.122930Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "The converse: if a file was opened with `O_APPEND`, `RWF_NOAPPEND` overrides it for a single call and writes at the given explicit `offset` instead:",
+      "source_hash": 3181993713304359831,
+      "context_hash": 7207398214541733584,
+      "translation": "반대의 경우: 파일이 `O_APPEND`로 열렸다면 `RWF_NOAPPEND`는 단일 호출에 한해 이를 무시하고 대신 명시적으로 지정한 `offset` 위치에 씁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122931Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "RWF_HIPRI: high-priority polled I/O",
+      "source_hash": 13205633742253107112,
+      "context_hash": 2739843885393187458,
+      "translation": "RWF_HIPRI: 높은 우선순위의 폴링 I/O",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122931Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "NVMe drives support **polled I/O queues**: instead of waiting for a hardware interrupt when I/O completes, the CPU spins on the NVMe completion queue.",
+      "source_hash": 14915369940754891794,
+      "context_hash": 5562157300193527685,
+      "translation": "NVMe 드라이브는 **폴링 I/O 큐**(polled I/O queue)를 지원합니다. I/O가 완료될 때 하드웨어 인터럽트를 기다리는 대신, CPU가 NVMe 완료 큐(completion queue)를 스핀하며 확인합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "NVMe": "NVMe",
+        "hardware": "하드웨어",
+        "interrupt": "인터럽트",
+        "queue": "큐",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:41:37.122931Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "This reduces latency at the cost of CPU time. `RWF_HIPRI` requests polled completion for this I/O:",
+      "source_hash": 3910890483009337721,
+      "context_hash": 2770253025180940647,
+      "translation": "이는 CPU 시간을 소모하는 대가로 지연 시간을 줄입니다. `RWF_HIPRI`는 해당 I/O에 대해 폴링 방식의 완료를 요청합니다.",
+      "glossary_snapshot": {
+        "CPU time": "CPU 시간",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:41:37.122932Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "`RWF_HIPRI` sets `IOCB_HIPRI` on the kiocb.",
+      "source_hash": 11146251178467496579,
+      "context_hash": 7402856338401170485,
+      "translation": "`RWF_HIPRI`는 kiocb에 `IOCB_HIPRI`를 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122932Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:1",
+      "source": "The block layer checks this flag and, if the block device supports polled queues (`BLK_MQ_F_POLL`), routes the bio to a polled queue and calls `blk_poll()` instead of waiting on a completion interrupt.",
+      "source_hash": 13775572957095515042,
+      "context_hash": 2023024249370919461,
+      "translation": "블록 계층은 이 플래그를 확인하고, 블록 디바이스가 폴링 큐(`BLK_MQ_F_POLL`)를 지원하면 bio를 폴링 큐로 보내고 완료 인터럽트를 기다리는 대신 `blk_poll()`을 호출합니다.",
+      "glossary_snapshot": {
+        "block device": "블록 디바이스",
+        "block layer": "블록 계층",
+        "interrupt": "인터럽트",
+        "queue": "큐",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:41:37.122932Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Effective only with `O_DIRECT` — buffered I/O completion happens asynchronously via writeback threads and cannot be polled by the application.",
+      "source_hash": 9189457815354506617,
+      "context_hash": 2662258605338679388,
+      "translation": "`O_DIRECT`와 함께 사용할 때만 효과가 있습니다 — 버퍼드 I/O의 완료는 writeback 스레드를 통해 비동기적으로 일어나므로 애플리케이션이 폴링할 수 없습니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:41:37.122933Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "RWF_ATOMIC (Linux 6.11)",
+      "source_hash": 17778261808509103313,
+      "context_hash": 8962977573018375091,
+      "translation": "RWF_ATOMIC (Linux 6.11)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:37.122933Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Traditional disk writes have no atomicity guarantee at the hardware level: a power failure mid-write can leave a sector partially written.",
+      "source_hash": 4544946882207047099,
+      "context_hash": 3898518780927852641,
+      "translation": "전통적인 디스크 쓰기는 하드웨어 수준에서 원자성을 보장하지 않습니다. 쓰기 도중 전원이 끊기면 섹터가 부분적으로만 기록된 상태로 남을 수 있습니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:41:37.122933Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "Databases work around this with journaling or copy-on-write.",
+      "source_hash": 14884334383178893762,
+      "context_hash": 18418237622462188354,
+      "translation": "데이터베이스는 저널링이나 copy-on-write로 이 문제를 우회합니다.",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:41:37.122933Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:2",
+      "source": "Modern storage devices (NVMe with the Atomic Write Unit feature set) can guarantee that a write of up to `N` bytes is either fully committed or not committed at all.",
+      "source_hash": 7247493293417018328,
+      "context_hash": 3922451804113878646,
+      "translation": "최신 스토리지 디바이스(Atomic Write Unit 기능 세트를 갖춘 NVMe)는 최대 `N` 바이트까지의 쓰기가 완전히 커밋되거나 전혀 커밋되지 않음을 보장할 수 있습니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "bytes": "바이트",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:25.763651Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Linux 6.11 exposed this as `RWF_ATOMIC`:",
+      "source_hash": 16248113862746130419,
+      "context_hash": 11532399478843176741,
+      "translation": "Linux 6.11은 이를 `RWF_ATOMIC`으로 노출했습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:37.122934Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "Requirements for RWF_ATOMIC",
+      "source_hash": 7792103554680581220,
+      "context_hash": 10203303376108477670,
+      "translation": "RWF_ATOMIC의 요구 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122934Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "The write size must be a power of two between `stx_atomic_write_unit_min` and `stx_atomic_write_unit_max`.",
+      "source_hash": 2968229423461474655,
+      "context_hash": 9328506418532477029,
+      "translation": "쓰기 크기는 `stx_atomic_write_unit_min`과 `stx_atomic_write_unit_max` 사이의 2의 거듭제곱이어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122934Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "The buffer address and file offset must be aligned to `stx_atomic_write_unit_min`.",
+      "source_hash": 1652644629985650899,
+      "context_hash": 2167530129100635208,
+      "translation": "버퍼 주소와 파일 오프셋은 `stx_atomic_write_unit_min`에 정렬되어야 합니다.",
+      "glossary_snapshot": {
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T22:41:37.122934Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "The write must not span a `stx_atomic_write_unit_max`-aligned boundary.",
+      "source_hash": 15242234706526008213,
+      "context_hash": 8560859024791811747,
+      "translation": "쓰기는 `stx_atomic_write_unit_max` 단위로 정렬된 경계를 넘어서는 안 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122935Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "The filesystem must support it.",
+      "source_hash": 8995708084983523084,
+      "context_hash": 10952559216209155514,
+      "translation": "파일시스템이 이를 지원해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122935Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:1",
+      "source": "XFS supports `RWF_ATOMIC` on `O_DIRECT` writes as of 6.11. ext4 support is in progress.",
+      "source_hash": 6579387892192467440,
+      "context_hash": 8821853461871644243,
+      "translation": "XFS는 6.11부터 `O_DIRECT` 쓰기에서 `RWF_ATOMIC`을 지원합니다. ext4 지원은 진행 중입니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:41:37.122935Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "The block device must advertise the Atomic Write Unit via the NVMe or SCSI interface.",
+      "source_hash": 7634303172992041634,
+      "context_hash": 4553896463345283023,
+      "translation": "블록 디바이스가 NVMe 또는 SCSI 인터페이스를 통해 Atomic Write Unit을 알려야 합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "block device": "블록 디바이스"
+      },
+      "translated_at": "2026-11-14T22:41:37.122935Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Why this matters for databases",
+      "source_hash": 3626675134114032736,
+      "context_hash": 7923946545133888838,
+      "translation": "데이터베이스에서 이것이 중요한 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122935Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "Without `RWF_ATOMIC`:",
+      "source_hash": 15235832224806556708,
+      "context_hash": 9709795765824527358,
+      "translation": "`RWF_ATOMIC`이 없는 경우:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:37.122936Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "With `RWF_ATOMIC` on supported hardware:",
+      "source_hash": 16415008033607387141,
+      "context_hash": 5844021196206802796,
+      "translation": "지원되는 하드웨어에서 `RWF_ATOMIC`을 사용하는 경우:",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:41:37.122936Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "PostgreSQL and MySQL are expected to adopt `RWF_ATOMIC` for 8 KB–16 KB page writes once the kernel and filesystem support stabilises.",
+      "source_hash": 6017718599387644676,
+      "context_hash": 6696712218301622007,
+      "translation": "PostgreSQL과 MySQL은 커널과 파일시스템 지원이 안정화되면 8 KB–16 KB 페이지 쓰기에 `RWF_ATOMIC`을 도입할 것으로 예상됩니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:33.642517Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "f_pos locking internals",
+      "source_hash": 6291370569671276742,
+      "context_hash": 17702400647325056337,
+      "translation": "f_pos 잠금 내부 구조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642518Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "For completeness: here is how `f_pos_lock` works in `read()` / `write()` and why `pread()` can skip it.",
+      "source_hash": 6088310588617335081,
+      "context_hash": 12483418104258841889,
+      "translation": "완전성을 위해 덧붙이면, 다음은 `read()` / `write()`에서 `f_pos_lock`이 동작하는 방식과 `pread()`가 이를 건너뛸 수 있는 이유입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642519Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "The lock itself",
+      "source_hash": 6670369331302415895,
+      "context_hash": 11506014188365511119,
+      "translation": "잠금 자체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642519Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "`file->f_pos_lock` is a `mutex` embedded in `struct file`:",
+      "source_hash": 6388301013847291314,
+      "context_hash": 8169706460160237572,
+      "translation": "`file->f_pos_lock`은 `struct file`에 내장된 `mutex`입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642520Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "file_ppos: stream vs seekable",
+      "source_hash": 15434230192687519350,
+      "context_hash": 4497928577429558573,
+      "translation": "file_ppos: 스트림 대 탐색 가능 파일",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642520Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "Not all file types have a meaningful position. `file_ppos()` returns `NULL` for stream files (pipes, sockets) so that the lock path is skipped entirely:",
+      "source_hash": 2359275580921301132,
+      "context_hash": 18245578830258751509,
+      "translation": "모든 파일 유형이 의미 있는 위치를 갖는 것은 아닙니다. `file_ppos()`는 스트림 파일(파이프, 소켓)에 대해 `NULL`을 반환하므로 잠금 경로를 완전히 건너뜁니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "fdget_pos / fdput_pos",
+      "source_hash": 2748815243698411418,
+      "context_hash": 16146676474922334466,
+      "translation": "fdget_pos / fdput_pos",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:10/seg:0",
+      "source": "The lock is only taken when `f_count > 1` (multiple fds referring to the same open file description).",
+      "source_hash": 15347788445614208225,
+      "context_hash": 9233875078032618606,
+      "translation": "잠금은 `f_count > 1`일 때(여러 fd가 동일한 열린 파일 기술(open file description)을 참조할 때)에만 획득됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:10/seg:1",
+      "source": "A file opened by a single-threaded process and not shared with `dup`/`fork` never contends on `f_pos_lock`.",
+      "source_hash": 17015671445673777797,
+      "context_hash": 6597441916366835152,
+      "translation": "단일 스레드 프로세스가 열었고 `dup`/`fork`로 공유되지 않은 파일은 `f_pos_lock`에서 경합하는 일이 없습니다.",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:41:33.642521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "Summary: when does f_pos_lock fire?",
+      "source_hash": 13735717673026279526,
+      "context_hash": 2410037929719636638,
+      "translation": "요약: f_pos_lock은 언제 동작하는가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:12/seg:0",
+      "source": "Scenario",
+      "source_hash": 17953776052022126447,
+      "context_hash": 4195097709338074751,
+      "translation": "시나리오",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:0",
+      "source": "f_pos_lock taken?",
+      "source_hash": 6086815487420354104,
+      "context_hash": 946417640643820673,
+      "translation": "f_pos_lock 획득 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:14/seg:0",
+      "source": "Single-threaded, no dup",
+      "source_hash": 16073496734290857478,
+      "context_hash": 3728208361570722826,
+      "translation": "단일 스레드, dup 없음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642522Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:15/seg:0",
+      "source": "No (`f_count == 1`)",
+      "source_hash": 3188718211880158782,
+      "context_hash": 9489906372958126231,
+      "translation": "아니요(`f_count == 1`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642522Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:16/seg:0",
+      "source": "After `dup(fd)`",
+      "source_hash": 17162211688577935342,
+      "context_hash": 14204492674811118767,
+      "translation": "`dup(fd)` 이후",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642522Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 15359444658739918547,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:33.642522Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:0",
+      "source": "After `fork()`",
+      "source_hash": 3713985288145277856,
+      "context_hash": 15523154253196108727,
+      "translation": "`fork()` 이후",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642523Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:0",
+      "source": "Yes (parent and child share the description)",
+      "source_hash": 17494289622730924421,
+      "context_hash": 194148576890063066,
+      "translation": "예(부모와 자식이 기술을 공유함)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642523Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:20/seg:0",
+      "source": "`read()` on pipe",
+      "source_hash": 16593467222152826198,
+      "context_hash": 7261784237003100489,
+      "translation": "파이프에 대한 `read()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642523Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:21/seg:0",
+      "source": "No (`FMODE_STREAM` → `file_ppos` returns NULL)",
+      "source_hash": 14701866158400365238,
+      "context_hash": 18375369995350431656,
+      "translation": "아니요(`FMODE_STREAM` → `file_ppos`가 NULL 반환)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642523Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:22/seg:0",
+      "source": "`pread()` on any file",
+      "source_hash": 15742638437851114147,
+      "context_hash": 13790522124653290752,
+      "translation": "모든 파일에 대한 `pread()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642523Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:23/seg:0",
+      "source": "Never",
+      "source_hash": 13794981996271045600,
+      "context_hash": 7010155372795293760,
+      "translation": "절대 아님",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642524Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "io_uring equivalents",
+      "source_hash": 15737498967878045406,
+      "context_hash": 11920030980042596863,
+      "translation": "io_uring 대응 연산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642524Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "`io_uring` (Linux 5.1+) exposes positional I/O as first-class operations, mapping directly onto the `preadv2`/`pwritev2` semantics:",
+      "source_hash": 7679783126513715567,
+      "context_hash": 8882139090817345753,
+      "translation": "`io_uring`(Linux 5.1+)은 위치 지정 I/O를 일급 연산으로 제공하며, 이는 `preadv2`/`pwritev2` 의미 체계에 직접 대응합니다:",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:33.642524Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "io_uring opcode",
+      "source_hash": 9986797793078061115,
+      "context_hash": 16868995887455444121,
+      "translation": "io_uring opcode",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642524Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "Equivalent syscall",
+      "source_hash": 6301693002587739835,
+      "context_hash": 16891352838730635418,
+      "translation": "대응 시스템 콜",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:33.642524Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "Notes",
+      "source_hash": 6248434630477978300,
+      "context_hash": 1155574909526947680,
+      "translation": "비고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642525Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "`IORING_OP_READ`",
+      "source_hash": 13720002668570830385,
+      "context_hash": 612571361124693746,
+      "translation": "`IORING_OP_READ`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642525Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "`pread()`",
+      "source_hash": 16992444104364604556,
+      "context_hash": 5180276404332765872,
+      "translation": "`pread()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642525Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "Single buffer, explicit offset",
+      "source_hash": 15905109568021479257,
+      "context_hash": 14457242259193183266,
+      "translation": "단일 버퍼, 명시적 오프셋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642525Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "`IORING_OP_WRITE`",
+      "source_hash": 4348160300826623213,
+      "context_hash": 3693572614206852495,
+      "translation": "`IORING_OP_WRITE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:33.642525Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "`pwrite()`",
+      "source_hash": 11319488679697702546,
+      "context_hash": 2646906017107297821,
+      "translation": "`pwrite()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394492Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "Single buffer, explicit offset",
+      "source_hash": 15905109568021479257,
+      "context_hash": 8259586510690136497,
+      "translation": "단일 버퍼, 명시적 오프셋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394493Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "`IORING_OP_READV`",
+      "source_hash": 11995688222138499859,
+      "context_hash": 6753730474376873528,
+      "translation": "`IORING_OP_READV`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "`preadv()`",
+      "source_hash": 7088463209720828217,
+      "context_hash": 15891910433428846752,
+      "translation": "`preadv()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "Vectored, explicit offset",
+      "source_hash": 17412026348758348843,
+      "context_hash": 9421177950575337316,
+      "translation": "벡터 방식, 명시적 오프셋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "`IORING_OP_WRITEV`",
+      "source_hash": 4430880277497913502,
+      "context_hash": 9011406494172543047,
+      "translation": "`IORING_OP_WRITEV`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "`pwritev()`",
+      "source_hash": 7041290815089789321,
+      "context_hash": 7101793976854705616,
+      "translation": "`pwritev()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "Vectored, explicit offset",
+      "source_hash": 17412026348758348843,
+      "context_hash": 675852954441596706,
+      "translation": "벡터 방식, 명시적 오프셋",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "`IORING_OP_READ_FIXED`",
+      "source_hash": 1392325132245376745,
+      "context_hash": 6048599952224308576,
+      "translation": "`IORING_OP_READ_FIXED`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:18/seg:0",
+      "source": "`pread()`",
+      "source_hash": 16992444104364604556,
+      "context_hash": 18186233485489218846,
+      "translation": "`pread()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394494Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:19/seg:0",
+      "source": "Pre-registered buffers (no copy from user)",
+      "source_hash": 8162520669733527805,
+      "context_hash": 7313335108786161766,
+      "translation": "사전 등록된 버퍼(사용자 공간에서 복사하지 않음)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394495Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:20/seg:0",
+      "source": "`IORING_OP_WRITE_FIXED`",
+      "source_hash": 17177453282786047987,
+      "context_hash": 10527524686094342877,
+      "translation": "`IORING_OP_WRITE_FIXED`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394495Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:21/seg:0",
+      "source": "`pwrite()`",
+      "source_hash": 11319488679697702546,
+      "context_hash": 12250428064659558928,
+      "translation": "`pwrite()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394495Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:22/seg:0",
+      "source": "Pre-registered buffers (no copy from user)",
+      "source_hash": 8162520669733527805,
+      "context_hash": 3098563015197471122,
+      "translation": "사전 등록된 버퍼(사용자 공간에서 복사하지 않음)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394495Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:23/seg:0",
+      "source": "`RWF_*` flags are passed via `sqe->rw_flags`:",
+      "source_hash": 9791126202460584451,
+      "context_hash": 15205817455304889981,
+      "translation": "`RWF_*` 플래그는 `sqe->rw_flags`를 통해 전달됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394495Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:25/seg:0",
+      "source": "Inside the kernel, `io_uring` creates a `kiocb` and calls `kiocb_set_rw_flags()` with the `sqe->rw_flags` value — the same function called by `preadv2`.",
+      "source_hash": 65012475936394834,
+      "context_hash": 4283362497571094774,
+      "translation": "커널 내부에서 `io_uring`은 `kiocb`를 생성하고 `sqe->rw_flags` 값으로 `kiocb_set_rw_flags()`를 호출합니다. 이는 `preadv2`가 호출하는 것과 같은 함수입니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:32.394495Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:25/seg:1",
+      "source": "The `IOCB_*` flags propagate through the filesystem in exactly the same way.",
+      "source_hash": 6247469578980251408,
+      "context_hash": 16249982035759357372,
+      "translation": "`IOCB_*` 플래그는 정확히 같은 방식으로 파일 시스템을 거쳐 전파됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394496Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:26/seg:0",
+      "source": "The main advantage of `io_uring` over `preadv2` is not the per-call flags (those are identical) but **submission batching**: many I/O operations are submitted in a single `io_uring_enter()` syscall, reducing syscall overhead for high-IOPS workloads.",
+      "source_hash": 4281706645868562305,
+      "context_hash": 5442434279507152884,
+      "translation": "`preadv2`에 비해 `io_uring`이 갖는 주된 장점은 호출별 플래그(이는 동일합니다)가 아니라 **제출 일괄 처리**(submission batching)입니다. 많은 I/O 작업을 단 한 번의 `io_uring_enter()` 시스템 콜로 제출하므로, 높은 IOPS 워크로드에서 시스템 콜 오버헤드가 줄어듭니다.",
+      "glossary_snapshot": {
+        "IOPS": "IOPS",
+        "overhead": "오버헤드",
+        "syscall": "시스템 콜",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:41:32.394496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Performance comparison",
+      "source_hash": 1863840401554524125,
+      "context_hash": 320188667675407894,
+      "translation": "성능 비교",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "Syscall",
+      "source_hash": 15409134233771565834,
+      "context_hash": 8710370974658791273,
+      "translation": "시스템 콜",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:32.394496Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "`f_pos_lock`?",
+      "source_hash": 17901501768127771862,
+      "context_hash": 2588385371151918832,
+      "translation": "`f_pos_lock`?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394497Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "Vectored?",
+      "source_hash": 17949320518938168906,
+      "context_hash": 6816007366923871951,
+      "translation": "벡터 방식?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394497Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "Per-call flags?",
+      "source_hash": 10875662317423399418,
+      "context_hash": 7318019530762076008,
+      "translation": "호출별 플래그?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394497Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "Best use case",
+      "source_hash": 489218670917037014,
+      "context_hash": 15466553613330997421,
+      "translation": "최적 사용 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394497Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "`read` / `write`",
+      "source_hash": 876525388438454069,
+      "context_hash": 12811871899726435809,
+      "translation": "`read` / `write`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394497Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 2865750998871244530,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:32.394497Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 12766459482952750713,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:32.394497Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 11736646844103908426,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:32.394498Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "Simple sequential access",
+      "source_hash": 5507020040916188397,
+      "context_hash": 3229779357975880934,
+      "translation": "단순 순차 접근",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394498Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "`pread` / `pwrite`",
+      "source_hash": 4875292533843206411,
+      "context_hash": 3969359208277889474,
+      "translation": "`pread` / `pwrite`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:32.394498Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:12/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 15358558097832388149,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:32.394498Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:13/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 1893083087343120878,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:32.394498Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:14/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 214824887194155097,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:31.775674Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:15/seg:0",
+      "source": "Random access, concurrent threads",
+      "source_hash": 4259249988839645719,
+      "context_hash": 12591259149339889494,
+      "translation": "무작위 접근, 동시 스레드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775676Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:16/seg:0",
+      "source": "`readv` / `writev`",
+      "source_hash": 3403648922798885283,
+      "context_hash": 10514946323257601860,
+      "translation": "`readv` / `writev`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775676Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:17/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 17180888303963858205,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:31.775676Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:18/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 12766459482952750713,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:31.775676Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:19/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 1866849445095631499,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:31.775677Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:20/seg:0",
+      "source": "Scatter-gather sequential",
+      "source_hash": 2646129765384755752,
+      "context_hash": 11774344596559452595,
+      "translation": "Scatter-gather 순차 접근",
+      "glossary_snapshot": {
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:31.775677Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:21/seg:0",
+      "source": "`preadv` / `pwritev`",
+      "source_hash": 6132164752595593353,
+      "context_hash": 8313184669412263549,
+      "translation": "`preadv` / `pwritev`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775677Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:22/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 1642358034342958745,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:31.775677Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:23/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 1893083087343120878,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:31.775678Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:24/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 13421544286184533152,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:31.775678Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:25/seg:0",
+      "source": "Scatter-gather random access",
+      "source_hash": 3380708832898965834,
+      "context_hash": 1938385456049878744,
+      "translation": "Scatter-gather 무작위 접근",
+      "glossary_snapshot": {
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:31.775678Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:26/seg:0",
+      "source": "`preadv2` / `pwritev2`",
+      "source_hash": 14860057758863224556,
+      "context_hash": 13413962862035037172,
+      "translation": "`preadv2` / `pwritev2`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775678Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:27/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 1343823188896644032,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:31.775678Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:28/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 16017909687741853026,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:31.775678Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:29/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 14889992492160622878,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:31.775679Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:30/seg:0",
+      "source": "Full control per call",
+      "source_hash": 12238394088699279809,
+      "context_hash": 12088442436783354939,
+      "translation": "호출별 완전한 제어",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775679Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:31/seg:0",
+      "source": "`io_uring`",
+      "source_hash": 12624118248847662565,
+      "context_hash": 1577803100121767156,
+      "translation": "`io_uring`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775679Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:32/seg:0",
+      "source": "no",
+      "source_hash": 13180892422511886183,
+      "context_hash": 13013359390589824136,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:31.775679Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:33/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 16017909687741853026,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:31.775679Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:34/seg:0",
+      "source": "yes",
+      "source_hash": 1118751764079621129,
+      "context_hash": 6708600645518913968,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:31.775680Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:35/seg:0",
+      "source": "High-concurrency, batch submission",
+      "source_hash": 9698457459945706663,
+      "context_hash": 14522086671984749312,
+      "translation": "높은 동시성, 일괄 제출",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775680Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:36/seg:0",
+      "source": "For a database using multiple threads to issue random reads:",
+      "source_hash": 5711872253719035876,
+      "context_hash": 3724165583147386506,
+      "translation": "여러 스레드로 무작위 읽기를 수행하는 데이터베이스의 경우는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775680Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:37/seg:0",
+      "source": "`read()` + `lseek()`: requires external mutex around each seek+read pair.",
+      "source_hash": 16571209047029113950,
+      "context_hash": 999847057881150131,
+      "translation": "`read()` + `lseek()`: 각 seek+read 쌍을 외부 뮤텍스로 감싸야 합니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:41:31.775680Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:38/seg:0",
+      "source": "`pread()`: safe without any mutex; each thread passes its own offset.",
+      "source_hash": 15959498384215460257,
+      "context_hash": 2754214708346948231,
+      "translation": "`pread()`: 뮤텍스 없이도 안전합니다. 각 스레드가 자신의 오프셋을 전달합니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:41:31.775681Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:39/seg:0",
+      "source": "`preadv()`: safe and avoids an extra `memcpy` when the page header and body go to different structures.",
+      "source_hash": 5975611897681677382,
+      "context_hash": 15041771420207028816,
+      "translation": "`preadv()`: 안전하며, 페이지 헤더와 본문이 서로 다른 구조체로 들어갈 때 추가 `memcpy`를 피할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775681Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:40/seg:0",
+      "source": "`preadv2(..., RWF_NOWAIT)`: can check the page cache without blocking; fall back to `io_uring` on `EAGAIN`.",
+      "source_hash": 2572403721837950710,
+      "context_hash": 416020614844256936,
+      "translation": "`preadv2(..., RWF_NOWAIT)`: 블로킹 없이 페이지 캐시를 확인할 수 있습니다. `EAGAIN`이 반환되면 `io_uring`으로 대체하십시오.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:41:31.775681Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:41/seg:0",
+      "source": "`io_uring` with `IORING_OP_READ_FIXED`: lowest overhead for sustained random I/O.",
+      "source_hash": 5339051686320459461,
+      "context_hash": 7151577982809096733,
+      "translation": "`IORING_OP_READ_FIXED`를 사용하는 `io_uring`: 지속적인 무작위 I/O에서 오버헤드가 가장 낮습니다.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:41:31.775682Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Key source files",
+      "source_hash": 11048178491662595550,
+      "context_hash": 6409725147282124438,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T22:41:31.775682Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 12499940865558542434,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:41:31.775682Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:0",
+      "source": "Contents",
+      "source_hash": 10242441547106091136,
+      "context_hash": 10877153153312210145,
+      "translation": "내용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775682Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "`fs/read_write.c`",
+      "source_hash": 2500510365210277400,
+      "context_hash": 13181882296213831952,
+      "translation": "`fs/read_write.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:31.775682Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:0",
+      "source": "`pread64`, `pwrite64`, `do_preadv`, `do_pwritev`, `ksys_read`, `fdget_pos`, `fdput_pos`, `file_ppos`",
+      "source_hash": 1001749606633525021,
+      "context_hash": 9463735744748144028,
+      "translation": "`pread64`, `pwrite64`, `do_preadv`, `do_pwritev`, `ksys_read`, `fdget_pos`, `fdput_pos`, `file_ppos`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910503Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:0",
+      "source": "`include/linux/fs.h`",
+      "source_hash": 11366291457846241831,
+      "context_hash": 13315575365251532856,
+      "translation": "`include/linux/fs.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "`struct file`, `f_pos_lock`, `FMODE_PREAD`, `FMODE_PWRITE`, `FMODE_NOWAIT`, `kiocb_set_rw_flags`, `IOCB_*` flags",
+      "source_hash": 784008541604267790,
+      "context_hash": 7032146356067028288,
+      "translation": "`struct file`, `f_pos_lock`, `FMODE_PREAD`, `FMODE_PWRITE`, `FMODE_NOWAIT`, `kiocb_set_rw_flags`, `IOCB_*` 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:7/seg:0",
+      "source": "`include/uapi/linux/fs.h`",
+      "source_hash": 17368848939257249312,
+      "context_hash": 9521443130507660760,
+      "translation": "`include/uapi/linux/fs.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:0",
+      "source": "`RWF_HIPRI`, `RWF_DSYNC`, `RWF_SYNC`, `RWF_NOWAIT`, `RWF_APPEND`, `RWF_NOAPPEND`, `RWF_ATOMIC`, `rwf_t`",
+      "source_hash": 16245991178978029161,
+      "context_hash": 5951137360517366115,
+      "translation": "`RWF_HIPRI`, `RWF_DSYNC`, `RWF_SYNC`, `RWF_NOWAIT`, `RWF_APPEND`, `RWF_NOAPPEND`, `RWF_ATOMIC`, `rwf_t`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:0",
+      "source": "`mm/filemap.c`",
+      "source_hash": 4822464454896861235,
+      "context_hash": 8928739876244422956,
+      "translation": "`mm/filemap.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:10/seg:0",
+      "source": "`generic_file_read_iter`, `filemap_get_pages` — where `IOCB_NOWAIT` is checked for buffered reads",
+      "source_hash": 9275895958295780371,
+      "context_hash": 852486070652395262,
+      "translation": "`generic_file_read_iter`, `filemap_get_pages` — buffered read에서 `IOCB_NOWAIT`를 검사하는 곳",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:11/seg:0",
+      "source": "`fs/inode.c`",
+      "source_hash": 4015548635824170774,
+      "context_hash": 5698771775056520029,
+      "translation": "`fs/inode.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:12/seg:0",
+      "source": "`inode_init_always` — where `i_rwsem` is initialised (taken in `RWF_NOWAIT` paths)",
+      "source_hash": 7387047024880561977,
+      "context_hash": 3345148941624685608,
+      "translation": "`inode_init_always` — `i_rwsem`을 초기화하는 곳(`RWF_NOWAIT` 경로에서 획득함)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910504Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:13/seg:0",
+      "source": "`io_uring/rw.c`",
+      "source_hash": 3372980552076458296,
+      "context_hash": 12397128998862159000,
+      "translation": "`io_uring/rw.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910505Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:14/seg:0",
+      "source": "io_uring read/write handlers; calls `kiocb_set_rw_flags` with `sqe->rw_flags`",
+      "source_hash": 1324627259144454782,
+      "context_hash": 14981027715149762998,
+      "translation": "io_uring read/write 핸들러, `sqe->rw_flags`로 `kiocb_set_rw_flags` 호출",
+      "glossary_snapshot": {
+        "handlers": "핸들러"
+      },
+      "translated_at": "2026-11-14T21:51:34.910505Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:15/seg:0",
+      "source": "`block/blk-mq.c`",
+      "source_hash": 17659682137136931246,
+      "context_hash": 2436643421363302027,
+      "translation": "`block/blk-mq.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910505Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:16/seg:0",
+      "source": "`blk_poll` — the polled completion path for `IOCB_HIPRI`",
+      "source_hash": 14320584424473069841,
+      "context_hash": 8764481002941593141,
+      "translation": "`blk_poll` — `IOCB_HIPRI`를 위한 polling 기반 완료 경로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910505Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:17/seg:0",
+      "source": "`fs/xfs/xfs_file.c`",
+      "source_hash": 13925522786541170943,
+      "context_hash": 3700509992514738664,
+      "translation": "`fs/xfs/xfs_file.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910505Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:18/seg:0",
+      "source": "XFS `read_iter` / `write_iter`; `RWF_ATOMIC` and `IOCB_NOWAIT` handling",
+      "source_hash": 16204170556064963167,
+      "context_hash": 15221115792517831977,
+      "translation": "XFS `read_iter` / `write_iter`, `RWF_ATOMIC` 및 `IOCB_NOWAIT` 처리",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T21:51:34.910505Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 14349302890113983265,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:51:34.910505Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:1/seg:0",
+      "source": "[Vectored I/O (readv/writev)](vectored-io.md) — `struct iovec`, `iov_iter`, scatter-gather fundamentals",
+      "source_hash": 13709651537517513364,
+      "context_hash": 263922965608855927,
+      "translation": "[Vectored I/O (readv/writev)](vectored-io.md) — `struct iovec`, `iov_iter`, scatter-gather 기초",
+      "glossary_snapshot": {
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T21:51:34.910506Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:2/seg:0",
+      "source": "[Direct I/O](direct-io.md) — `O_DIRECT` alignment requirements; `RWF_HIPRI` requires `O_DIRECT`",
+      "source_hash": 18404794046625435494,
+      "context_hash": 13708191152242863073,
+      "translation": "[Direct I/O](direct-io.md) — `O_DIRECT` 정렬 요구 사항, `RWF_HIPRI`에 필요한 `O_DIRECT`",
+      "glossary_snapshot": {
+        "alignment": "정렬"
+      },
+      "translated_at": "2026-11-14T21:51:34.910506Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:3/seg:0",
+      "source": "[Buffered I/O and the Page Cache](buffered-io.md) — what `RWF_NOWAIT` tests against; `filemap_get_pages`",
+      "source_hash": 17322219764061887094,
+      "context_hash": 13940618243437132073,
+      "translation": "[Buffered I/O와 페이지 캐시](buffered-io.md) — `RWF_NOWAIT`가 검사하는 대상, `filemap_get_pages`",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:51:34.910506Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:4/seg:0",
+      "source": "[Async I/O Evolution](async-io.md) — io_uring `IORING_OP_READ` / `IORING_OP_WRITE` and `sqe->rw_flags`",
+      "source_hash": 14414223919970310385,
+      "context_hash": 18211270036234919464,
+      "translation": "[비동기 I/O의 발전](async-io.md) — io_uring `IORING_OP_READ` / `IORING_OP_WRITE`와 `sqe->rw_flags`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910506Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:5/seg:0",
+      "source": "[fsync / fdatasync](fsync-fdatasync.md) — what `RWF_DSYNC` and `RWF_SYNC` trigger under the hood",
+      "source_hash": 9339450724504119046,
+      "context_hash": 13236579516650141780,
+      "translation": "[fsync / fdatasync](fsync-fdatasync.md) — `RWF_DSYNC`와 `RWF_SYNC`가 내부적으로 일으키는 동작",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:34.910506Z",
+      "issues": []
+    }
+  ]
+}

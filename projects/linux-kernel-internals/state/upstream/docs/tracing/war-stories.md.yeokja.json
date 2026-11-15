@@ -1,0 +1,511 @@
+{
+  "version": 1,
+  "source_hash": 7131133627428639677,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Tracing War Stories",
+      "source_hash": 16663713983012865926,
+      "context_hash": 9781989382378834096,
+      "translation": "트레이싱 실전 사례",
+      "glossary_snapshot": {
+        "tracing": "트레이싱",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T22:26:48.343852Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Real bugs from the observability stack — where \"let users safely watch the kernel\" turned out to be much harder than it sounds",
+      "source_hash": 10116214953100764253,
+      "context_hash": 14823015492696047951,
+      "translation": "관측(observability) 스택에서 나온 실제 버그 — \"사용자가 커널을 안전하게 들여다보게 하자\"는 일이 생각보다 훨씬 어려웠던 사례",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:48.343853Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Tracing is a strange corner of the kernel: it exists to let code *outside* the core reach *inside* it — read arguments, run at arbitrary functions, sometimes even run user-supplied programs.",
+      "source_hash": 8895660658668891833,
+      "context_hash": 11322500027451905465,
+      "translation": "트레이싱은 커널에서 독특한 영역입니다. 트레이싱은 코어 *바깥*의 코드가 코어 *안쪽*까지 손을 뻗게 하기 위해 존재합니다. 인자를 읽고, 임의의 함수에서 실행되고, 때로는 사용자가 제공한 프로그램까지 실행합니다.",
+      "glossary_snapshot": {
+        "functions": "함수",
+        "kernel": "커널",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:26:48.343854Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "That reach is exactly what makes it powerful, and exactly what makes it dangerous.",
+      "source_hash": 14478585684842175137,
+      "context_hash": 13811806448399164959,
+      "translation": "바로 그 손길이 트레이싱을 강력하게 만들고, 바로 그 손길이 트레이싱을 위험하게 만듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343854Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "Each of these stories is a place where the reach cut the wrong way.",
+      "source_hash": 16324696216658946049,
+      "context_hash": 11521045210890381008,
+      "translation": "여기 소개하는 사례는 모두 그 손길이 잘못된 방향으로 작용한 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343855Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "1.",
+      "source_hash": 4093818885034029453,
+      "context_hash": 4976894807483689263,
+      "translation": "1\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343855Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:1",
+      "source": "The profiler that handed out root",
+      "source_hash": 14028432272219255646,
+      "context_hash": 10834376454031083544,
+      "translation": "root 권한을 내준 프로파일러",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343855Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "**Symptom.** On essentially every distro kernel of its day, an unprivileged user could become root with a short, reliable exploit — through the performance-monitoring syscall.",
+      "source_hash": 2628349360462881144,
+      "context_hash": 14676705451015074462,
+      "translation": "**증상.** 당시 사실상 모든 배포판 커널에서, 비특권 사용자가 성능 모니터링 시스템 콜을 통해 짧고 안정적인 익스플로잇으로 root가 될 수 있었습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:48.343856Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**Root cause.** `perf_event_open()` accepts an event configuration from user space.",
+      "source_hash": 15429242588439824342,
+      "context_hash": 1800904442878334566,
+      "translation": "**근본 원인.** `perf_event_open()`는 사용자 공간에서 이벤트 설정을 받아들입니다.",
+      "glossary_snapshot": {
+        "user space": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:26:48.343856Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "In the software-event setup path, one field was handled as a signed value where it should have been an unsigned 64-bit index, so a crafted `config` indexed *before* the start of an array — an out-of-bounds write into kernel memory, fully controlled by the caller.",
+      "source_hash": 1199741684174523764,
+      "context_hash": 12165630221711601434,
+      "translation": "소프트웨어 이벤트 설정 경로에서 한 필드가 부호 없는 64비트 인덱스로 처리되어야 했는데 부호 있는 값으로 처리되었고, 그 결과 조작된 `config`가 배열의 시작 *앞*을 인덱싱할 수 있었습니다. 즉 호출자가 완전히 제어할 수 있는, 커널 메모리에 대한 범위 밖 쓰기였습니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "bit": "비트",
+        "kernel memory": "커널 메모리"
+      },
+      "translated_at": "2026-11-14T22:26:48.343857Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "This became **CVE-2013-2094**, one of the most widely used local privilege escalations of its era.",
+      "source_hash": 3297503016833998758,
+      "context_hash": 4914757370420979940,
+      "translation": "이 버그는 **CVE-2013-2094**가 되었고, 당대에 가장 널리 쓰인 로컬 권한 상승 취약점 중 하나였습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE"
+      },
+      "translated_at": "2026-11-14T22:26:48.343857Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Fix.** Treat the field as the `u64` it is, so the index can't go negative ([`8176cced706b`](https://git.kernel.org/linus/8176cced706b), \"perf: Treat attr.config as u64 in perf_swevent_init()\").",
+      "source_hash": 1079413961718340487,
+      "context_hash": 15919575338259869165,
+      "translation": "**수정.** 해당 필드를 본래 타입인 `u64`로 다루어 인덱스가 음수가 될 수 없게 했습니다([`8176cced706b`](https://git.kernel.org/linus/8176cced706b), \"perf: Treat attr.config as u64 in perf_swevent_init()\").",
+      "glossary_snapshot": {
+        "perf": "perf"
+      },
+      "translated_at": "2026-11-14T22:26:48.343857Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**Lesson.** Tracing infrastructure is *privileged kernel attack surface fed by user input*.",
+      "source_hash": 15699060473165899481,
+      "context_hash": 15562319863492706897,
+      "translation": "**교훈.** 트레이싱 인프라는 *사용자 입력을 받는 특권 커널 공격 표면*입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:26:48.343858Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "A single sign-extension slip in code meant to *observe* the system became a total compromise of it.",
+      "source_hash": 15283391494024889759,
+      "context_hash": 11583525440745462863,
+      "translation": "시스템을 *관찰*하기 위한 코드의 부호 확장 실수 하나가 시스템 전체의 장악으로 이어졌습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343858Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "Every value that crosses the tracing boundary is untrusted.",
+      "source_hash": 5762310431367366838,
+      "context_hash": 14866522693982081022,
+      "translation": "트레이싱 경계를 넘어오는 모든 값은 신뢰할 수 없습니다.",
+      "glossary_snapshot": {
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:26:48.343858Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "2.",
+      "source_hash": 1210270714770233551,
+      "context_hash": 15038794183930673841,
+      "translation": "2\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343858Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:1",
+      "source": "When \"provably safe\" stopped being safe",
+      "source_hash": 16948296468975038705,
+      "context_hash": 7426741258059457606,
+      "translation": "\"증명 가능하게 안전한\" 것이 더 이상 안전하지 않게 되었을 때",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343859Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "**Symptom.** BPF programs — which the kernel's **verifier** proves cannot crash or read out of bounds before they're allowed to run — could nonetheless be made to leak arbitrary kernel memory.",
+      "source_hash": 9650840020004654936,
+      "context_hash": 10066495607918711787,
+      "translation": "**증상.** 실행이 허용되기 전에 커널의 **verifier**가 크래시하거나 범위 밖을 읽을 수 없음을 증명하는 BPF 프로그램이, 그럼에도 임의의 커널 메모리를 유출하도록 만들 수 있었습니다.",
+      "glossary_snapshot": {
+        "BPF programs": "BPF 프로그램",
+        "kernel": "커널",
+        "kernel memory": "커널 메모리"
+      },
+      "translated_at": "2026-11-14T22:26:48.343859Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "**Root cause.** [Spectre v1](../bpf/README.md).",
+      "source_hash": 9179631940111286514,
+      "context_hash": 3349589317074376872,
+      "translation": "**근본 원인.** [Spectre v1](../bpf/README.md).",
+      "glossary_snapshot": {
+        "Spectre": "Spectre"
+      },
+      "translated_at": "2026-11-14T22:26:48.343859Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "The verifier proved that *architecturally* a program never accessed memory outside a map's bounds.",
+      "source_hash": 8505627555528343686,
+      "context_hash": 7904383909126194717,
+      "translation": "verifier는 프로그램이 *아키텍처 수준에서* 맵의 범위 밖 메모리에 절대 접근하지 않음을 증명했습니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:26:48.343859Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "But a CPU **speculatively** executes past a bounds check before resolving it, briefly touching out-of-bounds memory and leaving a measurable cache footprint — a side channel the program's owner could read back.",
+      "source_hash": 10760707839710599158,
+      "context_hash": 9558535655628397974,
+      "translation": "그러나 CPU는 경계 검사의 결과가 확정되기 전에 그 너머를 **투기적으로** 실행하여, 잠시 범위 밖 메모리에 접근하고 측정 가능한 캐시 흔적을 남깁니다. 이는 프로그램의 소유자가 다시 읽어 낼 수 있는 사이드 채널입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "bounds check": "경계 검사",
+        "side channel": "사이드 채널"
+      },
+      "translated_at": "2026-11-14T23:35:55.245255Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:3",
+      "source": "The program was safe as written and still leaked; the threat model itself had changed underneath the verifier.",
+      "source_hash": 15476488923676643967,
+      "context_hash": 18279907789568553522,
+      "translation": "프로그램은 작성된 그대로는 안전했지만 여전히 정보를 유출했습니다. verifier의 발밑에서 위협 모델 자체가 바뀌어 버린 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343860Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "**Fix.** Teach the verifier to *mask* array indices so that even speculative accesses are clamped within bounds, closing the window the CPU could run through ([`b2157399cc98`](https://git.kernel.org/linus/b2157399cc98), \"bpf: prevent out-of-bounds speculation\").",
+      "source_hash": 15530498913944387950,
+      "context_hash": 2352005804199079482,
+      "translation": "**수정.** verifier가 배열 인덱스를 *마스킹*하도록 하여 투기적 접근조차 범위 안으로 제한되게 함으로써, CPU가 빠져나갈 수 있던 틈을 막았습니다([`b2157399cc98`](https://git.kernel.org/linus/b2157399cc98), \"bpf: prevent out-of-bounds speculation\").",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "CPU": "CPU",
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:26:48.343860Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "**Lesson.** \"Provably safe\" is only as strong as the machine model you prove against.",
+      "source_hash": 6605862820304287040,
+      "context_hash": 8375907807980303634,
+      "translation": "**교훈.** \"증명 가능한 안전성\"은 증명의 기준이 되는 머신 모델만큼만 강합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343860Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "When speculative execution entered the threat model, a whole class of *formally verified* programs became unsafe overnight — and the safety proof had to grow to cover the hardware's guesses, not just its commitments.",
+      "source_hash": 10002604117845034243,
+      "context_hash": 13863790055075088168,
+      "translation": "투기적 실행이 위협 모델에 들어오자, *형식적으로 검증된* 프로그램 부류 전체가 하룻밤 사이에 안전하지 않게 되었습니다. 안전성 증명은 하드웨어가 확정한 동작뿐 아니라 하드웨어의 추측까지 다루도록 확장되어야 했습니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:26:48.343860Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "3.",
+      "source_hash": 414013015342266677,
+      "context_hash": 3792573273115638743,
+      "translation": "3\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343860Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:1",
+      "source": "Tracing the tracer",
+      "source_hash": 8565560859891243213,
+      "context_hash": 16745770423504306314,
+      "translation": "트레이서를 트레이싱하기",
+      "glossary_snapshot": {
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:26:48.343861Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "**Symptom.** Enabling a tracer could lock up the machine — the tracing code, while recording an event, called a function that was *itself* being traced, which recorded another event, which called it again.",
+      "source_hash": 13586474873923189271,
+      "context_hash": 15819727049322109570,
+      "translation": "**증상.** 트레이서를 활성화하면 머신이 멈출 수 있었습니다. 트레이싱 코드가 이벤트를 기록하는 도중 *그 자체가* 트레이싱되고 있는 함수를 호출했고, 그 함수가 또 다른 이벤트를 기록하면서 다시 그 함수를 호출했습니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:26:48.343861Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "**Root cause.** Instrumentation shares the kernel with what it instruments.",
+      "source_hash": 13407295918183252402,
+      "context_hash": 3564852057649663508,
+      "translation": "**근본 원인.** 계측 코드는 자신이 계측하는 대상과 같은 커널을 공유합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:48.343861Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "If any function on the trace-recording path is also a traced function, you get unbounded recursion.",
+      "source_hash": 17486448249337144577,
+      "context_hash": 2494000599616426970,
+      "translation": "트레이스 기록 경로에 있는 함수가 하나라도 트레이싱 대상 함수이면 무한 재귀가 발생합니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:26:48.343861Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:2",
+      "source": "The kernel guards against this pervasively — hot tracing paths are marked `notrace`, and tracers keep per-CPU recursion flags — but a gap in that armor, such as the function-graph *return* handler re-entering itself, reintroduces the loop.",
+      "source_hash": 17615487433161429438,
+      "context_hash": 17761757667125633285,
+      "translation": "커널은 이를 곳곳에서 막고 있습니다. 자주 실행되는 트레이싱 경로는 `notrace`로 표시되고, 트레이서는 CPU별 재귀 플래그를 유지합니다. 그러나 function-graph *return* 핸들러가 자기 자신에 재진입하는 경우처럼 이 방어막에 틈이 생기면 루프가 다시 나타납니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "handler": "핸들러",
+        "kernel": "커널",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:26:48.343861Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "**Fix.** Add explicit recursion protection to the affected path ([`0db0934e7f9b`](https://git.kernel.org/linus/0db0934e7f9b), \"tracing: fgraph: Protect return handler from recursion loop\").",
+      "source_hash": 5328281130005553674,
+      "context_hash": 7702975524466666462,
+      "translation": "**수정.** 해당 경로에 명시적인 재귀 보호를 추가했습니다([`0db0934e7f9b`](https://git.kernel.org/linus/0db0934e7f9b), \"tracing: fgraph: Protect return handler from recursion loop\").",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:48.343861Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "**Lesson.** Observation is not free of the system it observes.",
+      "source_hash": 4394611812297014326,
+      "context_hash": 11796959680851790718,
+      "translation": "**교훈.** 관찰은 그것이 관찰하는 시스템으로부터 자유롭지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:35.716847Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "A tracer must be scrupulous about never tracing itself — a discipline that has to be maintained at every entry point, because a single un-guarded one turns \"watch this function\" into a hang.",
+      "source_hash": 7308848331034760165,
+      "context_hash": 12625726963542768593,
+      "translation": "트레이서는 결코 자기 자신을 트레이싱하지 않도록 철저해야 합니다. 이는 모든 진입점에서 유지되어야 하는 규율인데, 보호되지 않은 진입점 하나만 있어도 \"이 함수를 관찰하라\"는 요청이 행(hang)으로 바뀌기 때문입니다.",
+      "glossary_snapshot": {
+        "entry point": "진입점",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:35:55.245256Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "The recurring theme",
+      "source_hash": 5226336043971876845,
+      "context_hash": 13027312389451513554,
+      "translation": "반복되는 주제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:35.716849Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "All three come from the same tension: tracing must reach deep into the kernel, from a less-trusted context, without becoming a weapon or a foot-gun.",
+      "source_hash": 5314468952297790397,
+      "context_hash": 16410062595921242657,
+      "translation": "세 가지 모두 같은 긴장에서 비롯됩니다. 트레이싱은 덜 신뢰되는 컨텍스트에서 커널 깊숙이 도달해야 하면서도, 무기가 되거나 스스로를 해치는 도구가 되어서는 안 됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T22:19:35.716850Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "**Everything crossing the boundary is untrusted input** (story 1).",
+      "source_hash": 15189592517108527679,
+      "context_hash": 255841792217587272,
+      "translation": "**경계를 넘는 모든 것은 신뢰할 수 없는 입력입니다**(사례 1).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:35.716850Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "**Safety proofs must match the real machine, speculation included** (story 2).",
+      "source_hash": 2672343039432030870,
+      "context_hash": 5640224612565040980,
+      "translation": "**안전성 증명은 투기적 실행(speculation)까지 포함하여 실제 기계와 일치해야 합니다**(사례 2).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:35.716851Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "**The observer is part of the system and must not perturb — or recurse into — itself** (story 3).",
+      "source_hash": 45606880059225017,
+      "context_hash": 1940293776297222158,
+      "translation": "**관찰자는 시스템의 일부이며 자기 자신을 교란하거나 자기 자신으로 재귀해서는 안 됩니다**(사례 3).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:35.716851Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 1769455738993936803,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:19:35.716852Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "[`8176cced706b`](https://git.kernel.org/linus/8176cced706b) — the CVE-2013-2094 perf fix",
+      "source_hash": 693157359217888350,
+      "context_hash": 2123881948748689549,
+      "translation": "[`8176cced706b`](https://git.kernel.org/linus/8176cced706b) — CVE-2013-2094 perf 수정",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "perf": "perf"
+      },
+      "translated_at": "2026-11-14T22:19:35.716852Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "[`b2157399cc98`](https://git.kernel.org/linus/b2157399cc98) — the BPF anti-speculation change",
+      "source_hash": 9186868003398779154,
+      "context_hash": 17465041353137854689,
+      "translation": "[`b2157399cc98`](https://git.kernel.org/linus/b2157399cc98) — BPF 투기적 실행 방지 변경",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T22:19:35.716853Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "[BPF](../bpf/README.md) — the verifier that these speculation defenses live in",
+      "source_hash": 933629995761301563,
+      "context_hash": 13520476323580269012,
+      "translation": "[BPF](../bpf/README.md) — 이러한 투기적 실행 방어가 자리한 verifier",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T22:19:35.716853Z",
+      "issues": []
+    }
+  ]
+}

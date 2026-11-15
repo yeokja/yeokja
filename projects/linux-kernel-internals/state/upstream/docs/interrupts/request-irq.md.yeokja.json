@@ -1,0 +1,426 @@
+{
+  "version": 1,
+  "source_hash": 1457981980276315094,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "request_irq and free_irq",
+      "source_hash": 16708717875661436628,
+      "context_hash": 14188832730163464557,
+      "translation": "request_irq와 free_irq",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:44.371798Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Registering interrupt handlers with the kernel",
+      "source_hash": 373134835422825659,
+      "context_hash": 1626631331509006365,
+      "translation": "커널에 인터럽트 핸들러 등록하기",
+      "glossary_snapshot": {
+        "interrupt handlers": "인터럽트 핸들러",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:33:44.371799Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The basic API",
+      "source_hash": 5144466391413928092,
+      "context_hash": 2451859924984636003,
+      "translation": "기본 API",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:33:44.371799Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Why this API has barely changed while everything under it has",
+      "source_hash": 13368610771105085911,
+      "context_hash": 8099943927598939046,
+      "translation": "그 아래의 모든 것이 바뀌는 동안 이 API가 거의 바뀌지 않은 이유",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:33:44.371799Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "`request_irq()`'s shape has been almost untouched since the early 2.6 series, even as the hardware it sits on top of went through IOAPIC, MSI, MSI-X, per-CPU vectors, and (on other architectures) entirely different controller families like ARM's GIC.",
+      "source_hash": 5276836194921220477,
+      "context_hash": 7258237842748904541,
+      "translation": "`request_irq()`의 형태는 초기 2.6 시리즈 이후 거의 손대지 않은 채로 유지되어 왔습니다. 그 아래의 하드웨어가 IOAPIC, MSI, MSI-X, per-CPU 벡터를 거치고, (다른 아키텍처에서는) ARM의 GIC 같은 완전히 다른 컨트롤러 계열로 바뀌는 동안에도 마찬가지입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "MSI": "MSI",
+        "MSI-X": "MSI-X",
+        "controller": "컨트롤러",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:33:44.371799Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "That stability isn't an accident or a case of the API being frozen in amber — it's the direct payoff of the `irq_desc`/flow-handler/`irq_chip` separation covered on the [Interrupt Handling Overview](interrupts.md#the-irq_desc-lookup) page: because a driver's handler only ever talks to a Linux IRQ number, and everything controller-specific lives behind `irq_chip` ops the driver never touches, an entirely new interrupt controller can be plugged into the kernel without any existing driver's `request_irq()` call needing to change.",
+      "source_hash": 13091176756951196035,
+      "context_hash": 12568034344141505772,
+      "translation": "이러한 안정성은 우연도 아니고 API가 박제된 채 굳어 버린 경우도 아닙니다. 이는 [인터럽트 처리 개요](interrupts.md#the-irq_desc-lookup) 페이지에서 다룬 `irq_desc`/flow handler/`irq_chip` 분리가 직접 가져다준 결과입니다. 드라이버의 핸들러는 오직 Linux IRQ 번호와만 상호작용하고, 컨트롤러에 특화된 모든 것은 드라이버가 전혀 건드리지 않는 `irq_chip` ops 뒤에 있으므로, 기존 드라이버의 `request_irq()` 호출을 전혀 바꾸지 않고도 완전히 새로운 인터럽트 컨트롤러를 커널에 끼워 넣을 수 있습니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "IRQ": "IRQ",
+        "Linux": "Linux",
+        "controller": "컨트롤러",
+        "driver": "드라이버",
+        "handler": "핸들러",
+        "interrupt": "인터럽트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:33:44.371799Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The one real change to the handler signature itself is its third argument.",
+      "source_hash": 2759954883025253867,
+      "context_hash": 8543071306871617515,
+      "translation": "핸들러 시그니처 자체에 생긴 유일한 실질적 변경은 세 번째 인자입니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:33:44.371799Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Through Linux 2.6.18, a handler was `irqreturn_t (*)(int, void *, struct pt_regs *)` — the raw register state at the moment of interrupt was passed to every handler, \"just in case.\" (The `irq_handler_t` typedef itself arrived just before this: a separate, immediately-preceding commit in the same October 2006 series, \"IRQ: Typedef the IRQ handler function type\", introduced the name for whatever the handler signature happened to be at that point.) David Howells's [*\"IRQ: Maintain regs pointer globally rather than passing to IRQ handlers\"*](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d12e780e003f93433d49ce78cfedf4b4c52adc5) (October 2006) then dropped the `pt_regs` argument for 2.6.19 (confirmed via tag-diff: present at v2.6.18, gone at v2.6.19), leaving today's `irqreturn_t (*)(int, void *)`.",
+      "source_hash": 12610855896537408630,
+      "context_hash": 6773432136819565027,
+      "translation": "Linux 2.6.18까지 핸들러는 `irqreturn_t (*)(int, void *, struct pt_regs *)`였으며, 인터럽트 발생 순간의 원시 레지스터 상태가 \"만일을 대비해\" 모든 핸들러에 전달되었습니다. (`irq_handler_t` typedef 자체는 그 직전에 도입되었습니다. 같은 2006년 10월 시리즈에서 바로 앞선 별도의 커밋인 \"IRQ: Typedef the IRQ handler function type\"이 그 시점의 핸들러 시그니처가 무엇이든 그것에 이름을 붙였습니다.) 이어서 David Howells의 [*\"IRQ: Maintain regs pointer globally rather than passing to IRQ handlers\"*](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d12e780e003f93433d49ce78cfedf4b4c52adc5)(2006년 10월)가 2.6.19에서 `pt_regs` 인자를 제거했고(태그 diff로 확인: v2.6.18에는 있고 v2.6.19에는 없음), 그 결과 오늘날의 `irqreturn_t (*)(int, void *)`가 남았습니다.",
+      "glossary_snapshot": {
+        "David": "David",
+        "IRQ": "IRQ",
+        "Linux": "Linux",
+        "handler": "핸들러",
+        "handlers": "핸들러",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:33:44.371800Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "Almost nothing actually used `regs` (the commit's own message names the real consumers: `profile_tick()` for profiling and `update_process_times()` for user-vs-kernel CPU time accounting — the kind of thing that surfaces in `/proc/stat` and per-process `/proc/<pid>/stat`, not `/proc/interrupts` — and both could get at the current register state through `get_irq_regs()` instead), and passing a live pointer into every handler was a standing invitation to misuse it for something other than its original diagnostic purpose.",
+      "source_hash": 965838115158131933,
+      "context_hash": 8746294204818818240,
+      "translation": "실제로 `regs`를 사용하는 곳은 거의 없었으며(커밋 메시지 자체가 실제 사용처로 프로파일링을 위한 `profile_tick()`과 사용자 대 커널 CPU 시간 어카운팅을 위한 `update_process_times()`를 꼽고 있습니다. 이는 `/proc/interrupts`가 아니라 `/proc/stat`과 프로세스별 `/proc/<pid>/stat`에 드러나는 종류의 정보이며, 두 함수 모두 대신 `get_irq_regs()`를 통해 현재 레지스터 상태에 접근할 수 있었습니다), 모든 핸들러에 살아 있는 포인터를 넘기는 것은 이를 원래의 진단 목적이 아닌 다른 용도로 오용하도록 상시 부추기는 것이었습니다.",
+      "glossary_snapshot": {
+        "CPU time": "CPU 시간",
+        "accounting": "어카운팅",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:25:20.078710Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:3",
+      "source": "Removing an argument nobody needed, once there was an equally capable alternative for the handful of callers who did, is the kind of API cleanup that's much easier to justify than to reverse — which is presumably why, two decades on, it's still the only breaking change this signature has ever had.",
+      "source_hash": 3699810222908499236,
+      "context_hash": 13718513919136441083,
+      "translation": "아무도 필요로 하지 않는 인자를, 그것이 필요했던 소수의 호출자를 위해 동등한 능력의 대안이 마련된 뒤에 제거하는 것은 되돌리기보다 정당화하기가 훨씬 쉬운 종류의 API 정리입니다. 아마도 그래서 20년이 지난 지금도 이것이 이 시그니처에 있었던 유일한 호환성을 깨는 변경으로 남아 있을 것입니다.",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:33:44.371800Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Handler return values",
+      "source_hash": 6725296150104702019,
+      "context_hash": 7506099868287199389,
+      "translation": "핸들러 반환값",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:33:44.371800Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Return `IRQ_NONE` if the interrupt wasn't from your device (important for shared IRQs)",
+      "source_hash": 4650446205058816766,
+      "context_hash": 17414246202149167065,
+      "translation": "인터럽트가 자신의 디바이스에서 온 것이 아니면 `IRQ_NONE`을 반환합니다(공유 IRQ에서 중요함)",
+      "glossary_snapshot": {
+        "IRQs": "IRQ",
+        "device": "디바이스",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:25:20.078711Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Return `IRQ_HANDLED` when you've handled it",
+      "source_hash": 17416295041731345624,
+      "context_hash": 15942945294849825282,
+      "translation": "인터럽트를 처리했으면 `IRQ_HANDLED`를 반환하십시오",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:44.371800Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Return `IRQ_WAKE_THREAD` to wake the threaded handler (see [Threaded IRQs](threaded-irq.md))",
+      "source_hash": 4015762110947266365,
+      "context_hash": 18181049775259547657,
+      "translation": "스레드 핸들러를 깨우려면 `IRQ_WAKE_THREAD`를 반환하십시오([Threaded IRQs](threaded-irq.md) 참고)",
+      "glossary_snapshot": {
+        "handler": "핸들러",
+        "threaded IRQs": "threaded IRQ"
+      },
+      "translated_at": "2026-11-14T22:33:44.371800Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "IRQF flags",
+      "source_hash": 7575748195737257894,
+      "context_hash": 8569682730988595347,
+      "translation": "IRQF 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:44.371800Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "A minimal driver example",
+      "source_hash": 10399899647193325082,
+      "context_hash": 2790424825818069615,
+      "translation": "최소한의 드라이버 예제",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:33:44.371800Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Shared IRQs",
+      "source_hash": 16445752785452144569,
+      "context_hash": 17145660688666876334,
+      "translation": "공유 IRQ",
+      "glossary_snapshot": {
+        "IRQs": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "On legacy systems (e.g., PCI INTx), multiple devices share a single IRQ line.",
+      "source_hash": 2178709753487870304,
+      "context_hash": 3360047067212110826,
+      "translation": "레거시 시스템(예: PCI INTx)에서는 여러 디바이스가 하나의 IRQ 라인을 공유합니다.",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "PCI": "PCI",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:25:20.078712Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "Each registers with `IRQF_SHARED`:",
+      "source_hash": 18058727036736979564,
+      "context_hash": 7398839762720489088,
+      "translation": "각 장치는 `IRQF_SHARED`로 등록합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Requirements for shared IRQs:",
+      "source_hash": 4040573525716508995,
+      "context_hash": 8270635375377450117,
+      "translation": "공유 IRQ의 요구 사항:",
+      "glossary_snapshot": {
+        "IRQs": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "`IRQF_SHARED` must be set by all sharing drivers",
+      "source_hash": 13808241752902023909,
+      "context_hash": 3812940409052087145,
+      "translation": "공유하는 모든 드라이버가 `IRQF_SHARED`를 설정해야 함",
+      "glossary_snapshot": {
+        "drivers": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "`dev_id` must be unique (typically the device struct pointer)",
+      "source_hash": 7581088253880694058,
+      "context_hash": 13244108380091357564,
+      "translation": "`dev_id`는 고유해야 함(일반적으로 디바이스 구조체 포인터)",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:25:20.078712Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "Each handler must be able to determine if it was its device",
+      "source_hash": 13866198957885630534,
+      "context_hash": 6814319799785412082,
+      "translation": "각 핸들러는 인터럽트가 자신의 디바이스에서 온 것인지 판단할 수 있어야 함",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:25:20.078713Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "disable_irq / enable_irq",
+      "source_hash": 12106397500091665179,
+      "context_hash": 4718535379584526847,
+      "translation": "disable_irq / enable_irq",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "`disable_irq()` increments `irq_desc->depth`.",
+      "source_hash": 14529278150714377726,
+      "context_hash": 8994592905757708944,
+      "translation": "`disable_irq()`는 `irq_desc->depth`를 증가시킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "The IRQ is physically disabled when `depth` goes from 0 to 1 (first disable call) and re-enabled when it returns to 0 (last enable call).",
+      "source_hash": 3848782547650061815,
+      "context_hash": 15974453910848755793,
+      "translation": "IRQ는 `depth`가 0에서 1이 될 때(첫 번째 disable 호출) 물리적으로 비활성화되고, 다시 0으로 돌아올 때(마지막 enable 호출) 다시 활성화됩니다.",
+      "glossary_snapshot": {
+        "IRQ": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "synchronize_irq",
+      "source_hash": 11808666768545779455,
+      "context_hash": 16601238476323616670,
+      "translation": "synchronize_irq",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "`free_irq()` already calls `synchronize_irq()` internally before returning, so any in-flight handlers are guaranteed complete when `free_irq()` returns:",
+      "source_hash": 18298981695433309242,
+      "context_hash": 8525498501655943686,
+      "translation": "`free_irq()`는 반환하기 전에 내부적으로 이미 `synchronize_irq()`를 호출하므로, `free_irq()`가 반환될 때 실행 중이던 모든 핸들러의 완료가 보장됩니다:",
+      "glossary_snapshot": {
+        "handlers": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "`devm_request_irq()` handles this automatically at device removal, so prefer it over manual `request_irq()` + `free_irq()`.",
+      "source_hash": 14373866679386554622,
+      "context_hash": 9729225362397130301,
+      "translation": "`devm_request_irq()`는 디바이스 제거 시 이를 자동으로 처리하므로, 수동으로 `request_irq()` + `free_irq()`를 사용하는 것보다 이를 우선적으로 사용하십시오.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:25:20.078713Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Getting the IRQ number",
+      "source_hash": 3238658452322654414,
+      "context_hash": 18093118089107823967,
+      "translation": "IRQ 번호 얻기",
+      "glossary_snapshot": {
+        "IRQ": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 10813382754347392820,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:33:44.371801Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "[IRQ Descriptor and irq_chip](irq-desc.md) — What's registered under the hood",
+      "source_hash": 13747920506901020886,
+      "context_hash": 2233844239863766703,
+      "translation": "[IRQ Descriptor and irq_chip](irq-desc.md) — 내부적으로 무엇이 등록되는가",
+      "glossary_snapshot": {
+        "IRQ": "IRQ"
+      },
+      "translated_at": "2026-11-14T22:33:44.371802Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "[Threaded IRQs](threaded-irq.md) — Moving work out of hardirq context",
+      "source_hash": 7195444923470669255,
+      "context_hash": 15980687613294718808,
+      "translation": "[Threaded IRQ](threaded-irq.md) — 작업을 hardirq 컨텍스트 밖으로 옮기기",
+      "glossary_snapshot": {
+        "threaded IRQs": "threaded IRQ"
+      },
+      "translated_at": "2026-11-14T21:54:47.369441Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "[Workqueues](workqueues.md) — For deferred work from interrupt handlers",
+      "source_hash": 1402535476485206596,
+      "context_hash": 7496934383249901682,
+      "translation": "[Workqueue](workqueues.md) — 인터럽트 핸들러에서 지연된 작업 처리",
+      "glossary_snapshot": {
+        "interrupt handlers": "인터럽트 핸들러",
+        "workqueues": "workqueue"
+      },
+      "translated_at": "2026-11-14T21:54:47.369442Z",
+      "issues": []
+    }
+  ]
+}

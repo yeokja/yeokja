@@ -1,0 +1,2876 @@
+{
+  "version": 1,
+  "source_hash": 12938977125159089805,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "fallocate and File Space Management",
+      "source_hash": 5236240113434597883,
+      "context_hash": 6599373018752731283,
+      "translation": "fallocate와 파일 공간 관리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875270Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Reserving disk blocks without writing data: avoiding ENOSPC, fragmentation, and sparse-file surprises",
+      "source_hash": 3172652351646868260,
+      "context_hash": 18273897250753750772,
+      "translation": "데이터를 쓰지 않고 디스크 블록 예약하기: ENOSPC, 단편화, 희소 파일(sparse file)로 인한 예상치 못한 문제 피하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem with `write()`-based preallocation",
+      "source_hash": 6518374659817683434,
+      "context_hash": 10233424715897648093,
+      "translation": "`write()` 기반 사전 할당의 문제점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "The traditional way to guarantee space for a file before filling it is to write zeros:",
+      "source_hash": 10336227747047103005,
+      "context_hash": 7428230058404675925,
+      "translation": "파일을 채우기 전에 공간을 보장하는 전통적인 방법은 0을 쓰는 것입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "This has three serious problems:",
+      "source_hash": 17239639419268210502,
+      "context_hash": 5722924218021660188,
+      "translation": "이 방법에는 세 가지 심각한 문제가 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**It is slow.** Every `write()` dirtied pages must be flushed through the page cache and eventually written to disk.",
+      "source_hash": 6746841414857004224,
+      "context_hash": 10536513923553647141,
+      "translation": "**느립니다.** 매 `write()`로 더티 상태가 된 페이지는 페이지 캐시를 거쳐 플러시되고 결국 디스크에 기록되어야 합니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:34:58.875270Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "Writing 1 GiB of zeros takes real I/O time even though the data is meaningless.",
+      "source_hash": 1575398243426011428,
+      "context_hash": 5049025333250839772,
+      "translation": "데이터가 아무 의미가 없는데도 1 GiB의 0을 쓰는 데에는 실제 I/O 시간이 듭니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**It does not prevent ENOSPC mid-write.** Space is only reserved one page at a time as writes arrive.",
+      "source_hash": 3038364832075013783,
+      "context_hash": 3967374559229726570,
+      "translation": "**쓰기 도중의 ENOSPC를 막지 못합니다.** 공간은 쓰기가 도착할 때마다 한 번에 한 페이지씩만 예약됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "A concurrent process filling the filesystem can trigger `ENOSPC` halfway through the loop, leaving a partially-written file and a caller that must now decide how to recover.",
+      "source_hash": 9710577044002773386,
+      "context_hash": 11625354051170246794,
+      "translation": "파일 시스템을 채우는 동시 실행 프로세스가 루프 도중에 `ENOSPC`를 유발할 수 있으며, 그러면 부분적으로 기록된 파일이 남고 호출자는 이제 어떻게 복구할지 결정해야 합니다.",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "**It causes fragmentation.** The filesystem allocates blocks as writes come in, interleaving them with other concurrent allocations.",
+      "source_hash": 11742388954281028584,
+      "context_hash": 16216680123404018917,
+      "translation": "**단편화를 일으킵니다.** 파일 시스템은 쓰기가 들어오는 대로 블록을 할당하므로, 다른 동시 할당과 블록이 서로 뒤섞입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "A large sequential file can end up as hundreds of small extents scattered across the disk.",
+      "source_hash": 11755314404916700245,
+      "context_hash": 9316151105923965285,
+      "translation": "큰 순차 파일이 디스크 곳곳에 흩어진 수백 개의 작은 extent로 나뉠 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "`fallocate(2)` solves all three: the kernel contacts the filesystem and reserves contiguous extents in a single operation, marking them allocated but not yet written.",
+      "source_hash": 6076070342140695851,
+      "context_hash": 3073016195251273953,
+      "translation": "`fallocate(2)`는 이 세 가지를 모두 해결합니다: 커널이 파일 시스템에 요청하여 연속된 extent를 단일 연산으로 예약하고, 이를 할당되었지만 아직 기록되지 않은 상태로 표시합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:1",
+      "source": "No I/O occurs.",
+      "source_hash": 12372168779953223867,
+      "context_hash": 9204815250068195469,
+      "translation": "I/O는 발생하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:2",
+      "source": "The file size reflects the reservation (or doesn't, depending on the mode).",
+      "source_hash": 13428190986035302456,
+      "context_hash": 17463239655892471483,
+      "translation": "파일 크기는 모드에 따라 예약을 반영하기도 하고 반영하지 않기도 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:3",
+      "source": "A later `write()` fills already-allocated blocks — it can no longer fail with `ENOSPC` for that range.",
+      "source_hash": 12086411904262658022,
+      "context_hash": 12169292473707941620,
+      "translation": "이후의 `write()`는 이미 할당된 블록을 채우므로, 해당 범위에 대해서는 더 이상 `ENOSPC`로 실패할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "`fallocate()` system call",
+      "source_hash": 15717140716505330034,
+      "context_hash": 2851314902384815819,
+      "translation": "`fallocate()` 시스템 콜",
+      "glossary_snapshot": {
+        "system call": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:34:58.875271Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "`fd` — open file descriptor (must be writable)",
+      "source_hash": 2350163013381810476,
+      "context_hash": 10761266076499787403,
+      "translation": "`fd` — 열린 파일 디스크립터(쓰기 가능해야 함)",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`mode` — zero for the default allocation, or a bitmask of `FALLOC_FL_*` flags",
+      "source_hash": 10635763574938181825,
+      "context_hash": 14081472853503148866,
+      "translation": "`mode` — 기본 할당의 경우 0, 또는 `FALLOC_FL_*` 플래그의 비트마스크",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`offset` — byte offset at which the operation starts",
+      "source_hash": 2454012690532627217,
+      "context_hash": 9784555396740102270,
+      "translation": "`offset` — 연산이 시작되는 바이트 오프셋",
+      "glossary_snapshot": {
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "`len` — length in bytes of the region to operate on",
+      "source_hash": 17117833665584639969,
+      "context_hash": 5879564431322541942,
+      "translation": "`len` — 연산 대상 영역의 바이트 단위 길이",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Returns 0 on success, -1 on error.",
+      "source_hash": 1747046368445279524,
+      "context_hash": 18297216685292084437,
+      "translation": "성공하면 0을, 오류가 발생하면 -1을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:1",
+      "source": "Errors include:",
+      "source_hash": 9834873095507229910,
+      "context_hash": 1889687175479353800,
+      "translation": "오류는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Error",
+      "source_hash": 6600015402669342217,
+      "context_hash": 5373442350863948063,
+      "translation": "오류",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 15189795348659465786,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "`ENOSPC`",
+      "source_hash": 15382101488057496506,
+      "context_hash": 15600446080088870026,
+      "translation": "`ENOSPC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Not enough space to satisfy the request",
+      "source_hash": 10395351135174050092,
+      "context_hash": 3903483721748162771,
+      "translation": "요청을 충족하기에 공간이 부족함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "`EOPNOTSUPP`",
+      "source_hash": 15505087612949632344,
+      "context_hash": 15791376073002657888,
+      "translation": "`EOPNOTSUPP`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875272Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Filesystem or mode not supported",
+      "source_hash": 1014558577271606140,
+      "context_hash": 15794538694439433400,
+      "translation": "파일 시스템 또는 모드를 지원하지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875273Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "`EINVAL`",
+      "source_hash": 17772741254719046560,
+      "context_hash": 16561547753467148142,
+      "translation": "`EINVAL`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875273Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Bad offset/len, or incompatible flags",
+      "source_hash": 13589779287779717113,
+      "context_hash": 10906504424989943924,
+      "translation": "잘못된 offset/len 또는 호환되지 않는 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875273Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "`EBADF`",
+      "source_hash": 12847945983570183635,
+      "context_hash": 7361782284984476142,
+      "translation": "`EBADF`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875273Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "`fd` not open for writing",
+      "source_hash": 8485031469740623702,
+      "context_hash": 14694441192332667965,
+      "translation": "`fd`가 쓰기용으로 열려 있지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.875273Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "`ESPIPE`",
+      "source_hash": 14798449475807201431,
+      "context_hash": 5290595172501620238,
+      "translation": "`ESPIPE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849426Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "`fd` is a pipe or FIFO",
+      "source_hash": 6697186929353862907,
+      "context_hash": 14866325130275607428,
+      "translation": "`fd`가 파이프 또는 FIFO인 경우",
+      "glossary_snapshot": {
+        "FIFO": "FIFO"
+      },
+      "translated_at": "2026-11-14T22:34:59.849427Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "The flag constants live in `include/uapi/linux/falloc.h`; the VFS dispatch is in `fs/fallocate.c`.",
+      "source_hash": 11505870010502129282,
+      "context_hash": 15700024097212818076,
+      "translation": "플래그 상수는 `include/uapi/linux/falloc.h`에 정의되어 있으며, VFS 디스패치는 `fs/fallocate.c`에 있습니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS"
+      },
+      "translated_at": "2026-11-14T22:34:59.849428Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Modes overview",
+      "source_hash": 12984520074340687695,
+      "context_hash": 10438655111459445508,
+      "translation": "모드 개요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849428Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Mode",
+      "source_hash": 4680285332395938,
+      "context_hash": 11373829582440828825,
+      "translation": "모드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849428Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Constant",
+      "source_hash": 1246965730675752305,
+      "context_hash": 5781112116221155947,
+      "translation": "상수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849428Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Effect",
+      "source_hash": 6420176389575395961,
+      "context_hash": 8872054219376468312,
+      "translation": "효과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849428Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Default",
+      "source_hash": 8341519292606584866,
+      "context_hash": 875147555408791392,
+      "translation": "기본값",
+      "glossary_snapshot": {
+        "Default": "기본값"
+      },
+      "translated_at": "2026-11-14T23:29:27.266337Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`0`",
+      "source_hash": 17958552468656488273,
+      "context_hash": 10003884712562381864,
+      "translation": "`0`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849428Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Allocate blocks; extend file size if needed; fill with zeros",
+      "source_hash": 3365177031136900862,
+      "context_hash": 3961063011781666948,
+      "translation": "블록 할당, 필요하면 파일 크기 확장, 0으로 채움",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Keep size",
+      "source_hash": 17627555162893197530,
+      "context_hash": 7372336511173722023,
+      "translation": "크기 유지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "`FALLOC_FL_KEEP_SIZE`",
+      "source_hash": 5380951202041317865,
+      "context_hash": 13327601283717062636,
+      "translation": "`FALLOC_FL_KEEP_SIZE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "Allocate blocks; **do not** extend file size",
+      "source_hash": 11102549183941611815,
+      "context_hash": 15952914216940935141,
+      "translation": "블록 할당, 파일 크기는 확장하지 **않음**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Punch hole",
+      "source_hash": 13362247337175288183,
+      "context_hash": 1135361490813573059,
+      "translation": "구멍 뚫기(punch hole)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849429Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "`FALLOC_FL_PUNCH_HOLE \\| FALLOC_FL_KEEP_SIZE`",
+      "source_hash": 960055632086171907,
+      "context_hash": 11122949939957226472,
+      "translation": "`FALLOC_FL_PUNCH_HOLE \\| FALLOC_FL_KEEP_SIZE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849430Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "Deallocate blocks; reads return zeros",
+      "source_hash": 17863299072950798062,
+      "context_hash": 13167907740370247015,
+      "translation": "블록 할당 해제, 읽으면 0 반환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849430Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "Collapse range",
+      "source_hash": 11056282863832031998,
+      "context_hash": 11800675034426692419,
+      "translation": "범위 축소(collapse range)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849430Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "`FALLOC_FL_COLLAPSE_RANGE`",
+      "source_hash": 14648018983624796173,
+      "context_hash": 4339979946046551246,
+      "translation": "`FALLOC_FL_COLLAPSE_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849430Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "Remove bytes from the middle of a file",
+      "source_hash": 12895361882182866239,
+      "context_hash": 9061250945220961357,
+      "translation": "파일 중간의 바이트 제거",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:34:59.849430Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "Zero range",
+      "source_hash": 3335239585890606185,
+      "context_hash": 2641765742019489058,
+      "translation": "범위 0으로 채우기(zero range)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849430Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "`FALLOC_FL_ZERO_RANGE`",
+      "source_hash": 3987318305887459720,
+      "context_hash": 1385658838291132821,
+      "translation": "`FALLOC_FL_ZERO_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "Zero a range without removing allocation",
+      "source_hash": 5119853792414710607,
+      "context_hash": 9336492354581417152,
+      "translation": "할당을 제거하지 않고 범위를 0으로 채움",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "Insert range",
+      "source_hash": 10292853696615163205,
+      "context_hash": 686924166988903282,
+      "translation": "범위 삽입(insert range)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "`FALLOC_FL_INSERT_RANGE`",
+      "source_hash": 16766488943497010185,
+      "context_hash": 18390726377737132748,
+      "translation": "`FALLOC_FL_INSERT_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "Insert empty space, shifting subsequent data",
+      "source_hash": 11941201055928341193,
+      "context_hash": 18156574717139193445,
+      "translation": "빈 공간을 삽입하고 이후 데이터를 뒤로 이동",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "Unshare range",
+      "source_hash": 6410274223704662615,
+      "context_hash": 15082522550754954696,
+      "translation": "공유 해제(unshare range)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "`FALLOC_FL_UNSHARE_RANGE`",
+      "source_hash": 9810834421248359930,
+      "context_hash": 14332895868510866421,
+      "translation": "`FALLOC_FL_UNSHARE_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "Break copy-on-write sharing of reflinked extents",
+      "source_hash": 12610224205503258640,
+      "context_hash": 7226508885924880869,
+      "translation": "reflink된 extent의 copy-on-write 공유 해제",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:34:59.849431Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "`FALLOC_FL_PUNCH_HOLE` must always be combined with `FALLOC_FL_KEEP_SIZE`; the kernel rejects `FALLOC_FL_PUNCH_HOLE` alone with `EINVAL`.",
+      "source_hash": 6500221958394042283,
+      "context_hash": 13320004925380317195,
+      "translation": "`FALLOC_FL_PUNCH_HOLE`은 항상 `FALLOC_FL_KEEP_SIZE`와 함께 사용해야 하며, 커널은 `FALLOC_FL_PUNCH_HOLE`만 단독으로 지정하면 `EINVAL`로 거부합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:34:59.849433Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Default allocation (mode = 0)",
+      "source_hash": 5799025906833436919,
+      "context_hash": 13121862250131187991,
+      "translation": "기본 할당(mode = 0)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849433Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "After this call:",
+      "source_hash": 4724471581010848244,
+      "context_hash": 5401108627379450332,
+      "translation": "이 호출 후에는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849433Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`stat(2).st_size` equals 512 MiB — the file size is extended.",
+      "source_hash": 16036364344285461694,
+      "context_hash": 10500456915821377402,
+      "translation": "`stat(2).st_size`는 512 MiB가 됩니다. 즉, 파일 크기가 확장됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:59.849433Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "`stat(2).st_blocks` is proportional to 512 MiB — physical blocks are allocated.",
+      "source_hash": 13342896672560233697,
+      "context_hash": 15919504917462369430,
+      "translation": "`stat(2).st_blocks`는 512 MiB에 비례합니다. 물리 블록이 할당됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962622Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Reading unwritten regions returns zeros, but no I/O is required: the filesystem marks the extents as allocated-but-unwritten.",
+      "source_hash": 502451625321898705,
+      "context_hash": 8039828903357858615,
+      "translation": "아직 쓰이지 않은 영역을 읽으면 0이 반환되지만 I/O는 필요하지 않습니다. 파일시스템이 해당 extent를 할당되었으나 쓰이지 않은(allocated-but-unwritten) 상태로 표시하기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962623Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Subsequent `write()` calls into the range never need to allocate new blocks and cannot fail with `ENOSPC` for that range.",
+      "source_hash": 52130388754547225,
+      "context_hash": 11088730440754200871,
+      "translation": "이후 해당 범위에 대한 `write()` 호출은 새 블록을 할당할 필요가 전혀 없으며, 그 범위에 대해서는 `ENOSPC`로 실패할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962623Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Effect on `st_size` vs `st_blocks`",
+      "source_hash": 16686417658348568388,
+      "context_hash": 6732595604318510477,
+      "translation": "`st_size`와 `st_blocks`에 미치는 영향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962623Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Sparse file detection: `du` vs `ls`",
+      "source_hash": 6386695295209487422,
+      "context_hash": 10622501442396782455,
+      "translation": "sparse 파일 감지: `du`와 `ls` 비교",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962623Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "`ls -l` reports `st_size` (logical size). `du` reports `st_blocks` (physical allocation).",
+      "source_hash": 7383528215879087288,
+      "context_hash": 5401135141204221002,
+      "translation": "`ls -l`은 `st_size`(논리 크기)를 보고합니다. `du`는 `st_blocks`(물리 할당량)를 보고합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962623Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:1",
+      "source": "A sparse file shows a large `ls -l` size but a small `du` result:",
+      "source_hash": 396846303282493868,
+      "context_hash": 14712679841057982363,
+      "translation": "sparse 파일은 `ls -l` 크기는 크게 표시되지만 `du` 결과는 작게 표시됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962623Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Filesystem-specific behavior",
+      "source_hash": 3575260717245013914,
+      "context_hash": 16048949631091856250,
+      "translation": "파일시스템별 동작",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "**ext4**: Uses extent preallocation (`ext4_fallocate` in `fs/ext4/extents.c`).",
+      "source_hash": 1620856916183496834,
+      "context_hash": 12801817962642959330,
+      "translation": "**ext4**: extent 사전 할당(`fs/ext4/extents.c`의 `ext4_fallocate`)을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:1",
+      "source": "Creates unwritten extents — the extent tree marks the range as `EXT_UNWRITTEN`.",
+      "source_hash": 998883410447724285,
+      "context_hash": 13656288523004307048,
+      "translation": "unwritten extent를 생성합니다. extent 트리가 해당 범위를 `EXT_UNWRITTEN`으로 표시합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:2",
+      "source": "Reads from unwritten extents return zeros without disk I/O.",
+      "source_hash": 14493139330739995602,
+      "context_hash": 17907682862516024652,
+      "translation": "unwritten extent를 읽으면 디스크 I/O 없이 0이 반환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:3",
+      "source": "On the first write to a block, the extent is converted to written.",
+      "source_hash": 18372243303562393048,
+      "context_hash": 15439108916618876643,
+      "translation": "블록에 처음 쓰기가 일어나면 해당 extent는 written 상태로 변환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "**XFS**: Calls `xfs_alloc_file_space`, which creates unwritten extents in the B-tree.",
+      "source_hash": 12484345058018942201,
+      "context_hash": 5745042545424165992,
+      "translation": "**XFS**: `xfs_alloc_file_space`를 호출하며, 이 함수는 B-tree에 unwritten extent를 생성합니다.",
+      "glossary_snapshot": {
+        "B-tree": "B-tree",
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:1",
+      "source": "XFS was the first Linux filesystem to implement `fallocate`-style preallocation via `XFS_IOC_ALLOCSP`.",
+      "source_hash": 12004970001579101793,
+      "context_hash": 11593741340469018869,
+      "translation": "XFS는 `XFS_IOC_ALLOCSP`를 통해 `fallocate` 방식의 사전 할당을 구현한 최초의 Linux 파일시스템입니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "**btrfs**: Supports `fallocate` but may produce more fragmentation over time due to copy-on-write semantics: overwriting preallocated blocks creates new extents rather than updating in place (unless `nodatacow` is set for the file).",
+      "source_hash": 977425108226090187,
+      "context_hash": 8900672515669665859,
+      "translation": "**btrfs**: `fallocate`를 지원하지만 copy-on-write 의미론 때문에 시간이 지나면서 단편화가 더 심해질 수 있습니다. 사전 할당된 블록을 덮어쓰면 제자리에서 갱신하는 대신 새 extent가 생성되기 때문입니다(파일에 `nodatacow`가 설정된 경우는 예외입니다).",
+      "glossary_snapshot": {
+        "btrfs": "btrfs",
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "**tmpfs**: Supports `fallocate` for in-memory files; blocks are DRAM pages.",
+      "source_hash": 7169820431240059286,
+      "context_hash": 562735412726574637,
+      "translation": "**tmpfs**: 메모리 내 파일에 대해 `fallocate`를 지원하며, 블록은 DRAM 페이지입니다.",
+      "glossary_snapshot": {
+        "DRAM": "DRAM",
+        "memory": "메모리",
+        "tmpfs": "tmpfs"
+      },
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:1",
+      "source": "Hole punching is also supported.",
+      "source_hash": 18141470861846750457,
+      "context_hash": 7760724873822238497,
+      "translation": "hole punching도 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "`FALLOC_FL_KEEP_SIZE`: preallocate without extending",
+      "source_hash": 7023047619675441268,
+      "context_hash": 5335100365973777144,
+      "translation": "`FALLOC_FL_KEEP_SIZE`: 크기를 늘리지 않는 사전 할당",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962624Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "This mode allocates physical blocks but leaves `st_size` unchanged.",
+      "source_hash": 10372682698949701832,
+      "context_hash": 13528347528167129245,
+      "translation": "이 모드는 물리 블록을 할당하지만 `st_size`는 변경하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "It is the canonical pattern for write-ahead log (WAL) preallocation:",
+      "source_hash": 13752179885329916800,
+      "context_hash": 16582764798871907662,
+      "translation": "이는 WAL(write-ahead log) 사전 할당의 표준적인 패턴입니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Why keep size at zero?",
+      "source_hash": 7913038510194742200,
+      "context_hash": 13866380570536467002,
+      "translation": "크기를 0으로 유지하는 이유는 무엇입니까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "The consuming process (the WAL applier) must not see the file as having data until the WAL writer says so. `st_size` is the authoritative \"how much data is here\" signal; `st_blocks` is a storage-layer detail.",
+      "source_hash": 12741489275926833855,
+      "context_hash": 17992572837300778723,
+      "translation": "소비하는 프로세스(WAL 적용기)는 WAL 작성기가 알려 주기 전까지 파일에 데이터가 있는 것으로 보아서는 안 됩니다. `st_size`는 \"여기에 데이터가 얼마나 있는가\"를 나타내는 권위 있는 신호이며, `st_blocks`는 스토리지 계층의 세부 사항입니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "`FALLOC_FL_PUNCH_HOLE`: reclaiming space within a file",
+      "source_hash": 682518146885324853,
+      "context_hash": 11483884214204185518,
+      "translation": "`FALLOC_FL_PUNCH_HOLE`: 파일 내부 공간 회수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Hole punching deallocates blocks in the middle of a file without changing `st_size`.",
+      "source_hash": 12528177474452482684,
+      "context_hash": 11075349168494352829,
+      "translation": "hole punching은 `st_size`를 변경하지 않고 파일 중간의 블록을 할당 해제합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "The punched region becomes a sparse hole: reads return zeros, but no disk blocks are consumed.",
+      "source_hash": 984350811952871191,
+      "context_hash": 12941657148355697215,
+      "translation": "구멍이 뚫린 영역은 sparse hole이 됩니다. 읽으면 0이 반환되지만 디스크 블록은 소비되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Use cases",
+      "source_hash": 8668802910398656543,
+      "context_hash": 9959691120694931312,
+      "translation": "사용 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "**Log rotation**: Rather than unlinking and recreating a log file (which breaks open file descriptors held by other processes), punch the consumed region:",
+      "source_hash": 7145279921045040520,
+      "context_hash": 10061119145672244138,
+      "translation": "**로그 로테이션**: 로그 파일을 unlink한 뒤 다시 생성하는 대신(이렇게 하면 다른 프로세스가 열어 둔 파일 디스크립터가 깨집니다), 이미 소비된 영역에 구멍을 뚫으십시오.",
+      "glossary_snapshot": {
+        "file descriptors": "파일 디스크립터",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "**Database free-list management**: Databases that manage their own free lists (like PostgreSQL's heap pages marked as dead) can punch holes over freed page ranges, returning blocks to the filesystem without truncating the file.",
+      "source_hash": 1315281254145401775,
+      "context_hash": 3757639432655947364,
+      "translation": "**데이터베이스 free-list 관리**: 자체 free list를 관리하는 데이터베이스(예: dead로 표시된 PostgreSQL의 힙 페이지)는 해제된 페이지 범위에 구멍을 뚫어(punch hole), 파일을 truncate하지 않고도 블록을 파일 시스템에 반환할 수 있습니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "heap": "힙"
+      },
+      "translated_at": "2026-11-14T23:29:27.266339Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "**Large media files**: Video editing tools can punch holes over deleted frame ranges, reclaiming space while keeping the file structure intact.",
+      "source_hash": 7804528258601830718,
+      "context_hash": 1311562947089278540,
+      "translation": "**대용량 미디어 파일**: 동영상 편집 도구는 삭제된 프레임 범위에 구멍을 뚫어 파일 구조를 그대로 유지하면서 공간을 회수할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962625Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Iterating holes with `SEEK_HOLE` / `SEEK_DATA`",
+      "source_hash": 5147104216891662149,
+      "context_hash": 1629877716539001814,
+      "translation": "`SEEK_HOLE` / `SEEK_DATA`를 사용한 hole 순회",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962626Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "After punching holes, use `lseek(2)` with `SEEK_HOLE` and `SEEK_DATA` to find the boundaries of data and sparse regions:",
+      "source_hash": 5406665091952797625,
+      "context_hash": 6776077637738270073,
+      "translation": "구멍을 뚫은 후에는 `SEEK_HOLE` 및 `SEEK_DATA`와 함께 `lseek(2)`를 사용하여 데이터 영역과 sparse 영역의 경계를 찾으십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:05.962626Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "`SEEK_HOLE` and `SEEK_DATA` were standardized in POSIX 2013 and are supported on ext4, XFS, btrfs, and tmpfs.",
+      "source_hash": 2841798372030471374,
+      "context_hash": 16725916240069238278,
+      "translation": "`SEEK_HOLE`와 `SEEK_DATA`는 POSIX 2013에서 표준화되었으며 ext4, XFS, btrfs, tmpfs에서 지원됩니다.",
+      "glossary_snapshot": {
+        "POSIX": "POSIX",
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "tmpfs": "tmpfs"
+      },
+      "translated_at": "2026-11-14T22:35:06.089400Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:1",
+      "source": "On filesystems that do not support them, `SEEK_HOLE` returns `st_size` (the whole file appears to be data).",
+      "source_hash": 17088779839563558701,
+      "context_hash": 7049864511786639825,
+      "translation": "이를 지원하지 않는 파일시스템에서는 `SEEK_HOLE`이 `st_size`를 반환합니다(파일 전체가 데이터로 보입니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "`FALLOC_FL_ZERO_RANGE`: zeroing without punching",
+      "source_hash": 2997484039770485707,
+      "context_hash": 11133085651115695442,
+      "translation": "`FALLOC_FL_ZERO_RANGE`: hole을 만들지 않고 0으로 채우기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "`FALLOC_FL_ZERO_RANGE` zeros a region of a file efficiently.",
+      "source_hash": 16254852290784765746,
+      "context_hash": 11216035970958873381,
+      "translation": "`FALLOC_FL_ZERO_RANGE`는 파일의 특정 영역을 효율적으로 0으로 채웁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "Unlike punch-hole, the blocks remain allocated.",
+      "source_hash": 15186060949838115339,
+      "context_hash": 18036655685718840373,
+      "translation": "punch-hole과 달리 블록은 할당된 상태로 유지됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089400Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:2",
+      "source": "Unlike writing zeros through `write()`, the filesystem may implement this as metadata-only if the region aligns to block boundaries:",
+      "source_hash": 2932631746186049036,
+      "context_hash": 6615690915228410384,
+      "translation": "`write()`로 0을 기록하는 방식과 달리, 영역이 블록 경계에 정렬되어 있으면 파일시스템은 이를 메타데이터만 변경하는 방식으로 구현할 수 있습니다:",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "On ext4 and XFS, aligned zero-range requests convert written extents to unwritten extents in the extent tree — the same representation as freshly preallocated blocks.",
+      "source_hash": 13753761183751564889,
+      "context_hash": 7842238475594085015,
+      "translation": "ext4와 XFS에서는 정렬된 zero-range 요청이 extent 트리의 written extent를 unwritten extent로 변환합니다. 이는 새로 사전 할당된 블록과 같은 표현입니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "No actual zero bytes are written to disk; the filesystem's read path synthesizes them.",
+      "source_hash": 10499781974245110104,
+      "context_hash": 4606497604724175576,
+      "translation": "실제 0 바이트는 디스크에 기록되지 않으며, 파일시스템의 읽기 경로가 이를 만들어 냅니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:2",
+      "source": "For unaligned edges, partial blocks are read, zeroed, and written back.",
+      "source_hash": 9703597878020942554,
+      "context_hash": 17644711079505305433,
+      "translation": "정렬되지 않은 가장자리의 경우에는 부분 블록을 읽어 0으로 채운 뒤 다시 기록합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "`FALLOC_FL_COLLAPSE_RANGE`: removing a file section",
+      "source_hash": 16597987088093649354,
+      "context_hash": 7297520189462159337,
+      "translation": "`FALLOC_FL_COLLAPSE_RANGE`: 파일 구간 제거",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "`FALLOC_FL_COLLAPSE_RANGE` removes `len` bytes starting at `offset` from a file, shifting all subsequent data down.",
+      "source_hash": 3228668511697758069,
+      "context_hash": 17229562566992625393,
+      "translation": "`FALLOC_FL_COLLAPSE_RANGE`는 파일에서 `offset`부터 시작하는 `len` 바이트를 제거하고, 그 뒤의 모든 데이터를 앞으로 당깁니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "No hole is left: the file shrinks by `len` bytes.",
+      "source_hash": 310941573181681812,
+      "context_hash": 12122516051368139466,
+      "translation": "hole이 남지 않으며, 파일 크기가 `len` 바이트만큼 줄어듭니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:2",
+      "source": "Both `offset` and `len` must be multiples of the filesystem block size.",
+      "source_hash": 15106616400778244811,
+      "context_hash": 5676840502786659194,
+      "translation": "`offset`과 `len`은 모두 파일시스템 블록 크기의 배수여야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "This is useful for in-place log compaction: rather than copying the remaining data into a new file, collapse the consumed head.",
+      "source_hash": 11641715464877201392,
+      "context_hash": 1895265423957155197,
+      "translation": "이는 제자리(in-place) 로그 압축에 유용합니다. 남은 데이터를 새 파일로 복사하는 대신, 이미 소비된 앞부분을 collapse하면 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:1",
+      "source": "Supported on ext4 (since 3.15) and XFS (since 3.15). btrfs does not support it.",
+      "source_hash": 1618557620347229650,
+      "context_hash": 3816012181886000009,
+      "translation": "ext4(3.15부터)와 XFS(3.15부터)에서 지원됩니다. btrfs는 이를 지원하지 않습니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:35:06.089401Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "`FALLOC_FL_INSERT_RANGE`: inserting space",
+      "source_hash": 4538291686940537706,
+      "context_hash": 7771067098612787104,
+      "translation": "`FALLOC_FL_INSERT_RANGE`: 공간 삽입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "The inverse of collapse: `FALLOC_FL_INSERT_RANGE` inserts `len` zero bytes at `offset`, shifting subsequent data up.",
+      "source_hash": 12087887104884474469,
+      "context_hash": 16278736332886315260,
+      "translation": "collapse의 반대 동작으로, `FALLOC_FL_INSERT_RANGE`는 `offset` 위치에 0 바이트 `len`개를 삽입하고 그 뒤의 데이터를 뒤로 밉니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "The file grows by `len`.",
+      "source_hash": 1221204948532710277,
+      "context_hash": 12001856739688481213,
+      "translation": "파일 크기가 `len`만큼 늘어납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:2",
+      "source": "Both values must be block-size aligned.",
+      "source_hash": 9509387852437525382,
+      "context_hash": 17943722229902943472,
+      "translation": "두 값 모두 블록 크기에 정렬되어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "Supported on ext4 (since 4.1) and XFS (since 4.1).",
+      "source_hash": 8170045510279311408,
+      "context_hash": 12861971485823636975,
+      "translation": "ext4(4.1부터)와 XFS(4.1부터)에서 지원됩니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:1",
+      "source": "Rarely used in practice.",
+      "source_hash": 17796377793871324941,
+      "context_hash": 4784435247083869940,
+      "translation": "실제로는 거의 사용되지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "`FALLOC_FL_UNSHARE_RANGE`: breaking reflink sharing",
+      "source_hash": 4817325966614634926,
+      "context_hash": 16989156922183303864,
+      "translation": "`FALLOC_FL_UNSHARE_RANGE`: reflink 공유 해제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "On copy-on-write filesystems that support reflinks (btrfs, XFS), `cp --reflink` creates a file that shares extent tree entries with the original.",
+      "source_hash": 314567199930862531,
+      "context_hash": 426956588863689605,
+      "translation": "reflink를 지원하는 copy-on-write 파일시스템(btrfs, XFS)에서 `cp --reflink`는 원본과 extent 트리 항목을 공유하는 파일을 생성합니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:1",
+      "source": "A write to either file triggers copy-on-write to a new extent.",
+      "source_hash": 14818280894245962957,
+      "context_hash": 1394498891148744666,
+      "translation": "어느 쪽 파일에 쓰기가 발생하든 새 extent로의 copy-on-write가 일어납니다.",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:35:06.089402Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "`FALLOC_FL_UNSHARE_RANGE` forces the kernel to physically copy the shared data, breaking the sharing relationship:",
+      "source_hash": 13687025455110716108,
+      "context_hash": 16421612806960077195,
+      "translation": "`FALLOC_FL_UNSHARE_RANGE`는 커널이 공유된 데이터를 물리적으로 복사하도록 강제하여 공유 관계를 끊습니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:35:06.089403Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "This is useful before intensive random writes to a reflinked file: without unsharing, every write triggers a COW allocation and potentially scatters extents.",
+      "source_hash": 15281272787050653457,
+      "context_hash": 952167043859622927,
+      "translation": "이는 reflink된 파일에 집중적인 랜덤 쓰기를 하기 전에 유용합니다. 공유를 해제하지 않으면 모든 쓰기가 COW 할당을 일으키고 extent가 흩어질 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089403Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:1",
+      "source": "After unsharing, writes are in-place and contiguous (assuming the file was not already fragmented).",
+      "source_hash": 1001868619600783240,
+      "context_hash": 18646546368208783,
+      "translation": "공유를 해제한 뒤에는 쓰기가 제자리에서 연속적으로 이루어집니다(파일이 이미 단편화되어 있지 않다고 가정할 때).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089403Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "Filesystem implementation differences",
+      "source_hash": 11787154380411222601,
+      "context_hash": 16233812166373961820,
+      "translation": "파일시스템별 구현 차이",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:35:06.089403Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "XFS has a native, efficient kernel-level unshare implementation that operates on extent metadata directly. btrfs does not have a native kernel-level unshare operation for this flag and falls back to a read-rewrite path, which is less efficient and produces I/O proportional to file size.",
+      "source_hash": 17224534499109962209,
+      "context_hash": 11521971601933222164,
+      "translation": "XFS는 extent 메타데이터를 직접 다루는 효율적인 커널 수준의 네이티브 unshare 구현을 갖추고 있습니다. btrfs는 이 플래그에 대한 커널 수준의 네이티브 unshare 연산이 없어 읽고 다시 쓰는 경로로 대체하며, 이는 효율이 떨어지고 파일 크기에 비례하는 I/O를 발생시킵니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "kernel": "커널",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:35:06.089403Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "See [Copy-on-write filesystems](#copy-on-write-filesystems-btrfs-and-xfs) below for the broader context.",
+      "source_hash": 8831671162336337337,
+      "context_hash": 10106293402755679107,
+      "translation": "더 넓은 맥락은 아래의 [Copy-on-write 파일시스템](#copy-on-write-filesystems-btrfs-and-xfs)을 참고하십시오.",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:35:06.089403Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "`posix_fallocate()`: the POSIX fallback",
+      "source_hash": 14032890999615915965,
+      "context_hash": 11535350310482818404,
+      "translation": "`posix_fallocate()`: POSIX 폴백",
+      "glossary_snapshot": {
+        "POSIX": "POSIX",
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T23:29:27.266340Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "`posix_fallocate()` is a libc function (not a direct syscall) that guarantees space reservation.",
+      "source_hash": 10572881897950815036,
+      "context_hash": 5496946809925326768,
+      "translation": "`posix_fallocate()`는 공간 예약을 보장하는 libc 함수입니다(직접적인 시스템 콜이 아닙니다).",
+      "glossary_snapshot": {
+        "function": "함수",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:34:58.700113Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:1",
+      "source": "If the kernel supports `fallocate(fd, 0, offset, len)`, glibc calls it directly.",
+      "source_hash": 16809823566684112180,
+      "context_hash": 18323627026362678153,
+      "translation": "커널이 `fallocate(fd, 0, offset, len)`를 지원하면 glibc는 이를 직접 호출합니다.",
+      "glossary_snapshot": {
+        "glibc": "glibc",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:34:58.700114Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:2",
+      "source": "If not — on NFS, CIFS, or old kernels — glibc falls back to writing zeros:",
+      "source_hash": 6841188150238925874,
+      "context_hash": 9435479039781173519,
+      "translation": "지원하지 않는 경우 — NFS, CIFS 또는 오래된 커널에서는 — glibc는 0을 기록하는 방식으로 폴백합니다:",
+      "glossary_snapshot": {
+        "glibc": "glibc",
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:34:58.700115Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "The fallback is correct but slow and still subject to ENOSPC mid-write.",
+      "source_hash": 1712564747012062166,
+      "context_hash": 2288883440940375074,
+      "translation": "이 폴백은 정확하지만 느리며, 기록 도중 ENOSPC가 발생할 가능성도 여전히 있습니다.",
+      "glossary_snapshot": {
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T22:34:58.700115Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:1",
+      "source": "Prefer calling `fallocate(2)` directly and handling `EOPNOTSUPP` yourself when you care about performance.",
+      "source_hash": 10531911703916140809,
+      "context_hash": 7889891189394337795,
+      "translation": "성능이 중요하다면 `fallocate(2)`를 직접 호출하고 `EOPNOTSUPP`를 직접 처리하는 방식을 택하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700115Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "`ftruncate()` vs `fallocate()`",
+      "source_hash": 1665615801964328292,
+      "context_hash": 2599508444726624151,
+      "translation": "`ftruncate()` 대 `fallocate()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700115Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "`ftruncate(fd, new_size)` and `fallocate(fd, 0, 0, new_size)` both extend a file to `new_size`, but they do fundamentally different things:",
+      "source_hash": 14471450860866473398,
+      "context_hash": 15213360040046549772,
+      "translation": "`ftruncate(fd, new_size)`와 `fallocate(fd, 0, 0, new_size)`는 모두 파일을 `new_size`까지 확장하지만, 근본적으로 다른 일을 수행합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700116Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "Aspect",
+      "source_hash": 10434066973382471756,
+      "context_hash": 7182358802860743709,
+      "translation": "항목",
+      "glossary_snapshot": {
+        "Aspect": "항목"
+      },
+      "translated_at": "2026-11-14T23:29:27.266341Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "`ftruncate(fd, size)`",
+      "source_hash": 7194103641228022213,
+      "context_hash": 3457142935277284430,
+      "translation": "`ftruncate(fd, size)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700116Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "`fallocate(fd, 0, 0, size)`",
+      "source_hash": 15279870443751777835,
+      "context_hash": 10397736181280663553,
+      "translation": "`fallocate(fd, 0, 0, size)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700116Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "Blocks allocated",
+      "source_hash": 12861227911162146172,
+      "context_hash": 15029562610006170554,
+      "translation": "블록 할당 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700116Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "No (sparse)",
+      "source_hash": 10373582069481976278,
+      "context_hash": 8337189915045472479,
+      "translation": "아니요(sparse)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700116Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "Yes (real blocks)",
+      "source_hash": 17869352712983921912,
+      "context_hash": 9460120159070881060,
+      "translation": "예(실제 블록)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "`st_size`",
+      "source_hash": 5890697700799257177,
+      "context_hash": 1191367129274410301,
+      "translation": "`st_size`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "Set to `size`",
+      "source_hash": 8854136052941775130,
+      "context_hash": 12183866321593245880,
+      "translation": "`size`로 설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "Set to `size`",
+      "source_hash": 8854136052941775130,
+      "context_hash": 6859482340368402552,
+      "translation": "`size`로 설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "`st_blocks`",
+      "source_hash": 6847003492102765529,
+      "context_hash": 1948351657621789742,
+      "translation": "`st_blocks`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:12/seg:0",
+      "source": "Unchanged (nearly 0)",
+      "source_hash": 10288423009781660561,
+      "context_hash": 16718412662491660159,
+      "translation": "변경 없음(거의 0)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:13/seg:0",
+      "source": "Proportional to `size`",
+      "source_hash": 2258595712178561354,
+      "context_hash": 9820481027915262391,
+      "translation": "`size`에 비례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:14/seg:0",
+      "source": "Later write can ENOSPC",
+      "source_hash": 8651083467313598192,
+      "context_hash": 11296282647309518526,
+      "translation": "이후 쓰기에서 ENOSPC 발생 가능 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700117Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:15/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 9499748566029611722,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.700118Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:16/seg:0",
+      "source": "No (blocks already reserved)",
+      "source_hash": 6713913063405250081,
+      "context_hash": 10325497568723065812,
+      "translation": "아니요(블록이 이미 예약됨)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700118Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:17/seg:0",
+      "source": "Fragmentation risk",
+      "source_hash": 13615371695426624067,
+      "context_hash": 10028155972895012963,
+      "translation": "단편화 위험",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700118Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:18/seg:0",
+      "source": "None at extend time",
+      "source_hash": 9823078059810880566,
+      "context_hash": 6535144482533666749,
+      "translation": "확장 시점에는 없음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700118Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:19/seg:0",
+      "source": "None (extent is contiguous)",
+      "source_hash": 14729768167105606510,
+      "context_hash": 2195551587391180465,
+      "translation": "없음(extent가 연속적임)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700118Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:20/seg:0",
+      "source": "Disk usage",
+      "source_hash": 17107663480461892730,
+      "context_hash": 9970601192259728818,
+      "translation": "디스크 사용량",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700118Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:21/seg:0",
+      "source": "Near zero",
+      "source_hash": 902051317903653655,
+      "context_hash": 3273513122731472923,
+      "translation": "거의 0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700118Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:22/seg:0",
+      "source": "Full `size`",
+      "source_hash": 7654261805156893120,
+      "context_hash": 12197213119121211683,
+      "translation": "`size` 전체",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700119Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:23/seg:0",
+      "source": "Speed",
+      "source_hash": 8727086473403956114,
+      "context_hash": 4123107553404758985,
+      "translation": "속도",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700119Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:24/seg:0",
+      "source": "Instant (metadata only)",
+      "source_hash": 5699010301077822406,
+      "context_hash": 11079407439831027563,
+      "translation": "즉시(메타데이터만)",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:34:58.700119Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:25/seg:0",
+      "source": "Proportional to `size`",
+      "source_hash": 2258595712178561354,
+      "context_hash": 13107363833414876934,
+      "translation": "`size`에 비례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.700119Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:27/seg:0",
+      "source": "When shrinking, both `ftruncate(fd, smaller_size)` and `fallocate(fd, 0, 0, smaller_size)` truncate the file.",
+      "source_hash": 17654395561033645493,
+      "context_hash": 14311999972739809543,
+      "translation": "크기를 줄일 때는 `ftruncate(fd, smaller_size)`와 `fallocate(fd, 0, 0, smaller_size)` 모두 파일을 잘라냅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053300Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:27/seg:1",
+      "source": "Use `ftruncate` for truncation — `fallocate` is not documented for shrinking below the current size, and behavior is filesystem-dependent.",
+      "source_hash": 5483238886989846281,
+      "context_hash": 16842333828505029172,
+      "translation": "잘라내기에는 `ftruncate`를 사용하십시오 — `fallocate`는 현재 크기보다 작게 줄이는 동작이 문서화되어 있지 않으며, 동작은 파일시스템에 따라 다릅니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Practical use cases with code",
+      "source_hash": 14303957838638933251,
+      "context_hash": 3745340563524326407,
+      "translation": "코드로 보는 실제 사용 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "1.",
+      "source_hash": 4093818885034029453,
+      "context_hash": 13152110116716052466,
+      "translation": "1.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:1",
+      "source": "Download file reservation",
+      "source_hash": 14396413160946169550,
+      "context_hash": 15008020461011790474,
+      "translation": "다운로드 파일 공간 예약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:0",
+      "source": "Preallocate the full file size before a download begins to guarantee space and avoid fragmentation:",
+      "source_hash": 17149817858924617044,
+      "context_hash": 490017537688831457,
+      "translation": "다운로드를 시작하기 전에 전체 파일 크기를 미리 할당하여 공간을 확보하고 단편화를 방지합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:0",
+      "source": "2.",
+      "source_hash": 1210270714770233551,
+      "context_hash": 1610288651013341147,
+      "translation": "2.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:1",
+      "source": "WAL/journal preallocation (PostgreSQL pattern)",
+      "source_hash": 8984948547165116985,
+      "context_hash": 3556725522803572555,
+      "translation": "WAL/저널 사전 할당 (PostgreSQL 패턴)",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "WAL": "WAL",
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "3.",
+      "source_hash": 414013015342266677,
+      "context_hash": 11464315332561930394,
+      "translation": "3.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053301Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:1",
+      "source": "Log file rotation with hole punching",
+      "source_hash": 5747390126928492558,
+      "context_hash": 9324350316487837547,
+      "translation": "홀 펀칭(hole punching)을 이용한 로그 파일 로테이션",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:0",
+      "source": "4.",
+      "source_hash": 14789025571905875223,
+      "context_hash": 9178754368989626183,
+      "translation": "4.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:1",
+      "source": "Sparse file creation and hole inspection",
+      "source_hash": 16761311900876639160,
+      "context_hash": 12173362950399134541,
+      "translation": "희소 파일(sparse file) 생성 및 홀 검사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:0/seg:0",
+      "source": "Filesystem support matrix",
+      "source_hash": 10860512576292530651,
+      "context_hash": 8243409062072487723,
+      "translation": "파일시스템 지원 매트릭스",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:1/seg:0",
+      "source": "Mode",
+      "source_hash": 4680285332395938,
+      "context_hash": 10154963942575765634,
+      "translation": "모드",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:2/seg:0",
+      "source": "ext4",
+      "source_hash": 1457863797989375694,
+      "context_hash": 17718067271511130247,
+      "translation": "ext4",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:3/seg:0",
+      "source": "XFS",
+      "source_hash": 393193099852662371,
+      "context_hash": 137835431445434021,
+      "translation": "XFS",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:4/seg:0",
+      "source": "btrfs",
+      "source_hash": 505738589335084390,
+      "context_hash": 9807010469211067057,
+      "translation": "btrfs",
+      "glossary_snapshot": {
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:5/seg:0",
+      "source": "tmpfs",
+      "source_hash": 14028718306892500628,
+      "context_hash": 1400937290523352884,
+      "translation": "tmpfs",
+      "glossary_snapshot": {
+        "tmpfs": "tmpfs"
+      },
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:6/seg:0",
+      "source": "NFS",
+      "source_hash": 1248696650718272486,
+      "context_hash": 16228730407971560520,
+      "translation": "NFS",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:7/seg:0",
+      "source": "CIFS",
+      "source_hash": 422770125328009260,
+      "context_hash": 4937742101688433707,
+      "translation": "CIFS",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053302Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:8/seg:0",
+      "source": "`mode=0` (allocate)",
+      "source_hash": 1349593489948993820,
+      "context_hash": 5980344995960461208,
+      "translation": "`mode=0` (할당)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053303Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:9/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6872653705514341537,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053303Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:10/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053303Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:11/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053304Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:12/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6992600651222267975,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053304Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:13/seg:0",
+      "source": "No*",
+      "source_hash": 5205303382607462155,
+      "context_hash": 6992600651222267975,
+      "translation": "아니요*",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:58.053304Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:14/seg:0",
+      "source": "No*",
+      "source_hash": 5205303382607462155,
+      "context_hash": 8850927602613093798,
+      "translation": "아니요*",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:58.053304Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:15/seg:0",
+      "source": "`FALLOC_FL_KEEP_SIZE`",
+      "source_hash": 5380951202041317865,
+      "context_hash": 14051689667217524334,
+      "translation": "`FALLOC_FL_KEEP_SIZE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:58.053304Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:16/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 8269816283903883327,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053304Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:17/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053305Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:18/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053305Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:19/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6992600651222267975,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:58.053305Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:20/seg:0",
+      "source": "No*",
+      "source_hash": 5205303382607462155,
+      "context_hash": 6992600651222267975,
+      "translation": "아니요*",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672740Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:21/seg:0",
+      "source": "No*",
+      "source_hash": 5205303382607462155,
+      "context_hash": 18006870216779947740,
+      "translation": "아니요*",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672741Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:22/seg:0",
+      "source": "`FALLOC_FL_PUNCH_HOLE`",
+      "source_hash": 1733091937184385860,
+      "context_hash": 13213688684955801134,
+      "translation": "`FALLOC_FL_PUNCH_HOLE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672742Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:23/seg:0",
+      "source": "Yes (3.0+)",
+      "source_hash": 16742937970231516148,
+      "context_hash": 16914189757967093702,
+      "translation": "예 (3.0+)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672742Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:24/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 13670377077983792699,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:33:18.672742Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:25/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:33:18.672742Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:26/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6298442167635189622,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:33:18.672742Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:27/seg:0",
+      "source": "Partial†",
+      "source_hash": 2230002269851358605,
+      "context_hash": 6896180631329868796,
+      "translation": "부분 지원†",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672742Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:28/seg:0",
+      "source": "Partial",
+      "source_hash": 9435579083518573509,
+      "context_hash": 16127155634330549856,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partial": "부분적"
+      },
+      "translated_at": "2026-11-14T23:29:27.266341Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:29/seg:0",
+      "source": "`FALLOC_FL_COLLAPSE_RANGE`",
+      "source_hash": 14648018983624796173,
+      "context_hash": 5435431512445995228,
+      "translation": "`FALLOC_FL_COLLAPSE_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:30/seg:0",
+      "source": "Yes (3.15+)",
+      "source_hash": 17212515934980146991,
+      "context_hash": 239214951910928659,
+      "translation": "예 (3.15+)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:31/seg:0",
+      "source": "Yes (3.15+)",
+      "source_hash": 17212515934980146991,
+      "context_hash": 10447064290764806826,
+      "translation": "예 (3.15+)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:32/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10447064290764806826,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:33/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:34/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:35/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 5445239032619144873,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:36/seg:0",
+      "source": "`FALLOC_FL_ZERO_RANGE`",
+      "source_hash": 3987318305887459720,
+      "context_hash": 6841521231845819596,
+      "translation": "`FALLOC_FL_ZERO_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:37/seg:0",
+      "source": "Yes (3.15+)",
+      "source_hash": 17212515934980146991,
+      "context_hash": 3520612425926271034,
+      "translation": "예 (3.15+)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:38/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 17804074096108348373,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:33:18.672743Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:39/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16361932622599883170,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:33:18.672744Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:40/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672744Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:41/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672744Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:42/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10449777320942922371,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672744Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:43/seg:0",
+      "source": "`FALLOC_FL_INSERT_RANGE`",
+      "source_hash": 16766488943497010185,
+      "context_hash": 1048584437393400981,
+      "translation": "`FALLOC_FL_INSERT_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672744Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:44/seg:0",
+      "source": "Yes (4.1+)",
+      "source_hash": 4255798963583934485,
+      "context_hash": 7466051994343723011,
+      "translation": "예 (4.1+)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:45/seg:0",
+      "source": "Yes (4.1+)",
+      "source_hash": 4255798963583934485,
+      "context_hash": 10566492300405860591,
+      "translation": "예 (4.1+)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:46/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10566492300405860591,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:47/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:48/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:49/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 18170472937911344430,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:50/seg:0",
+      "source": "`FALLOC_FL_UNSHARE_RANGE`",
+      "source_hash": 9810834421248359930,
+      "context_hash": 7536943046141488671,
+      "translation": "`FALLOC_FL_UNSHARE_RANGE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:51/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 8324655482677653218,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:33:18.672745Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:52/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 9508013301409225522,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:05.957050Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:53/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16361932622599883170,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:05.957050Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:54/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:05.957051Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:55/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:05.957051Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:56/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 9779264723709450991,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:05.957051Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:57/seg:0",
+      "source": "\\* NFS (for modes other than `FALLOC_FL_PUNCH_HOLE`) and CIFS may support some modes depending on the server-side filesystem. `fallocate` over NFS typically returns `EOPNOTSUPP` from the client, causing `posix_fallocate` to fall back to writing zeros.",
+      "source_hash": 6136889963245096759,
+      "context_hash": 2961053979154203277,
+      "translation": "\\* NFS(`FALLOC_FL_PUNCH_HOLE` 이외의 모드)와 CIFS는 서버 측 파일시스템에 따라 일부 모드를 지원할 수 있습니다. NFS를 통한 `fallocate`는 일반적으로 클라이언트에서 `EOPNOTSUPP`를 반환하며, 이 때문에 `posix_fallocate`는 0을 기록하는 방식으로 폴백합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957051Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:58/seg:0",
+      "source": "† NFSv4.2 clients support hole punching via the `DEALLOCATE` NFS operation when the server-side filesystem also supports it.",
+      "source_hash": 16002407788081534565,
+      "context_hash": 7029258409745495324,
+      "translation": "† NFSv4.2 클라이언트는 서버 측 파일시스템도 지원하는 경우 `DEALLOCATE` NFS 연산을 통해 hole punching을 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:58/seg:1",
+      "source": "NFSv3, NFSv4.0, and NFSv4.1 do not support `FALLOC_FL_PUNCH_HOLE` and return `EOPNOTSUPP`.",
+      "source_hash": 5184618560999608824,
+      "context_hash": 16901213953445022467,
+      "translation": "NFSv3, NFSv4.0, NFSv4.1은 `FALLOC_FL_PUNCH_HOLE`을 지원하지 않으며 `EOPNOTSUPP`를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:59/seg:0",
+      "source": "Always check for `EOPNOTSUPP` and have a fallback:",
+      "source_hash": 17510191246797261949,
+      "context_hash": 1467002438534531491,
+      "translation": "항상 `EOPNOTSUPP`를 확인하고 폴백을 마련하십시오:",
+      "glossary_snapshot": {
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:0/seg:0",
+      "source": "Copy-on-write filesystems: btrfs and XFS",
+      "source_hash": 13914884831612220294,
+      "context_hash": 12166581710131285370,
+      "translation": "Copy-on-write 파일시스템: btrfs와 XFS",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:1/seg:0",
+      "source": "Reflinks and `cp --reflink`",
+      "source_hash": 16060893937062202910,
+      "context_hash": 3324791987340511312,
+      "translation": "Reflink와 `cp --reflink`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:2/seg:0",
+      "source": "btrfs and XFS support *reflinks*: a file copy that shares extent tree entries with the original.",
+      "source_hash": 6718375010799943781,
+      "context_hash": 11570987403682051833,
+      "translation": "btrfs와 XFS는 *reflink*를 지원합니다. reflink는 원본과 extent 트리 항목을 공유하는 파일 복사본입니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:2/seg:1",
+      "source": "A `cp --reflink` is nearly instant and uses no additional disk space until one of the files is modified:",
+      "source_hash": 187521979058303275,
+      "context_hash": 11489115288634191355,
+      "translation": "`cp --reflink`는 거의 즉시 완료되며, 두 파일 중 하나가 수정될 때까지 추가 디스크 공간을 사용하지 않습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:4/seg:0",
+      "source": "When a reflinked block is written, the filesystem performs copy-on-write: the writing process gets a new private extent, and the other file's extent remains unchanged.",
+      "source_hash": 218799933213350059,
+      "context_hash": 18326761044768982867,
+      "translation": "reflink된 블록에 쓰기가 발생하면 파일시스템은 copy-on-write를 수행합니다. 쓰기를 하는 프로세스는 새로운 전용 extent를 얻고, 다른 파일의 extent는 변경되지 않은 채로 유지됩니다.",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:45:05.957052Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:5/seg:0",
+      "source": "`copy_file_range` and kernel-side reflinks",
+      "source_hash": 17900054114425242901,
+      "context_hash": 1652392540351019007,
+      "translation": "`copy_file_range`와 커널 측 reflink",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:6/seg:0",
+      "source": "`copy_file_range(2)` asks the kernel to copy a range between files.",
+      "source_hash": 8313287656584562043,
+      "context_hash": 17895763800992074675,
+      "translation": "`copy_file_range(2)`는 커널에 파일 간 범위 복사를 요청합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:6/seg:1",
+      "source": "On reflink-capable filesystems, the kernel may satisfy this as a metadata-only clone operation rather than copying bytes:",
+      "source_hash": 17229957488993933988,
+      "context_hash": 3327815920552919948,
+      "translation": "reflink를 지원하는 파일시스템에서는 커널이 바이트를 복사하는 대신 메타데이터만 다루는 clone 연산으로 이 요청을 처리할 수 있습니다:",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "kernel": "커널",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:8/seg:0",
+      "source": "For block-aligned ranges on XFS or btrfs with matching block sizes, this becomes a reflink clone — O(extents), effectively constant for single-extent files, but scales with extent count for heavily fragmented files.",
+      "source_hash": 6796343195066772245,
+      "context_hash": 12878620900502097977,
+      "translation": "블록 크기가 일치하는 XFS 또는 btrfs에서 블록 정렬된 범위의 경우 이는 reflink clone이 됩니다. 비용은 O(extents)로, 단일 extent 파일에서는 사실상 상수이지만 심하게 단편화된 파일에서는 extent 수에 비례하여 증가합니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:8/seg:1",
+      "source": "For other cases it falls back to a read/write loop.",
+      "source_hash": 7434811285767946047,
+      "context_hash": 3466291129207010350,
+      "translation": "그 밖의 경우에는 read/write 루프로 폴백합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:9/seg:0",
+      "source": "Fragmentation over time with COW",
+      "source_hash": 7394554648617952176,
+      "context_hash": 11467139089930389600,
+      "translation": "COW로 인한 시간 경과에 따른 단편화",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:10/seg:0",
+      "source": "COW filesystems accumulate fragmentation for frequently overwritten files.",
+      "source_hash": 3967812638127935076,
+      "context_hash": 4536225395960399468,
+      "translation": "COW 파일시스템에서는 자주 덮어쓰는 파일에 단편화가 누적됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:10/seg:1",
+      "source": "Each overwrite creates a new extent; the extent tree grows; sequential reads become random I/O. `FALLOC_FL_UNSHARE_RANGE` is one tool to combat this: it consolidates shared extents into a single contiguous private allocation.",
+      "source_hash": 10452888298239741564,
+      "context_hash": 3570168225904102777,
+      "translation": "덮어쓸 때마다 새로운 extent가 생성되고, extent 트리가 커지며, 순차 읽기가 랜덤 I/O가 됩니다. `FALLOC_FL_UNSHARE_RANGE`는 이에 대응하는 도구 중 하나로, 공유된 extent들을 연속된 하나의 전용 할당으로 통합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:11/seg:0",
+      "source": "For databases on btrfs, the standard recommendation is to disable data COW for database files:",
+      "source_hash": 5157612762465957100,
+      "context_hash": 17827711228674381709,
+      "translation": "btrfs 위의 데이터베이스에 대해서는 데이터베이스 파일의 데이터 COW를 비활성화하는 것이 표준 권장 사항입니다:",
+      "glossary_snapshot": {
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:13/seg:0",
+      "source": "With `+C` (nodatacow), `fallocate` and `write` behave more like they do on ext4: in-place updates without per-block copy-on-write.",
+      "source_hash": 8291794291360356384,
+      "context_hash": 11315041746117098098,
+      "translation": "`+C`(nodatacow)를 사용하면 `fallocate`와 `write`가 ext4에서와 더 비슷하게 동작합니다. 즉, 블록 단위 copy-on-write 없이 제자리(in-place) 갱신이 이루어집니다.",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:45:05.957053Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:14/seg:0",
+      "source": "Detecting extent sharing",
+      "source_hash": 11564671004439793887,
+      "context_hash": 10342553090344234782,
+      "translation": "Extent 공유 감지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:15/seg:0",
+      "source": "On XFS and btrfs, the `FIEMAP` ioctl with the `FIEMAP_EXTENT_SHARED` flag indicates shared extents:",
+      "source_hash": 16054715516601782298,
+      "context_hash": 13150076853232881908,
+      "translation": "XFS와 btrfs에서는 `FIEMAP` ioctl의 `FIEMAP_EXTENT_SHARED` 플래그가 공유된 extent를 나타냅니다:",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "ioctl": "ioctl"
+      },
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:0/seg:0",
+      "source": "Kernel internals",
+      "source_hash": 15815953846825659238,
+      "context_hash": 10564265088209100056,
+      "translation": "커널 내부 구조",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:1/seg:0",
+      "source": "The VFS entry point for `fallocate` is `vfs_fallocate()` in `fs/fallocate.c`:",
+      "source_hash": 10097866260318751641,
+      "context_hash": 10136202964890434400,
+      "translation": "`fallocate`의 VFS 진입점은 `fs/fallocate.c`에 있는 `vfs_fallocate()`입니다:",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:3/seg:0",
+      "source": "Each filesystem provides its own `fallocate` operation.",
+      "source_hash": 1675324865909901469,
+      "context_hash": 6700851372818653577,
+      "translation": "각 파일시스템은 자체 `fallocate` 연산을 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:3/seg:1",
+      "source": "For ext4:",
+      "source_hash": 6463902475623139242,
+      "context_hash": 6321056060457390496,
+      "translation": "ext4의 경우:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:16/block:5/seg:0",
+      "source": "The flags constant definitions are in `include/uapi/linux/falloc.h`:",
+      "source_hash": 14609317417801214698,
+      "context_hash": 9669897212579446808,
+      "translation": "플래그 상수 정의는 `include/uapi/linux/falloc.h`에 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 13405571567712918425,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:45:05.957054Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:1/seg:0",
+      "source": "[Buffered I/O and the Page Cache](buffered-io.md) — page cache interaction with preallocated extents",
+      "source_hash": 4573985719110091175,
+      "context_hash": 16909771062715173470,
+      "translation": "[버퍼드 I/O와 페이지 캐시](buffered-io.md) — 사전 할당된 extent와 페이지 캐시의 상호작용",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:03:41.870626Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:2/seg:0",
+      "source": "[Direct I/O](direct-io.md) — bypassing the page cache for O_DIRECT writes into preallocated ranges",
+      "source_hash": 6319909973938757001,
+      "context_hash": 11345179098771135370,
+      "translation": "[Direct I/O](direct-io.md) — 사전 할당된 범위에 대한 O_DIRECT 쓰기에서 페이지 캐시 우회",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:03:41.870627Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:3/seg:0",
+      "source": "[Life of a Write](life-of-a-write.md) — how `write()` interacts with preallocated (unwritten) extents",
+      "source_hash": 8644274005503397026,
+      "context_hash": 6114889342294383487,
+      "translation": "[쓰기의 일생](life-of-a-write.md) — `write()`가 사전 할당된(unwritten) extent와 상호작용하는 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:4/seg:0",
+      "source": "[VFS: File Operations](../vfs/file-ops.md) — `f_op->fallocate` dispatch",
+      "source_hash": 9305802302220051560,
+      "context_hash": 5374947493931379560,
+      "translation": "[VFS: 파일 연산](../vfs/file-ops.md) — `f_op->fallocate` 디스패치",
+      "glossary_snapshot": {
+        "VFS": "VFS"
+      },
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:5/seg:0",
+      "source": "[splice, sendfile, copy_file_range](../vfs/splice-sendfile.md) — kernel-side reflink copies",
+      "source_hash": 11857198434118579341,
+      "context_hash": 619016810271084963,
+      "translation": "[splice, sendfile, copy_file_range](../vfs/splice-sendfile.md) — 커널 측 reflink 복사",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:6/seg:0",
+      "source": "[btrfs](../filesystems/btrfs.md) — COW semantics and extent sharing",
+      "source_hash": 8297224255705796364,
+      "context_hash": 2826985889755307907,
+      "translation": "[btrfs](../filesystems/btrfs.md) — COW 의미론과 extent 공유",
+      "glossary_snapshot": {
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:7/seg:0",
+      "source": "[XFS](../filesystems/xfs.md) — extent B-tree and preallocation history",
+      "source_hash": 15313038125229578172,
+      "context_hash": 3555916512616890783,
+      "translation": "[XFS](../filesystems/xfs.md) — extent B-tree와 사전 할당의 역사",
+      "glossary_snapshot": {
+        "B-tree": "B-tree",
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:8/seg:0",
+      "source": "`fs/fallocate.c` — VFS `vfs_fallocate()` implementation",
+      "source_hash": 4446421110717308631,
+      "context_hash": 7446709729556854936,
+      "translation": "`fs/fallocate.c` — VFS `vfs_fallocate()` 구현",
+      "glossary_snapshot": {
+        "VFS": "VFS"
+      },
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:9/seg:0",
+      "source": "`include/uapi/linux/falloc.h` — `FALLOC_FL_*` flag definitions",
+      "source_hash": 3420467217192960799,
+      "context_hash": 13781114436704354850,
+      "translation": "`include/uapi/linux/falloc.h` — `FALLOC_FL_*` 플래그 정의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    },
+    {
+      "id": "section:17/block:10/seg:0",
+      "source": "`fs/ext4/extents.c` — `ext4_fallocate()` and unwritten extent handling",
+      "source_hash": 9809296442774745954,
+      "context_hash": 8642363872788764217,
+      "translation": "`fs/ext4/extents.c` — `ext4_fallocate()`와 unwritten extent 처리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:41.870628Z",
+      "issues": []
+    }
+  ]
+}

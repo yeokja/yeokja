@@ -1,0 +1,708 @@
+{
+  "version": 1,
+  "source_hash": 1559877344897875706,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Life of a Block I/O",
+      "source_hash": 6606664227269082184,
+      "context_hash": 1917386265486499984,
+      "translation": "블록 I/O의 일생",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381795Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Tracing a read or write from `submit_bio()` down through the block layer to the device — and back up on completion",
+      "source_hash": 3874603770616608866,
+      "context_hash": 7983177347928790719,
+      "translation": "`submit_bio()`에서 블록 계층을 거쳐 디바이스까지 내려갔다가 완료 시 다시 올라오는 읽기 또는 쓰기 요청의 트레이싱",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "device": "디바이스",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:29:43.257190Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Every block I/O has two halves: a **submission path** that carries a request *down* toward the hardware, and a **completion path** that carries the result *back up* to whoever asked.",
+      "source_hash": 18042180715597250287,
+      "context_hash": 17175755791082757253,
+      "translation": "모든 블록 I/O는 두 부분으로 나뉩니다. 요청을 하드웨어 쪽으로 *내려보내는* **제출 경로**와, 결과를 요청한 쪽으로 *다시 올려보내는* **완료 경로**입니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T21:53:55.381796Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Between them, the block layer does the work that justifies its existence — merging, batching, scheduling, and mapping onto hardware queues.",
+      "source_hash": 7853614300201114646,
+      "context_hash": 4653138743884012713,
+      "translation": "그 사이에서 블록 계층은 자신의 존재 이유가 되는 작업, 즉 병합(merging), 배칭(batching), 스케줄링, 그리고 하드웨어 큐로의 매핑을 수행합니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "hardware queues": "하드웨어 큐",
+        "mapping": "매핑",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T21:53:55.381796Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:2",
+      "source": "This page follows one I/O through both halves.",
+      "source_hash": 6436094511704622372,
+      "context_hash": 14573896277579620414,
+      "translation": "이 페이지에서는 하나의 I/O가 두 부분을 모두 거치는 과정을 따라갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381796Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:3/seg:0",
+      "source": "Function names below refer to [`block/blk-mq.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/block/blk-mq.c) and [`block/blk-core.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/block/blk-core.c) unless noted.",
+      "source_hash": 13304788261038130456,
+      "context_hash": 10477824296829688545,
+      "translation": "별도의 언급이 없는 한, 아래의 함수 이름은 [`block/blk-mq.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/block/blk-mq.c)와 [`block/blk-core.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/block/blk-core.c)를 기준으로 합니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The starting point: a bio",
+      "source_hash": 13676523963149362227,
+      "context_hash": 1256760172793142232,
+      "translation": "출발점: bio",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A [`bio`](bio-request.md) describes one I/O: a target device, a starting sector, a direction, and a list of memory segments to read into or write from.",
+      "source_hash": 5582133356934885314,
+      "context_hash": 627777684918361273,
+      "translation": "[`bio`](bio-request.md)는 하나의 I/O를 기술합니다. 대상 디바이스, 시작 섹터, 방향, 그리고 데이터를 읽어 들이거나 써낼 메모리 세그먼트 목록이 그것입니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:43.257191Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Whoever wants I/O — a filesystem, the [page-cache writeback](../io/page-cache-writeback.md) path, swap, or an `O_DIRECT` submitter — fills in a `bio` and calls `submit_bio()`.",
+      "source_hash": 12740118040035772547,
+      "context_hash": 14324580271616678851,
+      "translation": "I/O가 필요한 쪽은 파일시스템이든, [페이지 캐시 writeback](../io/page-cache-writeback.md) 경로든, swap이든, `O_DIRECT` 제출자든 `bio`를 채운 다음 `submit_bio()`를 호출합니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "1.",
+      "source_hash": 4093818885034029453,
+      "context_hash": 14975045598285327714,
+      "translation": "1\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:1",
+      "source": "Submission: `submit_bio()` → `blk_mq_submit_bio()`",
+      "source_hash": 9103404774410454709,
+      "context_hash": 5710231458172488270,
+      "translation": "제출: `submit_bio()` → `blk_mq_submit_bio()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "`submit_bio()` funnels into `submit_bio_noacct()`, which does validation and I/O accounting, then hands the `bio` to `blk_mq_submit_bio()` — the entry into the multi-queue machinery.",
+      "source_hash": 5434990861792340496,
+      "context_hash": 16058764807587806419,
+      "translation": "`submit_bio()`는 `submit_bio_noacct()`로 이어지며, 이 함수는 검증과 I/O 어카운팅을 수행한 뒤 `bio`를 멀티 큐 메커니즘의 진입점인 `blk_mq_submit_bio()`에 넘깁니다.",
+      "glossary_snapshot": {
+        "accounting": "어카운팅",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "From here the block layer's first instinct is *not* to build a new request, but to avoid one.",
+      "source_hash": 12295314978421037908,
+      "context_hash": 8848671305949503026,
+      "translation": "여기서부터 블록 계층이 가장 먼저 하려는 일은 새 요청을 만드는 것이 *아니라*, 새 요청을 만들지 않고 넘어가는 것입니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "2.",
+      "source_hash": 1210270714770233551,
+      "context_hash": 15493522267673507430,
+      "translation": "2\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:1",
+      "source": "Can we avoid a new request?",
+      "source_hash": 17175644952018015506,
+      "context_hash": 13882959439427615216,
+      "translation": "새 요청을 피할 수 있는가?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381797Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:2",
+      "source": "Merging",
+      "source_hash": 2601248448658190751,
+      "context_hash": 8571709500860686160,
+      "translation": "병합",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Before allocating anything, the block layer tries to fold the `bio` into an existing, not-yet-dispatched request:",
+      "source_hash": 6789873715148879108,
+      "context_hash": 12823860279303181844,
+      "translation": "블록 계층은 무엇이든 할당하기 전에, 아직 디스패치되지 않은 기존 요청에 `bio`를 합쳐 넣으려고 시도합니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "**`blk_attempt_plug_merge()`** — the current task holds a short *plug* list of pending requests (see step 4).",
+      "source_hash": 493688187026655949,
+      "context_hash": 1443712757112689658,
+      "translation": "**`blk_attempt_plug_merge()`** — 현재 태스크는 대기 중인 요청들로 이루어진 짧은 *plug* 목록을 가지고 있습니다(4단계 참조).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "A `bio` that is contiguous with one of them is merged right there, without taking a queue lock.",
+      "source_hash": 3100101849035203871,
+      "context_hash": 12117409458973833836,
+      "translation": "그중 하나와 연속된 `bio`는 큐 락을 잡지 않고 그 자리에서 바로 병합됩니다.",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "**`blk_mq_sched_bio_merge()`** — if an I/O scheduler is attached, it gets a chance to merge the `bio` into a request already sitting in its queues.",
+      "source_hash": 5494785496275933771,
+      "context_hash": 2902132277246680305,
+      "translation": "**`blk_mq_sched_bio_merge()`** — I/O 스케줄러가 연결되어 있으면, 스케줄러는 자신의 큐에 이미 들어 있는 요청에 `bio`를 병합할 기회를 얻습니다.",
+      "glossary_snapshot": {
+        "queues": "큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "A **back-merge** (the `bio`'s start sector equals a request's end) or **front-merge** simply extends the existing request to cover the new segments.",
+      "source_hash": 9694628759280029854,
+      "context_hash": 6531761457860412718,
+      "translation": "**back-merge**(`bio`의 시작 섹터가 요청의 끝과 같은 경우)나 **front-merge**는 단순히 기존 요청을 새 세그먼트까지 포함하도록 확장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "Merging is why a stream of sequential 4 KB writes becomes a handful of large requests instead of thousands of tiny ones — the single biggest efficiency win the block layer provides.",
+      "source_hash": 1484379776995981460,
+      "context_hash": 1252556054503599050,
+      "translation": "병합 덕분에 연속된 4 KB 쓰기의 흐름이 수천 개의 작은 요청이 아니라 소수의 큰 요청이 되며, 이는 블록 계층이 제공하는 가장 큰 효율 향상입니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "3.",
+      "source_hash": 414013015342266677,
+      "context_hash": 8269692493256862163,
+      "translation": "3\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:1",
+      "source": "Allocation: a bio becomes a request",
+      "source_hash": 12874478597690520296,
+      "context_hash": 3891247421561026931,
+      "translation": "할당: bio가 요청이 되는 과정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "If nothing could be merged, `blk_mq_get_new_requests()` allocates a `request` by claiming a free **tag** from the hardware queue's tag set.",
+      "source_hash": 16774329003085170491,
+      "context_hash": 16350666800083382614,
+      "translation": "병합할 수 있는 것이 없으면, `blk_mq_get_new_requests()`는 하드웨어 큐의 tag set에서 비어 있는 **tag**를 확보하여 `request`를 할당합니다.",
+      "glossary_snapshot": {
+        "hardware queue": "하드웨어 큐"
+      },
+      "translated_at": "2026-11-14T21:53:55.381798Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "That tag is the request's identity for the rest of its life — it travels down to the device and comes back on completion to identify which I/O finished.",
+      "source_hash": 70887625078381518,
+      "context_hash": 500162909988397795,
+      "translation": "이 태그는 request가 존재하는 동안 그 식별자 역할을 합니다. 태그는 디바이스까지 내려갔다가 완료 시 다시 돌아와 어떤 I/O가 끝났는지 식별합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:43.257192Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "Tags are finite (the queue depth).",
+      "source_hash": 10219178200469443064,
+      "context_hash": 11538659371792740042,
+      "translation": "tag의 수는 유한합니다(큐 깊이).",
+      "glossary_snapshot": {
+        "queue depth": "큐 깊이"
+      },
+      "translated_at": "2026-11-14T21:53:55.381799Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "If none is free, the submitter **blocks** until one is returned.",
+      "source_hash": 4210230716305624268,
+      "context_hash": 13208028421674955545,
+      "translation": "비어 있는 tag가 없으면, 제출자는 tag 하나가 반환될 때까지 **블록됩니다**.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381799Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:2",
+      "source": "This is the block layer's natural backpressure: a device that can't keep up throttles its submitters automatically, without any explicit rate limiting.",
+      "source_hash": 7231366369244837652,
+      "context_hash": 9265581561189499014,
+      "translation": "이것이 블록 계층의 자연스러운 배압(backpressure)입니다. 처리 속도를 따라가지 못하는 디바이스는 명시적인 속도 제한 없이도 자동으로 제출자를 조절합니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:43.257192Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "4.",
+      "source_hash": 14789025571905875223,
+      "context_hash": 4079091470492848442,
+      "translation": "4\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:55.381800Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:1",
+      "source": "Plugging: batching for throughput",
+      "source_hash": 4554316872118564073,
+      "context_hash": 11483296204470114695,
+      "translation": "Plugging: 처리량을 위한 배칭",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T21:53:55.381800Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Rather than dispatch immediately, the fresh request is usually added to the task's **plug**.",
+      "source_hash": 8635997521456874834,
+      "context_hash": 2837996288962211166,
+      "translation": "요청은 즉시 디스패치되는 대신, 보통 태스크의 **plug**에 먼저 추가됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808303Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "Code that is about to submit a burst of I/O brackets it with `blk_start_plug()` / `blk_finish_plug()` — the writeback path does this around a flushing run, for example.",
+      "source_hash": 14240322288460020844,
+      "context_hash": 17817643060180043342,
+      "translation": "다수의 I/O를 한꺼번에 제출하려는 코드는 그 구간을 `blk_start_plug()` / `blk_finish_plug()`로 감쌉니다. 예를 들어 writeback 경로는 플러시 작업 전후에서 이렇게 합니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T21:50:46.808304Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:2",
+      "source": "While the plug is held, requests accumulate, which gives merging (step 2) more to work with and amortizes the cost of poking the hardware.",
+      "source_hash": 12685161884573503595,
+      "context_hash": 9924769638478689587,
+      "translation": "plug가 유지되는 동안 요청이 쌓이므로, 병합(2단계)이 활용할 대상이 많아지고 하드웨어를 건드리는 비용이 분산됩니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T21:50:46.808305Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:3",
+      "source": "When the plug is flushed, its requests move toward dispatch.",
+      "source_hash": 190096171143452692,
+      "context_hash": 8458482309992714249,
+      "translation": "plug가 플러시되면 그 안의 요청들이 디스패치 단계로 넘어갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808305Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "5.",
+      "source_hash": 17772220482873900580,
+      "context_hash": 16492473528787382991,
+      "translation": "5\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808306Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:1",
+      "source": "Scheduling: order and fairness",
+      "source_hash": 6890084861643396134,
+      "context_hash": 15807046338757148297,
+      "translation": "스케줄링: 순서와 공정성",
+      "glossary_snapshot": {
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T21:50:46.808306Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "If an [I/O scheduler](io-schedulers.md) is attached — BFQ, mq-deadline, or Kyber — requests wait in its queues and it decides the **dispatch order**: bounding tail latency, dividing bandwidth fairly between cgroups, or reducing seeks on rotational media.",
+      "source_hash": 16185932271952756101,
+      "context_hash": 4827928491487654587,
+      "translation": "[I/O 스케줄러](io-schedulers.md)(BFQ, mq-deadline, Kyber)가 연결되어 있으면 요청은 스케줄러의 큐에서 대기하며, 스케줄러가 **디스패치 순서**를 결정합니다. 이를 통해 꼬리 지연 시간(tail latency)을 제한하거나, cgroup 간에 대역폭을 공정하게 나누거나, 회전식 매체에서 탐색(seek)을 줄입니다.",
+      "glossary_snapshot": {
+        "BFQ": "BFQ",
+        "bandwidth": "대역폭",
+        "cgroups": "cgroup",
+        "latency": "지연 시간",
+        "queues": "큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T21:50:46.808307Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "On a fast SSD the scheduler is frequently set to **`none`**, and requests flow straight to the hardware queue, because reordering buys little when the device has no seek penalty and millions of IOPS to spare.",
+      "source_hash": 679889401920329315,
+      "context_hash": 7864065729624333596,
+      "translation": "빠른 SSD에서는 스케줄러를 **`none`으로** 설정하는 경우가 많으며, 이때 request는 하드웨어 큐로 곧바로 흘러갑니다. 디바이스에 탐색(seek) 비용이 없고 수백만 IOPS의 여유가 있을 때는 순서를 재배치해도 얻는 이득이 거의 없기 때문입니다.",
+      "glossary_snapshot": {
+        "IOPS": "IOPS",
+        "SSD": "SSD",
+        "device": "디바이스",
+        "hardware queue": "하드웨어 큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T23:29:43.257193Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "6.",
+      "source_hash": 13345099316864472065,
+      "context_hash": 2244424545645143466,
+      "translation": "6\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808308Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:1",
+      "source": "Dispatch: into the hardware queue",
+      "source_hash": 5234653355426429899,
+      "context_hash": 15233240961264650846,
+      "translation": "디스패치: 하드웨어 큐로",
+      "glossary_snapshot": {
+        "hardware queue": "하드웨어 큐"
+      },
+      "translated_at": "2026-11-14T21:50:46.808308Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "`blk_mq_run_hw_queue()` → `blk_mq_dispatch_rq_list()` walks the ready requests and hands each to the driver's `->queue_rq()` callback — `nvme_queue_rq()` for NVMe ([`drivers/nvme/host/pci.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/nvme/host/pci.c)), and equivalents for SCSI or virtio-blk.",
+      "source_hash": 7243547302703716890,
+      "context_hash": 4225030782375827301,
+      "translation": "`blk_mq_run_hw_queue()` → `blk_mq_dispatch_rq_list()`는 준비된 요청을 순회하며 각 요청을 드라이버의 `->queue_rq()` 콜백에 넘깁니다. NVMe의 경우 `nvme_queue_rq()`([`drivers/nvme/host/pci.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/nvme/host/pci.c))이며, SCSI나 virtio-blk에도 이에 상응하는 콜백이 있습니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "callback": "콜백",
+        "driver": "드라이버",
+        "virtio": "virtio"
+      },
+      "translated_at": "2026-11-14T21:50:46.808309Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "The driver translates the generic request into a device-specific command, places it on a **hardware submission queue** (identified by the request's tag), and rings the device's doorbell.",
+      "source_hash": 6529614654539666409,
+      "context_hash": 6461610134430422667,
+      "translation": "드라이버는 일반 request를 디바이스 고유의 명령으로 변환하여 (request의 태그로 식별되는) **하드웨어 제출 큐**에 넣고, 디바이스의 doorbell을 울립니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:29:43.257194Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:2",
+      "source": "Control returns to the submitter; the I/O is now in flight.",
+      "source_hash": 3014230123501451981,
+      "context_hash": 16246127287927847836,
+      "translation": "제어는 제출자에게 돌아가며, 이제 I/O는 진행 중인 상태가 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808309Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "7.",
+      "source_hash": 16831354962719300797,
+      "context_hash": 13557442207333184579,
+      "translation": "7\\.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808309Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:1",
+      "source": "Completion: back up the stack",
+      "source_hash": 4357691052031770992,
+      "context_hash": 7338952441261053368,
+      "translation": "완료: 스택을 거슬러 올라가기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808309Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Eventually the device finishes and signals it — usually an **interrupt**, or a **[poll](../io/io-polling.md)** for latency-critical I/O.",
+      "source_hash": 11350757523178169022,
+      "context_hash": 12933848764395334360,
+      "translation": "결국 디바이스는 처리를 마치고 이를 알립니다. 보통은 **인터럽트**를 사용하며, 지연 시간이 중요한 I/O에는 [**폴링**](../io/io-polling.md)을 사용합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "interrupt": "인터럽트",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T23:29:43.257194Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "The driver reads the completion, looks up the request by its tag, and calls `blk_mq_complete_request()`.",
+      "source_hash": 16352176720725393833,
+      "context_hash": 15157476060938659480,
+      "translation": "드라이버는 완료 정보를 읽고, 태그로 요청을 찾은 뒤 `blk_mq_complete_request()`를 호출합니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T21:50:46.808310Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:2",
+      "source": "To keep data cache-warm, completion is often steered back to the CPU that submitted the I/O (via an IPI), where it runs `blk_mq_end_request()` → `bio_endio()`.",
+      "source_hash": 13610058691043991726,
+      "context_hash": 12295340767287776890,
+      "translation": "데이터를 캐시에 따뜻하게 유지하기 위해, 완료 처리는 (IPI를 통해) I/O를 제출한 CPU로 되돌려 보내지는 경우가 많으며, 그 CPU에서 `blk_mq_end_request()` → `bio_endio()`가 실행됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "IPI": "IPI",
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T21:50:46.808310Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "`bio_endio()` invokes the `bio`'s `->bi_end_io` callback — the hook the *original* submitter installed.",
+      "source_hash": 6139250787413405844,
+      "context_hash": 1555116795541611383,
+      "translation": "`bio_endio()`는 `bio`의 `->bi_end_io` 콜백, 즉 *원래의* 제출자가 설치해 둔 훅을 호출합니다.",
+      "glossary_snapshot": {
+        "callback": "콜백",
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T21:50:46.808311Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "That is where the story ends for each caller: a synchronous reader is woken, a page is marked up-to-date and unlocked, or a writeback completion records that the data is now durable.",
+      "source_hash": 16599129972661701044,
+      "context_hash": 3437291226998424610,
+      "translation": "각 호출자에게는 여기서 이야기가 끝납니다. 동기식 읽기 측이 깨어나거나, 페이지가 up-to-date로 표시되고 잠금이 해제되거나, writeback 완료 처리가 데이터가 이제 영속적으로 기록되었음을 기록합니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T21:50:46.808311Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:2",
+      "source": "The tag is freed, which may release a submitter that was blocked back in step 3.",
+      "source_hash": 16390277735783329783,
+      "context_hash": 12504098318065640666,
+      "translation": "태그가 해제되며, 이로써 3단계에서 블록되어 있던 제출자가 풀려날 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808311Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "The round trip",
+      "source_hash": 15061173129723790836,
+      "context_hash": 1845935394871928697,
+      "translation": "왕복 과정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808311Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Try it yourself",
+      "source_hash": 18329884058255754057,
+      "context_hash": 12975917890504687817,
+      "translation": "직접 해 보기",
+      "glossary_snapshot": {
+        "Try It Yourself": "직접 해 보기"
+      },
+      "translated_at": "2026-11-14T21:50:46.808312Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "`blktrace` records every stage of this path — `Q` (queued), `M` (merged), `G` (get request), `I` (inserted), `D` (dispatched), `C` (completed) — for a live device:",
+      "source_hash": 1844495944206481456,
+      "context_hash": 14845601038033326009,
+      "translation": "`blktrace`는 동작 중인 디바이스에 대해 이 경로의 모든 단계, 즉 `Q`(큐에 들어감), `M`(병합됨), `G`(request 획득), `I`(삽입됨), `D`(디스패치됨), `C`(완료됨)를 기록합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:29:43.257195Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "`bpftrace` can watch the same transitions by attaching to the block tracepoints (`block:block_bio_queue`, `block:block_rq_issue`, `block:block_rq_complete`).",
+      "source_hash": 4506185113411317865,
+      "context_hash": 17540441231347392861,
+      "translation": "`bpftrace`는 블록 트레이스포인트(`block:block_bio_queue`, `block:block_rq_issue`, `block:block_rq_complete`)에 연결하여 동일한 전이를 관찰할 수 있습니다.",
+      "glossary_snapshot": {
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T21:50:46.808312Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 2906752901740488294,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:50:46.808312Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "[Kernel docs: block layer](https://docs.kernel.org/block/index.html)",
+      "source_hash": 2059954884567335936,
+      "context_hash": 14741970855671058711,
+      "translation": "[커널 문서: 블록 계층](https://docs.kernel.org/block/index.html)",
+      "glossary_snapshot": {
+        "Kernel docs": "커널 문서",
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T21:50:46.808313Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "[`block/blk-mq.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/block/blk-mq.c) — the submission and completion machinery",
+      "source_hash": 14793972927833203471,
+      "context_hash": 8020760928752104256,
+      "translation": "[`block/blk-mq.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/block/blk-mq.c) — 제출 및 완료 메커니즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:50:46.808313Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "[`320ae51feed5`](https://git.kernel.org/linus/320ae51feed5) — the introduction of blk-mq, which established this multi-queue path (Linux 3.13)",
+      "source_hash": 10387307767301996891,
+      "context_hash": 8570157358471077479,
+      "translation": "[`320ae51feed5`](https://git.kernel.org/linus/320ae51feed5) — 이 멀티 큐 경로를 확립한 blk-mq의 도입(Linux 3.13)",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "blk-mq": "blk-mq",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T21:50:46.808313Z",
+      "issues": []
+    }
+  ]
+}

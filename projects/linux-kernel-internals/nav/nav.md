@@ -1,0 +1,580 @@
+- Home
+- Foundations
+    - Background
+        - Linux Evolution
+        - Hardware Evolution
+    - Kernel Internals
+        - Getting Started
+        - printk and Kernel Logging
+        - Early Boot and start_kernel()
+        - Kernel Boot Parameters
+        - Kernel Panic and Oops
+        - Module Init and Initcalls
+        - War Stories
+    - Architecture
+        - ARM64
+            - Getting Started
+            - Boot Sequence
+            - Exception Model
+            - Memory Model
+            - Page Tables
+            - Syscall Entry
+            - CPU Features and Alternatives
+            - Spectre and Meltdown
+            - War Stories
+        - x86
+            - Getting Started
+            - Boot Sequence
+            - Page Tables
+            - Syscall Entry
+            - Exception and Interrupt Handling
+            - CPU Features and Alternatives
+            - Spectre and Meltdown
+            - War Stories
+    - System Calls
+        - Getting Started
+        - Syscall Entry Path
+        - SYSCALL_DEFINE and Dispatch
+        - Adding a New Syscall
+        - 32-bit Compat Syscalls
+        - ptrace and Syscall Interception
+        - vDSO and Virtual System Calls
+        - Syscall Auditing
+        - Syscall Restart Mechanisms
+        - War Stories
+    - Time
+        - Getting Started
+        - Timekeeping and Clocksources
+        - Clocksource and Clockevent Drivers
+        - hrtimers
+        - POSIX Timers and timerfd
+        - The Timer Wheel
+        - NTP and Clock Discipline
+        - Time Namespaces
+        - War Stories
+    - Kernel Modules
+        - Getting Started
+        - Writing and Loading Modules
+        - Parameters, Symbols, and Kconfig
+        - Module Signing
+        - Kbuild Build System
+        - Module Loading Internals
+        - Dynamic Debug
+        - War Stories
+- Memory
+    - Memory Management
+        - Getting Started
+        - Overview
+        - Fundamentals
+            - Page Allocator
+            - kmalloc (SLUB)
+            - SLUB Allocator Internals
+            - vmalloc
+            - NUMA
+        - NUMA Advanced
+            - Distance Metrics
+            - Zonelist & Fallback
+            - NUMA & Reclaim
+            - Memory Hotplug
+        - Address Translation
+            - Page Tables
+            - Kernel Address Space
+            - Physical Memory Model
+            - Process Address Space
+            - Page Fault Handler
+            - vDSO: Fast Syscalls Without the Kernel
+        - Caching & Reclaim
+            - Page Cache
+            - Page Reclaim
+            - MGLRU
+            - Reclaim Throttling
+            - Zone Reclaim Policy
+            - Shrinker API
+            - DAMON
+            - Swap
+            - zswap
+        - Advanced
+            - Memory Cgroups
+            - Transparent Huge Pages
+            - Multi-Size THP
+            - Compaction
+            - KSM
+            - Folio Abstraction
+            - Maple Tree (VMA Data Structure)
+            - Per-VMA Locks
+            - RCU in Memory Management
+            - TLB Optimization
+            - CXL Memory Tiering
+            - Memory Tiering
+            - HMM (Heterogeneous Memory Management)
+            - userfaultfd
+            - Page Table Walking API
+            - GUP: Getting User Pages
+            - vrealloc
+        - Memory Cgroups
+            - Container Memory Limits
+            - memory.stat Reference
+            - Cgroup Hierarchy
+            - Cgroup OOM
+            - Cgroup Swap Accounting
+        - Lifecycle
+            - Life of a malloc
+            - Life of a page
+            - What happens when you fork
+            - What happens during exec()
+            - Running out of memory
+            - Life of a file read
+            - File-backed mmap and page faults
+            - What happens during swapping
+        - Explainers
+            - Virtual vs Physical vs Resident
+            - Memory Overcommit
+            - brk vs mmap
+            - Contiguous Memory
+            - Copy-on-Write
+        - Boot & Subsystems
+            - memblock
+            - Memory Reservation
+            - Boot Page Tables
+            - NUMA Topology (ACPI SRAT/SLIT)
+            - CMA
+            - DMA
+            - Device Coherency
+            - PCI BAR Mapping
+            - hugetlbfs vs THP
+            - 1GB Huge Pages
+        - Tuning
+            - PSI
+            - Sysctl Reference
+            - Containers
+            - Databases
+            - Memory Bandwidth
+            - Swap Thrashing
+        - Debugging
+            - KASAN
+            - KFENCE
+            - Kmemleak
+            - Page Poisoning
+            - MM Tracepoints
+            - Fault Injection
+            - Why is my process slow?
+            - Reading an OOM log
+            - OOM Debugging
+            - Understanding /proc/meminfo
+            - Understanding /proc/vmstat
+            - /proc/meminfo reference
+            - /proc/vmstat reference
+        - Bugs
+            - Bug Index
+            - War Stories: Performance Regressions
+            - War Stories: CVE Case Studies
+            - War Stories: Bug Incident Narratives
+        - Reference
+            - Glossary
+    - IOMMU and DMA
+        - Getting Started
+        - IOMMU Architecture
+        - DMA API
+        - IOVA Allocator
+        - Shared Virtual Addressing
+        - VFIO Internals
+        - IOMMU War Stories
+- Scheduling & Concurrency
+    - Scheduler
+        - Getting Started
+        - Fundamentals
+            - Scheduler Evolution
+            - Scheduler Classes
+            - CFS
+            - EEVDF
+            - sched_ext (BPF Scheduling)
+            - Runqueues & Task Selection
+        - Lifecycle
+            - Life of a Context Switch
+            - What Happens When a Process Wakes Up
+            - What Happens When You fork()
+        - Real-Time
+            - RT Scheduler
+            - SCHED_DEADLINE
+            - Priority Inversion & PI Mutexes
+        - Resource Control & Topology
+            - CPU cgroup (v1 vs v2)
+            - CPU Bandwidth Control
+            - cpuset
+            - Scheduling Domains
+            - CPU Affinity
+        - Advanced
+            - Load Balancing
+            - NUMA Automatic Balancing
+            - Energy-Aware Scheduling
+            - Preemption Model
+            - The Scheduling Tick
+            - Real-Time Linux Tuning
+        - Debugging & Observability
+            - Scheduler Statistics
+            - Scheduler Tracing
+            - Scheduler Tuning
+        - War Stories
+            - Scheduler War Stories
+            - The DEADLINE Lock Holder That Forgot to Inherit on the Way Down
+            - The Cost of Asking "Is There Any Work For Me?" Too Often
+            - PSI Polling: A Waitqueue That Outlived the cgroup That Owned It
+            - wake_wide(): A Heuristic That Helps One Workload by Hurting Another
+            - The CFS Bandwidth Slice That Expired Before It Was Spent
+    - Locking
+        - Getting Started
+        - Fundamentals
+            - Spinlock and raw_spinlock
+            - Mutex and rt_mutex
+            - rwlock and rwsem
+            - RCU (Read-Copy-Update)
+            - Seqlock
+        - Advanced
+            - Atomic Operations and Memory Barriers
+            - Per-CPU Variables
+            - Lockdep
+            - Lock Contention Debugging
+            - Futex Internals
+            - SRCU
+            - Completions and Wait Queues
+            - PREEMPT_RT: Twenty Years to Mainline
+        - War Stories
+            - Locking War Stories
+            - The Deadlock Detector That Scheduled While Atomic
+            - The PI-Futex Fixup That Had No Answer for a Permanent Fault
+            - Towelroot: The Missing Check on the Requeuer's Half of the Pair
+            - The PI-Mutex Origin Story
+    - Interrupts
+        - Getting Started
+        - Fundamentals
+            - Interrupt Handling Overview
+            - IRQ Descriptor and irq_chip
+            - request_irq and free_irq
+            - Threaded IRQs
+            - IRQ Affinity and CPU Isolation
+            - MSI and MSI-X
+        - Deferred Work
+            - Softirqs
+            - Tasklets
+            - Workqueues
+            - Workqueue Internals (cmwq)
+            - Timers and hrtimers
+        - War Stories
+            - Interrupt War Stories
+            - The Vector Leak That Needed Two CPUs to Go Offline in the Wrong Order
+            - The IPI Verifier That Trusted Its Own Caller
+            - The Warning That Vector Space Was Silently Breaking Affinity
+            - The Affinity Notifier That Outlived Its Own Reference Count
+    - IPC
+        - Getting Started
+        - Signals
+        - Pipes and FIFOs
+        - Shared Memory and Semaphores
+        - eventfd and signalfd
+        - POSIX Message Queues
+        - Unix Domain Sockets
+        - SysV Semaphores and Message Queues
+        - IPC War Stories
+- Storage & I/O
+    - VFS
+        - Getting Started
+        - Fundamentals
+            - VFS Objects: superblock, inode, dentry, file
+            - Path Resolution
+            - File Operations
+            - Filesystem Registration and Mounting
+        - Lifecycle
+            - Life of a write() Syscall
+            - Dentry and Inode Caches
+        - Advanced
+            - splice, sendfile, copy_file_range
+            - inotify and fanotify
+            - Extended Attributes (xattr)
+            - procfs and sysfs
+        - War Stories
+            - VFS War Stories
+            - The Dentry-Cache Walk Livelock
+            - Sequoia: The seq_file Size-Truncation Overflow
+            - OverlayFS: UID Mapping Confusion
+            - OverlayFS: Capability-Xattr Bypass
+    - Filesystems
+        - Getting Started
+        - ext4
+        - ext4 Journaling (JBD2)
+        - tmpfs and ramfs
+        - btrfs
+        - XFS
+        - OverlayFS
+        - Crash Consistency and Recovery
+        - iomap: Extent-Based I/O
+        - FUSE: Filesystems in Userspace
+        - War Stories
+    - Block Layer
+        - Getting Started
+        - Block Layer Overview
+        - Life of a Block I/O
+        - bio and request structures
+        - blk-mq (Multi-Queue)
+        - I/O Schedulers
+        - Block Cgroup (I/O Control)
+        - NVMe Driver
+        - dm-verity (Integrity)
+        - War Stories
+        - Observability
+    - I/O Patterns
+        - Getting Started
+        - Life of a Write
+        - Buffered I/O and the Page Cache
+        - Readahead
+        - Page Cache Writeback
+        - Memory-Mapped I/O
+        - Direct I/O
+        - Vectored I/O (Scatter-Gather)
+        - splice, sendfile, and Zero-Copy
+        - fallocate and File Space Management
+        - Async I/O Evolution
+        - Observability
+        - Tuning Storage I/O
+        - Buffered vs Direct I/O
+        - I/O Consistency and Ordering
+        - fsync, fdatasync, and O_SYNC
+        - pread / pwrite and RWF flags
+        - I/O Polling
+        - I/O Priorities (ionice)
+        - I/O Bandwidth
+        - Tuning for Streaming Workloads
+        - Debugging I/O Hangs
+        - Understanding /proc/diskstats
+        - War Stories
+    - io_uring
+        - Getting Started
+        - Life of an io_uring Request
+        - Architecture and Rings
+        - Operations and Advanced Features
+        - Fixed Buffers and Files
+        - Multishot, Linked Requests, and Probing
+        - Networking with io_uring
+        - io_uring vs epoll
+        - Security Model
+        - War Stories
+- Devices & Drivers
+    - Device Drivers
+        - Getting Started
+        - Linux Device Model
+        - Platform Drivers
+        - Character and Misc Devices
+        - PCI Drivers
+        - Device Tree
+        - I2C and SPI Drivers
+        - War Stories
+            - Device Drivers War Stories
+            - The uevent_show() Fix That Deadlocked Driver Detach
+            - The kobject Path Race That Needed a Retry, Not a Lock
+            - fw_devlink=on: The Default That Broke Boot Twice Before It Stuck
+            - The Deferred-Probe Origin Story
+    - USB
+        - Getting Started
+        - Enumeration and Descriptors
+        - URBs and Transfer Types
+        - Host Controllers and Gadget Mode
+        - War Stories
+    - GPU / DRM
+        - Getting Started
+        - Kernel Mode Setting (KMS)
+        - GEM Buffer Objects and dma-buf
+        - Command Submission, Fences, and the GPU Scheduler
+        - War Stories
+            - DRM War Stories
+            - The Xe TDR Recovery Regression Chain
+            - The Scheduler Fairness Evolution
+            - The msm GPU Recovery/Shrinker Deadlock
+            - The drm_sched_entity_kill_jobs_cb Lockdep Deadlock
+            - The NO_HANG False Positive
+    - Audio / ALSA
+        - Getting Started
+        - The PCM Data Path
+        - ASoC: Audio for Embedded
+        - War Stories
+            - ALSA War Stories
+            - The 21-Year-Latent USB Mixer Teardown Use-After-Free
+            - The USB Audio Clock Descriptor Out-of-Bounds Reads
+    - Input / HID
+        - Getting Started
+        - The HID Subsystem
+        - War Stories
+            - Input/HID War Stories
+            - The Uninitialized HID Report Buffer Kernel Memory Leak
+            - The hid_validate_values() Type Confusion That a 2014 Bug Fix Introduced
+    - TTY / Serial
+        - Getting Started
+        - Serial Core and UART Drivers
+        - Line Disciplines, termios, and Pseudo-Terminals
+        - War Stories
+            - TTY/Serial War Stories
+            - The n_tty Echo Race: Nine Years From Fix to CISA's Exploited-in-the-Wild List
+            - The pty_write() Lock That Was Fixed, Un-Fixed, and Fixed Again
+- Networking & BPF
+    - Networking
+        - Getting Started
+        - Fundamentals
+            - Why Is the Network Stack So Complex?
+            - sk_buff: The Network Buffer
+            - Socket Layer Overview
+            - epoll Internals
+            - Network Device and NAPI
+        - Lifecycle
+            - Life of a Packet (receive)
+            - Life of a Packet (transmit)
+            - What Happens When You connect()
+        - TCP/IP
+            - TCP Implementation
+            - TCP Congestion Control
+            - UDP Internals
+            - IP Routing
+        - Filtering
+            - Netfilter Architecture
+            - nftables vs iptables
+            - Connection Tracking
+        - XDP & TC
+            - XDP (eXpress Data Path)
+            - AF_XDP Sockets
+            - TC and qdisc
+        - Advanced
+            - Container Networking
+            - Network Namespaces
+            - TUN/TAP Virtual Devices
+            - AF_PACKET Raw Sockets
+            - Kernel TLS (kTLS)
+            - Netlink
+        - Debugging & Observability
+            - Network Debugging with ss and ip
+            - Network Tracing
+            - Understanding /proc/net/snmp
+            - Network Buffer Tuning
+        - War Stories
+            - Network War Stories
+            - The net/sched act_api Filter-Delete Race
+            - Netfilter x_tables Heap Overflow
+            - The TCP SACK Panic
+            - SegmentSmack
+            - UDP UFO Path-Switch Corruption
+            - AF_PACKET Privilege Escalation
+            - The Challenge-ACK Side Channel
+    - BPF/eBPF
+        - Getting Started
+        - Architecture & Program Types
+        - BPF Maps
+        - BPF Verifier
+        - BPF Security Model
+        - BTF and CO-RE
+        - Helpers, kfuncs, and the JIT
+        - libbpf and Skeletons
+        - BPF Ring Buffer
+        - BPF Networking (TC, cgroup, sockmap)
+        - War Stories
+            - BPF War Stories
+            - Spectre in the BPF Verifier
+            - Unprivileged BPF Off by Default
+            - ALU32 Bitwise Bounds Tracking
+            - 32-Bit Unsigned Bounds Propagation
+            - The jmp32 Bounds Regression
+            - Sign Extension in check_alu_op()
+- Isolation & Security
+    - Cgroups & Namespaces
+        - Getting Started
+        - Cgroup v2 Architecture
+        - Resource Controllers
+        - Namespaces
+        - Container Isolation
+        - io Controller
+        - Cgroup BPF Programs
+        - systemd and Cgroup Integration
+        - War Stories
+    - Security
+        - Getting Started
+        - LSM Framework
+        - Capabilities
+        - seccomp BPF
+        - Linux Audit
+        - Credentials and User Namespaces
+        - User Namespaces and uid Mapping
+        - dm-crypt (Block Encryption)
+        - fscrypt (Per-File Encryption)
+        - SELinux
+        - Kernel Hardening
+        - Landlock Sandboxing
+        - War Stories
+            - Security War Stories
+            - Dirty Pipe
+            - The fs_context Legacy Parameter Overflow
+            - Stale ptracer Credentials
+            - Nested User Namespace UID/GID Mapping
+    - Virtualization
+        - Getting Started
+        - KVM Architecture
+        - Memory Virtualization
+        - virtio
+        - VFIO Device Passthrough
+        - KVM Exit Handling
+        - KVM Live Migration
+        - Nested Virtualization
+        - War Stories
+            - Virtualization War Stories
+            - MDS: The Mitigation That Flushed the Buffers Too Early
+            - vhost: The Dirty-Log Counter That Forgot Zero-Length Descriptors
+            - The Nested-VMX Refactor That Forgot One Field on the Error Path
+            - L1TF: When a Not-Present Page Table Entry Wasn't Not-Present Enough
+            - VENOM: The Floppy Controller Nobody Turned Off
+    - Crypto
+        - Getting Started
+        - Kernel Crypto API
+        - dm-crypt and fscrypt
+        - crypto_engine: Hardware Offload
+        - Kernel Keyring
+        - Random Number Generation
+        - Crypto War Stories
+    - Live Patching
+        - Getting Started
+        - Kernel Live Patching
+        - KLP Consistency Model
+        - Cumulative Patches and Atomic Replace
+        - KLP State: Custom Consistency Checks
+        - kGraft vs. kpatch History
+        - kexec
+        - War Stories
+- Observability
+    - Tracing
+        - Getting Started
+        - ftrace
+        - ftrace Advanced
+        - Ring Buffer and tracefs
+        - Kprobes and Tracepoints
+        - Trace Events and Dynamic Events
+        - perf Events
+        - perf Profiling Advanced
+        - War Stories
+        - uprobes and USDT
+        - BPF for Tracing
+    - Kernel Debugging
+        - Getting Started
+        - KGDB
+        - kdump and crash
+        - Oops Analysis
+        - KCSAN (Data Race Detector)
+        - syzkaller Fuzzing
+        - KASAN and KFENCE
+        - lockdep in Practice
+        - War Stories
+    - Power Management
+        - Getting Started
+        - cpufreq and P-states
+        - cpuidle and C-states
+        - Thermal Management
+        - Runtime PM
+        - System Suspend
+        - Power Domains and genpd
+        - Power Capping and RAPL
+        - War Stories
+- What's New
+- About
+    - Contributing

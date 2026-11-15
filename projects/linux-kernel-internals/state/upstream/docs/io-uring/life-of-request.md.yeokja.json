@@ -1,0 +1,3557 @@
+{
+  "version": 1,
+  "source_hash": 9354641922495114015,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Life of an io_uring request",
+      "source_hash": 5984264206639595801,
+      "context_hash": 13569683837804162174,
+      "translation": "io_uring 요청의 일생",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088311Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Tracing a single read from SQE submission to CQE completion",
+      "source_hash": 401442682709898823,
+      "context_hash": 13153559293586807366,
+      "translation": "SQE 제출부터 CQE 완료까지 단일 read 트레이싱",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:35:29.933906Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What happens when you submit an io_uring read?",
+      "source_hash": 12554952157494297664,
+      "context_hash": 13717152802723529828,
+      "translation": "io_uring read를 제출하면 무슨 일이 일어날까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088312Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "When a program submits a read via io_uring, it writes a Submission Queue Entry (SQE) into a shared-memory ring, then optionally calls `io_uring_enter(2)` to hand control to the kernel.",
+      "source_hash": 7928467775566528595,
+      "context_hash": 17571260789416900571,
+      "translation": "프로그램이 io_uring을 통해 read를 제출하면, 공유 메모리 링에 Submission Queue Entry(SQE, 제출 큐 항목)를 기록한 뒤 필요에 따라 `io_uring_enter(2)`를 호출하여 커널에 제어를 넘깁니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:35:29.933908Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The kernel picks up the SQE, attempts to execute the read immediately (the inline fast path), and if that would block, offloads the work to an io-wq worker thread.",
+      "source_hash": 4036790098224687307,
+      "context_hash": 5393769404575901912,
+      "translation": "커널은 SQE를 가져와 read를 즉시 실행하려고 시도하며(인라인 빠른 경로), 그것이 블록될 경우에는 작업을 io-wq 워커 스레드로 넘깁니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "fast path": "빠른 경로",
+        "io-wq": "io-wq",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:10.088313Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "Either way, when the read finishes the kernel writes a Completion Queue Entry (CQE) into the completion ring, and userspace reaps it.",
+      "source_hash": 14073489553932154211,
+      "context_hash": 12082534209519038328,
+      "translation": "어느 경우든 read가 끝나면 커널은 완료 링에 Completion Queue Entry(CQE, 완료 큐 항목)를 기록하고, 사용자 공간이 이를 수거합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "queue": "큐",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:35:29.933909Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "The key insight: **io_uring decouples submission from completion**.",
+      "source_hash": 6956882882799197200,
+      "context_hash": 15667098011357121860,
+      "translation": "핵심 통찰: **io_uring은 제출과 완료를 분리합니다**.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088313Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "The application never blocks inside the syscall waiting for a disk read to finish.",
+      "source_hash": 11564022208298698749,
+      "context_hash": 3651560746969497465,
+      "translation": "애플리케이션은 디스크 read가 끝나기를 기다리며 시스템 콜 안에서 블록되는 일이 결코 없습니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:10.088313Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "It submits, does other work, and harvests completions when it is ready.",
+      "source_hash": 2732582652684625849,
+      "context_hash": 5407758564484022225,
+      "translation": "애플리케이션은 제출한 뒤 다른 작업을 수행하고, 준비가 되었을 때 완료를 거두어들입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088313Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Preparing the SQE",
+      "source_hash": 4922928784560689412,
+      "context_hash": 17425626907603077583,
+      "translation": "SQE 준비",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:10.088313Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "struct io_uring_sqe field layout",
+      "source_hash": 3509633613443284875,
+      "context_hash": 3956358918223680942,
+      "translation": "struct io_uring_sqe 필드 레이아웃",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The SQE is a 64-byte structure defined in `include/uapi/linux/io_uring.h`:",
+      "source_hash": 8741806994252277979,
+      "context_hash": 15131673366299985710,
+      "translation": "SQE는 `include/uapi/linux/io_uring.h`에 정의된 64바이트 구조체입니다:",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "For a read operation, the meaningful fields are: `opcode`, `fd`, `off`, `addr`, `len`, `rw_flags`, and `user_data`.",
+      "source_hash": 11088858171474964901,
+      "context_hash": 6369213748044786248,
+      "translation": "read 연산에서 의미 있는 필드는 `opcode`, `fd`, `off`, `addr`, `len`, `rw_flags`, `user_data`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "What io_uring_prep_read sets",
+      "source_hash": 17605825673526718831,
+      "context_hash": 5192519737215867517,
+      "translation": "io_uring_prep_read가 설정하는 항목",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "liburing's `io_uring_prep_read()` is a thin wrapper that sets those fields:",
+      "source_hash": 90310994675250666,
+      "context_hash": 14278478353282138333,
+      "translation": "liburing의 `io_uring_prep_read()`는 해당 필드들을 설정하는 얇은 래퍼입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "After returning, the caller sets `sqe->user_data` to a correlation tag — typically a pointer to an application-level request struct or a monotonic counter — so it can match the CQE back to the right operation.",
+      "source_hash": 7599153824388612654,
+      "context_hash": 6872113378438460857,
+      "translation": "반환된 후 호출자는 CQE를 올바른 연산과 다시 짝지을 수 있도록 `sqe->user_data`를 상관 태그로 설정합니다. 이 태그는 보통 애플리케이션 수준 요청 구조체를 가리키는 포인터나 단조 증가 카운터입니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "user_data for request correlation",
+      "source_hash": 14037386962226687256,
+      "context_hash": 8954768021033939824,
+      "translation": "요청 상관을 위한 user_data",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "`user_data` is the only field the kernel copies unchanged from SQE to CQE.",
+      "source_hash": 10814845375798925551,
+      "context_hash": 2279296196217228249,
+      "translation": "`user_data`는 커널이 SQE에서 CQE로 변경 없이 복사하는 유일한 필드입니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "Nothing inside the kernel interprets it; it is purely a cookie for the application:",
+      "source_hash": 13787306657478836672,
+      "context_hash": 8568287391115532617,
+      "translation": "커널 내부의 어떤 부분도 이 값을 해석하지 않으며, 이는 순전히 애플리케이션을 위한 쿠키입니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:10.088314Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "SQE flags",
+      "source_hash": 13717275849182880561,
+      "context_hash": 7230177958385233655,
+      "translation": "SQE 플래그",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "The `flags` byte controls request-level behaviours independent of the opcode:",
+      "source_hash": 7327023633016599272,
+      "context_hash": 15911869219417938266,
+      "translation": "`flags` 바이트는 opcode와 무관한 요청 수준 동작을 제어합니다:",
+      "glossary_snapshot": {
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Flag",
+      "source_hash": 7677103621892995957,
+      "context_hash": 8103092263817613275,
+      "translation": "플래그",
+      "glossary_snapshot": {
+        "Flag": "플래그"
+      },
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Effect",
+      "source_hash": 6420176389575395961,
+      "context_hash": 3615617552435865002,
+      "translation": "효과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "`IOSQE_FIXED_FILE`",
+      "source_hash": 5730080575566502250,
+      "context_hash": 134361745156108016,
+      "translation": "`IOSQE_FIXED_FILE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "`fd` is a slot index into the ring's registered file table, avoiding per-operation `fget`/`fput`",
+      "source_hash": 12194332147527253447,
+      "context_hash": 11868065973570065495,
+      "translation": "`fd`는 링의 등록된 파일 테이블에 대한 슬롯 인덱스이며, 연산마다 수행되는 `fget`/`fput`을 피합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "`IOSQE_IO_DRAIN`",
+      "source_hash": 9514522905736092917,
+      "context_hash": 8813972801218338295,
+      "translation": "`IOSQE_IO_DRAIN`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "Do not start this SQE until all previously submitted SQEs have completed (ordering barrier)",
+      "source_hash": 11417099852922374133,
+      "context_hash": 9067405104976951901,
+      "translation": "이전에 제출된 모든 SQE가 완료될 때까지 이 SQE를 시작하지 않음(순서 배리어)",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "`IOSQE_IO_LINK`",
+      "source_hash": 11312993986858950852,
+      "context_hash": 13874820951376396045,
+      "translation": "`IOSQE_IO_LINK`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "Link this SQE to the next one; the next SQE is submitted only if this one succeeds",
+      "source_hash": 2853581737750524866,
+      "context_hash": 15384955147510829685,
+      "translation": "이 SQE를 다음 SQE에 연결함. 다음 SQE는 이 SQE가 성공한 경우에만 제출됨",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "`IOSQE_IO_HARDLINK`",
+      "source_hash": 10103695347678707294,
+      "context_hash": 1976984369908046396,
+      "translation": "`IOSQE_IO_HARDLINK`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Like `IO_LINK`, but the next SQE is submitted regardless of this one's result",
+      "source_hash": 11722417900047028649,
+      "context_hash": 12522243455661723148,
+      "translation": "`IO_LINK`와 같지만, 다음 SQE는 이 SQE의 결과와 관계없이 제출됨",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:10.088315Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "`IOSQE_ASYNC`",
+      "source_hash": 15935344887458455890,
+      "context_hash": 10000745146149480629,
+      "translation": "`IOSQE_ASYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:10.088316Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Always go through io-wq; never attempt the inline fast path",
+      "source_hash": 267643988740718704,
+      "context_hash": 1753600610587540297,
+      "translation": "항상 io-wq를 거치며, 인라인 빠른 경로를 시도하지 않음",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로",
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:12.849261Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "`IOSQE_BUFFER_SELECT`",
+      "source_hash": 4848005750985078376,
+      "context_hash": 17670004825495616123,
+      "translation": "`IOSQE_BUFFER_SELECT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849262Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "Let the kernel pick a buffer from a registered buffer group (`buf_group`)",
+      "source_hash": 6403374212928307545,
+      "context_hash": 5682457174577706520,
+      "translation": "등록된 버퍼 그룹(`buf_group`)에서 커널이 버퍼를 선택하도록 함",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:12.849262Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "`IOSQE_CQE_SKIP_SUCCESS`",
+      "source_hash": 18097821808034340754,
+      "context_hash": 16139681338168726613,
+      "translation": "`IOSQE_CQE_SKIP_SUCCESS`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849262Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "Do not post a CQE if the operation succeeds (useful in linked chains)",
+      "source_hash": 12257988524764135060,
+      "context_hash": 11072151975237244003,
+      "translation": "작업이 성공하면 CQE를 게시하지 않음(연결된 체인에서 유용함)",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:12.849262Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "The SQ ring as a producer-consumer queue",
+      "source_hash": 10342370435967087764,
+      "context_hash": 9754187375265653219,
+      "translation": "생산자-소비자 큐로서의 SQ 링",
+      "glossary_snapshot": {
+        "producer": "생산자",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:44:12.849263Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "The SQ ring is a pair of monotonically-increasing head and tail counters in shared memory.",
+      "source_hash": 16413599420389306940,
+      "context_hash": 8834757308556037082,
+      "translation": "SQ 링은 공유 메모리에 있는 단조 증가하는 head 카운터와 tail 카운터의 쌍입니다.",
+      "glossary_snapshot": {
+        "shared memory": "공유 메모리"
+      },
+      "translated_at": "2026-11-14T22:44:12.849263Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:1",
+      "source": "Userspace is the sole producer; the kernel is the sole consumer:",
+      "source_hash": 17879521988805135180,
+      "context_hash": 3558633893055676847,
+      "translation": "사용자 공간이 유일한 생산자이고, 커널이 유일한 소비자입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "producer": "생산자",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:12.849263Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "Userspace publishes the SQE with a store-release on `sq_ring->tail`; the kernel reads it with a load-acquire.",
+      "source_hash": 17643026004081184775,
+      "context_hash": 9834211207168482360,
+      "translation": "사용자 공간은 `sq_ring->tail`에 대한 store-release로 SQE를 게시하고, 커널은 load-acquire로 이를 읽습니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:12.849263Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:1",
+      "source": "No locks are taken on the hot path.",
+      "source_hash": 4604552706981178273,
+      "context_hash": 3405571364915487233,
+      "translation": "핫 패스에서는 어떤 락도 잡지 않습니다.",
+      "glossary_snapshot": {
+        "hot path": "핫 패스"
+      },
+      "translated_at": "2026-11-14T22:44:12.849263Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Submission — entering the kernel",
+      "source_hash": 11261416472340424278,
+      "context_hash": 7413838174775489291,
+      "translation": "제출 — 커널 진입",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:12.849263Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "io_uring_enter(2)",
+      "source_hash": 16615314621726245783,
+      "context_hash": 15421191979162971114,
+      "translation": "io_uring_enter(2)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "After advancing the SQ tail, the application calls:",
+      "source_hash": 11688974649358051720,
+      "context_hash": 15480435956775185579,
+      "translation": "SQ tail을 전진시킨 후, 애플리케이션은 다음을 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "// The argp/argsz pair replaced the earlier sigset_t argument in Linux 5.11 when IORING_ENTER_EXT_ARG was introduced.",
+      "source_hash": 1261521484902432501,
+      "context_hash": 18319944484981069847,
+      "translation": "// argp/argsz 쌍은 Linux 5.11에서 IORING_ENTER_EXT_ARG가 도입되면서 이전의 sigset_t 인자를 대체했습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`to_submit`: how many SQEs to consume from the ring.",
+      "source_hash": 7126229618497034955,
+      "context_hash": 9466715473647014921,
+      "translation": "`to_submit`: 링에서 소비할 SQE의 개수입니다.",
+      "glossary_snapshot": {
+        "SQEs": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "`min_complete`: if `IORING_ENTER_GETEVENTS` is set in `flags`, block until at least this many CQEs are available before returning.",
+      "source_hash": 8746764206450062814,
+      "context_hash": 2881038905392698967,
+      "translation": "`min_complete`: `flags`에 `IORING_ENTER_GETEVENTS`가 설정되어 있으면, 반환하기 전에 최소한 이 개수만큼의 CQE가 사용 가능해질 때까지 블록합니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "Setting this to `0` with `IORING_ENTER_GETEVENTS` performs a non-blocking poll.",
+      "source_hash": 2739993794885415180,
+      "context_hash": 11481059731808705697,
+      "translation": "`IORING_ENTER_GETEVENTS`와 함께 이 값을 `0`으로 설정하면 논블로킹 폴링을 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "`IORING_ENTER_GETEVENTS`: combine submission and wait in one syscall; avoids a second `epoll_wait`-style call.",
+      "source_hash": 4307182417532395975,
+      "context_hash": 6895463608392265481,
+      "translation": "`IORING_ENTER_GETEVENTS`: 제출과 대기를 하나의 시스템 콜로 결합하여, `epoll_wait` 방식의 두 번째 호출을 피합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "Kernel entry point",
+      "source_hash": 4090074833255599943,
+      "context_hash": 6239807285073485173,
+      "translation": "커널 진입점",
+      "glossary_snapshot": {
+        "entry point": "진입점",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "The syscall lands in `io_uring/io_uring.c`:",
+      "source_hash": 10013159939964744164,
+      "context_hash": 329809384720686998,
+      "translation": "시스템 콜은 `io_uring/io_uring.c`에 도달합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "io_submit_sqes → io_queue_sqe → io_issue_sqe",
+      "source_hash": 7594165803801378121,
+      "context_hash": 2228247348523397482,
+      "translation": "io_submit_sqes → io_queue_sqe → io_issue_sqe",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "`io_submit_sqes()` loops over `to_submit` entries, calling `io_queue_sqe()` for each, which in turn calls `io_issue_sqe()`:",
+      "source_hash": 2544320627827190304,
+      "context_hash": 18315893095121943574,
+      "translation": "`io_submit_sqes()`는 `to_submit`개의 항목을 순회하며 각 항목에 대해 `io_queue_sqe()`를 호출하고, 이 함수는 다시 `io_issue_sqe()`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849264Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "`IO_URING_F_NONBLOCK` tells the per-opcode handler to use `IOCB_NOWAIT` semantics: if the operation would block, return `-EAGAIN` immediately rather than sleeping.",
+      "source_hash": 4760011738766745486,
+      "context_hash": 10603939594342092340,
+      "translation": "`IO_URING_F_NONBLOCK`은 opcode별 핸들러에게 `IOCB_NOWAIT` 의미론을 사용하도록 지시합니다. 즉, 작업이 블록될 상황이면 잠들지 않고 즉시 `-EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:44:12.849265Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:1",
+      "source": "That `-EAGAIN` is the signal to fall back to io-wq.",
+      "source_hash": 7930641918254960255,
+      "context_hash": 2847554277096344167,
+      "translation": "이 `-EAGAIN`이 io-wq로 폴백하라는 신호입니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:12.849265Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "The SQPOLL path (no syscall required)",
+      "source_hash": 2862602778187420545,
+      "context_hash": 4040256243372303961,
+      "translation": "SQPOLL 경로(시스템 콜 불필요)",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:12.849265Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "With `IORING_SETUP_SQPOLL`, `io_uring_setup()` creates a kernel thread (`io_sq_data`) that polls the SQ ring in a tight loop.",
+      "source_hash": 4079772791575696083,
+      "context_hash": 15778725711748723893,
+      "translation": "`IORING_SETUP_SQPOLL`을 사용하면 `io_uring_setup()`은 촘촘한 루프로 SQ 링을 폴링하는 커널 스레드(`io_sq_data`)를 생성합니다.",
+      "glossary_snapshot": {
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T22:44:12.849266Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:1",
+      "source": "Userspace simply writes the SQE and advances `sq_ring->tail`; the kernel thread sees it without any syscall:",
+      "source_hash": 9252729773212646908,
+      "context_hash": 6900971874688074026,
+      "translation": "사용자 공간은 SQE를 쓰고 `sq_ring->tail`을 전진시키기만 하면 되며, 커널 스레드는 시스템 콜 없이 이를 인지합니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "kernel thread": "커널 스레드",
+        "syscall": "시스템 콜",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:12.849266Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "Userspace must check `sq_ring->flags & IORING_SQ_NEED_WAKEUP` after each batch; if the bit is set, it must call `io_uring_enter()` with `IORING_ENTER_SQ_WAKEUP` to wake the kernel thread.",
+      "source_hash": 13374930385379932421,
+      "context_hash": 9139937586174586417,
+      "translation": "사용자 공간은 각 배치 후에 `sq_ring->flags & IORING_SQ_NEED_WAKEUP`을 확인해야 하며, 해당 비트가 설정되어 있으면 커널 스레드를 깨우기 위해 `IORING_ENTER_SQ_WAKEUP`과 함께 `io_uring_enter()`를 호출해야 합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "kernel thread": "커널 스레드",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:12.849266Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Request dispatch — the inline fast path",
+      "source_hash": 5810404308050397576,
+      "context_hash": 4460281853982637031,
+      "translation": "요청 디스패치 — 인라인 빠른 경로",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T22:44:12.849266Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "io_read in io_uring/rw.c",
+      "source_hash": 15146724068345556546,
+      "context_hash": 11195579783792192201,
+      "translation": "io_uring/rw.c의 io_read",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:12.849266Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "For `IORING_OP_READ`, `io_issue_sqe()` calls the `io_read` handler in `io_uring/rw.c`:",
+      "source_hash": 4227282255412057592,
+      "context_hash": 17299964423533382512,
+      "translation": "`IORING_OP_READ`의 경우, `io_issue_sqe()`는 `io_uring/rw.c`에 있는 `io_read` 핸들러를 호출합니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:44:12.849266Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "`call_read_iter()` calls `file->f_op->read_iter()`, which routes to the same `generic_file_read_iter()` path a plain `read(2)` would take — including the page cache lookup.",
+      "source_hash": 15884126161136594711,
+      "context_hash": 1437601697788464412,
+      "translation": "`call_read_iter()`는 `file->f_op->read_iter()`를 호출하며, 이는 일반 `read(2)`가 거치는 것과 동일한 `generic_file_read_iter()` 경로로 이어집니다 — 페이지 캐시 조회도 포함됩니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:44:12.849267Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Conditions for staying on the inline fast path",
+      "source_hash": 13250817585788595779,
+      "context_hash": 12983553557543947720,
+      "translation": "인라인 빠른 경로에 머무르기 위한 조건",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T22:44:15.022665Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "The operation stays inline (no io-wq) when:",
+      "source_hash": 12755983834825531863,
+      "context_hash": 5961112524407208020,
+      "translation": "다음과 같은 경우 작업은 인라인으로 처리됩니다(io-wq 미사용).",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:15.022666Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "**Page cache hit**: the page is already in memory and up-to-date; `filemap_read()` returns without sleeping.",
+      "source_hash": 14765364316505213363,
+      "context_hash": 353482312943321240,
+      "translation": "**페이지 캐시 적중**: 페이지가 이미 메모리에 있고 최신 상태이므로 `filemap_read()`가 슬립하지 않고 반환합니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:44:15.022667Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "**Non-blocking socket**: data is already in the socket receive buffer; the network stack returns immediately.",
+      "source_hash": 18279771103047274627,
+      "context_hash": 89011699365486142,
+      "translation": "**논블로킹 소켓**: 데이터가 이미 소켓 수신 버퍼에 있으므로 네트워크 스택이 즉시 반환합니다.",
+      "glossary_snapshot": {
+        "network stack": "네트워크 스택"
+      },
+      "translated_at": "2026-11-14T22:44:15.022667Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "**`IOCB_NOWAIT` respected by the filesystem**: the filesystem checks `kiocb->ki_flags & IOCB_NOWAIT` and returns `-EAGAIN` rather than blocking, so io_uring can decide what to do.",
+      "source_hash": 3204465301088027945,
+      "context_hash": 9787367536078861528,
+      "translation": "**파일 시스템이 `IOCB_NOWAIT`를 준수하는 경우**: 파일 시스템이 `kiocb->ki_flags & IOCB_NOWAIT`를 확인하고 블로킹하는 대신 `-EAGAIN`을 반환하므로, io_uring이 이후 처리 방법을 결정할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022667Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "**Not HIPRI/polling**: high-priority polling (`RWF_HIPRI`) has a dedicated path; ordinary reads do not use it unless explicitly requested.",
+      "source_hash": 12164154847861752123,
+      "context_hash": 17001688821927439305,
+      "translation": "**HIPRI/폴링이 아닌 경우**: 고우선순위 폴링(`RWF_HIPRI`)에는 전용 경로가 있으며, 일반 읽기는 명시적으로 요청하지 않는 한 이 경로를 사용하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022667Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Request dispatch — the io-wq async path",
+      "source_hash": 12002827757058360119,
+      "context_hash": 9946665678987576242,
+      "translation": "요청 디스패치 — io-wq 비동기 경로",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:15.022667Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "When inline fails",
+      "source_hash": 14353493015115746563,
+      "context_hash": 18373672419752369306,
+      "translation": "인라인 처리가 실패하는 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022667Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "The inline attempt returns `-EAGAIN` when:",
+      "source_hash": 13950943838806212445,
+      "context_hash": 4767761136409117303,
+      "translation": "다음과 같은 경우 인라인 시도는 `-EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022667Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "The requested file offset is not in the page cache (cold cache miss).",
+      "source_hash": 17399978977045193031,
+      "context_hash": 9121309812759355031,
+      "translation": "요청한 파일 오프셋이 페이지 캐시에 없는 경우(콜드 캐시 미스)입니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "The file is opened `O_DIRECT` and the underlying storage cannot satisfy the request without blocking (common for HDDs with deep queues).",
+      "source_hash": 7037680967009316056,
+      "context_hash": 14371450292152651857,
+      "translation": "파일이 `O_DIRECT`로 열려 있고 하위 스토리지가 블로킹 없이 요청을 처리할 수 없는 경우입니다(큐가 깊은 HDD에서 흔합니다).",
+      "glossary_snapshot": {
+        "HDDs": "HDD",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "The filesystem itself returns `-EAGAIN` because it is holding a lock that would sleep (e.g., during certain ext4 journal operations).",
+      "source_hash": 6794115040110300524,
+      "context_hash": 13972651265775798619,
+      "translation": "파일 시스템이 슬립할 수 있는 락을 잡고 있어 스스로 `-EAGAIN`을 반환하는 경우입니다(예: 특정 ext4 저널 작업 중).",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "The SQE has `IOSQE_ASYNC` set, forcing async unconditionally.",
+      "source_hash": 16150402765396762039,
+      "context_hash": 17380900962779229207,
+      "translation": "SQE에 `IOSQE_ASYNC`가 설정되어 있어 무조건 비동기 처리가 강제되는 경우입니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "Enqueuing to io-wq",
+      "source_hash": 1791114678245368507,
+      "context_hash": 16281634058979639930,
+      "translation": "io-wq에 큐잉",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "When `io_issue_sqe()` gets `-EAGAIN` back from the opcode handler, it calls into `io_uring/io_uring.c`:",
+      "source_hash": 15621421346348370090,
+      "context_hash": 817396315044873743,
+      "translation": "`io_issue_sqe()`가 opcode 핸들러로부터 `-EAGAIN`을 돌려받으면 `io_uring/io_uring.c`를 호출합니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "`io_wq_enqueue()` in `io_uring/io-wq.c` adds the request to a per-CPU work queue managed by the io-wq thread pool:",
+      "source_hash": 6621343264034665376,
+      "context_hash": 3835171267043845543,
+      "translation": "`io_uring/io-wq.c`의 `io_wq_enqueue()`는 io-wq 스레드 풀이 관리하는 CPU별 작업 큐에 요청을 추가합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "io-wq": "io-wq",
+        "pool": "풀",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "The io-wq thread pool",
+      "source_hash": 6814532561301346493,
+      "context_hash": 17549049446976710811,
+      "translation": "io-wq 스레드 풀",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "io-wq maintains two classes of workers:",
+      "source_hash": 11116845685123146574,
+      "context_hash": 2773760959303623485,
+      "translation": "io-wq는 두 종류의 워커를 유지합니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:15.022668Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "Class",
+      "source_hash": 16647967320372998690,
+      "context_hash": 14716234765411344238,
+      "translation": "종류",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "`io_wq_acct`",
+      "source_hash": 6055727165117110251,
+      "context_hash": 10538646876415830838,
+      "translation": "`io_wq_acct`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Use",
+      "source_hash": 17483372652451298029,
+      "context_hash": 10621017724810295695,
+      "translation": "용도",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "Bounded",
+      "source_hash": 11198262238262538192,
+      "context_hash": 1742239833719342869,
+      "translation": "Bounded",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "`IO_WQ_ACCT_BOUND`",
+      "source_hash": 11757761282235340262,
+      "context_hash": 5560940058806832565,
+      "translation": "`IO_WQ_ACCT_BOUND`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "Work that is expected to complete in finite time (most I/O)",
+      "source_hash": 625657569036063526,
+      "context_hash": 10711932010827482192,
+      "translation": "유한한 시간 안에 완료될 것으로 예상되는 작업(대부분의 I/O)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "Unbounded",
+      "source_hash": 4903582836816847069,
+      "context_hash": 9349276362718838440,
+      "translation": "Unbounded",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "`IO_WQ_ACCT_UNBOUND`",
+      "source_hash": 10606661205391605630,
+      "context_hash": 17706305267346890230,
+      "translation": "`IO_WQ_ACCT_UNBOUND`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "Work that may take arbitrarily long (e.g., filesystem operations that block indefinitely)",
+      "source_hash": 14967266026921613099,
+      "context_hash": 1931637915732059702,
+      "translation": "임의로 오래 걸릴 수 있는 작업(예: 무기한 블로킹되는 파일 시스템 작업)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "Workers are created lazily and reaped after a configurable idle timeout.",
+      "source_hash": 5450598661585212387,
+      "context_hash": 15205370374621079831,
+      "translation": "워커는 필요할 때 지연 생성되며, 설정 가능한 유휴 타임아웃이 지나면 회수됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:1",
+      "source": "The maximum number of bounded workers can be tuned with `io_uring_register(IORING_REGISTER_IOWQ_MAX_WORKERS)`.",
+      "source_hash": 10173997527353581841,
+      "context_hash": 10410798689026052710,
+      "translation": "bounded 워커의 최대 개수는 `io_uring_register(IORING_REGISTER_IOWQ_MAX_WORKERS)`로 조정할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "Credential inheritance",
+      "source_hash": 8492885129700806850,
+      "context_hash": 15726510409523480522,
+      "translation": "자격 증명 상속",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:25/seg:0",
+      "source": "Each io-wq worker inherits the credentials of the task that submitted the request (`req->creds`), set during `io_init_req()`:",
+      "source_hash": 3661710019588691726,
+      "context_hash": 12637340386649842956,
+      "translation": "각 io-wq 워커는 요청을 제출한 태스크의 자격 증명(`req->creds`)을 상속하며, 이 값은 `io_init_req()` 중에 설정됩니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:15.022669Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:27/seg:0",
+      "source": "The worker calls `override_creds(req->creds)` before executing the request, ensuring file permission checks see the submitting task's uid/gid, not the worker's.",
+      "source_hash": 7713848415719772755,
+      "context_hash": 2293460097643421208,
+      "translation": "워커는 요청을 실행하기 전에 `override_creds(req->creds)`를 호출하여, 파일 권한 검사가 워커의 uid/gid가 아니라 요청을 제출한 태스크의 uid/gid를 보도록 합니다.",
+      "glossary_snapshot": {
+        "GID": "GID",
+        "UID": "UID"
+      },
+      "translated_at": "2026-11-14T22:44:15.022670Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Execution in io-wq",
+      "source_hash": 3368328037556610586,
+      "context_hash": 340235730261315302,
+      "translation": "io-wq에서의 실행",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:17.557965Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The worker executes the same io_read path",
+      "source_hash": 8180803399948586386,
+      "context_hash": 3909837693812112462,
+      "translation": "동일한 io_read 경로를 실행하는 워커",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557966Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "The io-wq worker calls back into the same opcode dispatch table, this time without `IO_URING_F_NONBLOCK`:",
+      "source_hash": 8015976517476142612,
+      "context_hash": 4155471297328336696,
+      "translation": "io-wq 워커는 동일한 opcode 디스패치 테이블을 다시 호출하며, 이번에는 `IO_URING_F_NONBLOCK` 없이 호출합니다:",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:17.557966Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "This calls `io_read()` again.",
+      "source_hash": 6385529816099367824,
+      "context_hash": 6723140913578559755,
+      "translation": "이는 `io_read()`를 다시 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557966Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "This time `IOCB_NOWAIT` is not set in the kiocb, so `call_read_iter()` is free to block.",
+      "source_hash": 7235101278401170088,
+      "context_hash": 2868171342798656865,
+      "translation": "이번에는 kiocb에 `IOCB_NOWAIT`가 설정되어 있지 않으므로 `call_read_iter()`는 자유롭게 블록될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557966Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "The page fault path",
+      "source_hash": 18165377028909686452,
+      "context_hash": 17880262792261511507,
+      "translation": "페이지 폴트 경로",
+      "glossary_snapshot": {
+        "page fault": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T22:44:17.557966Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "If the page is not in the page cache, `filemap_read()` calls into the readahead engine and then blocks on `folio_wait_locked()` until the disk I/O completes:",
+      "source_hash": 4085707606056763848,
+      "context_hash": 13235607826476545569,
+      "translation": "페이지가 페이지 캐시에 없으면 `filemap_read()`는 readahead 엔진을 호출한 뒤 디스크 I/O가 완료될 때까지 `folio_wait_locked()`에서 블록됩니다:",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:44:17.557966Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "The io-wq worker sleeps inside `folio_wait_locked()`.",
+      "source_hash": 5702043684666809355,
+      "context_hash": 2534971687357408730,
+      "translation": "io-wq 워커는 `folio_wait_locked()` 내부에서 잠듭니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:17.557966Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "The block layer completes the I/O, wakes the folio's waitqueue, and the worker resumes and copies the data.",
+      "source_hash": 2398776267208340295,
+      "context_hash": 1092476621298565596,
+      "translation": "블록 계층이 I/O를 완료하고 폴리오의 waitqueue를 깨우면, 워커가 실행을 재개하여 데이터를 복사합니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "folio": "폴리오"
+      },
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "O_DIRECT in io-wq",
+      "source_hash": 2240724389333220922,
+      "context_hash": 9105847882483301191,
+      "translation": "io-wq에서의 O_DIRECT",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "For `O_DIRECT` files, `generic_file_read_iter()` bypasses the page cache entirely and calls `mapping_direct_IO()`, which builds a `bio` and submits it to the block layer.",
+      "source_hash": 10171104210348369662,
+      "context_hash": 14008393796905710370,
+      "translation": "`O_DIRECT` 파일의 경우 `generic_file_read_iter()`는 페이지 캐시를 완전히 우회하고 `mapping_direct_IO()`를 호출하며, 이 함수는 `bio`를 만들어 블록 계층에 제출합니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:1",
+      "source": "The worker blocks on the bio completion.",
+      "source_hash": 14956124226820393653,
+      "context_hash": 10919865481661516871,
+      "translation": "워커는 bio 완료를 기다리며 블록됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:2",
+      "source": "This is the dominant path for high-performance database workloads using io_uring.",
+      "source_hash": 3199359978343878615,
+      "context_hash": 14375944307377131618,
+      "translation": "이는 io_uring을 사용하는 고성능 데이터베이스 워크로드에서 주로 쓰이는 경로입니다.",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Completion — posting the CQE",
+      "source_hash": 14648600244191607591,
+      "context_hash": 1492858597270471672,
+      "translation": "완료 — CQE 게시",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "io_req_complete_post",
+      "source_hash": 1970764944708189224,
+      "context_hash": 127397254250382302,
+      "translation": "io_req_complete_post",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "When `io_read()` finishes (inline or in io-wq), it calls `io_req_complete_post()`:",
+      "source_hash": 10904095268454416169,
+      "context_hash": 11937070775002333732,
+      "translation": "`io_read()`가 (인라인으로든 io-wq에서든) 끝나면 `io_req_complete_post()`를 호출합니다:",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "io_fill_cqe_req",
+      "source_hash": 14109555452128652484,
+      "context_hash": 3252209935744368602,
+      "translation": "io_fill_cqe_req",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "This writes the CQE into the ring:",
+      "source_hash": 13196978181006685780,
+      "context_hash": 17820717746329200099,
+      "translation": "이 함수는 CQE를 링에 기록합니다:",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:17.557967Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "io_commit_cqring — the store-release",
+      "source_hash": 11629525027162043143,
+      "context_hash": 8450624472682528717,
+      "translation": "io_commit_cqring — store-release",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557968Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "After writing the CQE fields, `io_commit_cqring()` advances the CQ tail with a store-release, making the entry visible to userspace:",
+      "source_hash": 6442773272714031479,
+      "context_hash": 1974711462024792792,
+      "translation": "CQE 필드를 기록한 뒤 `io_commit_cqring()`은 store-release로 CQ tail을 전진시켜 해당 항목을 사용자 공간에서 볼 수 있게 합니다:",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:17.557968Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "The CQ ring as a producer-consumer queue",
+      "source_hash": 6358450639148354185,
+      "context_hash": 8848755083645170949,
+      "translation": "생산자-소비자 큐로서의 CQ 링",
+      "glossary_snapshot": {
+        "producer": "생산자",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:44:17.557968Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "The CQ ring is the mirror image of the SQ ring.",
+      "source_hash": 3855274981641903378,
+      "context_hash": 15096041969527137882,
+      "translation": "CQ 링은 SQ 링의 거울상입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557968Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:1",
+      "source": "The kernel is the sole producer; userspace is the sole consumer:",
+      "source_hash": 6919839480165011782,
+      "context_hash": 7639659001377866572,
+      "translation": "커널이 유일한 생산자이고, 사용자 공간이 유일한 소비자입니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "producer": "생산자",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:17.557968Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "If userspace is too slow and the CQ ring fills up, the kernel increments `cq_ring->overflow` (the \"CQ overflow\" counter).",
+      "source_hash": 17728772861330885837,
+      "context_hash": 17143450042073517077,
+      "translation": "사용자 공간이 너무 느려 CQ 링이 가득 차면, 커널은 `cq_ring->overflow`(\"CQ overflow\" 카운터)를 증가시킵니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:17.557968Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:1",
+      "source": "With `IORING_SETUP_CQ_NODROP` (implied by `IORING_FEAT_NODROP` on supported kernels), overflowed CQEs are buffered internally and drained when space becomes available.",
+      "source_hash": 5359791893307259347,
+      "context_hash": 8204682262922022717,
+      "translation": "`IORING_SETUP_CQ_NODROP`(지원되는 커널에서는 `IORING_FEAT_NODROP`으로 암시됨)을 사용하면, 넘친 CQE는 내부적으로 버퍼링되었다가 공간이 생기면 비워집니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:17.557969Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "IORING_CQE_F_MORE for multishot operations",
+      "source_hash": 3913898108442021135,
+      "context_hash": 8500334253149293798,
+      "translation": "멀티샷 연산을 위한 IORING_CQE_F_MORE",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.933910Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "For multishot operations (e.g., `IORING_OP_RECV` with `IORING_RECV_MULTISHOT`), the kernel may post multiple CQEs from a single SQE.",
+      "source_hash": 4345313459156309461,
+      "context_hash": 15585632745802244096,
+      "translation": "멀티샷 연산(예: `IORING_RECV_MULTISHOT`을 사용한 `IORING_OP_RECV`)의 경우, 커널은 하나의 SQE로부터 여러 개의 CQE를 게시할 수 있습니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "SQE": "SQE",
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T23:35:29.933910Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:1",
+      "source": "As long as the operation is still active, each CQE has `IORING_CQE_F_MORE` set in `cqe->flags`.",
+      "source_hash": 13177398636675528910,
+      "context_hash": 6339956242955750119,
+      "translation": "연산이 아직 활성 상태인 동안에는 각 CQE의 `cqe->flags`에 `IORING_CQE_F_MORE`가 설정됩니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:17.557969Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:2",
+      "source": "When the final CQE arrives (due to error or explicit cancellation), `IORING_CQE_F_MORE` is clear.",
+      "source_hash": 2483562214849729756,
+      "context_hash": 2396848045607963021,
+      "translation": "(오류나 명시적 취소로 인해) 마지막 CQE가 도착하면 `IORING_CQE_F_MORE`가 해제됩니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:17.557969Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Reaping the CQE",
+      "source_hash": 16633183542504202494,
+      "context_hash": 8992518474043308838,
+      "translation": "CQE 회수",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:17.557969Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "io_uring_peek_cqe and io_uring_wait_cqe",
+      "source_hash": 362419627332127157,
+      "context_hash": 5145669927035456285,
+      "translation": "io_uring_peek_cqe와 io_uring_wait_cqe",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557969Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "liburing provides two primitives for harvesting completions:",
+      "source_hash": 2608705561810263948,
+      "context_hash": 8197336516233942122,
+      "translation": "liburing은 완료를 수집하기 위한 두 가지 기본 함수를 제공합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:17.557969Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Internally, `io_uring_peek_cqe()` is a pure userspace operation — no syscall:",
+      "source_hash": 3153180444396111312,
+      "context_hash": 1077087006389610034,
+      "translation": "내부적으로 `io_uring_peek_cqe()`는 순수한 사용자 공간 연산이며 시스템 콜이 없습니다:",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:25.271429Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "`io_uring_wait_cqe()` falls back to `io_uring_enter()` with `IORING_ENTER_GETEVENTS` and `min_complete=1` if the ring is empty, putting the task to sleep until the kernel posts a CQE.",
+      "source_hash": 12432234919032071436,
+      "context_hash": 6764532022592453454,
+      "translation": "`io_uring_wait_cqe()`는 링이 비어 있으면 `IORING_ENTER_GETEVENTS`와 `min_complete=1`을 지정한 `io_uring_enter()`로 대체하여, 커널이 CQE를 게시할 때까지 태스크를 재웁니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:25.271430Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "io_uring_cqe_seen — advancing the CQ head",
+      "source_hash": 3545046377365429457,
+      "context_hash": 10629772976946933424,
+      "translation": "io_uring_cqe_seen — CQ head 전진",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271430Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "After processing a CQE, the application must call `io_uring_cqe_seen()` to mark it consumed:",
+      "source_hash": 6021619420652537175,
+      "context_hash": 6330808991756220870,
+      "translation": "CQE를 처리한 후, 애플리케이션은 `io_uring_cqe_seen()`을 호출하여 해당 CQE를 소비된 것으로 표시해야 합니다:",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:25.271430Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "The store-release ensures the kernel does not overwrite the CQE slot before userspace has read it.",
+      "source_hash": 10314913291273828209,
+      "context_hash": 18314924400119258069,
+      "translation": "store-release는 사용자 공간이 CQE 슬롯을 읽기 전에 커널이 그 슬롯을 덮어쓰지 않도록 보장합니다.",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:25.271430Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "Waiting with a timeout",
+      "source_hash": 15803292272978463116,
+      "context_hash": 17612142634231561331,
+      "translation": "타임아웃을 지정한 대기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271431Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:12/seg:0",
+      "source": "To avoid blocking indefinitely, pass a `__kernel_timespec` via `IORING_ENTER_EXT_ARG`:",
+      "source_hash": 4770560485227389712,
+      "context_hash": 2974924016159154951,
+      "translation": "무기한 블로킹을 피하려면 `IORING_ENTER_EXT_ARG`를 통해 `__kernel_timespec`을 전달하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271431Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:14/seg:0",
+      "source": "Or use liburing's `io_uring_wait_cqe_timeout()`, which wraps this.",
+      "source_hash": 7797241561078476,
+      "context_hash": 11646051508104896843,
+      "translation": "또는 이를 감싸는 liburing의 `io_uring_wait_cqe_timeout()`을 사용하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271431Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "The zero-syscall path — SQPOLL in depth",
+      "source_hash": 17017896192220091517,
+      "context_hash": 102052944472562052,
+      "translation": "시스템 콜 없는 경로 — SQPOLL 심층 분석",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:25.271431Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "With `IORING_SETUP_SQPOLL`, the entire submit-and-complete cycle can run without any syscall:",
+      "source_hash": 15146552132620691760,
+      "context_hash": 9521022770644501998,
+      "translation": "`IORING_SETUP_SQPOLL`을 사용하면 제출부터 완료까지의 전체 주기를 시스템 콜 없이 실행할 수 있습니다:",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:44:25.271431Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "**The idle sleep mechanism**: after `sq_thread_idle` milliseconds without new SQEs (configurable in `io_uring_params`), the SQPOLL thread sets `IORING_SQ_NEED_WAKEUP` and calls `schedule()`.",
+      "source_hash": 17720005008174749374,
+      "context_hash": 15490390351542904596,
+      "translation": "**유휴 sleep 메커니즘**: 새 SQE 없이 `sq_thread_idle` 밀리초(`io_uring_params`에서 설정 가능)가 지나면, SQPOLL 스레드는 `IORING_SQ_NEED_WAKEUP`을 설정하고 `schedule()`을 호출합니다.",
+      "glossary_snapshot": {
+        "SQEs": "SQE",
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:25.271431Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:1",
+      "source": "Userspace must then make one `io_uring_enter(IORING_ENTER_SQ_WAKEUP)` call to wake it.",
+      "source_hash": 13180078241456487543,
+      "context_hash": 11961294391877523903,
+      "translation": "그러면 사용자 공간은 이 스레드를 깨우기 위해 `io_uring_enter(IORING_ENTER_SQ_WAKEUP)` 호출을 한 번 해야 합니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:25.271431Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:2",
+      "source": "The pattern:",
+      "source_hash": 6058724423877916711,
+      "context_hash": 14867986901986819702,
+      "translation": "패턴은 다음과 같습니다:",
+      "glossary_snapshot": {
+        "The pattern:": "패턴은 다음과 같습니다."
+      },
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "liburing's `io_uring_submit()` performs this check automatically.",
+      "source_hash": 9503122278596808871,
+      "context_hash": 16217179793292247567,
+      "translation": "liburing의 `io_uring_submit()`은 이 검사를 자동으로 수행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "**When SQPOLL helps most**: workloads that submit many operations per unit time, where the per-syscall overhead of `io_uring_enter()` would otherwise dominate.",
+      "source_hash": 1521463517252695896,
+      "context_hash": 2960394435264720025,
+      "translation": "**SQPOLL이 가장 도움이 되는 경우**: 단위 시간당 많은 연산을 제출하여, 그렇지 않으면 `io_uring_enter()`의 시스템 콜당 오버헤드가 지배적이 되는 워크로드입니다.",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "overhead": "오버헤드",
+        "syscall": "시스템 콜",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:1",
+      "source": "Database engines and network proxies with thousands of in-flight operations per second are typical users.",
+      "source_hash": 737007979056910342,
+      "context_hash": 16014150269321009125,
+      "translation": "초당 수천 개의 진행 중인(in-flight) 연산을 처리하는 데이터베이스 엔진과 네트워크 프록시가 대표적인 사용자입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "**When SQPOLL does not help**: bursty workloads with long idle periods between bursts.",
+      "source_hash": 3042746919741961368,
+      "context_hash": 16583214977364654525,
+      "translation": "**SQPOLL이 도움이 되지 않는 경우**: 버스트 사이에 긴 유휴 기간이 있는 버스트성 워크로드입니다.",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:1",
+      "source": "The SQPOLL thread wastes CPU spinning if submissions are infrequent.",
+      "source_hash": 80665602546824404,
+      "context_hash": 14645693059133767548,
+      "translation": "제출이 드물면 SQPOLL 스레드는 스피닝하며 CPU를 낭비합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:2",
+      "source": "In that case, regular `io_uring_enter()` submission is more appropriate.",
+      "source_hash": 5625293475355805878,
+      "context_hash": 17860167208852206844,
+      "translation": "그런 경우에는 일반적인 `io_uring_enter()` 제출이 더 적합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Key data structures",
+      "source_hash": 886646788032546680,
+      "context_hash": 8413990511399754401,
+      "translation": "주요 자료 구조",
+      "glossary_snapshot": {
+        "Key Data Structures": "주요 자료 구조",
+        "data structures": "자료 구조"
+      },
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "struct io_ring_ctx — the kernel-side ring context",
+      "source_hash": 14558971251691370078,
+      "context_hash": 519100553599702313,
+      "translation": "struct io_ring_ctx — 커널 측 링 컨텍스트",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "`struct io_ring_ctx` is allocated once per `io_uring_setup()` call and anchors all kernel-side state:",
+      "source_hash": 6822723627244921674,
+      "context_hash": 15392290726698833899,
+      "translation": "`struct io_ring_ctx`는 `io_uring_setup()` 호출마다 한 번 할당되며, 모든 커널 측 상태의 기반이 됩니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:25.271432Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "struct io_kiocb — the kernel-side request",
+      "source_hash": 17365509646027310871,
+      "context_hash": 8942210092850866059,
+      "translation": "struct io_kiocb — 커널 측 요청",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "Each submitted SQE is represented internally as a `struct io_kiocb` (\"kiocb\" because it embeds a `struct kiocb` for VFS integration):",
+      "source_hash": 3601868801462854835,
+      "context_hash": 18239741956266930629,
+      "translation": "제출된 각 SQE는 내부적으로 `struct io_kiocb`로 표현됩니다(VFS 통합을 위해 `struct kiocb`를 내장하므로 \"kiocb\"라는 이름이 붙었습니다):",
+      "glossary_snapshot": {
+        "SQE": "SQE",
+        "VFS": "VFS"
+      },
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "Relationship between structures",
+      "source_hash": 12710420783868944137,
+      "context_hash": 9657607428451703569,
+      "translation": "구조체 간의 관계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "`struct io_kiocb` lives in a slab cache managed by the ring context.",
+      "source_hash": 4894311454336772908,
+      "context_hash": 16459845218730542302,
+      "translation": "`struct io_kiocb`는 링 컨텍스트가 관리하는 slab 캐시에 존재합니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "slab": "slab"
+      },
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:1",
+      "source": "It is allocated at submission time, lives through the entire request lifetime (inline or io-wq), and is freed after `io_fill_cqe_req()` returns.",
+      "source_hash": 1274643803822689233,
+      "context_hash": 2707757422693499265,
+      "translation": "이 구조체는 제출 시점에 할당되어 요청의 전체 수명 동안(inline 또는 io-wq) 유지되며, `io_fill_cqe_req()`가 반환된 후 해제됩니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Try it yourself",
+      "source_hash": 18329884058255754057,
+      "context_hash": 7218340774327779786,
+      "translation": "직접 해 보기",
+      "glossary_snapshot": {
+        "Try It Yourself": "직접 해 보기"
+      },
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "strace an io_uring program",
+      "source_hash": 17477326063108484858,
+      "context_hash": 6891202098645641066,
+      "translation": "io_uring 프로그램 strace하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "With SQPOLL enabled, you will see `io_uring_setup` and the initial mmaps, but no `io_uring_enter` for individual operations.",
+      "source_hash": 11361982622223099630,
+      "context_hash": 11372359251104357884,
+      "translation": "SQPOLL을 활성화하면 `io_uring_setup`과 초기 mmap은 보이지만, 개별 연산에 대한 `io_uring_enter`는 보이지 않습니다.",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "/proc/PID/fdinfo/\\<ring_fd\\>",
+      "source_hash": 7093508094288520478,
+      "context_hash": 10931371545006779225,
+      "translation": "/proc/PID/fdinfo/\\<ring_fd>",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:25.271433Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "The kernel exposes ring state via fdinfo:",
+      "source_hash": 1187829854676570459,
+      "context_hash": 17242648708750958863,
+      "translation": "커널은 fdinfo를 통해 링 상태를 노출합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:25.271434Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "A non-zero `cq_overflow` means CQEs were posted faster than userspace consumed them — the most common cause of missed completions.",
+      "source_hash": 5770771070142022578,
+      "context_hash": 4656170770112315991,
+      "translation": "`cq_overflow` 값이 0이 아니면 사용자 공간이 소비하는 속도보다 CQE가 더 빠르게 게시되었다는 뜻이며, 이는 완료를 놓치는 가장 흔한 원인입니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:22.368509Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "ftrace io_uring tracepoints",
+      "source_hash": 2272560966704444150,
+      "context_hash": 9521017458408911620,
+      "translation": "ftrace io_uring 트레이스포인트",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:44:22.368510Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "The kernel has a full set of tracepoints for io_uring activity:",
+      "source_hash": 6277617055066686208,
+      "context_hash": 8076686132981697792,
+      "translation": "커널은 io_uring 활동에 대한 트레이스포인트를 빠짐없이 제공합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:44:22.368511Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "Key tracepoints to watch:",
+      "source_hash": 15810289960054214544,
+      "context_hash": 9657162730003854706,
+      "translation": "주의 깊게 살펴볼 주요 트레이스포인트:",
+      "glossary_snapshot": {
+        "tracepoints": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:44:22.368511Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "Tracepoint",
+      "source_hash": 7976437686298383991,
+      "context_hash": 17563791908473776579,
+      "translation": "트레이스포인트",
+      "glossary_snapshot": {
+        "tracepoint": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T22:44:22.368512Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "Fires when",
+      "source_hash": 18273669712393707196,
+      "context_hash": 11199391860536355508,
+      "translation": "발생 시점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368512Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "`io_uring:io_uring_create`",
+      "source_hash": 8954892731060573731,
+      "context_hash": 4965877791401475283,
+      "translation": "`io_uring:io_uring_create`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368512Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "`io_uring_setup()` completes",
+      "source_hash": 7478513264561585471,
+      "context_hash": 6703717950452640139,
+      "translation": "`io_uring_setup()` 완료 시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368512Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "`io_uring:io_uring_submit_sqe`",
+      "source_hash": 17567419054379558812,
+      "context_hash": 16298965832749854383,
+      "translation": "`io_uring:io_uring_submit_sqe`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "An SQE is consumed from the ring",
+      "source_hash": 2929745738807296462,
+      "context_hash": 7311165543139097502,
+      "translation": "링에서 SQE를 소비할 때",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:18/seg:0",
+      "source": "`io_uring:io_uring_queue_async_work`",
+      "source_hash": 12173425410952257332,
+      "context_hash": 7504392469969242298,
+      "translation": "`io_uring:io_uring_queue_async_work`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:19/seg:0",
+      "source": "A request is handed to io-wq",
+      "source_hash": 2082168182274461354,
+      "context_hash": 4145196498515588907,
+      "translation": "요청을 io-wq에 넘길 때",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:20/seg:0",
+      "source": "`io_uring:io_uring_defer`",
+      "source_hash": 10381033530939081819,
+      "context_hash": 10766315555222313142,
+      "translation": "`io_uring:io_uring_defer`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:21/seg:0",
+      "source": "A request is deferred (IOSQE_IO_DRAIN)",
+      "source_hash": 18102762763446962060,
+      "context_hash": 17487035473587205105,
+      "translation": "요청이 지연될 때(IOSQE_IO_DRAIN)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:22/seg:0",
+      "source": "`io_uring:io_uring_complete`",
+      "source_hash": 11666701279897272787,
+      "context_hash": 1738708142653412165,
+      "translation": "`io_uring:io_uring_complete`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:23/seg:0",
+      "source": "A CQE is posted to the ring",
+      "source_hash": 17145141029612132784,
+      "context_hash": 10887197860570186935,
+      "translation": "링에 CQE를 게시할 때",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:22.368513Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:24/seg:0",
+      "source": "`io_uring:io_uring_cqring_wait`",
+      "source_hash": 3685402765515501516,
+      "context_hash": 17728586995178621257,
+      "translation": "`io_uring:io_uring_cqring_wait`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368514Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:25/seg:0",
+      "source": "The caller blocks waiting for completions",
+      "source_hash": 11640679307774650982,
+      "context_hash": 9851508767664863803,
+      "translation": "호출자가 완료를 기다리며 블록될 때",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368514Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:26/seg:0",
+      "source": "Example output for a single read:",
+      "source_hash": 6708022840261097782,
+      "context_hash": 6383763709986453628,
+      "translation": "단일 읽기에 대한 출력 예시:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368514Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:28/seg:0",
+      "source": "A `io_uring_queue_async_work` line between submit and complete means the request hit the io-wq path (the page was not in cache or the device blocked).",
+      "source_hash": 7174498190016639544,
+      "context_hash": 9997103041852654183,
+      "translation": "submit과 complete 사이에 `io_uring_queue_async_work` 줄이 있으면 요청이 io-wq 경로를 탔다는 뜻입니다(페이지가 캐시에 없었거나 디바이스가 블록되었음).",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "device": "디바이스",
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:22.368514Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:28/seg:1",
+      "source": "Absence of that line means the inline fast path was taken.",
+      "source_hash": 15099733377012373251,
+      "context_hash": 1890711617262194279,
+      "translation": "해당 줄이 없으면 인라인 빠른 경로를 탔다는 뜻입니다.",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T22:44:22.368515Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:29/seg:0",
+      "source": "Measure inline vs async split",
+      "source_hash": 6979721865843257249,
+      "context_hash": 4969163163051656951,
+      "translation": "인라인과 비동기 처리 비율 측정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368515Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:31/seg:0",
+      "source": "Inspect io-wq worker count",
+      "source_hash": 2194185018155785600,
+      "context_hash": 14938607191172556558,
+      "translation": "io-wq 워커 수 확인",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:22.368515Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:33/seg:0",
+      "source": "io-wq worker threads appear as `iou-wrk-<ring_pid>` in `ps` output.",
+      "source_hash": 16995813477430934033,
+      "context_hash": 13927777435458067908,
+      "translation": "io-wq 워커 스레드는 `ps` 출력에 `iou-wrk-<ring_pid>`로 나타납니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:22.368515Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:33/seg:1",
+      "source": "Under a heavy parallel read workload against cold storage you may see several; under a cached workload you should see none (all completions are inline).",
+      "source_hash": 11200341403310946445,
+      "context_hash": 3793022572987173190,
+      "translation": "콜드 스토리지를 대상으로 한 대량의 병렬 읽기 워크로드에서는 여러 개가 보일 수 있고, 캐시된 워크로드에서는 하나도 보이지 않아야 합니다(모든 완료가 인라인으로 처리됨).",
+      "glossary_snapshot": {
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:44:22.368515Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Key source files",
+      "source_hash": 11048178491662595550,
+      "context_hash": 742142748153155293,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T22:44:22.368516Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 6341549877404283485,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:44:22.368516Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "What it contains",
+      "source_hash": 774762452241344479,
+      "context_hash": 17215594834950494827,
+      "translation": "내용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368516Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[`io_uring/io_uring.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/io_uring.c)",
+      "source_hash": 17469031751899343074,
+      "context_hash": 11294175778992111060,
+      "translation": "[`io_uring/io_uring.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/io_uring.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368516Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "Core ring management, syscall entry, SQE dispatch, CQE posting",
+      "source_hash": 18210359361190090523,
+      "context_hash": 4638395709234869520,
+      "translation": "핵심 링 관리, 시스템 콜 진입, SQE 디스패치, CQE 게시",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE",
+        "syscall entry": "시스템 콜 진입"
+      },
+      "translated_at": "2026-11-14T22:44:22.368516Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "[`io_uring/rw.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/rw.c)",
+      "source_hash": 13851772011703169486,
+      "context_hash": 6611577578774629250,
+      "translation": "[`io_uring/rw.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/rw.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:22.368517Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "`io_read`, `io_write`, `io_readv`, `io_writev` handlers",
+      "source_hash": 12529180174400648596,
+      "context_hash": 3953754383611917811,
+      "translation": "`io_read`, `io_write`, `io_readv`, `io_writev` 핸들러",
+      "glossary_snapshot": {
+        "handlers": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:44:22.368517Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "[`io_uring/io-wq.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/io-wq.c)",
+      "source_hash": 1059428380291771494,
+      "context_hash": 12714649675920279204,
+      "translation": "[`io_uring/io-wq.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/io-wq.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217625Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "io-wq thread pool: worker lifecycle, work queue, bounded/unbounded accounting",
+      "source_hash": 18341822915051049886,
+      "context_hash": 15233967312384756239,
+      "translation": "io-wq 스레드 풀: 워커 수명 주기, 작업 큐, bounded/unbounded 어카운팅",
+      "glossary_snapshot": {
+        "accounting": "어카운팅",
+        "io-wq": "io-wq",
+        "pool": "풀",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:35:29.933911Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "[`io_uring/sqpoll.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/sqpoll.c)",
+      "source_hash": 5972297975881176563,
+      "context_hash": 13219401545139714535,
+      "translation": "[`io_uring/sqpoll.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/sqpoll.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217626Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "SQPOLL kernel thread",
+      "source_hash": 17792236025459799106,
+      "context_hash": 10990658663124492805,
+      "translation": "SQPOLL 커널 스레드",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "kernel thread": "커널 스레드"
+      },
+      "translated_at": "2026-11-14T22:44:27.217627Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "[`io_uring/io_uring.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/io_uring.h)",
+      "source_hash": 13264212262933301380,
+      "context_hash": 9149605397433943311,
+      "translation": "[`io_uring/io_uring.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/io_uring/io_uring.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217627Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:12/seg:0",
+      "source": "`struct io_ring_ctx`, `struct io_kiocb`",
+      "source_hash": 6683902178493099455,
+      "context_hash": 6599198939446323183,
+      "translation": "`struct io_ring_ctx`, `struct io_kiocb`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217628Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:13/seg:0",
+      "source": "[`include/uapi/linux/io_uring.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/io_uring.h)",
+      "source_hash": 5513822227322708194,
+      "context_hash": 7016471067152368800,
+      "translation": "[`include/uapi/linux/io_uring.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/io_uring.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217628Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:14/seg:0",
+      "source": "ABI: `struct io_uring_sqe`, `struct io_uring_cqe`, `IORING_*` constants",
+      "source_hash": 17560073764655916677,
+      "context_hash": 590296398752618227,
+      "translation": "ABI: `struct io_uring_sqe`, `struct io_uring_cqe`, `IORING_*` 상수",
+      "glossary_snapshot": {
+        "ABI": "ABI"
+      },
+      "translated_at": "2026-11-14T22:44:27.217628Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:15/seg:0",
+      "source": "[`mm/filemap.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/filemap.c)",
+      "source_hash": 7065889614535717815,
+      "context_hash": 3406667461803493545,
+      "translation": "[`mm/filemap.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/filemap.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217629Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:16/seg:0",
+      "source": "`filemap_read()`, `filemap_get_folio()` — executed by io-wq workers",
+      "source_hash": 5093514426974993199,
+      "context_hash": 7916611478024957350,
+      "translation": "`filemap_read()`, `filemap_get_folio()` — io-wq worker가 실행",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:27.217629Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Notorious bugs and edge cases",
+      "source_hash": 1313331597780573495,
+      "context_hash": 14195241622188186007,
+      "translation": "악명 높은 버그와 엣지 케이스",
+      "glossary_snapshot": {
+        "Notorious bugs and edge cases": "악명 높은 버그와 엣지 케이스",
+        "bugs": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:27.217629Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "The io_uring request path is complex: it crosses the userspace/kernel boundary, involves shared mutable memory, a thread pool, and touches the VFS.",
+      "source_hash": 17542695033788233508,
+      "context_hash": 16642297040937449969,
+      "translation": "io_uring 요청 경로는 복잡합니다: 사용자 공간/커널 경계를 넘나들고, 공유되는 가변 메모리와 스레드 풀이 관여하며, VFS에도 닿습니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "kernel": "커널",
+        "memory": "메모리",
+        "pool": "풀",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:27.217629Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:1",
+      "source": "Several categories of bugs have emerged.",
+      "source_hash": 12506326903636644608,
+      "context_hash": 3379922713136880738,
+      "translation": "여러 범주의 버그가 나타났습니다.",
+      "glossary_snapshot": {
+        "bugs": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:27.217630Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "Case 1: Inline completion and CQ ring overflow",
+      "source_hash": 17617570877006648211,
+      "context_hash": 4092955951940272200,
+      "translation": "사례 1: 인라인 완료와 CQ 링 오버플로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217631Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:0",
+      "source": "What happened",
+      "source_hash": 9341614182063564325,
+      "context_hash": 13250863443861367428,
+      "translation": "발생한 일",
+      "glossary_snapshot": {
+        "What happened": "발생한 일"
+      },
+      "translated_at": "2026-11-14T22:44:27.217631Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:0",
+      "source": "If userspace is slow to consume CQEs, the CQ ring can fill up.",
+      "source_hash": 12965490507024307991,
+      "context_hash": 16350489725210786186,
+      "translation": "사용자 공간이 CQE를 느리게 소비하면 CQ 링이 가득 찰 수 있습니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:27.217631Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:1",
+      "source": "On kernels without `IORING_FEAT_NODROP`, the kernel would silently drop CQEs that did not fit, incrementing the overflow counter.",
+      "source_hash": 17239970371630398369,
+      "context_hash": 14366381741204966280,
+      "translation": "`IORING_FEAT_NODROP`이 없는 커널에서는 커널이 들어갈 자리가 없는 CQE를 조용히 버리고 오버플로 카운터를 증가시켰습니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "kernel": "커널",
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:27.217632Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:2",
+      "source": "Requests completed successfully in the kernel, but userspace never saw the result.",
+      "source_hash": 415374657553475856,
+      "context_hash": 5143445353135986545,
+      "translation": "요청은 커널에서 성공적으로 완료되었지만, 사용자 공간은 그 결과를 끝내 보지 못했습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:27.217632Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "The bug",
+      "source_hash": 7512982873364237791,
+      "context_hash": 1804906879355532075,
+      "translation": "버그",
+      "glossary_snapshot": {
+        "The bug": "버그",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:27.217632Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:7/seg:0",
+      "source": "Without `IORING_FEAT_NODROP`, a program that submits faster than it reaps will silently lose completions:",
+      "source_hash": 7636335629320135557,
+      "context_hash": 10994175790459795795,
+      "translation": "`IORING_FEAT_NODROP`이 없으면, 회수(reap)하는 속도보다 빠르게 제출하는 프로그램은 완료를 조용히 잃게 됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217632Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:0",
+      "source": "Real-world implications",
+      "source_hash": 10732778035467918097,
+      "context_hash": 14528900091878250621,
+      "translation": "실제 영향",
+      "glossary_snapshot": {
+        "Real-world implications": "실제 영향"
+      },
+      "translated_at": "2026-11-14T22:44:27.217632Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:10/seg:0",
+      "source": "Any application that submits bursts of requests and reaps lazily must either:",
+      "source_hash": 14851370256391259895,
+      "context_hash": 8527720372615031554,
+      "translation": "요청을 몰아서 제출하고 느긋하게 회수하는 애플리케이션은 다음 중 하나를 반드시 해야 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217632Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:11/seg:0",
+      "source": "Size the CQ ring large enough via `IORING_SETUP_CQSIZE` in `io_uring_params`, or",
+      "source_hash": 8063792554480970934,
+      "context_hash": 15729660769676181826,
+      "translation": "`io_uring_params`의 `IORING_SETUP_CQSIZE`로 CQ 링 크기를 충분히 크게 잡거나,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:12/seg:0",
+      "source": "Interleave reaping with submission, or",
+      "source_hash": 17702160562975103059,
+      "context_hash": 15617429170629881634,
+      "translation": "제출 사이사이에 회수를 끼워 넣거나,",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:13/seg:0",
+      "source": "Rely on `IORING_FEAT_NODROP` (available since kernel 5.5), which buffers overflowed CQEs internally.",
+      "source_hash": 10278334259560240575,
+      "context_hash": 5180139492843455657,
+      "translation": "오버플로된 CQE를 내부적으로 버퍼링하는 `IORING_FEAT_NODROP`(커널 5.5부터 사용 가능)에 의존합니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:14/seg:0",
+      "source": "Mitigation",
+      "source_hash": 221397362205371334,
+      "context_hash": 14265486635587194581,
+      "translation": "완화 방법",
+      "glossary_snapshot": {
+        "Mitigation": "완화 방법"
+      },
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:15/seg:0",
+      "source": "Check `io_uring_params.features & IORING_FEAT_NODROP` at setup time.",
+      "source_hash": 17543954977965583095,
+      "context_hash": 10720706228335784068,
+      "translation": "설정 시점에 `io_uring_params.features & IORING_FEAT_NODROP`를 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:15/seg:1",
+      "source": "On older kernels, monitor `cq_overflow` in `/proc/PID/fdinfo/<ring_fd>` and alert if it is non-zero.",
+      "source_hash": 8497044584694070633,
+      "context_hash": 15403238464358453454,
+      "translation": "이전 커널에서는 `/proc/PID/fdinfo/<ring_fd>`의 `cq_overflow`를 모니터링하고, 0이 아니면 경고하십시오.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:17/seg:0",
+      "source": "Case 2: Fixed file table races during unregistration",
+      "source_hash": 14585137517405767060,
+      "context_hash": 10952700336680082827,
+      "translation": "사례 2: 등록 해제 중 고정 파일 테이블 경쟁 상태",
+      "glossary_snapshot": {
+        "fixed file": "고정 파일"
+      },
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:18/seg:0",
+      "source": "What happened",
+      "source_hash": 9341614182063564325,
+      "context_hash": 6268070160732553134,
+      "translation": "발생한 일",
+      "glossary_snapshot": {
+        "What happened": "발생한 일"
+      },
+      "translated_at": "2026-11-14T22:44:27.217633Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:19/seg:0",
+      "source": "When userspace registers a file table with `io_uring_register(IORING_REGISTER_FILES)` and then unregisters while requests using those files are still in-flight (via io-wq), there is a window where the file pointer can be freed while the worker is still holding it.",
+      "source_hash": 4647353443212263100,
+      "context_hash": 10885475793039779670,
+      "translation": "사용자 공간이 `io_uring_register(IORING_REGISTER_FILES)`로 파일 테이블을 등록한 뒤, 그 파일을 사용하는 요청이 (io-wq를 통해) 아직 처리 중인 상태에서 등록을 해제하면, worker가 아직 파일 포인터를 붙잡고 있는 동안 그 포인터가 해제될 수 있는 구간이 생깁니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:27.217634Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:20/seg:0",
+      "source": "The bug",
+      "source_hash": 7512982873364237791,
+      "context_hash": 7068995577021966380,
+      "translation": "버그",
+      "glossary_snapshot": {
+        "The bug": "버그",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:27.217634Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:21/seg:0",
+      "source": "The kernel uses reference counting on `io_rsrc_data` to keep the file table alive until all in-flight requests complete.",
+      "source_hash": 15883738755237018563,
+      "context_hash": 11585674074351992387,
+      "translation": "커널은 진행 중인(in-flight) 모든 요청이 완료될 때까지 파일 테이블을 유지하기 위해 `io_rsrc_data`에 참조 카운팅을 사용합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:44:29.380210Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:21/seg:1",
+      "source": "Bugs in the reference counting have caused use-after-free in the fixed file path:",
+      "source_hash": 5988699245202174369,
+      "context_hash": 1132331916807537904,
+      "translation": "참조 카운팅의 버그로 인해 고정 파일 경로에서 use-after-free가 발생한 적이 있습니다.",
+      "glossary_snapshot": {
+        "fixed file": "고정 파일",
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T23:35:29.933912Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:23/seg:0",
+      "source": "Real-world implications",
+      "source_hash": 10732778035467918097,
+      "context_hash": 15331596050971050959,
+      "translation": "실제 영향",
+      "glossary_snapshot": {
+        "Real-world implications": "실제 영향"
+      },
+      "translated_at": "2026-11-14T22:44:29.380212Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:24/seg:0",
+      "source": "Use-after-free in kernel code typically means exploitable privilege escalation or kernel crash.",
+      "source_hash": 8806356457131658521,
+      "context_hash": 12531702474213004764,
+      "translation": "커널 코드의 use-after-free는 일반적으로 악용 가능한 권한 상승이나 커널 크래시를 의미합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "privilege escalation": "권한 상승",
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T22:44:29.380212Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:24/seg:1",
+      "source": "Several CVEs have been filed against io_uring's resource management code.",
+      "source_hash": 2642473222083955823,
+      "context_hash": 17434896112939643946,
+      "translation": "io_uring의 리소스 관리 코드에 대해 여러 CVE가 등록되었습니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE"
+      },
+      "translated_at": "2026-11-14T22:44:29.380214Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:25/seg:0",
+      "source": "Mitigation",
+      "source_hash": 221397362205371334,
+      "context_hash": 10837204832634381193,
+      "translation": "완화 방법",
+      "glossary_snapshot": {
+        "Mitigation": "완화 방법"
+      },
+      "translated_at": "2026-11-14T22:44:29.380214Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:26/seg:0",
+      "source": "Always drain in-flight requests (`io_uring_register(IORING_REGISTER_SYNC_CANCEL)` or submit a barrier SQE with `IOSQE_IO_DRAIN`) before unregistering resources.",
+      "source_hash": 12454884360354102204,
+      "context_hash": 6432557602724195349,
+      "translation": "리소스를 등록 해제하기 전에는 항상 진행 중인 요청을 drain하십시오(`io_uring_register(IORING_REGISTER_SYNC_CANCEL)`을 사용하거나 `IOSQE_IO_DRAIN`을 설정한 배리어 SQE를 제출하십시오).",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:29.380214Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:28/seg:0",
+      "source": "Case 3: SQPOLL CPU pinning and missed wakeups",
+      "source_hash": 12069578144135887436,
+      "context_hash": 7027379069199043555,
+      "translation": "사례 3: SQPOLL CPU 고정과 놓친 wakeup",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:29.380214Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:29/seg:0",
+      "source": "What happened",
+      "source_hash": 9341614182063564325,
+      "context_hash": 6419982672232468939,
+      "translation": "발생한 일",
+      "glossary_snapshot": {
+        "What happened": "발생한 일"
+      },
+      "translated_at": "2026-11-14T22:44:29.380215Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:30/seg:0",
+      "source": "When `IORING_SETUP_SQ_AFF` is set, the SQPOLL thread is pinned to a specific CPU.",
+      "source_hash": 16031652517124862482,
+      "context_hash": 671760849011774154,
+      "translation": "`IORING_SETUP_SQ_AFF`가 설정되면 SQPOLL 스레드는 특정 CPU에 고정됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:29.380215Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:30/seg:1",
+      "source": "If that CPU goes offline (CPU hotplug), the SQPOLL thread stalls and the ring stops processing new SQEs — without any error to userspace.",
+      "source_hash": 15996901897098793758,
+      "context_hash": 7314738902048762165,
+      "translation": "해당 CPU가 오프라인이 되면(CPU 핫플러그) SQPOLL 스레드가 멈추고 링이 새 SQE 처리를 중단합니다 — 사용자 공간에는 아무런 오류도 전달되지 않습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "SQEs": "SQE",
+        "SQPOLL": "SQPOLL",
+        "hotplug": "핫플러그",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:35:29.933913Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:31/seg:0",
+      "source": "The bug",
+      "source_hash": 7512982873364237791,
+      "context_hash": 13201002215899818626,
+      "translation": "버그",
+      "glossary_snapshot": {
+        "The bug": "버그",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:29.380215Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:32/seg:0",
+      "source": "The SQPOLL thread uses `kthread_bind()` to pin to the requested CPU.",
+      "source_hash": 1521796763918097192,
+      "context_hash": 4696870834383878350,
+      "translation": "SQPOLL 스레드는 요청된 CPU에 고정되기 위해 `kthread_bind()`를 사용합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:29.380215Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:32/seg:1",
+      "source": "If the CPU goes offline after setup:",
+      "source_hash": 12890943929807452686,
+      "context_hash": 7314603080149020048,
+      "translation": "설정 이후 해당 CPU가 오프라인이 되면 다음과 같은 일이 발생합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:44:29.380216Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:33/seg:0",
+      "source": "The SQPOLL thread is migrated off (or blocked) by the hotplug code.",
+      "source_hash": 14568770064089486342,
+      "context_hash": 6094971196167856937,
+      "translation": "SQPOLL 스레드는 핫플러그 코드에 의해 다른 CPU로 옮겨지거나 차단됩니다.",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "hotplug": "핫플러그"
+      },
+      "translated_at": "2026-11-14T23:35:29.933914Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:34/seg:0",
+      "source": "`IORING_SQ_NEED_WAKEUP` may not be set correctly in this state.",
+      "source_hash": 3583262612453801731,
+      "context_hash": 10002849172128784153,
+      "translation": "이 상태에서는 `IORING_SQ_NEED_WAKEUP`이 올바르게 설정되지 않을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:29.380216Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:35/seg:0",
+      "source": "Userspace keeps writing SQEs that are never consumed.",
+      "source_hash": 2388162660704088976,
+      "context_hash": 1592029223634955381,
+      "translation": "사용자 공간은 결코 소비되지 않는 SQE를 계속 기록합니다.",
+      "glossary_snapshot": {
+        "SQEs": "SQE",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:44:29.380216Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:36/seg:0",
+      "source": "No CQEs are ever posted.",
+      "source_hash": 3437163926649471334,
+      "context_hash": 3796594056165284704,
+      "translation": "CQE가 전혀 게시되지 않습니다.",
+      "glossary_snapshot": {
+        "CQEs": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:29.380217Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:37/seg:0",
+      "source": "Mitigation",
+      "source_hash": 221397362205371334,
+      "context_hash": 3364453892456024467,
+      "translation": "완화 방법",
+      "glossary_snapshot": {
+        "Mitigation": "완화 방법"
+      },
+      "translated_at": "2026-11-14T22:44:29.380217Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:38/seg:0",
+      "source": "Avoid `IORING_SETUP_SQ_AFF` in environments with CPU hotplug (cloud VMs with vCPU resizing, containers with CPU pinning).",
+      "source_hash": 15513142305113762356,
+      "context_hash": 4751604441932807063,
+      "translation": "CPU 핫플러그가 있는 환경(vCPU 크기 조정을 하는 클라우드 VM, CPU 고정을 사용하는 컨테이너)에서는 `IORING_SETUP_SQ_AFF`를 피하십시오.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "hotplug": "핫플러그",
+        "vCPU": "vCPU"
+      },
+      "translated_at": "2026-11-14T23:35:29.933914Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:38/seg:1",
+      "source": "If you must pin, monitor `sq_head` and `sq_tail` in fdinfo: if `tail - head` grows without bound, the SQPOLL thread has stalled.",
+      "source_hash": 9571819306802217914,
+      "context_hash": 13932594880692972552,
+      "translation": "반드시 고정해야 한다면 fdinfo에서 `sq_head`와 `sq_tail`을 모니터링하십시오. `tail - head`가 한없이 증가한다면 SQPOLL 스레드가 멈춘 것입니다.",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:29.380217Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:40/seg:0",
+      "source": "Case 4: Credential confusion in personality-switched requests",
+      "source_hash": 2247200801625726943,
+      "context_hash": 13421310551830008064,
+      "translation": "사례 4: personality 전환 요청에서의 자격 증명 혼동",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:29.380217Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:41/seg:0",
+      "source": "What happened",
+      "source_hash": 9341614182063564325,
+      "context_hash": 1033551711018943785,
+      "translation": "발생한 일",
+      "glossary_snapshot": {
+        "What happened": "발생한 일"
+      },
+      "translated_at": "2026-11-14T22:44:29.380217Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:42/seg:0",
+      "source": "io_uring allows submitting requests under a different credential set via `personality` in the SQE combined with `io_uring_register(IORING_REGISTER_PERSONALITY)`.",
+      "source_hash": 4110882787371990478,
+      "context_hash": 7441718694474364634,
+      "translation": "io_uring은 SQE의 `personality`와 `io_uring_register(IORING_REGISTER_PERSONALITY)`를 함께 사용하여 다른 자격 증명(credential) 집합으로 요청을 제출할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "SQE": "SQE"
+      },
+      "translated_at": "2026-11-14T22:44:29.380217Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:42/seg:1",
+      "source": "A bug could allow a less-privileged credential to be promoted to a more-privileged one if the personality index was not validated correctly.",
+      "source_hash": 1218296554928765026,
+      "context_hash": 1604094284595750656,
+      "translation": "personality 인덱스가 올바르게 검증되지 않으면, 버그로 인해 낮은 권한의 자격 증명이 더 높은 권한의 자격 증명으로 승격될 수 있었습니다.",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:29.380217Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:43/seg:0",
+      "source": "The bug",
+      "source_hash": 7512982873364237791,
+      "context_hash": 11813351755203464845,
+      "translation": "버그",
+      "glossary_snapshot": {
+        "The bug": "버그",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:29.380218Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:45/seg:0",
+      "source": "If `some_index` is out of bounds or maps to the wrong credential set due to a race during personality unregistration, the worker thread calls `override_creds()` with the wrong creds.",
+      "source_hash": 16209590681706606589,
+      "context_hash": 12565888769202772324,
+      "translation": "personality 등록 해제 중 발생한 경쟁 조건으로 인해 `some_index`가 범위를 벗어나거나 잘못된 자격 증명 집합에 매핑되면, 워커 스레드는 잘못된 creds로 `override_creds()`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:29.380218Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:45/seg:1",
+      "source": "In the worst case, a request executes with elevated privileges.",
+      "source_hash": 1349033114903933171,
+      "context_hash": 8476123896327324835,
+      "translation": "최악의 경우 요청이 상승된 권한으로 실행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:29.380218Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:46/seg:0",
+      "source": "Real-world implications",
+      "source_hash": 10732778035467918097,
+      "context_hash": 1840980893146099097,
+      "translation": "실제 영향",
+      "glossary_snapshot": {
+        "Real-world implications": "실제 영향"
+      },
+      "translated_at": "2026-11-14T22:44:29.380218Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:47/seg:0",
+      "source": "Privilege escalation.",
+      "source_hash": 13728086923760394957,
+      "context_hash": 4010750863677751058,
+      "translation": "권한 상승",
+      "glossary_snapshot": {
+        "privilege escalation": "권한 상승"
+      },
+      "translated_at": "2026-11-14T22:44:29.380218Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:47/seg:1",
+      "source": "Several security audits of io_uring have focused specifically on the personality mechanism, leading to tighter bounds checking and reference counting fixes.",
+      "source_hash": 12926354895517864130,
+      "context_hash": 16340623481542351232,
+      "translation": "io_uring에 대한 여러 보안 감사가 특히 personality 메커니즘에 집중했으며, 그 결과 더 엄격한 경계 검사와 참조 카운팅 수정이 이루어졌습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:29.380218Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:48/seg:0",
+      "source": "Mitigation",
+      "source_hash": 221397362205371334,
+      "context_hash": 13141779594356954039,
+      "translation": "완화 방법",
+      "glossary_snapshot": {
+        "Mitigation": "완화 방법"
+      },
+      "translated_at": "2026-11-14T22:44:29.380218Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:49/seg:0",
+      "source": "Keep personality usage to a minimum; do not share ring file descriptors across trust boundaries.",
+      "source_hash": 16312972833295807181,
+      "context_hash": 6808368743723855784,
+      "translation": "personality 사용은 최소한으로 유지하고, 신뢰 경계를 넘어 링 파일 디스크립터를 공유하지 마십시오.",
+      "glossary_snapshot": {
+        "file descriptors": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:44:27.127040Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:49/seg:1",
+      "source": "See [`io_uring/security.md`](security.md) in this documentation for the full threat model.",
+      "source_hash": 17025062383928209972,
+      "context_hash": 11893534645523639079,
+      "translation": "전체 위협 모델은 이 문서의 [`io_uring/security.md`](security.md)를 참조하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127041Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:51/seg:0",
+      "source": "Case 5: io-wq worker count unbounded growth",
+      "source_hash": 13924851572464679168,
+      "context_hash": 8275412959825599143,
+      "translation": "사례 5: io-wq 워커 수의 무제한 증가",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:27.127041Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:52/seg:0",
+      "source": "What happened",
+      "source_hash": 9341614182063564325,
+      "context_hash": 17449867559826462489,
+      "translation": "발생한 일",
+      "glossary_snapshot": {
+        "What happened": "발생한 일"
+      },
+      "translated_at": "2026-11-14T22:44:27.127041Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:53/seg:0",
+      "source": "If requests arrive faster than io-wq workers can complete them, and the per-ring worker limit is set too high (or not set), the kernel spawns many threads, exhausting the system's PID space or memory.",
+      "source_hash": 18009457758648398433,
+      "context_hash": 10885475793039779670,
+      "translation": "요청이 io-wq 워커가 처리할 수 있는 속도보다 빠르게 도착하고 링별 워커 한도가 너무 높게 설정되어 있으면(또는 설정되어 있지 않으면), 커널이 많은 스레드를 생성하여 시스템의 PID 공간이나 메모리를 고갈시킵니다.",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:44:27.127041Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:54/seg:0",
+      "source": "The bug",
+      "source_hash": 7512982873364237791,
+      "context_hash": 746050042994858591,
+      "translation": "버그",
+      "glossary_snapshot": {
+        "The bug": "버그",
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:27.127042Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:56/seg:0",
+      "source": "Under a workload that intentionally blocks many io-wq workers (e.g., many O_DIRECT reads to a very slow device), a buggy application can DoS the machine.",
+      "source_hash": 496090659893069056,
+      "context_hash": 5616567066897926621,
+      "translation": "의도적으로 많은 io-wq 워커를 블록시키는 워크로드(예: 매우 느린 디바이스에 대한 다수의 O_DIRECT read)에서는 버그가 있는 애플리케이션이 시스템을 DoS 상태로 만들 수 있습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "io-wq": "io-wq",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T23:35:29.933915Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:57/seg:0",
+      "source": "Mitigation",
+      "source_hash": 221397362205371334,
+      "context_hash": 17868313077908488508,
+      "translation": "완화 방법",
+      "glossary_snapshot": {
+        "Mitigation": "완화 방법"
+      },
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:58/seg:0",
+      "source": "Set an explicit worker cap during setup:",
+      "source_hash": 332506313633631492,
+      "context_hash": 13385485340192133079,
+      "translation": "설정 단계에서 명시적인 워커 상한을 지정하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:61/seg:0",
+      "source": "Summary: Lessons learned",
+      "source_hash": 12739288259457707802,
+      "context_hash": 7387223760553920592,
+      "translation": "요약: 얻은 교훈",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:62/seg:0",
+      "source": "Bug",
+      "source_hash": 7827619030188126549,
+      "context_hash": 4585703675682155948,
+      "translation": "버그",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:63/seg:0",
+      "source": "Root Cause",
+      "source_hash": 16401206383841531388,
+      "context_hash": 9451278790446030515,
+      "translation": "근본 원인",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:64/seg:0",
+      "source": "Impact",
+      "source_hash": 13241537819021598767,
+      "context_hash": 12056216831606902039,
+      "translation": "영향",
+      "glossary_snapshot": {
+        "impact": "영향"
+      },
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:65/seg:0",
+      "source": "Prevention",
+      "source_hash": 4336647140317611402,
+      "context_hash": 16443907118183606588,
+      "translation": "예방",
+      "glossary_snapshot": {
+        "Prevention": "예방"
+      },
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:66/seg:0",
+      "source": "**CQ overflow**",
+      "source_hash": 9640288973875635981,
+      "context_hash": 3606069301017788750,
+      "translation": "**CQ 오버플로**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:67/seg:0",
+      "source": "Slow CQE reaping",
+      "source_hash": 1040637472010703831,
+      "context_hash": 273251904752231081,
+      "translation": "느린 CQE 회수",
+      "glossary_snapshot": {
+        "CQE": "CQE"
+      },
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:68/seg:0",
+      "source": "Lost completions",
+      "source_hash": 14834443765693489196,
+      "context_hash": 9433547825805475550,
+      "translation": "완료 이벤트 유실",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:69/seg:0",
+      "source": "Size CQ ring; use `IORING_FEAT_NODROP`",
+      "source_hash": 18360731612102051159,
+      "context_hash": 13781290214894815762,
+      "translation": "CQ 링 크기 조정, `IORING_FEAT_NODROP` 사용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:70/seg:0",
+      "source": "**Fixed file UAF**",
+      "source_hash": 6225282508829564535,
+      "context_hash": 9585109142897935289,
+      "translation": "**고정 파일 UAF**",
+      "glossary_snapshot": {
+        "UAF": "UAF",
+        "fixed file": "고정 파일"
+      },
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:71/seg:0",
+      "source": "Ref-count race on unregister",
+      "source_hash": 5477687934087020948,
+      "context_hash": 11402453640366377099,
+      "translation": "등록 해제 시 참조 카운트 경쟁 상태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127043Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:72/seg:0",
+      "source": "Crash / privilege escalation",
+      "source_hash": 9039808510752507031,
+      "context_hash": 13756666684713918449,
+      "translation": "크래시 / 권한 상승",
+      "glossary_snapshot": {
+        "privilege escalation": "권한 상승"
+      },
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:73/seg:0",
+      "source": "Drain requests before unregistering resources",
+      "source_hash": 14816642887460529937,
+      "context_hash": 706230936186378320,
+      "translation": "리소스 등록 해제 전 요청 드레인",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:74/seg:0",
+      "source": "**SQPOLL CPU offline**",
+      "source_hash": 2655594760071359846,
+      "context_hash": 16521765054086966149,
+      "translation": "**SQPOLL CPU 오프라인**",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "SQPOLL": "SQPOLL"
+      },
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:75/seg:0",
+      "source": "CPU hotplug + kthread_bind",
+      "source_hash": 4453621232673713975,
+      "context_hash": 4456085361622751498,
+      "translation": "CPU 핫플러그 + kthread_bind",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "hotplug": "핫플러그"
+      },
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:76/seg:0",
+      "source": "Ring stalls silently",
+      "source_hash": 13827114247092981908,
+      "context_hash": 17269649024020313404,
+      "translation": "링의 조용한 정지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:77/seg:0",
+      "source": "Avoid `SQ_AFF` with hotplug; monitor fdinfo",
+      "source_hash": 5128451443420985728,
+      "context_hash": 6576218582350996518,
+      "translation": "핫플러그 환경에서 `SQ_AFF` 회피, fdinfo 모니터링",
+      "glossary_snapshot": {
+        "hotplug": "핫플러그"
+      },
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:78/seg:0",
+      "source": "**Personality confusion**",
+      "source_hash": 16979209853439242438,
+      "context_hash": 8636023961983702068,
+      "translation": "**personality 혼동**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:79/seg:0",
+      "source": "Credential index race",
+      "source_hash": 15177876407103209585,
+      "context_hash": 2710749297301099871,
+      "translation": "자격 증명 인덱스 경쟁 상태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:80/seg:0",
+      "source": "Privilege escalation",
+      "source_hash": 11066350581006519176,
+      "context_hash": 13159684235646828911,
+      "translation": "권한 상승",
+      "glossary_snapshot": {
+        "privilege escalation": "권한 상승"
+      },
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:81/seg:0",
+      "source": "Minimize personality use; audit boundary",
+      "source_hash": 319759080244232363,
+      "context_hash": 8363967850595523604,
+      "translation": "personality 사용 최소화, 경계 감사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:82/seg:0",
+      "source": "**Worker count explosion**",
+      "source_hash": 11398488256636680191,
+      "context_hash": 15124819078265095062,
+      "translation": "**워커 수 폭증**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:83/seg:0",
+      "source": "No cap on io-wq workers",
+      "source_hash": 6653725127746736748,
+      "context_hash": 15264123291645682952,
+      "translation": "io-wq 워커 수 상한 부재",
+      "glossary_snapshot": {
+        "io-wq": "io-wq"
+      },
+      "translated_at": "2026-11-14T22:44:27.127044Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:84/seg:0",
+      "source": "DoS, OOM",
+      "source_hash": 17234808033955012762,
+      "context_hash": 8378251555696280512,
+      "translation": "DoS, OOM",
+      "glossary_snapshot": {
+        "OOM": "OOM"
+      },
+      "translated_at": "2026-11-14T22:02:54.789383Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:85/seg:0",
+      "source": "Set `IORING_REGISTER_IOWQ_MAX_WORKERS`",
+      "source_hash": 7886815232561738381,
+      "context_hash": 17030735741893171678,
+      "translation": "`IORING_REGISTER_IOWQ_MAX_WORKERS` 설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:02:54.789383Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:86/seg:0",
+      "source": "The common thread: **io_uring's performance comes from eliminating synchronization on the hot path, but that same design makes races and resource lifetime bugs harder to detect**.",
+      "source_hash": 9043752299538447822,
+      "context_hash": 23788649835748118,
+      "translation": "공통된 맥락은 다음과 같습니다. **io_uring의 성능은 핫 패스에서 동기화를 제거한 데서 나오지만, 바로 그 설계 때문에 경쟁 조건(race)과 리소스 수명 버그를 찾아내기가 더 어려워집니다**.",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "hot path": "핫 패스"
+      },
+      "translated_at": "2026-11-14T22:02:54.789384Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:86/seg:1",
+      "source": "Careful use of the registration and cancellation APIs is essential for correctness.",
+      "source_hash": 4964599667538640421,
+      "context_hash": 13498206547877075213,
+      "translation": "정확성을 확보하려면 등록 API와 취소 API를 신중하게 사용하는 것이 필수적입니다.",
+      "glossary_snapshot": {
+        "correctness": "정확성"
+      },
+      "translated_at": "2026-11-14T22:02:54.789384Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 1175750604794105877,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:02:54.789384Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:1/seg:0",
+      "source": "Related docs",
+      "source_hash": 7097932963041183752,
+      "context_hash": 14707491350937269414,
+      "translation": "관련 문서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:02:54.789384Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:2/seg:0",
+      "source": "[io_uring Architecture and Rings](io-uring-arch.md) — Ring layout, `io_uring_setup`, SQE/CQE structs",
+      "source_hash": 10059596938043958040,
+      "context_hash": 4524342198421286931,
+      "translation": "[io_uring 아키텍처와 링](io-uring-arch.md) — 링 레이아웃, `io_uring_setup`, SQE/CQE 구조체",
+      "glossary_snapshot": {
+        "CQE": "CQE",
+        "SQE": "SQE",
+        "structs": "구조체"
+      },
+      "translated_at": "2026-11-14T22:02:54.789384Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:3/seg:0",
+      "source": "[Operations and Advanced Features](io-uring-ops.md) — Full opcode list, SQPOLL, fixed buffers, linked requests",
+      "source_hash": 1553104942023800441,
+      "context_hash": 2366264881142979154,
+      "translation": "[연산과 고급 기능](io-uring-ops.md) — 전체 opcode 목록, SQPOLL, 고정 버퍼, 연결된 요청",
+      "glossary_snapshot": {
+        "SQPOLL": "SQPOLL",
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:02:54.789384Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:4/seg:0",
+      "source": "[Fixed Buffers](fixed-buffers.md) — Registered buffer internals",
+      "source_hash": 12881887368694028390,
+      "context_hash": 16757172794382873261,
+      "translation": "[고정 버퍼](fixed-buffers.md) — 등록된 버퍼의 내부 구조",
+      "glossary_snapshot": {
+        "fixed buffers": "고정 버퍼"
+      },
+      "translated_at": "2026-11-14T22:02:54.789384Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:5/seg:0",
+      "source": "[Multishot Operations](multishot-ops.md) — `IORING_CQE_F_MORE` and repeated completions",
+      "source_hash": 1458294988000290616,
+      "context_hash": 3266000863889606458,
+      "translation": "[멀티샷 연산](multishot-ops.md) — `IORING_CQE_F_MORE`와 반복 완료",
+      "glossary_snapshot": {
+        "multishot": "멀티샷"
+      },
+      "translated_at": "2026-11-14T22:02:54.789385Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:6/seg:0",
+      "source": "[Security](security.md) — io_uring threat model and hardening",
+      "source_hash": 5165374933079836187,
+      "context_hash": 9599956305147153477,
+      "translation": "[보안](security.md) — io_uring 위협 모델과 하드닝",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:02:54.789385Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:7/seg:0",
+      "source": "[Life of a file read](../mm/life-of-read.md) — The page cache path that io-wq workers traverse",
+      "source_hash": 16882591619542405612,
+      "context_hash": 5162942007435493818,
+      "translation": "[파일 읽기의 일생](../mm/life-of-read.md) — io-wq 워커가 거쳐 가는 페이지 캐시 경로",
+      "glossary_snapshot": {
+        "io-wq": "io-wq",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:02:54.789385Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:8/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 16700712181748170640,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:02:54.789385Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:9/seg:0",
+      "source": "[Ringing in a new asynchronous I/O API](https://lwn.net/Articles/776703/) (2019) — Original io_uring introduction by Jonathan Corbet",
+      "source_hash": 11497930816269320723,
+      "context_hash": 11511483160590953653,
+      "translation": "[Ringing in a new asynchronous I/O API](https://lwn.net/Articles/776703/) (2019) — Jonathan Corbet이 쓴 최초의 io_uring 소개 글",
+      "glossary_snapshot": {
+        "API": "API",
+        "Jonathan Corbet": "Jonathan Corbet"
+      },
+      "translated_at": "2026-11-14T22:02:54.789386Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:10/seg:0",
+      "source": "[The rapid growth of io_uring](https://lwn.net/Articles/810414/) (2020) — Feature expansion through 5.6",
+      "source_hash": 12440724494955079511,
+      "context_hash": 4970376327507766469,
+      "translation": "[The rapid growth of io_uring](https://lwn.net/Articles/810414/) (2020) — 5.6까지의 기능 확장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:02:54.789386Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:11/seg:0",
+      "source": "[Security requirements for new kernel features](https://lwn.net/Articles/902466/) (2022) — What new-feature submissions (io_uring included) are expected to address on the security front",
+      "source_hash": 6675376268892383647,
+      "context_hash": 14180322907299031190,
+      "translation": "[Security requirements for new kernel features](https://lwn.net/Articles/902466/) (2022) — 새 기능 제출물(io_uring 포함)이 보안 측면에서 다루어야 할 사항",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:02:54.789386Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:12/seg:0",
+      "source": "[Buffered I/O without page-cache thrashing](https://lwn.net/Articles/806980/) (2019) — `RWF_UNCACHED`, a buffered-I/O mode that avoids polluting the page cache",
+      "source_hash": 16885520906064008525,
+      "context_hash": 17086380395554664430,
+      "translation": "[Buffered I/O without page-cache thrashing](https://lwn.net/Articles/806980/) (2019) — 페이지 캐시를 오염시키지 않는 버퍼드 I/O 모드인 `RWF_UNCACHED`",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:02:54.789386Z",
+      "issues": []
+    }
+  ]
+}

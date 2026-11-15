@@ -1,0 +1,821 @@
+{
+  "version": 1,
+  "source_hash": 3315473422132458401,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "War Stories: Interrupt and IRQ-Affinity Bugs",
+      "source_hash": 15440215539578335930,
+      "context_hash": 9742668679561348521,
+      "translation": "실전 사례: 인터럽트 및 IRQ 어피니티 버그",
+      "glossary_snapshot": {
+        "IRQ": "IRQ",
+        "affinity": "어피니티",
+        "interrupt": "인터럽트",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T23:27:29.221641Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Four incidents in the machinery that decides which CPU handles an interrupt and cleans up after it moves — two CVEs, one two-year silent-failure gap, and one use-after-free in a rarely-exercised notifier path that took two separate fixes to fully close",
+      "source_hash": 5055207989801301754,
+      "context_hash": 10005331407560861720,
+      "translation": "인터럽트를 어느 CPU가 처리할지 결정하고 affinity가 바뀐 뒤 정리 작업을 하는 메커니즘에서 일어난 네 가지 사건 — CVE 두 건, 2년간 실패가 조용히 묻혀 있던 공백 하나, 그리고 거의 실행되지 않는 notifier 경로에서 일어나 완전히 해결하는 데 별개의 수정 두 번이 필요했던 use-after-free 하나",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CVEs": "CVE",
+        "interrupt": "인터럽트",
+        "notifier": "notifier",
+        "use-after-free": "use-after-free"
+      },
+      "translated_at": "2026-11-14T22:34:23.718381Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:0",
+      "source": "Interrupt affinity is deceptively simple from the outside — \"run this interrupt's handler on that CPU\" — and genuinely intricate underneath, because changing it safely means coordinating in-flight interrupt delivery, per-CPU vector allocation, CPU hotplug, and (for drivers that want to know) an asynchronous notification callback, all without ever leaving a window where the same interrupt could be handled twice or a resource freed while something still points at it.",
+      "source_hash": 15388429922437891975,
+      "context_hash": 16334220822674152887,
+      "translation": "인터럽트 어피니티는 겉으로 보기에는 \"이 인터럽트의 핸들러를 저 CPU에서 실행하라\"는 것으로 단순해 보이지만, 내부는 실제로 복잡합니다. 어피니티를 안전하게 변경하려면 처리 중인 인터럽트 전달, CPU별 벡터 할당, CPU 핫플러그, 그리고 (알림을 원하는 드라이버의 경우) 비동기 알림 콜백을 모두 조정해야 하며, 그 과정에서 같은 인터럽트가 두 번 처리되거나 무언가가 아직 가리키고 있는 자원이 해제될 수 있는 틈이 단 한 순간도 생겨서는 안 되기 때문입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "affinity": "어피니티",
+        "callback": "콜백",
+        "handler": "핸들러",
+        "hotplug": "핫플러그",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:27:29.221643Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:2/seg:1",
+      "source": "Every incident below lives in that coordination layer, not in interrupt handling itself.",
+      "source_hash": 1996356619539713448,
+      "context_hash": 3799081481212661849,
+      "translation": "아래의 모든 사건은 인터럽트 처리 자체가 아니라 이 조율 계층에서 발생했습니다.",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:34:23.718382Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Incidents",
+      "source_hash": 13222895534781683695,
+      "context_hash": 2467579959506685253,
+      "translation": "사고 목록",
+      "glossary_snapshot": {
+        "Incidents": "사고 목록"
+      },
+      "translated_at": "2026-11-14T23:27:29.221643Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Ordered reverse chronologically by when the fix landed in mainline — newest first.",
+      "source_hash": 9994411020032407685,
+      "context_hash": 8353092212455518369,
+      "translation": "수정이 메인라인에 반영된 시점을 기준으로 역순, 즉 최신순으로 정렬했습니다.",
+      "glossary_snapshot": {
+        "mainline": "메인라인"
+      },
+      "translated_at": "2026-11-14T22:34:23.718383Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "[The Vector Leak That Needed Two CPUs to Go Offline in the Wrong Order](war-stories/vector-leak-cpu-offline.md)",
+      "source_hash": 2717142322117524791,
+      "context_hash": 11526290037821811682,
+      "translation": "[두 CPU가 잘못된 순서로 오프라인되어야 발생한 벡터 누수](war-stories/vector-leak-cpu-offline.md)",
+      "glossary_snapshot": {
+        "CPUs": "CPU"
+      },
+      "translated_at": "2026-11-14T22:34:23.718383Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Linux 6.10 (July 2024) · CVE-2024-31076** A deferred interrupt-affinity change and a CPU hot-unplug, interleaved in one specific rare order, meant one x86 interrupt vector was never returned to `vector_matrix` — a slow leak, one vector at a time, on systems that offline and re-online CPUs routinely.",
+      "source_hash": 4043731256836422023,
+      "context_hash": 1078476993531205863,
+      "translation": "**Linux 6.10 (2024년 7월) · CVE-2024-31076** 지연된 인터럽트 어피니티 변경과 CPU 핫 언플러그가 특정한 드문 순서로 맞물리면 x86 인터럽트 벡터 하나가 `vector_matrix`로 반환되지 않았습니다. CPU를 일상적으로 오프라인했다가 다시 온라인하는 시스템에서 벡터가 하나씩 천천히 누수되는 문제였습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CPUs": "CPU",
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "affinity": "어피니티",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:27:29.221644Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "[The IPI Verifier That Trusted Its Own Caller](war-stories/ipi-send-verify-null-deref.md)",
+      "source_hash": 6712740363954903241,
+      "context_hash": 9480345241633011281,
+      "translation": "[자신의 호출자를 믿은 IPI 검증 함수](war-stories/ipi-send-verify-null-deref.md)",
+      "glossary_snapshot": {
+        "IPI": "IPI"
+      },
+      "translated_at": "2026-11-14T22:34:23.718384Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**Linux 6.3 (April 2023) · CVE-2023-53332** `ipi_send_verify()` dereferenced its `irq_data` parameter before checking whether that parameter was `NULL` — an invalid IPI interrupt number turned a clean error return into a kernel oops.",
+      "source_hash": 14794696937204970244,
+      "context_hash": 9564734612430551057,
+      "translation": "**Linux 6.3 (2023년 4월) · CVE-2023-53332** `ipi_send_verify()`가 `irq_data` 매개변수가 `NULL`인지 확인하기 전에 이를 역참조했습니다. 그 결과 잘못된 IPI 인터럽트 번호가 주어지면 깔끔한 오류 반환 대신 커널 oops가 발생했습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "IPI": "IPI",
+        "Linux": "Linux",
+        "interrupt": "인터럽트",
+        "kernel": "커널",
+        "oops": "oops"
+      },
+      "translated_at": "2026-11-14T22:34:23.718384Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "[The Warning That Vector Space Was Silently Breaking Affinity](war-stories/vector-exhaustion-silent-affinity-break.md)",
+      "source_hash": 8954514171279104137,
+      "context_hash": 3678716244209773708,
+      "translation": "[벡터 공간 부족이 어피니티를 조용히 깨뜨리고 있다는 경고](war-stories/vector-exhaustion-silent-affinity-break.md)",
+      "glossary_snapshot": {
+        "affinity": "어피니티"
+      },
+      "translated_at": "2026-11-14T23:27:29.221645Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "**Linux 5.4 (November 2019) · not a CVE** When every CPU in a reserved affinity mask had exhausted its 202 assignable interrupt vectors, activating the interrupt silently widened the mask with no log message — for about two years, an administrator had no way to learn their affinity request had been quietly overruled.",
+      "source_hash": 14895094636072258341,
+      "context_hash": 9088800764521795055,
+      "translation": "**Linux 5.4 (2019년 11월) · CVE 아님** 예약된 어피니티 마스크의 모든 CPU가 할당 가능한 인터럽트 벡터 202개를 모두 소진하면, 인터럽트 활성화 과정에서 로그 메시지 없이 마스크가 조용히 넓어졌습니다. 약 2년 동안 관리자는 자신의 어피니티 요청이 조용히 무시되었다는 사실을 알 방법이 없었습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "administrator": "관리자",
+        "affinity": "어피니티",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:27:29.221645Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "[The Affinity Notifier That Outlived Its Own Reference Count](war-stories/affinity-notifier-uaf.md)",
+      "source_hash": 3922171268216777054,
+      "context_hash": 7894630689853318308,
+      "translation": "[자신의 참조 카운트보다 오래 살아남은 어피니티 notifier](war-stories/affinity-notifier-uaf.md)",
+      "glossary_snapshot": {
+        "affinity": "어피니티",
+        "notifier": "notifier",
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T23:27:29.221646Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "**Linux 5.2 (July 2019) · not a CVE** Replacing an affinity-change notifier dropped the old one's reference count without checking whether its callback was still sitting in a workqueue — a use-after-free waiting for a very specific timing window to be hit.",
+      "source_hash": 1676964667309828761,
+      "context_hash": 4657591930500154519,
+      "translation": "**Linux 5.2 (2019년 7월) · CVE 아님** 어피니티 변경 notifier를 교체할 때 이전 notifier의 콜백이 아직 workqueue에 대기 중인지 확인하지 않고 참조 카운트를 감소시켰습니다. 매우 특정한 타이밍 창에 걸리기만을 기다리는 use-after-free였습니다.",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "Linux": "Linux",
+        "affinity": "어피니티",
+        "callback": "콜백",
+        "notifier": "notifier",
+        "reference count": "참조 카운트",
+        "use-after-free": "use-after-free",
+        "workqueue": "workqueue"
+      },
+      "translated_at": "2026-11-14T23:27:29.221646Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Common threads",
+      "source_hash": 15630519619683491239,
+      "context_hash": 1772283395737527482,
+      "translation": "공통점",
+      "glossary_snapshot": {
+        "Common threads": "공통점"
+      },
+      "translated_at": "2026-11-14T22:34:23.718385Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Pattern",
+      "source_hash": 544911176319535475,
+      "context_hash": 12941049861818377230,
+      "translation": "패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:23.718386Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Vector leak (CPU offline)",
+      "source_hash": 17601499157145745704,
+      "context_hash": 12157999397453012193,
+      "translation": "벡터 누수 (CPU 오프라인)",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:34:23.718386Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "IPI verifier NULL deref",
+      "source_hash": 8340360212221890844,
+      "context_hash": 4602292762601860671,
+      "translation": "IPI 검증 함수 NULL 역참조",
+      "glossary_snapshot": {
+        "IPI": "IPI"
+      },
+      "translated_at": "2026-11-14T22:34:23.718386Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Vector exhaustion warning",
+      "source_hash": 5879980358038773885,
+      "context_hash": 3002832911242662209,
+      "translation": "벡터 소진 경고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:23.718386Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "Affinity-notifier UAF",
+      "source_hash": 613903700261812141,
+      "context_hash": 18006931907428629421,
+      "translation": "어피니티 notifier UAF",
+      "glossary_snapshot": {
+        "UAF": "UAF",
+        "affinity": "어피니티",
+        "notifier": "notifier"
+      },
+      "translated_at": "2026-11-14T23:27:29.221647Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Involves interrupt CPU-affinity machinery specifically",
+      "source_hash": 9829059942810918647,
+      "context_hash": 12087897712039926885,
+      "translation": "인터럽트 CPU 어피니티 메커니즘과 직접 관련됨",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "affinity": "어피니티",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:27:29.221648Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 10732386541135041525,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:23.718387Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Yes (IPI targeting)",
+      "source_hash": 9414328415918994265,
+      "context_hash": 7259753640440472095,
+      "translation": "예 (IPI 대상 지정)",
+      "glossary_snapshot": {
+        "IPI": "IPI"
+      },
+      "translated_at": "2026-11-14T22:34:23.718387Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 17106833039391146189,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:23.718387Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 1762412495199548352,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:23.718387Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Root cause: two independently-correct code paths racing against each other",
+      "source_hash": 7855153271768324288,
+      "context_hash": 7259753640440472095,
+      "translation": "근본 원인: 각각은 올바른 두 코드 경로 사이의 경쟁 상태",
+      "glossary_snapshot": {
+        "code paths": "코드 경로"
+      },
+      "translated_at": "2026-11-14T22:34:23.718387Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 13469358668044602268,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:23.718387Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 6723063674509391990,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:23.718388Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 7536943046141488671,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:23.718388Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 17263910894515249272,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:23.718388Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Root cause: validation ordered after the operation it should have gated",
+      "source_hash": 15672208696471665945,
+      "context_hash": 7536943046141488671,
+      "translation": "근본 원인: 검증이 그것이 막아야 했던 작업보다 뒤에 배치됨",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:23.718388Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 11326569311787804139,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:23.718388Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7737424900422878441,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:27.757266Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 16361932622599883170,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757266Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14131640656027678397,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:27.757267Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "Root cause: a release not synchronized against a still-outstanding deferred use",
+      "source_hash": 7193077847827983009,
+      "context_hash": 7536943046141488671,
+      "translation": "근본 원인: 아직 남아 있는 지연된 사용과 동기화되지 않은 해제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757267Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10814306168526822229,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:27.757267Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7737424900422878441,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:27.757267Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "—",
+      "source_hash": 1345150990780573777,
+      "context_hash": 9508013301409225522,
+      "translation": "—",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757267Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 10214682360600763954,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:27.757267Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "Is a security vulnerability (has a CVE)",
+      "source_hash": 9457545372857854679,
+      "context_hash": 7259753640440472095,
+      "translation": "보안 취약점 여부(CVE 할당)",
+      "glossary_snapshot": {
+        "CVE": "CVE",
+        "vulnerability": "취약점"
+      },
+      "translated_at": "2026-11-14T22:34:27.757267Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:27/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 2288455503812274204,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:27.757268Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16361932622599883170,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:27.757268Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 16361932622599883170,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:27.757268Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7587266329954794126,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:34:27.757268Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "Fix changed behavior, not just added a diagnostic",
+      "source_hash": 12811269603585317654,
+      "context_hash": 9508013301409225522,
+      "translation": "수정이 진단만 추가한 것이 아니라 동작을 변경했는지 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757268Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6336917655050824935,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:27.757268Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 2364225902899096240,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:27.757268Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "No (diagnostic only)",
+      "source_hash": 12218361979907368841,
+      "context_hash": 7259753640440472095,
+      "translation": "아니요(진단만 추가)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757269Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:35/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16416039795194061143,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:34:27.757269Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "Years between introduction and fix",
+      "source_hash": 253619314203385044,
+      "context_hash": 16289623913276748022,
+      "translation": "도입부터 수정까지 걸린 햇수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757269Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:37/seg:0",
+      "source": "7 (2017 → 2024)",
+      "source_hash": 3903407256780822981,
+      "context_hash": 5351776303631975959,
+      "translation": "7 (2017 → 2024)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757269Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "~7 (2015 → 2023)",
+      "source_hash": 8445350348119789855,
+      "context_hash": 13901075218900642416,
+      "translation": "~7 (2015 → 2023)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757270Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "~2 (2017 → 2019)",
+      "source_hash": 8461341418874242240,
+      "context_hash": 13280452977507231740,
+      "translation": "~2 (2017 → 2019)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757270Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "~8 (2011 → 2019)",
+      "source_hash": 15828003587781905654,
+      "context_hash": 1730650184397497660,
+      "translation": "~8 (2011 → 2019)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757270Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:0",
+      "source": "**Two of these four are architecturally related.** The vector leak and the vector-exhaustion warning both live in the same x86 per-CPU vector allocator, separated by five years — one is about a resource silently *falling back* to a different CPU when space runs out, the other is about a resource silently *not being reclaimed* after a CPU goes away.",
+      "source_hash": 2366422319798733605,
+      "context_hash": 12713981145924819074,
+      "translation": "**이 네 가지 중 두 가지는 아키텍처상 관련되어 있습니다.** 벡터 누수와 벡터 고갈 경고는 5년의 간격을 두고 모두 동일한 x86 per-CPU 벡터 할당자에 존재합니다. 하나는 공간이 부족할 때 자원이 조용히 다른 CPU로 *대체(fallback)되는* 문제이고, 다른 하나는 CPU가 사라진 뒤 자원이 조용히 *회수되지 않는* 문제입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "allocator": "할당자"
+      },
+      "translated_at": "2026-11-14T22:34:27.757270Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:1",
+      "source": "Neither is a mistake in the other's fix; they're two different failure modes in the same limited-resource-management problem, discovered independently.",
+      "source_hash": 13133994594636934289,
+      "context_hash": 1064434535977945388,
+      "translation": "어느 쪽도 다른 쪽 수정의 실수가 아닙니다. 둘은 동일한 제한된 자원 관리 문제에서 나타난 서로 다른 두 가지 실패 양상이며, 각각 독립적으로 발견되었습니다.",
+      "glossary_snapshot": {
+        "failure modes": "실패 양상"
+      },
+      "translated_at": "2026-11-14T22:34:27.757270Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "**The IPI verifier bug and the affinity-notifier bug are both, in different ways, stories about validation and cleanup happening in the wrong order relative to the operation they were meant to guard.** The IPI verifier read a value from an unchecked pointer before checking the pointer — fixed by reordering a small number of lines.",
+      "source_hash": 252333992179988895,
+      "context_hash": 4799871526415022969,
+      "translation": "**IPI 검증기 버그와 어피니티 notifier 버그는 방식은 다르지만, 둘 다 검증과 정리가 보호 대상 작업에 비해 잘못된 순서로 이루어진 사례입니다.** IPI 검증기는 포인터를 검사하기 전에 검사되지 않은 포인터에서 값을 읽었으며, 몇 줄의 순서를 바꾸는 것으로 수정되었습니다.",
+      "glossary_snapshot": {
+        "IPI": "IPI",
+        "affinity": "어피니티",
+        "notifier": "notifier"
+      },
+      "translated_at": "2026-11-14T23:27:29.221648Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:1",
+      "source": "The affinity-notifier bug released a reference before confirming a deferred user of that reference had actually finished — fixed by adding a synchronous cancellation, not by reordering existing code, and it took a second fix a year later to also account for the reference that cancellation itself was holding.",
+      "source_hash": 17173798439051429278,
+      "context_hash": 10232909976210330513,
+      "translation": "어피니티 notifier 버그는 해당 참조를 사용하는 지연된 사용자가 실제로 종료되었는지 확인하기 전에 참조를 해제했습니다. 이 버그는 기존 코드의 순서를 바꾸는 방식이 아니라 동기식 취소를 추가하는 방식으로 수정되었으며, 1년 뒤 그 취소 동작 자체가 보유하던 참조까지 처리하기 위한 두 번째 수정이 필요했습니다.",
+      "glossary_snapshot": {
+        "affinity": "어피니티",
+        "notifier": "notifier"
+      },
+      "translated_at": "2026-11-14T23:27:29.221648Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:2",
+      "source": "In both cases, the hard part was recognizing that an ordering assumption, not a missing check, was the actual bug.",
+      "source_hash": 8705510522626107054,
+      "context_hash": 8728335202249495847,
+      "translation": "두 경우 모두 어려운 부분은 누락된 검사가 아니라 순서에 대한 가정이 실제 버그였다는 점을 알아차리는 것이었습니다.",
+      "glossary_snapshot": {
+        "bug": "버그"
+      },
+      "translated_at": "2026-11-14T22:34:27.757270Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:0",
+      "source": "**Only one of the four incidents here — the vector-exhaustion warning — isn't a \"wrong behavior\" bug at all.** The silent CPU-set fallback it made visible was arguably correct behavior; the gap was purely that nothing told an administrator it had happened.",
+      "source_hash": 14098627416478387123,
+      "context_hash": 2306406879331278299,
+      "translation": "**여기 소개한 네 가지 사고 중 벡터 소진 경고 하나만은 \"잘못된 동작\" 버그가 전혀 아닙니다.** 이 경고가 드러낸 조용한 CPU 집합 폴백은 어떤 면에서 올바른 동작이었으며, 문제는 오로지 그런 일이 일어났다는 사실을 관리자에게 알려 주는 것이 아무것도 없었다는 점입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "administrator": "관리자",
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T23:27:29.221649Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:1",
+      "source": "It's the only incident on this page whose fix is a single diagnostic line rather than a change to what the kernel actually does.",
+      "source_hash": 4489897330218004544,
+      "context_hash": 15151374102360795284,
+      "translation": "이 페이지에서 수정이 커널의 실제 동작을 바꾸는 것이 아니라 진단 한 줄을 추가하는 것뿐인 사건은 이것이 유일합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:34:27.757271Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "See also",
+      "source_hash": 5857332155845589011,
+      "context_hash": 15010160529389249447,
+      "translation": "함께 보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:34:27.757271Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "[Interrupt Handling Overview](interrupts.md) — the top/bottom-half split and execution contexts these bugs assume",
+      "source_hash": 3770105838215671233,
+      "context_hash": 16104005645784314595,
+      "translation": "[인터럽트 처리 개요](interrupts.md) — 이 버그들이 전제하는 top half/bottom half 분리와 실행 컨텍스트",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:34:27.757271Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "[IRQ Affinity and CPU Isolation](irq-affinity.md) — the affinity-configuration interface three of the four incidents involve directly",
+      "source_hash": 9897862097199226016,
+      "context_hash": 12746729283109534933,
+      "translation": "[IRQ 어피니티와 CPU 격리](irq-affinity.md) — 네 가지 사고 중 세 가지가 직접 관련된 어피니티 설정 인터페이스",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "IRQ": "IRQ",
+        "affinity": "어피니티"
+      },
+      "translated_at": "2026-11-14T23:27:29.221649Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "[Locking War Stories](../locking/war-stories.md) — a comparable set of kernel-internal bugs from priority-inheritance and rt_mutex bookkeeping, a different kind of cross-subsystem coordination problem",
+      "source_hash": 6496356753239073961,
+      "context_hash": 5035148832561756503,
+      "translation": "[락킹 실전 사례](../locking/war-stories.md) — 우선순위 상속(priority inheritance)과 rt_mutex 관리 과정에서 발생한 유사한 커널 내부 버그 모음으로, 서브시스템 간 조정 문제의 또 다른 유형",
+      "glossary_snapshot": {
+        "bugs": "버그",
+        "kernel": "커널",
+        "subsystem": "서브시스템",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T22:00:37.606495Z",
+      "issues": []
+    }
+  ]
+}

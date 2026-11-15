@@ -1,0 +1,1515 @@
+{
+  "version": 1,
+  "source_hash": 8769603471610990963,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "vDSO and Virtual System Calls",
+      "source_hash": 1462466497764144309,
+      "context_hash": 9164585036478468184,
+      "translation": "vDSO와 가상 시스템 콜",
+      "glossary_snapshot": {
+        "system calls": "시스템 콜",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057937Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Kernel-accelerated clock reads and other fast-path syscalls without ring transitions",
+      "source_hash": 205798636834829626,
+      "context_hash": 16887637277786292052,
+      "translation": "링 전환 없이 커널이 가속하는 클럭 읽기와 기타 fast-path 시스템 콜",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:25.057939Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem: syscall overhead for time",
+      "source_hash": 10405801926007068215,
+      "context_hash": 17147424049947622729,
+      "translation": "문제: 시간 조회의 시스템 콜 오버헤드",
+      "glossary_snapshot": {
+        "overhead": "오버헤드",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:25.057940Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "`clock_gettime(CLOCK_MONOTONIC, &ts)` is one of the most frequently called functions in a typical server process.",
+      "source_hash": 18372796406022589157,
+      "context_hash": 9549559241595981784,
+      "translation": "`clock_gettime(CLOCK_MONOTONIC, &ts)`는 일반적인 서버 프로세스에서 가장 자주 호출되는 함수 중 하나입니다.",
+      "glossary_snapshot": {
+        "functions": "함수",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:26:25.057940Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "High-frequency timers, latency histograms, and O(1) scheduling decisions all call it in tight loops.",
+      "source_hash": 10595473798949026455,
+      "context_hash": 16598231212865890798,
+      "translation": "고빈도 타이머, 지연 시간 히스토그램, O(1) 스케줄링 결정은 모두 이 함수를 tight loop에서 호출합니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간",
+        "scheduling": "스케줄링",
+        "timers": "타이머"
+      },
+      "translated_at": "2026-11-14T22:26:25.057940Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "Each real `syscall` instruction costs roughly 100–200 ns on a modern x86-64 CPU due to the ring transition, KPTI CR3 switch, and pipeline flush — plus any microarchitectural Spectre mitigations.",
+      "source_hash": 11614662082451557546,
+      "context_hash": 2960953515828072526,
+      "translation": "실제 `syscall` 명령어 하나는 링 전환, KPTI CR3 전환, 파이프라인 플러시 때문에 최신 x86-64 CPU에서 대략 100–200 ns가 들며, 여기에 마이크로아키텍처 수준의 Spectre 완화 비용이 더해집니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "KPTI": "KPTI",
+        "Spectre": "Spectre"
+      },
+      "translated_at": "2026-11-14T22:26:25.057941Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "For a process calling `clock_gettime()` a million times per second, that overhead alone consumes 100–200 ms of CPU time per second purely on privilege transitions.",
+      "source_hash": 5034720476168747092,
+      "context_hash": 4433275339011589529,
+      "translation": "`clock_gettime()`을 초당 백만 번 호출하는 프로세스라면, 이 오버헤드만으로도 순전히 권한 전환에 초당 100–200 ms의 CPU 시간을 소비합니다.",
+      "glossary_snapshot": {
+        "CPU time": "CPU 시간",
+        "overhead": "오버헤드",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:26:25.057941Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "The kernel solves this with the **vDSO**.",
+      "source_hash": 10278703017415777526,
+      "context_hash": 9804884035468187133,
+      "translation": "커널은 이 문제를 **vDSO**로 해결합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057941Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "What the vDSO is",
+      "source_hash": 14422346904062323728,
+      "context_hash": 11127841202414667426,
+      "translation": "vDSO란 무엇인가",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057942Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "The vDSO (virtual Dynamic Shared Object) is a small ELF shared library that the kernel builds into the kernel image and maps into every process's address space at `execve()` time.",
+      "source_hash": 878623942101495131,
+      "context_hash": 4150012947851632070,
+      "translation": "vDSO(virtual Dynamic Shared Object)는 커널이 커널 이미지에 빌드해 넣고 `execve()` 시점에 모든 프로세스의 주소 공간에 매핑하는 작은 ELF 공유 라이브러리입니다.",
+      "glossary_snapshot": {
+        "ELF": "ELF",
+        "address space": "주소 공간",
+        "kernel": "커널",
+        "process": "프로세스",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057942Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It is visible in `/proc/self/maps`:",
+      "source_hash": 13339727282958043447,
+      "context_hash": 3979340461292957959,
+      "translation": "이는 `/proc/self/maps`에서 확인할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:25.057942Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The address is randomized by ASLR on every process start.",
+      "source_hash": 16487487981151108272,
+      "context_hash": 17027007315832354433,
+      "translation": "이 주소는 프로세스가 시작될 때마다 ASLR에 의해 무작위화됩니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:26:25.057942Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "The vDSO exports a small set of functions (visible via `nm` or `objdump`) that implement time-critical syscalls entirely in userspace:",
+      "source_hash": 16436841507961007059,
+      "context_hash": 14812222546926518489,
+      "translation": "vDSO는 시간이 중요한 시스템 콜을 전적으로 사용자 공간에서 구현하는 소수의 함수를 export하며, 이 함수들은 `nm`이나 `objdump`로 확인할 수 있습니다:",
+      "glossary_snapshot": {
+        "functions": "함수",
+        "syscalls": "시스템 콜",
+        "userspace": "사용자 공간",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057942Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "glibc resolves these symbols at startup from the `AT_SYSINFO_EHDR` auxiliary vector entry and uses them in place of the real syscall wrappers.",
+      "source_hash": 11506772937999769725,
+      "context_hash": 9269404014898539031,
+      "translation": "glibc는 시작 시 `AT_SYSINFO_EHDR` 보조 벡터(auxiliary vector) 항목에서 이 심볼들을 해석하고, 실제 시스템 콜 래퍼 대신 이 심볼들을 사용합니다.",
+      "glossary_snapshot": {
+        "glibc": "glibc",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:25.057993Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The vvar page: shared kernel data",
+      "source_hash": 18055519276334580881,
+      "context_hash": 17393730990748047934,
+      "translation": "vvar 페이지: 공유 커널 데이터",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:25.057993Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Adjacent to the vDSO mapping is the **vvar** page — a read-only page mapped into every process that the kernel updates with current timekeeping state:",
+      "source_hash": 18437291006356911337,
+      "context_hash": 12948261895568094151,
+      "translation": "vDSO 매핑 바로 옆에는 **vvar** 페이지가 있습니다. 이는 모든 프로세스에 매핑되는 읽기 전용 페이지로, 커널이 현재 시간 관리(timekeeping) 상태로 갱신합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "mapping": "매핑",
+        "process": "프로세스",
+        "timekeeping": "시간 관리",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057994Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "The vvar page is mapped read-only in userspace but read-write in the kernel.",
+      "source_hash": 9699968494596470083,
+      "context_hash": 14137153005192948870,
+      "translation": "vvar 페이지는 사용자 공간에서는 읽기 전용으로, 커널에서는 읽기-쓰기로 매핑됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:26:25.057994Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "The vDSO code reads from `[vvar]`; the kernel timer interrupt writes to it.",
+      "source_hash": 1455055678475450851,
+      "context_hash": 2781936699001678594,
+      "translation": "vDSO 코드는 `[vvar]`에서 읽고, 커널 타이머 인터럽트는 여기에 씁니다.",
+      "glossary_snapshot": {
+        "interrupt": "인터럽트",
+        "kernel": "커널",
+        "timer": "타이머",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057995Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "No ring transition is needed because reading a mapped page is a plain memory access.",
+      "source_hash": 18092906148437489916,
+      "context_hash": 14057304285628015470,
+      "translation": "매핑된 페이지를 읽는 것은 평범한 메모리 접근이므로 링 전환이 필요하지 않습니다.",
+      "glossary_snapshot": {
+        "memory access": "메모리 접근"
+      },
+      "translated_at": "2026-11-14T22:26:25.057995Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "struct vdso_time_data and struct vdso_clock",
+      "source_hash": 1556258597219166333,
+      "context_hash": 1430802527917266912,
+      "translation": "struct vdso_time_data와 struct vdso_clock",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:25.057995Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "There is no single combined `struct vdso_data` in current kernels.",
+      "source_hash": 15855679413238962026,
+      "context_hash": 14101627727830018288,
+      "translation": "현재 커널에는 하나로 통합된 `struct vdso_data`가 없습니다.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:25.057995Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The vvar page is `struct vdso_time_data`, and the per-clocksource seqlock state it holds an array of is `struct vdso_clock` — both defined in `include/vdso/datapage.h`:",
+      "source_hash": 8635918424017488335,
+      "context_hash": 5887354661875384019,
+      "translation": "vvar 페이지는 `struct vdso_time_data`이며, 이 페이지가 배열로 담고 있는 clocksource별 seqlock 상태는 `struct vdso_clock`입니다. 둘 다 `include/vdso/datapage.h`에 정의되어 있습니다:",
+      "glossary_snapshot": {
+        "array": "배열",
+        "clocksource": "clocksource",
+        "seqlock": "seqlock"
+      },
+      "translated_at": "2026-11-14T22:26:25.057995Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`VDSO_BASES` is the number of supported clock IDs; each `vdso_clock`'s `basetime[]` holds one entry per clock ID. `CS_BASES` is the number of clocksource \"bases\" the top-level page tracks (hi-res and its coarse counterpart) — `clock_data[CS_BASES]` is what used to be a single embedded seqlock inside one big struct, before the vdso_clock/vdso_time_data split separated \"per-clocksource state that gets its own seqlock\" from \"page-wide data updated once.\"",
+      "source_hash": 3964935929234743268,
+      "context_hash": 17347721258828944461,
+      "translation": "`VDSO_BASES`는 지원되는 클럭 ID의 개수이며, 각 `vdso_clock`의 `basetime[]`은 클럭 ID마다 항목 하나씩을 담습니다. `CS_BASES`는 최상위 페이지가 추적하는 clocksource \"base\"의 개수(hi-res와 그에 대응하는 coarse)이며, `clock_data[CS_BASES]`는 vdso_clock/vdso_time_data 분리로 \"자체 seqlock을 갖는 clocksource별 상태\"와 \"한 번 갱신되는 페이지 전체 데이터\"가 나뉘기 전에 하나의 큰 구조체 안에 내장된 단일 seqlock이었던 것에 해당합니다.",
+      "glossary_snapshot": {
+        "clocksource": "clocksource",
+        "seqlock": "seqlock",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:26:25.057996Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "The seqlock pattern",
+      "source_hash": 8606038130275674719,
+      "context_hash": 5636963011617532128,
+      "translation": "seqlock 패턴",
+      "glossary_snapshot": {
+        "seqlock": "seqlock"
+      },
+      "translated_at": "2026-11-14T22:26:25.057996Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Because the kernel updates the vvar page from timer interrupt context (and possibly from multiple CPUs), the vDSO must handle concurrent reads.",
+      "source_hash": 8330613662148371933,
+      "context_hash": 11098765370791983620,
+      "translation": "커널은 타이머 인터럽트 컨텍스트에서(그리고 여러 CPU에서) vvar 페이지를 갱신할 수 있으므로, vDSO는 동시 읽기를 처리해야 합니다.",
+      "glossary_snapshot": {
+        "CPUs": "CPU",
+        "interrupt": "인터럽트",
+        "kernel": "커널",
+        "timer": "타이머",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:25.057996Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "It uses a **seqlock** — a lockless read-side protocol — scoped to each `vdso_clock`, not a raw `seqcount_t`/`seqcount_latch_t`. `include/vdso/helpers.h` implements the retry loop by hand with `READ_ONCE()`/`cpu_relax()`/`smp_rmb()`, rather than calling out to the generic seqcount-latch helpers:",
+      "source_hash": 11852272980640062573,
+      "context_hash": 12281528664774118478,
+      "translation": "이를 위해 vDSO는 원시 `seqcount_t`/`seqcount_latch_t`가 아니라 각 `vdso_clock` 단위로 범위가 지정된 **seqlock**(락 없는 읽기 측 프로토콜)을 사용합니다. `include/vdso/helpers.h`는 범용 seqcount-latch 헬퍼를 호출하는 대신 `READ_ONCE()`/`cpu_relax()`/`smp_rmb()`로 재시도 루프를 직접 구현합니다:",
+      "glossary_snapshot": {
+        "seqlock": "seqlock"
+      },
+      "translated_at": "2026-11-14T22:26:25.057996Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "A typical clock read then looks like this — `do_hres()` (`lib/vdso/gettimeofday.c`) drives the seqlock loop, and delegates the actual TSC-to-nanoseconds math to `vdso_get_timestamp()` in the same file:",
+      "source_hash": 7451190962427453134,
+      "context_hash": 5660590991466812163,
+      "translation": "일반적인 클럭 읽기는 다음과 같습니다. `do_hres()`(`lib/vdso/gettimeofday.c`)가 seqlock 루프를 구동하고, 실제 TSC-나노초 계산은 같은 파일의 `vdso_get_timestamp()`에 위임합니다:",
+      "glossary_snapshot": {
+        "TSC": "TSC",
+        "seqlock": "seqlock"
+      },
+      "translated_at": "2026-11-14T22:26:25.057997Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "(The real `do_hres()` also has a time-namespace branch, checked via `vdso_read_begin_timens()` before the loop above, that this sketch leaves out.) `vdso_read_begin()` reads the sequence counter and spins while it is odd (a writer holds the lock). `vdso_read_retry()` reads the counter again and returns true if it has changed, meaning a kernel update happened mid-read and the values are inconsistent.",
+      "source_hash": 9475740609842752051,
+      "context_hash": 14277004099135801180,
+      "translation": "(실제 `do_hres()`에는 위 루프 이전에 `vdso_read_begin_timens()`로 확인하는 시간 네임스페이스 분기도 있지만, 이 개략적인 코드에서는 생략했습니다.) `vdso_read_begin()`은 시퀀스 카운터를 읽고, 카운터가 홀수인 동안(writer가 락을 잡고 있는 동안) 스핀합니다. `vdso_read_retry()`는 카운터를 다시 읽어 값이 바뀌었으면 true를 반환하며, 이는 읽는 도중에 커널 갱신이 일어나 값들이 일관되지 않다는 뜻입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "namespace": "네임스페이스"
+      },
+      "translated_at": "2026-11-14T22:26:25.057997Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "The loop retries until a clean read completes — in practice, zero or one retries.",
+      "source_hash": 17309404939221414167,
+      "context_hash": 3725685800001135912,
+      "translation": "루프는 깨끗한 읽기가 완료될 때까지 재시도하며, 실제로는 재시도가 0회 또는 1회입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:25.057997Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "TSC to wall-clock conversion",
+      "source_hash": 4082657797582910659,
+      "context_hash": 4487625575430863590,
+      "translation": "TSC에서 벽시계 시간으로의 변환",
+      "glossary_snapshot": {
+        "TSC": "TSC"
+      },
+      "translated_at": "2026-11-14T22:26:25.057997Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "`vdso_get_timestamp()` calls `vdso_calc_ns()` to do the nanosecond conversion — a multiply-and-shift formula that avoids division:",
+      "source_hash": 650862311700169153,
+      "context_hash": 5829421810819362698,
+      "translation": "`vdso_get_timestamp()`는 나노초 변환을 위해 `vdso_calc_ns()`를 호출합니다. 이는 나눗셈을 피하는 곱셈-시프트 공식입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:25.057997Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "`mult` and `shift` are precomputed by `clocksource_cyc2ns()` in the kernel so that the multiply fits in a 64-bit integer without overflow.",
+      "source_hash": 8695208784952959016,
+      "context_hash": 3060759060725044588,
+      "translation": "`mult`와 `shift`는 곱셈 결과가 오버플로 없이 64비트 정수에 들어가도록 커널의 `clocksource_cyc2ns()`가 미리 계산해 둡니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:25.057997Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "`cycle_last` is the TSC value at the last kernel update.",
+      "source_hash": 7631250126859023288,
+      "context_hash": 13187059283499791227,
+      "translation": "`cycle_last`는 마지막 커널 갱신 시점의 TSC 값입니다.",
+      "glossary_snapshot": {
+        "TSC": "TSC",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:15.147861Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "Adding `ns` to `basetime[clk].nsec` gives the current nanosecond offset within the second.",
+      "source_hash": 9229767696710232819,
+      "context_hash": 14109796889053008161,
+      "translation": "`ns`를 `basetime[clk].nsec`에 더하면 현재 초 내의 나노초 오프셋이 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147862Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "The kernel updates `cycle_last`, `mult`, `shift`, and `basetime` on every NTP adjustment and on every timer interrupt (via `update_vsyscall()` in `kernel/time/vsyscall.c`), holding the seqlock write side during the update.",
+      "source_hash": 16477406769718987782,
+      "context_hash": 16563039552614964400,
+      "translation": "커널은 NTP 조정이 있을 때마다, 그리고 타이머 인터럽트가 발생할 때마다(`kernel/time/vsyscall.c`의 `update_vsyscall()`을 통해) `cycle_last`, `mult`, `shift`, `basetime`을 갱신하며, 갱신하는 동안 seqlock의 쓰기 측을 잡고 있습니다.",
+      "glossary_snapshot": {
+        "NTP": "NTP",
+        "interrupt": "인터럽트",
+        "kernel": "커널",
+        "seqlock": "seqlock",
+        "timer": "타이머"
+      },
+      "translated_at": "2026-11-14T22:26:15.147862Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Which clocks are vDSO-accelerated",
+      "source_hash": 2009409293735194691,
+      "context_hash": 16027275464490540558,
+      "translation": "vDSO로 가속되는 클록",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:15.147866Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Clock ID",
+      "source_hash": 7305899808173543940,
+      "context_hash": 5996439773263531549,
+      "translation": "클록 ID",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147866Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "vDSO-accelerated",
+      "source_hash": 241122219763331180,
+      "context_hash": 14828223092178133500,
+      "translation": "vDSO 가속",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:15.147867Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "Notes",
+      "source_hash": 6248434630477978300,
+      "context_hash": 14496593771175568228,
+      "translation": "비고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147867Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "`CLOCK_REALTIME`",
+      "source_hash": 6609312791036806515,
+      "context_hash": 10635488913704243714,
+      "translation": "`CLOCK_REALTIME`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147867Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 8937715283240480515,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:26:15.147867Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "Wall time; updated on NTP adjustments",
+      "source_hash": 17038418172935970386,
+      "context_hash": 9921012433725229039,
+      "translation": "벽시계 시간, NTP 조정 시 갱신",
+      "glossary_snapshot": {
+        "NTP": "NTP"
+      },
+      "translated_at": "2026-11-14T22:26:15.147867Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "`CLOCK_MONOTONIC`",
+      "source_hash": 9288068310535223530,
+      "context_hash": 15332587487654667812,
+      "translation": "`CLOCK_MONOTONIC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147868Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 4229527411950850162,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:26:15.147868Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "Never steps backward",
+      "source_hash": 18175595874208839630,
+      "context_hash": 13641128138975362976,
+      "translation": "절대 뒤로 가지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147868Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "`CLOCK_BOOTTIME`",
+      "source_hash": 18216333860774564940,
+      "context_hash": 13174595638563762941,
+      "translation": "`CLOCK_BOOTTIME`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147868Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16518423338676526706,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:26:15.147868Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "Includes suspend time",
+      "source_hash": 961283030053875507,
+      "context_hash": 1915069187476217208,
+      "translation": "서스펜드 시간 포함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147869Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "`CLOCK_REALTIME_COARSE`",
+      "source_hash": 12491393551101739428,
+      "context_hash": 12323897303552356657,
+      "translation": "`CLOCK_REALTIME_COARSE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147869Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16491023626106247444,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:26:15.147869Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "Low-resolution; reads `basetime` directly, no TSC math",
+      "source_hash": 7291463750345089782,
+      "context_hash": 9768011407030570464,
+      "translation": "저해상도, `basetime`을 직접 읽으며 TSC 연산 없음",
+      "glossary_snapshot": {
+        "TSC": "TSC"
+      },
+      "translated_at": "2026-11-14T22:26:15.147870Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "`CLOCK_MONOTONIC_COARSE`",
+      "source_hash": 12152784435004301653,
+      "context_hash": 4232727877830619983,
+      "translation": "`CLOCK_MONOTONIC_COARSE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147870Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:17/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 4563411528207555798,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:26:15.147870Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:0",
+      "source": "Same, monotonic variant",
+      "source_hash": 12898108024526754614,
+      "context_hash": 8779125000548538154,
+      "translation": "위와 같음, monotonic 변형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147870Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:0",
+      "source": "`CLOCK_TAI`",
+      "source_hash": 11255681652075411144,
+      "context_hash": 2159523076141032275,
+      "translation": "`CLOCK_TAI`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147870Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:20/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 1560117375802101815,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:26:15.147870Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:21/seg:0",
+      "source": "International Atomic Time (REALTIME + leap-second offset)",
+      "source_hash": 4442335681702812915,
+      "context_hash": 17441659293526728190,
+      "translation": "국제원자시(REALTIME + 윤초 오프셋)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147871Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:22/seg:0",
+      "source": "`CLOCK_PROCESS_CPUTIME_ID`",
+      "source_hash": 6320843169383249011,
+      "context_hash": 2337912788294754994,
+      "translation": "`CLOCK_PROCESS_CPUTIME_ID`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147871Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:23/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 4983802330111051240,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:26:15.147871Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:24/seg:0",
+      "source": "Requires per-task accounting in the kernel",
+      "source_hash": 1924746879758388041,
+      "context_hash": 5307407267780000834,
+      "translation": "커널에서 태스크별 어카운팅 필요",
+      "glossary_snapshot": {
+        "accounting": "어카운팅"
+      },
+      "translated_at": "2026-11-14T23:35:04.473568Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:25/seg:0",
+      "source": "`CLOCK_THREAD_CPUTIME_ID`",
+      "source_hash": 7919033110340144371,
+      "context_hash": 2136479278623326600,
+      "translation": "`CLOCK_THREAD_CPUTIME_ID`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:15.147871Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:26/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 2961948379816946096,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:26:15.147872Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:27/seg:0",
+      "source": "Same",
+      "source_hash": 10659164273262670469,
+      "context_hash": 2604029831774439641,
+      "translation": "동일",
+      "glossary_snapshot": {
+        "Same": "동일"
+      },
+      "translated_at": "2026-11-14T23:35:04.473569Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:28/seg:0",
+      "source": "Coarse clocks skip the TSC read entirely; they return the pre-computed `basetime` directly (resolution is one jiffy, ~1–4 ms).",
+      "source_hash": 9517945616625110636,
+      "context_hash": 8660496700773966890,
+      "translation": "Coarse 클록은 TSC 읽기를 완전히 건너뛰고, 미리 계산된 `basetime`을 바로 반환합니다(해상도는 jiffies 하나, 약 1–4 ms).",
+      "glossary_snapshot": {
+        "TSC": "TSC",
+        "jiffy": "jiffies"
+      },
+      "translated_at": "2026-11-14T23:35:04.473570Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:28/seg:1",
+      "source": "This makes them even cheaper than the TSC-based clocks.",
+      "source_hash": 267349404032077450,
+      "context_hash": 11828402308809406649,
+      "translation": "따라서 TSC 기반 클록보다도 비용이 더 적습니다.",
+      "glossary_snapshot": {
+        "TSC": "TSC"
+      },
+      "translated_at": "2026-11-14T22:26:35.485061Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "VDSO_CLOCKMODE_NONE: fallback to real syscall",
+      "source_hash": 17202518269954848238,
+      "context_hash": 13686637335285697621,
+      "translation": "VDSO_CLOCKMODE_NONE: 실제 시스템 콜로의 폴백",
+      "glossary_snapshot": {
+        "fallback": "폴백",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:35.485061Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "If the TSC is not reliable — for example, after live VM migration (the TSC may jump), during CPU hotplug, or when the kernel detects TSC instability — the kernel sets `clock_mode` to `VDSO_CLOCKMODE_NONE`.",
+      "source_hash": 14834034177066522515,
+      "context_hash": 3836910665347305251,
+      "translation": "TSC를 신뢰할 수 없는 경우, 예를 들어 VM 라이브 마이그레이션 이후(TSC가 급변할 수 있음), CPU 핫플러그 중, 또는 커널이 TSC 불안정성을 감지한 경우에 커널은 `clock_mode`를 `VDSO_CLOCKMODE_NONE`으로 설정합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "TSC": "TSC",
+        "hotplug": "핫플러그",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:35.485062Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "The vDSO detects this and calls `clock_gettime_fallback()`, which is arch-specific — on x86-64 it lives in `arch/x86/include/asm/vdso/gettimeofday.h`, not the shared `lib/vdso/gettimeofday.c`, because the vDSO runs without a libc and can't call libc's `syscall()`: it issues the real syscall instruction directly through the `VDSO_SYSCALL2()` macro instead:",
+      "source_hash": 12343868141890720544,
+      "context_hash": 14312759848430336551,
+      "translation": "vDSO는 이를 감지하고 `clock_gettime_fallback()`을 호출하는데, 이 함수는 아키텍처마다 다릅니다 — x86-64에서는 공유 파일인 `lib/vdso/gettimeofday.c`가 아니라 `arch/x86/include/asm/vdso/gettimeofday.h`에 있으며, 그 이유는 vDSO가 libc 없이 실행되므로 libc의 `syscall()`을 호출할 수 없기 때문입니다. 대신 `VDSO_SYSCALL2()` 매크로를 통해 실제 시스템 콜 명령어를 직접 실행합니다:",
+      "glossary_snapshot": {
+        "macro": "매크로",
+        "syscall": "시스템 콜",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485062Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "This fallback is transparent to the caller — the function signature and return value are identical. `VDSO_CLOCKMODE_NONE` can also be triggered manually by writing to `/sys/devices/system/clocksource/clocksource0/current_clocksource` to switch away from the TSC.",
+      "source_hash": 7503958574268726685,
+      "context_hash": 6373158227909382518,
+      "translation": "이 폴백은 호출자에게 투명합니다. 함수 시그니처와 반환값이 동일합니다. `VDSO_CLOCKMODE_NONE`은 `/sys/devices/system/clocksource/clocksource0/current_clocksource`에 값을 써서 TSC가 아닌 다른 클록소스로 전환함으로써 수동으로 유발할 수도 있습니다.",
+      "glossary_snapshot": {
+        "TSC": "TSC",
+        "fallback": "폴백",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:26:35.485062Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "getcpu() in the vDSO",
+      "source_hash": 10047415080210057509,
+      "context_hash": 18329800993779286221,
+      "translation": "vDSO의 getcpu()",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485062Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "`getcpu(cpu, node, NULL)` returns the current CPU and NUMA node without a syscall.",
+      "source_hash": 10706814142195584607,
+      "context_hash": 8960572563826858715,
+      "translation": "`getcpu(cpu, node, NULL)`는 시스템 콜 없이 현재 CPU와 NUMA 노드를 반환합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "NUMA node": "NUMA 노드",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:35.485063Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "On x86-64, `__vdso_getcpu()` delegates to `vdso_read_cpunode()` (`arch/x86/include/asm/segment.h`), which defaults to the `LSL` instruction — reading a CPU/node-encoding descriptor limit out of a per-CPU GDT entry — and uses `RDPID` instead when the CPU supports it, via `alternative_io`. `RDTSCP` is not used for this at all; LSL was chosen specifically because it's faster than RDTSCP and works on every CPU.",
+      "source_hash": 7844627114625331797,
+      "context_hash": 14703015663489158721,
+      "translation": "x86-64에서 `__vdso_getcpu()`는 `vdso_read_cpunode()`(`arch/x86/include/asm/segment.h`)에 처리를 위임하며, 이 함수는 기본적으로 `LSL` 명령어를 사용해 per-CPU GDT 엔트리에서 CPU/노드 정보가 인코딩된 디스크립터 limit을 읽고, CPU가 지원하는 경우에는 `alternative_io`를 통해 대신 `RDPID`를 사용합니다. 여기에는 `RDTSCP`가 전혀 사용되지 않습니다. LSL은 RDTSCP보다 빠르고 모든 CPU에서 동작하기 때문에 특별히 선택되었습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "descriptor": "디스크립터",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:26:35.485063Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:2",
+      "source": "The per-CPU setup function `setup_getcpu()` (`arch/x86/kernel/cpu/common.c`) both programs that GDT entry *and* writes `MSR_TSC_AUX` (RDPID reads this MSR directly) when the CPU has `RDTSCP` or `RDPID`.",
+      "source_hash": 6464976003084743291,
+      "context_hash": 7547791841807268833,
+      "translation": "per-CPU 설정 함수 `setup_getcpu()`(`arch/x86/kernel/cpu/common.c`)는 해당 GDT 엔트리를 설정하고, *동시에* CPU에 `RDTSCP` 또는 `RDPID`가 있는 경우 `MSR_TSC_AUX`에 값을 기록합니다(RDPID는 이 MSR을 직접 읽습니다).",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "MSR": "MSR",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:26:35.485064Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:3",
+      "source": "No GS-relative memory access is involved — GS is a kernel-mode register and userspace cannot access the kernel's GS base.",
+      "source_hash": 4276610557269069891,
+      "context_hash": 16645812701985271721,
+      "translation": "GS 기준 메모리 접근은 관여하지 않습니다. GS는 커널 모드 레지스터이며 사용자 공간은 커널의 GS base에 접근할 수 없습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory access": "메모리 접근",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:26:35.485064Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Debugging vDSO issues",
+      "source_hash": 10772441290458111899,
+      "context_hash": 10240904614676782792,
+      "translation": "vDSO 문제 디버깅",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485065Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "**strace always shows clock_gettime as a real syscall**: strace injects ptrace, which sets `SYSCALL_WORK_SYSCALL_TRACE` on the tracee.",
+      "source_hash": 15599919861851691732,
+      "context_hash": 12210774033059743373,
+      "translation": "**strace는 항상 clock_gettime을 실제 시스템 콜로 표시함**: strace는 ptrace를 주입하며, 이는 tracee에 `SYSCALL_WORK_SYSCALL_TRACE`를 설정합니다.",
+      "glossary_snapshot": {
+        "ptrace": "ptrace",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:35.485065Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:1",
+      "source": "This causes the kernel to intercept the `syscall` instruction path, but the vDSO *bypasses* `syscall` entirely — the vDSO function runs in userspace without ever entering the kernel. strace therefore never sees vDSO-accelerated calls unless the vDSO falls back.",
+      "source_hash": 4631987185578036173,
+      "context_hash": 2745437344167766345,
+      "translation": "이로 인해 커널이 `syscall` 명령어 경로를 가로채지만, vDSO는 `syscall`을 완전히 *우회합니다*. vDSO 함수는 커널에 전혀 진입하지 않고 사용자 공간에서 실행됩니다. 따라서 vDSO가 폴백하지 않는 한 strace는 vDSO로 가속된 호출을 결코 볼 수 없습니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "kernel": "커널",
+        "userspace": "사용자 공간",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485066Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "When the vDSO *does* fall back (e.g., `VDSO_CLOCKMODE_NONE`), strace will show the syscall normally.",
+      "source_hash": 11903389682841578388,
+      "context_hash": 710887585735041753,
+      "translation": "vDSO가 *실제로* 폴백하는 경우(예: `VDSO_CLOCKMODE_NONE`), strace는 시스템 콜을 정상적으로 표시합니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485066Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "**Disabling the vDSO for testing**:",
+      "source_hash": 15187603647999502896,
+      "context_hash": 13131613838306686445,
+      "translation": "**테스트를 위한 vDSO 비활성화**:",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485067Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "**Verifying vDSO is active**:",
+      "source_hash": 4880948219761185932,
+      "context_hash": 2411888271407135544,
+      "translation": "**vDSO 활성화 여부 확인**:",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485067Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "**Inspecting the vvar data**:",
+      "source_hash": 15635066944271950254,
+      "context_hash": 4024292850869751050,
+      "translation": "**vvar 데이터 검사**:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:35.485067Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "vsyscall: legacy fixed-address interface (x86-64 only)",
+      "source_hash": 7793379126681710651,
+      "context_hash": 9972288338197587506,
+      "translation": "vsyscall: 레거시 고정 주소 인터페이스(x86-64 전용)",
+      "glossary_snapshot": {
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T22:26:35.485067Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Before the vDSO, x86-64 had the **vsyscall** page: code mapped at the fixed address `0xffffffffff600000` that implemented `gettimeofday`, `time`, and `getcpu`.",
+      "source_hash": 18181114105039903094,
+      "context_hash": 7019799002356118484,
+      "translation": "vDSO 이전에 x86-64에는 **vsyscall** 페이지가 있었습니다. 이는 고정 주소 `0xffffffffff600000`에 매핑된 코드로, `gettimeofday`, `time`, `getcpu`를 구현했습니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485067Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:1",
+      "source": "Because the address was fixed, it was trivially exploitable for return-oriented programming (ROP) gadgets.",
+      "source_hash": 8809842521377775607,
+      "context_hash": 6462759967577947737,
+      "translation": "주소가 고정되어 있었기 때문에 ROP(return-oriented programming) 가젯으로 손쉽게 악용될 수 있었습니다.",
+      "glossary_snapshot": {
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T22:26:35.485067Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "There are three modes, controlled by the `vsyscall=` boot parameter — there is no `native` mode any more.",
+      "source_hash": 14693129102068447754,
+      "context_hash": 16633173696487856975,
+      "translation": "`vsyscall=` 부트 파라미터로 제어되는 세 가지 모드가 있으며, `native` 모드는 더 이상 존재하지 않습니다.",
+      "glossary_snapshot": {
+        "boot parameter": "부트 파라미터"
+      },
+      "translated_at": "2026-11-14T22:26:35.485067Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:1",
+      "source": "The kernel's own default, `CONFIG_LEGACY_VSYSCALL_XONLY`, is `vsyscall=xonly`: the page traps and emulates execution but denies reads, closing off the use of the vsyscall page's fixed address as a data-read gadget. `vsyscall=emulate` (execution trapped and emulated, reads also allowed) still exists but is deprecated and selectable only from the command line, not as a build-time default. `vsyscall=none` removes the mapping entirely — old binaries that need it get `SIGSEGV`.",
+      "source_hash": 8968462207867525370,
+      "context_hash": 16069965599507856119,
+      "translation": "커널 자체의 기본값인 `CONFIG_LEGACY_VSYSCALL_XONLY`는 `vsyscall=xonly`입니다. 이 모드에서는 페이지가 실행을 트랩하여 에뮬레이션하지만 읽기는 거부하므로, vsyscall 페이지의 고정 주소를 데이터 읽기 가젯으로 사용하는 길이 막힙니다. `vsyscall=emulate`(실행을 트랩하여 에뮬레이션하고 읽기도 허용)는 아직 존재하지만 deprecated 상태이며, 빌드 시 기본값으로는 선택할 수 없고 명령줄에서만 선택할 수 있습니다. `vsyscall=none`은 매핑을 완전히 제거하므로, 이 매핑이 필요한 오래된 바이너리는 `SIGSEGV`를 받습니다.",
+      "glossary_snapshot": {
+        "command line": "명령줄"
+      },
+      "translated_at": "2026-11-14T23:35:04.473570Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "Only very old binaries (pre-2012 glibc, or statically linked against ancient libc) use the vsyscall page.",
+      "source_hash": 3022057159343921517,
+      "context_hash": 1902554861990525376,
+      "translation": "매우 오래된 바이너리(2012년 이전 glibc, 또는 아주 오래된 libc에 정적 링크된 바이너리)만 vsyscall 페이지를 사용합니다.",
+      "glossary_snapshot": {
+        "glibc": "glibc"
+      },
+      "translated_at": "2026-11-14T22:26:35.485068Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:1",
+      "source": "All modern software uses the vDSO exclusively.",
+      "source_hash": 14823327976082481660,
+      "context_hash": 16056168038088688754,
+      "translation": "모든 최신 소프트웨어는 vDSO만 사용합니다.",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485068Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "arm64 vDSO",
+      "source_hash": 10513764360329141095,
+      "context_hash": 5256924150886038738,
+      "translation": "arm64 vDSO",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485068Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "arm64 has its own vDSO at `arch/arm64/kernel/vdso/`.",
+      "source_hash": 14757131090012844306,
+      "context_hash": 6396590591798441622,
+      "translation": "arm64는 `arch/arm64/kernel/vdso/`에 자체 vDSO를 가지고 있습니다.",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:26:35.485068Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:1",
+      "source": "The mechanism is identical — a vvar page with the same `struct vdso_time_data`/`struct vdso_clock` layout, a seqlock, and the same TSC-equivalent using the ARM generic timer (`CNTVCT_EL0` counter register).",
+      "source_hash": 8132225239164992132,
+      "context_hash": 967563665906868103,
+      "translation": "메커니즘은 동일합니다. 동일한 `struct vdso_time_data`/`struct vdso_clock` 레이아웃을 갖는 vvar 페이지, seqlock, 그리고 ARM generic timer(`CNTVCT_EL0` 카운터 레지스터)를 사용하는 TSC에 해당하는 카운터를 사용합니다.",
+      "glossary_snapshot": {
+        "TSC": "TSC",
+        "seqlock": "seqlock"
+      },
+      "translated_at": "2026-11-14T22:26:35.485069Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:2",
+      "source": "The key difference:",
+      "source_hash": 7975363529466138739,
+      "context_hash": 8100620590174572457,
+      "translation": "주요 차이점:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:35.485069Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "There is no vsyscall legacy on arm64.",
+      "source_hash": 5592673322061945797,
+      "context_hash": 11999002186473886797,
+      "translation": "arm64에는 vsyscall 레거시가 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:35.485069Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "The fallback uses the `svc #0` instruction (arm64 system call) rather than `syscall`.",
+      "source_hash": 10497511938208476444,
+      "context_hash": 10893526010038929885,
+      "translation": "폴백은 `syscall` 대신 `svc #0` 명령어(arm64 시스템 콜)를 사용합니다.",
+      "glossary_snapshot": {
+        "fallback": "폴백",
+        "system call": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:26:35.485069Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "arm64 supports `VDSO_CLOCKMODE_ARCHTIMER` using the always-on virtual counter.",
+      "source_hash": 4360882384869332927,
+      "context_hash": 4531121081838609370,
+      "translation": "arm64는 항상 켜져 있는 가상 카운터를 사용하는 `VDSO_CLOCKMODE_ARCHTIMER`를 지원합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:35.485070Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "The shared vDSO library code in `lib/vdso/gettimeofday.c` is compiled for both x86-64 and arm64; only the hardware counter read (`__arch_get_hw_counter`) is architecture-specific.",
+      "source_hash": 16531096652470239153,
+      "context_hash": 16670430875474048707,
+      "translation": "`lib/vdso/gettimeofday.c`의 공유 vDSO 라이브러리 코드는 x86-64와 arm64 양쪽에서 컴파일되며, 하드웨어 카운터 읽기(`__arch_get_hw_counter`)만 아키텍처별로 다릅니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128769Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 13141911081046881815,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:19:02.128770Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 2466285537639817188,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:19:02.128771Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:0",
+      "source": "[include/vdso/datapage.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/vdso/datapage.h) — `struct vdso_clock` and `struct vdso_time_data`: the current vvar layout, replacing an older single combined `struct vdso_data`",
+      "source_hash": 4958299636924919964,
+      "context_hash": 18217485739550561236,
+      "translation": "[include/vdso/datapage.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/vdso/datapage.h) — `struct vdso_clock`과 `struct vdso_time_data`: 예전의 단일 통합 `struct vdso_data`를 대체하는 현재 vvar 레이아웃",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:02.128771Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "[include/vdso/helpers.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/vdso/helpers.h) — `vdso_read_begin()` / `vdso_read_retry()`: the seqlock read-side helpers",
+      "source_hash": 8285675113614364719,
+      "context_hash": 14588061498490643046,
+      "translation": "[include/vdso/helpers.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/vdso/helpers.h) — `vdso_read_begin()` / `vdso_read_retry()`: seqlock 읽기 측 헬퍼",
+      "glossary_snapshot": {
+        "seqlock": "seqlock"
+      },
+      "translated_at": "2026-11-14T22:19:02.128772Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:0",
+      "source": "[lib/vdso/gettimeofday.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/vdso/gettimeofday.c) — `do_hres()` and `vdso_get_timestamp()`: the shared seqlock-guarded, TSC-to-timespec read path used by all architectures",
+      "source_hash": 1835177779587834616,
+      "context_hash": 12657682633158859702,
+      "translation": "[lib/vdso/gettimeofday.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/lib/vdso/gettimeofday.c) — `do_hres()`와 `vdso_get_timestamp()`: 모든 아키텍처가 사용하는, seqlock으로 보호되는 공유 TSC-timespec 변환 읽기 경로",
+      "glossary_snapshot": {
+        "TSC": "TSC",
+        "seqlock": "seqlock"
+      },
+      "translated_at": "2026-11-14T22:19:02.128772Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:0",
+      "source": "[arch/x86/entry/vdso/common/vclock_gettime.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/vdso/common/vclock_gettime.c) — `__vdso_clock_gettime()` / `__vdso_gettimeofday()`: the x86-64 entry points",
+      "source_hash": 4517878341405973074,
+      "context_hash": 18219328007146965623,
+      "translation": "[arch/x86/entry/vdso/common/vclock_gettime.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/vdso/common/vclock_gettime.c) — `__vdso_clock_gettime()` / `__vdso_gettimeofday()`: x86-64 진입점",
+      "glossary_snapshot": {
+        "entry points": "진입점"
+      },
+      "translated_at": "2026-11-14T22:19:02.128773Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "[arch/x86/entry/vdso/common/vgetcpu.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/vdso/common/vgetcpu.c) — `__vdso_getcpu()`",
+      "source_hash": 6429305977850940357,
+      "context_hash": 207746025021203532,
+      "translation": "[arch/x86/entry/vdso/common/vgetcpu.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/vdso/common/vgetcpu.c) — `__vdso_getcpu()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:02.128773Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:7/seg:0",
+      "source": "[arch/x86/include/asm/vdso/gettimeofday.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/vdso/gettimeofday.h) — `clock_gettime_fallback()` and `__arch_get_hw_counter()`: the real syscall fallback and the TSC read",
+      "source_hash": 12086269200695961636,
+      "context_hash": 6113227667998569445,
+      "translation": "[arch/x86/include/asm/vdso/gettimeofday.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/vdso/gettimeofday.h) — `clock_gettime_fallback()`과 `__arch_get_hw_counter()`: 실제 시스템 콜 폴백과 TSC 읽기",
+      "glossary_snapshot": {
+        "TSC": "TSC",
+        "fallback": "폴백",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:19:02.128773Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:0",
+      "source": "[arch/x86/include/asm/segment.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/segment.h) — `vdso_read_cpunode()`: the actual LSL/RDPID CPU+node lookup used by `__vdso_getcpu()`",
+      "source_hash": 11653169347821362560,
+      "context_hash": 5818064951540306679,
+      "translation": "[arch/x86/include/asm/segment.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/segment.h) — `vdso_read_cpunode()`: `__vdso_getcpu()`가 사용하는 실제 LSL/RDPID 기반 CPU+노드 조회",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:19:02.128774Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:0",
+      "source": "[kernel/time/vsyscall.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/time/vsyscall.c) — `update_vsyscall()`: the kernel-side vvar update on every timer tick",
+      "source_hash": 10350083068070696933,
+      "context_hash": 2016377930463482079,
+      "translation": "[kernel/time/vsyscall.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/time/vsyscall.c) — `update_vsyscall()`: 타이머 틱마다 수행되는 커널 측 vvar 갱신",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "timer": "타이머"
+      },
+      "translated_at": "2026-11-14T22:19:02.128774Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:10/seg:0",
+      "source": "[arch/arm64/kernel/vdso](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/arm64/kernel/vdso) — arm64 vDSO implementation",
+      "source_hash": 2842745751313226763,
+      "context_hash": 12461263690710206271,
+      "translation": "[arch/arm64/kernel/vdso](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/arm64/kernel/vdso) — arm64 vDSO 구현",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128775Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:11/seg:0",
+      "source": "Man pages",
+      "source_hash": 683209337414486197,
+      "context_hash": 2536083575526898371,
+      "translation": "매뉴얼 페이지",
+      "glossary_snapshot": {
+        "Man pages": "매뉴얼 페이지"
+      },
+      "translated_at": "2026-11-14T22:19:02.128775Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:12/seg:0",
+      "source": "[`vdso(7)`](https://man7.org/linux/man-pages/man7/vdso.7.html) — overview of the vDSO mechanism and `AT_SYSINFO_EHDR` discovery",
+      "source_hash": 7002390372554947413,
+      "context_hash": 17392642993553247046,
+      "translation": "[`vdso(7)`](https://man7.org/linux/man-pages/man7/vdso.7.html) — vDSO 메커니즘과 `AT_SYSINFO_EHDR`를 통한 탐색 개요",
+      "glossary_snapshot": {
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128775Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:13/seg:0",
+      "source": "[`clock_gettime(2)`](https://man7.org/linux/man-pages/man2/clock_gettime.2.html) — the syscall the vDSO accelerates",
+      "source_hash": 5336500177247246530,
+      "context_hash": 8082906705286178199,
+      "translation": "[`clock_gettime(2)`](https://man7.org/linux/man-pages/man2/clock_gettime.2.html) — vDSO가 가속하는 시스템 콜",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128776Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:14/seg:0",
+      "source": "[`gettimeofday(2)`](https://man7.org/linux/man-pages/man2/gettimeofday.2.html) — the syscall the vDSO accelerates",
+      "source_hash": 11574057377077446635,
+      "context_hash": 7173693538236536453,
+      "translation": "[`gettimeofday(2)`](https://man7.org/linux/man-pages/man2/gettimeofday.2.html) — vDSO가 가속하는 시스템 콜",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128776Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:15/seg:0",
+      "source": "[`getcpu(2)`](https://man7.org/linux/man-pages/man2/getcpu.2.html) — NOTES section documents the vDSO-backed fast path",
+      "source_hash": 12439417533652814637,
+      "context_hash": 9237920674728657902,
+      "translation": "[`getcpu(2)`](https://man7.org/linux/man-pages/man2/getcpu.2.html) — NOTES 절에서 vDSO 기반 빠른 경로를 설명함",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128777Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:16/seg:0",
+      "source": "[`getauxval(3)`](https://man7.org/linux/man-pages/man3/getauxval.3.html) — `AT_SYSINFO_EHDR`, used to locate the vDSO at process start",
+      "source_hash": 10909917469852549191,
+      "context_hash": 1429407842384795791,
+      "translation": "[`getauxval(3)`](https://man7.org/linux/man-pages/man3/getauxval.3.html) — 프로세스 시작 시 vDSO 위치를 찾는 데 사용하는 `AT_SYSINFO_EHDR`",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128777Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:17/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 17613662913941977132,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:02.128777Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:18/seg:0",
+      "source": "[Syscall Entry Path](syscall-entry.md) — KPTI and the cost of ring transitions",
+      "source_hash": 4832863081809853020,
+      "context_hash": 15045907919420431644,
+      "translation": "[시스템 콜 진입 경로](syscall-entry.md) — KPTI와 링 전환 비용",
+      "glossary_snapshot": {
+        "KPTI": "KPTI",
+        "syscall entry": "시스템 콜 진입"
+      },
+      "translated_at": "2026-11-14T22:19:02.128777Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:19/seg:0",
+      "source": "[vDSO: Virtual Dynamic Shared Object](../mm/vdso.md) — companion mm-side page on vDSO mapping and per-architecture function tables",
+      "source_hash": 15163147380722288202,
+      "context_hash": 9006946855367966402,
+      "translation": "[vDSO: Virtual Dynamic Shared Object](../mm/vdso.md) — vDSO 매핑과 아키텍처별 함수 테이블을 다루는 mm 측 자매 페이지",
+      "glossary_snapshot": {
+        "function": "함수",
+        "mapping": "매핑",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128778Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:20/seg:0",
+      "source": "[Timekeeping and Clocksources](../time/timekeeping.md) — TSC, clocksource, and NTP background behind the vvar update",
+      "source_hash": 12886620263029123050,
+      "context_hash": 6360646043909336258,
+      "translation": "[Timekeeping and Clocksources](../time/timekeeping.md) — vvar 갱신의 배경이 되는 TSC, clocksource, NTP",
+      "glossary_snapshot": {
+        "Clocksources": "clocksource",
+        "NTP": "NTP",
+        "TSC": "TSC",
+        "clocksource": "clocksource"
+      },
+      "translated_at": "2026-11-14T22:19:02.128778Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:21/seg:0",
+      "source": "[Time Namespaces](../time/time-namespaces.md) — the `timens_offset` mechanism referenced in the vvar layout",
+      "source_hash": 863884813766616297,
+      "context_hash": 3411445342924193607,
+      "translation": "[시간 네임스페이스](../time/time-namespaces.md) — vvar 레이아웃에서 참조하는 `timens_offset` 메커니즘",
+      "glossary_snapshot": {
+        "time namespaces": "시간 네임스페이스"
+      },
+      "translated_at": "2026-11-14T22:19:02.128779Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:22/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 15121877076152787180,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:19:02.128779Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:23/seg:0",
+      "source": "[On vsyscalls and the vDSO](https://lwn.net/Articles/446528/) — the security case for retiring the fixed-address vsyscall page in favor of the vDSO",
+      "source_hash": 9796914736132865616,
+      "context_hash": 9996909306199691010,
+      "translation": "[On vsyscalls and the vDSO](https://lwn.net/Articles/446528/) — 고정 주소 vsyscall 페이지를 폐기하고 vDSO로 대체해야 하는 보안상 근거",
+      "glossary_snapshot": {
+        "address": "주소",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128779Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:24/seg:0",
+      "source": "[Implementing virtual system calls](https://lwn.net/Articles/615809/) — how `__vdso_gettimeofday()` and `__vdso_clock_gettime()` work, and how to add new vDSO functions",
+      "source_hash": 9617916715807942948,
+      "context_hash": 6655556135943556475,
+      "translation": "[Implementing virtual system calls](https://lwn.net/Articles/615809/) — `__vdso_gettimeofday()`와 `__vdso_clock_gettime()`의 동작 방식과 새 vDSO 함수를 추가하는 방법",
+      "glossary_snapshot": {
+        "functions": "함수",
+        "vDSO": "vDSO"
+      },
+      "translated_at": "2026-11-14T22:19:02.128779Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:25/seg:0",
+      "source": "External",
+      "source_hash": 18173270850398166434,
+      "context_hash": 898397821297641452,
+      "translation": "외부 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:19:02.128780Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:26/seg:0",
+      "source": "[Kernel boot parameters: `vdso=` and `vsyscall=`](https://docs.kernel.org/admin-guide/kernel-parameters.html) — official documentation for the `vdso=0` and `vsyscall={emulate,xonly,none}` boot options",
+      "source_hash": 3379595941740760131,
+      "context_hash": 18191167322867389807,
+      "translation": "[커널 부트 파라미터: `vdso=` 및 `vsyscall=`](https://docs.kernel.org/admin-guide/kernel-parameters.html) — `vdso=0` 및 `vsyscall={emulate,xonly,none}` 부트 옵션에 대한 공식 문서",
+      "glossary_snapshot": {
+        "boot parameters": "부트 파라미터"
+      },
+      "translated_at": "2026-11-14T23:35:04.473575Z",
+      "issues": []
+    }
+  ]
+}

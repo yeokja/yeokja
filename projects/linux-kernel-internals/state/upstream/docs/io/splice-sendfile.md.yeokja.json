@@ -1,0 +1,2767 @@
+{
+  "version": 1,
+  "source_hash": 4449121458408955712,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Zero-copy I/O: splice, sendfile, and friends",
+      "source_hash": 16044395939089848163,
+      "context_hash": 18418055962944026608,
+      "translation": "제로 카피 I/O: splice, sendfile 그리고 관련 시스템 콜",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:41:51.192484Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Moving data between file descriptors without touching userspace",
+      "source_hash": 5479046553297106643,
+      "context_hash": 10962638347263532524,
+      "translation": "사용자 공간을 거치지 않고 파일 디스크립터 간에 데이터 옮기기",
+      "glossary_snapshot": {
+        "file descriptors": "파일 디스크립터",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:41:51.192484Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem: unnecessary copies",
+      "source_hash": 12680495678465424027,
+      "context_hash": 2475015183465874902,
+      "translation": "문제: 불필요한 복사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192485Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "The naive way to serve a file over a network socket is:",
+      "source_hash": 13766941352030594761,
+      "context_hash": 4374178334727292422,
+      "translation": "네트워크 소켓으로 파일을 제공하는 단순한 방법은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "Every iteration pays a full round trip through userspace.",
+      "source_hash": 13664786141496151071,
+      "context_hash": 21070901456446597,
+      "translation": "매 반복마다 사용자 공간을 완전히 왕복하는 비용을 치릅니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:41:51.192486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "To understand why that hurts, trace what the kernel actually does:",
+      "source_hash": 17703097586598508220,
+      "context_hash": 18219123385723891820,
+      "translation": "이것이 왜 문제가 되는지 이해하려면 커널이 실제로 무엇을 하는지 따라가 보십시오:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:51.192486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "For a static file web server pushing hundreds of megabytes per second, those CPU copies add up.",
+      "source_hash": 10233948058962436132,
+      "context_hash": 12362142244212928186,
+      "translation": "초당 수백 메가바이트를 전송하는 정적 파일 웹 서버에서는 이러한 CPU 복사가 누적됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:41:51.192486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "The kernel page cache already holds the file data; the network stack needs a reference to it.",
+      "source_hash": 848347976863374021,
+      "context_hash": 8059357164794592410,
+      "translation": "커널 페이지 캐시는 이미 파일 데이터를 보유하고 있으며, 네트워크 스택에는 그 데이터에 대한 참조만 있으면 됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "network stack": "네트워크 스택",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:41:51.192486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:2",
+      "source": "The copies through userspace are pure overhead.",
+      "source_hash": 10543121628511546025,
+      "context_hash": 2355250319578218335,
+      "translation": "사용자 공간을 거치는 복사는 순수한 오버헤드입니다.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:41:51.192486Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "Linux provides three syscalls that eliminate them: `sendfile(2)`, `splice(2)`, and `vmsplice(2)`.",
+      "source_hash": 7912735321409076052,
+      "context_hash": 11455016699023754433,
+      "translation": "Linux는 이러한 복사를 제거하는 세 가지 시스템 콜인 `sendfile(2)`, `splice(2)`, `vmsplice(2)`를 제공합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:41:51.192487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "A fourth, `copy_file_range(2)`, eliminates copies for file-to-file transfers.",
+      "source_hash": 6852199047203320754,
+      "context_hash": 15664413938766721111,
+      "translation": "네 번째인 `copy_file_range(2)`는 파일 간 전송에서 복사를 제거합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "The zero-copy path passes a **page reference** (a pointer and length) rather than copying bytes.",
+      "source_hash": 3071557755534878597,
+      "context_hash": 2178834385064687153,
+      "translation": "제로 카피 경로는 바이트를 복사하는 대신 **페이지 참조**(포인터와 길이)를 전달합니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:41:51.192487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:1",
+      "source": "The NIC's scatter-gather DMA then reads directly from the page cache page.",
+      "source_hash": 5557245865815889552,
+      "context_hash": 8693972848324238434,
+      "translation": "그러면 NIC의 scatter-gather DMA가 페이지 캐시 페이지에서 직접 읽습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "NIC": "NIC",
+        "page cache": "페이지 캐시",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:51.192487Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:2",
+      "source": "No CPU is involved in moving the data bytes at all.",
+      "source_hash": 9902745147293525111,
+      "context_hash": 7498387604545004633,
+      "translation": "데이터 바이트를 옮기는 데 CPU가 전혀 관여하지 않습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:41:51.192487Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "`sendfile(2)` — file to socket without userspace",
+      "source_hash": 4593024029925513938,
+      "context_hash": 756885730047946536,
+      "translation": "`sendfile(2)` — 사용자 공간을 거치지 않는 파일에서 소켓으로의 전송",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:41:51.192488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "`sendfile` was added in Linux 2.2 and is the simplest zero-copy interface.",
+      "source_hash": 4978758563694802459,
+      "context_hash": 18172510030691832325,
+      "translation": "`sendfile`은 Linux 2.2에서 추가되었으며 가장 단순한 제로 카피 인터페이스입니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:41:51.192488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It transfers data from a file directly to a socket inside the kernel.",
+      "source_hash": 12895953976304158755,
+      "context_hash": 13116495476907503533,
+      "translation": "이 시스템 콜은 커널 내부에서 파일의 데이터를 소켓으로 직접 전송합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:51.192488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`out_fd` — must be a socket (or a pipe on kernels >= 2.6.33)",
+      "source_hash": 10425567052502442778,
+      "context_hash": 4816161224050447633,
+      "translation": "`out_fd` — 소켓이어야 함(2.6.33 이상 커널에서는 파이프도 가능)",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:51.192488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`in_fd` — must be a regular file or block device; supports `mmap`-style access",
+      "source_hash": 17806462085727140105,
+      "context_hash": 8614836795174228765,
+      "translation": "`in_fd` — 일반 파일 또는 블록 디바이스여야 하며, `mmap` 방식의 접근을 지원해야 함",
+      "glossary_snapshot": {
+        "block device": "블록 디바이스"
+      },
+      "translated_at": "2026-11-14T22:41:51.192488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "`offset` — if non-NULL, read starts here and is updated on return; the file's position is unchanged",
+      "source_hash": 17353602958759820949,
+      "context_hash": 9607661730122378111,
+      "translation": "`offset` — NULL이 아니면 이 위치부터 읽기를 시작하고 반환 시 값이 갱신되며, 파일 위치는 변경되지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "`count` — bytes to transfer; kernel loops internally until `count` bytes sent or error",
+      "source_hash": 1056222352725016586,
+      "context_hash": 4181528349828821944,
+      "translation": "`count` — 전송할 바이트 수로, 커널은 `count` 바이트를 모두 보내거나 오류가 발생할 때까지 내부적으로 반복함",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:51.192488Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "What sendfile does in the kernel",
+      "source_hash": 9028855132724051368,
+      "context_hash": 1874974090749477103,
+      "translation": "커널 내부에서 sendfile이 하는 일",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:51.192489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Internally `sendfile` calls `do_sendfile` in `fs/read_write.c`, which:",
+      "source_hash": 7580320319465553839,
+      "context_hash": 10248246798046829672,
+      "translation": "내부적으로 `sendfile`은 `fs/read_write.c`의 `do_sendfile`을 호출하며, 이 함수는 다음을 수행합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "Calls `in_file->f_op->splice_read` to populate a temporary pipe with page references from the file",
+      "source_hash": 4251307550276375566,
+      "context_hash": 3194698910517271306,
+      "translation": "`in_file->f_op->splice_read`를 호출하여 임시 파이프를 파일의 페이지 참조로 채움",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "Calls `sock_sendpage` (or `generic_splice_sendpage`) to pass those page references into the socket's send buffer as `skb_frag_t` entries",
+      "source_hash": 7158700029276263055,
+      "context_hash": 6168964052248401212,
+      "translation": "`sock_sendpage`(또는 `generic_splice_sendpage`)를 호출하여 해당 페이지 참조를 `skb_frag_t` 항목으로 소켓의 송신 버퍼에 전달함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "If the NIC supports scatter-gather DMA (`NETIF_F_SG`), the NIC reads the page cache pages directly — zero CPU copies",
+      "source_hash": 11511180908661968000,
+      "context_hash": 15937079111417071147,
+      "translation": "NIC가 scatter-gather DMA(`NETIF_F_SG`)를 지원하면 NIC가 페이지 캐시 페이지를 직접 읽음 — CPU 복사 없음",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "DMA": "DMA",
+        "NIC": "NIC",
+        "page cache": "페이지 캐시",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:51.192489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Without NIC scatter-gather support, the kernel falls back to a single copy from page cache into a contiguous `sk_buff` — still one copy fewer than the `read+write` path.",
+      "source_hash": 173610400428673146,
+      "context_hash": 13136392628997291761,
+      "translation": "NIC가 scatter-gather를 지원하지 않으면 커널은 페이지 캐시에서 연속된 `sk_buff`로 한 번 복사하는 방식으로 대체합니다 — 그래도 `read+write` 경로보다 복사가 한 번 적습니다.",
+      "glossary_snapshot": {
+        "NIC": "NIC",
+        "kernel": "커널",
+        "page cache": "페이지 캐시",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:51.192489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Non-blocking sendfile",
+      "source_hash": 13399395658462783491,
+      "context_hash": 10090867288361810639,
+      "translation": "논블로킹 sendfile",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192489Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Linux's `sendfile(2)` takes no flags argument.",
+      "source_hash": 4028746540859866302,
+      "context_hash": 15479462659262871091,
+      "translation": "Linux의 `sendfile(2)`는 flags 인자를 받지 않습니다.",
+      "glossary_snapshot": {
+        "Linux's": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:51.192490Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "To get non-blocking behavior, set `O_NONBLOCK` on the output socket.",
+      "source_hash": 17124714626180946889,
+      "context_hash": 3333237450605092948,
+      "translation": "논블로킹 동작을 얻으려면 출력 소켓에 `O_NONBLOCK`을 설정하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192490Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:2",
+      "source": "When the socket buffer is full, `sendfile` returns `EAGAIN`.",
+      "source_hash": 2597534568782332553,
+      "context_hash": 17758684654741395077,
+      "translation": "소켓 버퍼가 가득 차면 `sendfile`은 `EAGAIN`을 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192490Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "nginx and sendfile",
+      "source_hash": 13579674166543921652,
+      "context_hash": 7826105408787804628,
+      "translation": "nginx와 sendfile",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.192490Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "nginx enables `sendfile` by default:",
+      "source_hash": 18173656310737989983,
+      "context_hash": 15297781252138752882,
+      "translation": "nginx는 기본적으로 `sendfile`을 활성화합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514930Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "`tcp_nopush` sets `TCP_CORK` before `sendfile` so the HTTP headers and the start of the file body go out in one TCP segment, then the cork is released.",
+      "source_hash": 1250962642865237799,
+      "context_hash": 17237978970962398051,
+      "translation": "`tcp_nopush`는 `sendfile` 전에 `TCP_CORK`를 설정하여 HTTP 헤더와 파일 본문의 시작 부분이 하나의 TCP 세그먼트로 전송되도록 한 다음, cork를 해제합니다.",
+      "glossary_snapshot": {
+        "TCP": "TCP"
+      },
+      "translated_at": "2026-11-14T22:41:53.514930Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "sendfile limitations",
+      "source_hash": 14476949766066904035,
+      "context_hash": 7701062364183154582,
+      "translation": "sendfile의 한계",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514930Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:22/seg:0",
+      "source": "`out_fd` must be a socket (or a pipe); file-to-file doesn't work",
+      "source_hash": 14472496916037212098,
+      "context_hash": 10521163606952268135,
+      "translation": "`out_fd`는 소켓(또는 파이프)이어야 하며, 파일에서 파일로의 전송은 동작하지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "Cannot interpose a transform (compression, encryption) — those require touching the data",
+      "source_hash": 5021873511763296869,
+      "context_hash": 17929612998907542961,
+      "translation": "변환(압축, 암호화)을 중간에 끼워 넣을 수 없음 — 이러한 작업은 데이터에 접근해야 함",
+      "glossary_snapshot": {
+        "encryption": "암호화"
+      },
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "HTTPS cannot use sendfile without kTLS (`SO_TLS_TX`); see [kTLS](../net/ktls.md)",
+      "source_hash": 9767422472891364198,
+      "context_hash": 2097295476766266875,
+      "translation": "HTTPS는 kTLS(`SO_TLS_TX`) 없이는 sendfile을 사용할 수 없음 — [kTLS](../net/ktls.md) 참조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "Offsets are limited to `off_t` size — use `sendfile64` (which glibc maps to `sendfile` on 64-bit)",
+      "source_hash": 10741348558217421306,
+      "context_hash": 14405521599227737387,
+      "translation": "오프셋은 `off_t` 크기로 제한됨 — `sendfile64` 사용(glibc는 64비트에서 이를 `sendfile`에 매핑함)",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "glibc": "glibc"
+      },
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "`splice(2)` — the generalisation",
+      "source_hash": 57892172927808355,
+      "context_hash": 17831710039145451902,
+      "translation": "`splice(2)` — 일반화",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`splice` was introduced in Linux 2.6.17 by Jens Axboe, generalising the file-to-socket case.",
+      "source_hash": 16348599022798154741,
+      "context_hash": 6791784918532952515,
+      "translation": "`splice`는 Linux 2.6.17에서 Jens Axboe가 도입했으며, 파일에서 소켓으로의 경우를 일반화합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "It transfers data between any two file descriptors where **at least one is a pipe**.",
+      "source_hash": 4713001557929821492,
+      "context_hash": 11649682761543212794,
+      "translation": "이는 **적어도 하나가 파이프인** 임의의 두 파일 디스크립터 사이에서 데이터를 전송합니다.",
+      "glossary_snapshot": {
+        "file descriptors": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "`fd_in` / `fd_out` — source and destination; one must be a pipe",
+      "source_hash": 9897026992239651558,
+      "context_hash": 11932426456730787866,
+      "translation": "`fd_in` / `fd_out` — 소스와 목적지이며, 하나는 파이프여야 함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "`off_in` / `off_out` — file offsets (updated on return); must be NULL for pipes",
+      "source_hash": 14599287558317296394,
+      "context_hash": 8437408772206253885,
+      "translation": "`off_in` / `off_out` — 파일 오프셋(반환 시 갱신됨)이며, 파이프의 경우 NULL이어야 함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`len` — maximum bytes to move in this call",
+      "source_hash": 9494215393715210599,
+      "context_hash": 15429508365458784098,
+      "translation": "`len` — 이번 호출에서 옮길 최대 바이트 수",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:41:53.514931Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "`flags` — `SPLICE_F_MOVE | SPLICE_F_NONBLOCK | SPLICE_F_MORE | SPLICE_F_GIFT`",
+      "source_hash": 13994035787076012269,
+      "context_hash": 10045244806710310359,
+      "translation": "`flags` — `SPLICE_F_MOVE | SPLICE_F_NONBLOCK | SPLICE_F_MORE | SPLICE_F_GIFT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Flags",
+      "source_hash": 14662362199530734789,
+      "context_hash": 884600551354841699,
+      "translation": "플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Flag",
+      "source_hash": 7677103621892995957,
+      "context_hash": 4665014368457449356,
+      "translation": "플래그",
+      "glossary_snapshot": {
+        "Flag": "플래그"
+      },
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 9342453962186413050,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "`SPLICE_F_MOVE`",
+      "source_hash": 10298705347253120952,
+      "context_hash": 5358134565305679589,
+      "translation": "`SPLICE_F_MOVE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "Hint: move pages rather than copy (may be ignored by kernel)",
+      "source_hash": 14093402569496361457,
+      "context_hash": 2505551722974040364,
+      "translation": "힌트: 복사 대신 페이지를 이동함(커널이 무시할 수 있음)",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "`SPLICE_F_NONBLOCK`",
+      "source_hash": 12459920769543769191,
+      "context_hash": 17890679865967176322,
+      "translation": "`SPLICE_F_NONBLOCK`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "Do not block on pipe I/O; file I/O may still block",
+      "source_hash": 1842400643616096363,
+      "context_hash": 16331857476341157147,
+      "translation": "파이프 I/O에서 블록하지 않음. 파일 I/O는 여전히 블록될 수 있음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "`SPLICE_F_MORE`",
+      "source_hash": 9475499849340390115,
+      "context_hash": 667279719995499136,
+      "translation": "`SPLICE_F_MORE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "More data is coming; hint for socket layer (like `MSG_MORE`)",
+      "source_hash": 15239742875604896929,
+      "context_hash": 10520369032236034102,
+      "translation": "더 많은 데이터가 이어짐. 소켓 계층을 위한 힌트(`MSG_MORE`와 유사)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "`SPLICE_F_GIFT`",
+      "source_hash": 9108347579472387732,
+      "context_hash": 14129207624186829335,
+      "translation": "`SPLICE_F_GIFT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "Used with `vmsplice`: user pages are gifted to the kernel permanently",
+      "source_hash": 6046664818337397022,
+      "context_hash": 571333000450332242,
+      "translation": "`vmsplice`와 함께 사용: 사용자 페이지가 커널에 영구적으로 양도됨",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "File to socket via a pipe",
+      "source_hash": 937655829488369723,
+      "context_hash": 10767737161064965130,
+      "translation": "파이프를 통한 파일에서 소켓으로의 전송",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "`sendfile` can be emulated with two `splice` calls through a pipe:",
+      "source_hash": 11242992112235380426,
+      "context_hash": 1718684013574963602,
+      "translation": "`sendfile`은 파이프를 통한 두 번의 `splice` 호출로 에뮬레이션할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "Valid splice combinations",
+      "source_hash": 7280514611587882544,
+      "context_hash": 16122144827664943071,
+      "translation": "유효한 splice 조합",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "`tee(2)` — duplicating pipe data without consuming it",
+      "source_hash": 15445975801167779666,
+      "context_hash": 1772128277681250652,
+      "translation": "`tee(2)` — 파이프 데이터를 소비하지 않고 복제하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:53.514932Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "`tee` copies data between two pipe file descriptors without removing it from the source.",
+      "source_hash": 9971699516037352832,
+      "context_hash": 8067447947420315282,
+      "translation": "`tee`는 두 파이프 파일 디스크립터 사이에서 소스로부터 데이터를 제거하지 않고 복사합니다.",
+      "glossary_snapshot": {
+        "file descriptors": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:41:53.514933Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "Pages are shared by reference; no bytes are copied.",
+      "source_hash": 8396757036836011828,
+      "context_hash": 4929879009498743831,
+      "translation": "페이지는 참조로 공유되며, 바이트는 전혀 복사되지 않습니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:41:53.514933Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "Both `fd_in` and `fd_out` must be pipes.",
+      "source_hash": 16365875842269913614,
+      "context_hash": 4837651820186957872,
+      "translation": "`fd_in`과 `fd_out`은 모두 파이프여야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510095Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "After `tee`, the data remains readable from `fd_in` and is also available in `fd_out`.",
+      "source_hash": 15559734250512969321,
+      "context_hash": 10994541738051993146,
+      "translation": "`tee` 이후에도 데이터는 `fd_in`에서 계속 읽을 수 있으며 `fd_out`에서도 사용할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "Log-and-forward pattern",
+      "source_hash": 6060617820106215640,
+      "context_hash": 1245233117373221818,
+      "translation": "로그 후 전달(log-and-forward) 패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "This is the basis of `tee(1)` in GNU coreutils — it uses `tee(2)` internally when both source and destination are pipes.",
+      "source_hash": 5031043474322499917,
+      "context_hash": 11851385968207920826,
+      "translation": "이것이 GNU coreutils의 `tee(1)`의 기반이며, 원본과 대상이 모두 파이프일 때 내부적으로 `tee(2)`를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "How splice works internally",
+      "source_hash": 2708638807803580330,
+      "context_hash": 13032634190539172575,
+      "translation": "splice의 내부 동작 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The pipe as a page-reference queue",
+      "source_hash": 17712235050152543148,
+      "context_hash": 8299000984105446852,
+      "translation": "페이지 참조 큐로서의 파이프",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "The central data structure is `struct pipe_inode_info` (`include/linux/pipe_fs_i.h`), which contains a ring of `struct pipe_buffer` entries:",
+      "source_hash": 3395661163257349720,
+      "context_hash": 16748367313342179138,
+      "translation": "핵심 자료 구조는 `struct pipe_inode_info`(`include/linux/pipe_fs_i.h`)이며, 이 구조체는 `struct pipe_buffer` 항목의 링을 포함합니다.",
+      "glossary_snapshot": {
+        "data structure": "자료 구조"
+      },
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "When `splice(file_fd, ..., pipe_wr, ...)` runs, `do_splice_to` calls `file->f_op->splice_read` (e.g., `filemap_splice_read` for regular files).",
+      "source_hash": 15964914218719390171,
+      "context_hash": 18007144650164062612,
+      "translation": "`splice(file_fd, ..., pipe_wr, ...)`가 실행되면 `do_splice_to`가 `file->f_op->splice_read`(예: 일반 파일의 경우 `filemap_splice_read`)를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "This function finds the pages in the page cache and installs references to them — not copies — as `pipe_buffer` entries in the pipe ring.",
+      "source_hash": 15778667646636922206,
+      "context_hash": 4977920319868893768,
+      "translation": "이 함수는 페이지 캐시에서 페이지를 찾아, 복사본이 아니라 해당 페이지에 대한 참조를 파이프 링의 `pipe_buffer` 항목으로 설치합니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:41:55.510096Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "The page's reference count is incremented; no data moves.",
+      "source_hash": 4306265937039333722,
+      "context_hash": 13645878975308483343,
+      "translation": "페이지의 참조 카운트가 증가할 뿐이며, 데이터는 이동하지 않습니다.",
+      "glossary_snapshot": {
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "When `splice(pipe_rd, ..., sock_fd, ...)` runs, `do_splice_from` calls `sock_splice_write` (or the socket's `splice_write` file operation).",
+      "source_hash": 1501881992226896186,
+      "context_hash": 4973659268392605877,
+      "translation": "`splice(pipe_rd, ..., sock_fd, ...)`가 실행되면 `do_splice_from`이 `sock_splice_write`(또는 소켓의 `splice_write` 파일 연산)를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "For TCP, this calls `tcp_sendpage`, which attaches the page as a fragment in an `sk_buff` — again by reference, not by copy.",
+      "source_hash": 3663461174442642943,
+      "context_hash": 4811991668940338104,
+      "translation": "TCP의 경우 이는 `tcp_sendpage`를 호출하며, `tcp_sendpage`는 페이지를 `sk_buff`의 프래그먼트로 연결합니다. 이 역시 복사가 아니라 참조로 이루어집니다.",
+      "glossary_snapshot": {
+        "TCP": "TCP"
+      },
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "The bytes finally leave the machine when the NIC's DMA engine reads the page cache page directly, driven by the scatter-gather descriptor in the transmit ring.",
+      "source_hash": 16434991168086122072,
+      "context_hash": 11636535377739113773,
+      "translation": "바이트는 최종적으로 전송 링의 scatter-gather 디스크립터에 따라 NIC의 DMA 엔진이 페이지 캐시 페이지를 직접 읽을 때 머신을 떠납니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "NIC": "NIC",
+        "bytes": "바이트",
+        "descriptor": "디스크립터",
+        "page cache": "페이지 캐시",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "splice_from_pipe and splice_to_pipe",
+      "source_hash": 10913195897170862536,
+      "context_hash": 15382648305909336190,
+      "translation": "splice_from_pipe와 splice_to_pipe",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "The kernel exports two helpers used by filesystem and socket drivers:",
+      "source_hash": 2497991881869625430,
+      "context_hash": 10459486056171679701,
+      "translation": "커널은 파일시스템 및 소켓 드라이버가 사용하는 두 가지 헬퍼를 export합니다.",
+      "glossary_snapshot": {
+        "drivers": "드라이버",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "`splice_from_pipe` iterates over the pipe's `pipe_buffer` ring and calls the `actor` callback (e.g., `pipe_to_sendpage` for sockets, `pipe_to_file` for files) once per buffer.",
+      "source_hash": 12924227102952321363,
+      "context_hash": 5652749080387689143,
+      "translation": "`splice_from_pipe`는 파이프의 `pipe_buffer` 링을 순회하면서 버퍼마다 한 번씩 `actor` 콜백(예: 소켓의 경우 `pipe_to_sendpage`, 파일의 경우 `pipe_to_file`)을 호출합니다.",
+      "glossary_snapshot": {
+        "callback": "콜백"
+      },
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:1",
+      "source": "The actor hands the page off without copying it.",
+      "source_hash": 10955233121775284892,
+      "context_hash": 16445013359837624930,
+      "translation": "actor는 페이지를 복사하지 않고 그대로 넘겨줍니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "When splice must fall back to copying",
+      "source_hash": 18356001385066873282,
+      "context_hash": 8878719233841051620,
+      "translation": "splice가 복사로 대체해야 하는 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Not all combinations are truly zero-copy at the kernel level:",
+      "source_hash": 9552111402639630313,
+      "context_hash": 16068035093348227300,
+      "translation": "모든 조합이 커널 수준에서 진정한 제로 카피(zero-copy)인 것은 아닙니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "**`O_DIRECT` files**: Direct I/O bypasses the page cache, so there are no cached pages to reference.",
+      "source_hash": 18346595338259195379,
+      "context_hash": 18058220713157338089,
+      "translation": "**`O_DIRECT` 파일**: Direct I/O는 페이지 캐시를 우회하므로 참조할 캐시된 페이지가 없습니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:41:55.510097Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:1",
+      "source": "The kernel must copy into a temporary page.",
+      "source_hash": 9238260446487561789,
+      "context_hash": 4385515884027030509,
+      "translation": "커널은 임시 페이지로 복사해야 합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:55.510098Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "**Certain encrypted filesystems**: fscrypt-encrypted files store ciphertext in the page cache.",
+      "source_hash": 5761390992917942615,
+      "context_hash": 1798277035745466994,
+      "translation": "**일부 암호화 파일시스템**: fscrypt로 암호화된 파일은 페이지 캐시에 암호문을 저장합니다.",
+      "glossary_snapshot": {
+        "fscrypt": "fscrypt",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:41:55.510098Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:1",
+      "source": "Splice would expose ciphertext to the receiving socket; the kernel refuses and returns `EOPNOTSUPP`, forcing the caller to decrypt through userspace.",
+      "source_hash": 17263650956772578669,
+      "context_hash": 17920634914323447536,
+      "translation": "splice는 수신 소켓에 암호문을 노출하게 되므로 커널은 이를 거부하고 `EOPNOTSUPP`를 반환하며, 호출자는 사용자 공간을 거쳐 복호화해야 합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:41:55.510098Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "**Network filesystems (NFS, CIFS)**: Remote pages may not be pinnable in the same way; the implementation falls back to a kernel-level copy.",
+      "source_hash": 1566866421062568994,
+      "context_hash": 17377387197431772775,
+      "translation": "**네트워크 파일시스템(NFS, CIFS)**: 원격 페이지는 같은 방식으로 고정(pin)할 수 없을 수 있으므로, 구현은 커널 수준 복사로 대체합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:55.510098Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "**Pipes with `O_DIRECT` set** (`F_SETPIPE_SZ` with `O_DIRECT` semantics on older kernels): forces packet-mode behaviour.",
+      "source_hash": 14696391703174954115,
+      "context_hash": 7744229345772938520,
+      "translation": "**`O_DIRECT`가 설정된 파이프**(이전 커널에서 `O_DIRECT` 의미를 갖는 `F_SETPIPE_SZ`): 패킷 모드 동작을 강제합니다.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:41:55.510098Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Comparison: sendfile vs splice vs io_uring vs MSG_ZEROCOPY",
+      "source_hash": 9578297080030684372,
+      "context_hash": 8140763036488001474,
+      "translation": "비교: sendfile vs splice vs io_uring vs MSG_ZEROCOPY",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510098Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Feature",
+      "source_hash": 15829752412308606062,
+      "context_hash": 2580923602549295795,
+      "translation": "기능",
+      "glossary_snapshot": {
+        "Feature": "기능"
+      },
+      "translated_at": "2026-11-14T22:41:55.510099Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "`sendfile`",
+      "source_hash": 11749478707141886057,
+      "context_hash": 18187394978677467231,
+      "translation": "`sendfile`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510099Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "`splice`",
+      "source_hash": 1743214927229917651,
+      "context_hash": 8353493878980680620,
+      "translation": "`splice`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510099Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "`io_uring IORING_OP_SPLICE`",
+      "source_hash": 4905651733582255356,
+      "context_hash": 4188017117191632431,
+      "translation": "`io_uring IORING_OP_SPLICE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510099Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "`MSG_ZEROCOPY`",
+      "source_hash": 4871297118652159850,
+      "context_hash": 432700996178488979,
+      "translation": "`MSG_ZEROCOPY`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:55.510099Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "Kernel version",
+      "source_hash": 15542711200523525328,
+      "context_hash": 17738569195279939022,
+      "translation": "커널 버전",
+      "glossary_snapshot": {
+        "kernel version": "커널 버전"
+      },
+      "translated_at": "2026-11-14T22:41:55.510099Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "2.2",
+      "source_hash": 11631912033172073635,
+      "context_hash": 3805984834317097177,
+      "translation": "2.2",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726709Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "2.6.17",
+      "source_hash": 8502847427835233052,
+      "context_hash": 4706301020515023408,
+      "translation": "2.6.17",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726710Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "5.7",
+      "source_hash": 16513843675808490446,
+      "context_hash": 8324215413012135470,
+      "translation": "5.7",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726711Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "4.14",
+      "source_hash": 2027413318580132522,
+      "context_hash": 9400481808154470485,
+      "translation": "4.14",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726711Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "Zero-copy (with SG NIC)",
+      "source_hash": 4260895424215163081,
+      "context_hash": 5991633104903099455,
+      "translation": "제로 카피(SG NIC 사용 시)",
+      "glossary_snapshot": {
+        "NIC": "NIC",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:41:51.726712Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 6951437825904052630,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:51.726712Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:51.726713Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:51.726714Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 14273590352797452332,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:51.726715Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "Works file→socket",
+      "source_hash": 8538634268078989043,
+      "context_hash": 7259753640440472095,
+      "translation": "파일→소켓 지원",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726716Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 12517838254443932159,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:51.726716Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:0",
+      "source": "Via pipe",
+      "source_hash": 4765266414946194527,
+      "context_hash": 15235881183263593560,
+      "translation": "pipe 경유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726717Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:19/seg:0",
+      "source": "Via pipe",
+      "source_hash": 4765266414946194527,
+      "context_hash": 17306700598516626556,
+      "translation": "pipe 경유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726717Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:20/seg:0",
+      "source": "N/A (send only)",
+      "source_hash": 9663925919777452822,
+      "context_hash": 17196044079518693970,
+      "translation": "N/A(송신 전용)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726718Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:21/seg:0",
+      "source": "Works file→file",
+      "source_hash": 4683739567565972008,
+      "context_hash": 9692154734666002343,
+      "translation": "파일→파일 지원",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726718Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:22/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7247704762520127025,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:51.726718Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:23/seg:0",
+      "source": "Via pipe",
+      "source_hash": 4765266414946194527,
+      "context_hash": 4309645430533521925,
+      "translation": "pipe 경유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726720Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:24/seg:0",
+      "source": "Via pipe",
+      "source_hash": 4765266414946194527,
+      "context_hash": 7070161040437839718,
+      "translation": "pipe 경유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726720Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:25/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 12467875431150411648,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:51.726720Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:26/seg:0",
+      "source": "Needs a pipe fd",
+      "source_hash": 6995524910338886069,
+      "context_hash": 7536943046141488671,
+      "translation": "pipe fd 필요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726721Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:27/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 11004258146850967663,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:51.726721Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:28/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 9508013301409225522,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:51.726722Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:29/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16361932622599883170,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:41:51.726723Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:30/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 8716615975355971097,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:51.726724Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:31/seg:0",
+      "source": "Async / non-blocking",
+      "source_hash": 12547195476935046928,
+      "context_hash": 17020543934805787590,
+      "translation": "비동기 / 논블로킹",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726724Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:32/seg:0",
+      "source": "No (blocks for disk)",
+      "source_hash": 11682685707717040719,
+      "context_hash": 18252474001494994084,
+      "translation": "아니요(디스크 대기 시 블로킹)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726725Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:33/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 17563142655626160920,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:41:51.726725Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:34/seg:0",
+      "source": "Yes (submission queue)",
+      "source_hash": 1925365870367164007,
+      "context_hash": 5534047151141343274,
+      "translation": "예 (제출 큐)",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:31:22.428330Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:35/seg:0",
+      "source": "Callback via `SO_EE_ORIGIN_ZEROCOPY`",
+      "source_hash": 7495442894902498257,
+      "context_hash": 13014622097748744886,
+      "translation": "`SO_EE_ORIGIN_ZEROCOPY`를 통한 콜백",
+      "glossary_snapshot": {
+        "callback": "콜백"
+      },
+      "translated_at": "2026-11-14T22:41:51.726727Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:36/seg:0",
+      "source": "Complexity",
+      "source_hash": 3455601846685537577,
+      "context_hash": 1810702750791269634,
+      "translation": "복잡도",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726727Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:37/seg:0",
+      "source": "Low",
+      "source_hash": 2526668307265730495,
+      "context_hash": 3123447823202486205,
+      "translation": "낮음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726727Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:38/seg:0",
+      "source": "Medium",
+      "source_hash": 7377651229498775580,
+      "context_hash": 8909629037325181724,
+      "translation": "중간",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:41:51.726727Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:39/seg:0",
+      "source": "Medium",
+      "source_hash": 7377651229498775580,
+      "context_hash": 6022960312440604240,
+      "translation": "중간",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104339Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:40/seg:0",
+      "source": "High",
+      "source_hash": 1444346747666423042,
+      "context_hash": 9979334718588491898,
+      "translation": "높음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104339Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:41/seg:0",
+      "source": "Typical use case",
+      "source_hash": 114619379738760234,
+      "context_hash": 4432313950211438365,
+      "translation": "일반적인 사용 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104339Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:42/seg:0",
+      "source": "Static file serving",
+      "source_hash": 8759704112260153280,
+      "context_hash": 14601592199405574408,
+      "translation": "정적 파일 제공",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:43/seg:0",
+      "source": "Pipelines, log shipping",
+      "source_hash": 13912525921679520317,
+      "context_hash": 14525125345599846506,
+      "translation": "파이프라인, 로그 전송",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:44/seg:0",
+      "source": "High-concurrency servers",
+      "source_hash": 399246015934753075,
+      "context_hash": 17621276864596293852,
+      "translation": "고동시성 서버",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:45/seg:0",
+      "source": "High-throughput senders",
+      "source_hash": 17465843002836511246,
+      "context_hash": 6375047750215843742,
+      "translation": "고처리량 송신자",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:46/seg:0",
+      "source": "Transform possible",
+      "source_hash": 17655728230083855362,
+      "context_hash": 3438866016502508213,
+      "translation": "변환 가능 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:47/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 4120381136667530465,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:48/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:49/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:50/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 4071751876676704478,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:42:03.104340Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:51/seg:0",
+      "source": "io_uring splice",
+      "source_hash": 17393367963370429234,
+      "context_hash": 3672784555760320062,
+      "translation": "io_uring splice",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:52/seg:0",
+      "source": "`IORING_OP_SPLICE` was added in Linux 5.7 and allows chaining splice operations asynchronously in an io_uring submission ring:",
+      "source_hash": 12564128472617351315,
+      "context_hash": 2759856339361249901,
+      "translation": "`IORING_OP_SPLICE`는 Linux 5.7에서 추가되었으며, io_uring 제출 링(submission ring)에서 splice 작업을 비동기적으로 연결할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:54/seg:0",
+      "source": "MSG_ZEROCOPY",
+      "source_hash": 6501762835424521164,
+      "context_hash": 12613391921795732526,
+      "translation": "MSG_ZEROCOPY",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:55/seg:0",
+      "source": "`MSG_ZEROCOPY` (Linux 4.14, `include/uapi/linux/socket.h`) is different in character: it operates on `send(2)` / `sendmsg(2)` and tells the kernel to hold the user buffer pages rather than copying them into socket buffers.",
+      "source_hash": 17745945628822114944,
+      "context_hash": 1419808930822784290,
+      "translation": "`MSG_ZEROCOPY`(Linux 4.14, `include/uapi/linux/socket.h`)는 성격이 다릅니다. 이는 `send(2)` / `sendmsg(2)`에서 동작하며, 사용자 버퍼 페이지를 소켓 버퍼로 복사하는 대신 그대로 유지하도록 커널에 지시합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:55/seg:1",
+      "source": "The application gets a notification via the socket error queue (`SO_EE_ORIGIN_ZEROCOPY`) when the kernel is done with the pages.",
+      "source_hash": 16564985301371356088,
+      "context_hash": 15349957226665252792,
+      "translation": "커널이 페이지 사용을 마치면 애플리케이션은 소켓 오류 큐(`SO_EE_ORIGIN_ZEROCOPY`)를 통해 알림을 받습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:57/seg:0",
+      "source": "`MSG_ZEROCOPY` is best for large `send` calls (> ~10 KB); for small sends the notification overhead exceeds the copy cost.",
+      "source_hash": 1107444885952383409,
+      "context_hash": 8072215205993267570,
+      "translation": "`MSG_ZEROCOPY`는 큰 `send` 호출(> ~10 KB)에 가장 적합하며, 작은 송신에서는 알림 오버헤드가 복사 비용을 넘어섭니다.",
+      "glossary_snapshot": {
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:57/seg:1",
+      "source": "It also requires the application to track in-flight buffers carefully.",
+      "source_hash": 13270011195915378553,
+      "context_hash": 3035520932176722141,
+      "translation": "또한 애플리케이션이 전송 중인(in-flight) 버퍼를 신중하게 추적해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "`vmsplice(2)` — userspace memory into a pipe",
+      "source_hash": 13042254368291274070,
+      "context_hash": 14497857430504608343,
+      "translation": "`vmsplice(2)` — 사용자 공간 메모리를 파이프로",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "`vmsplice` splices userspace virtual memory into a pipe, allowing user pages to be passed to the kernel without copying.",
+      "source_hash": 5329199455389695192,
+      "context_hash": 18431975675837309222,
+      "translation": "`vmsplice`는 사용자 공간 가상 메모리를 파이프로 splice하여, 사용자 페이지를 복사 없이 커널에 전달할 수 있게 합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:42:03.104341Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "`fd` must be the write end of a pipe.",
+      "source_hash": 1428789629605523419,
+      "context_hash": 1064304703768005062,
+      "translation": "`fd`는 파이프의 쓰기 쪽 끝이어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104342Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "Each `iovec` describes a range of the caller's virtual address space.",
+      "source_hash": 6024635151258477205,
+      "context_hash": 7335973979694814036,
+      "translation": "각 `iovec`은 호출자 가상 주소 공간의 한 범위를 나타냅니다.",
+      "glossary_snapshot": {
+        "virtual address space": "가상 주소 공간"
+      },
+      "translated_at": "2026-11-14T22:42:03.104342Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "SPLICE_F_GIFT",
+      "source_hash": 2947921838037629469,
+      "context_hash": 9128678929209421493,
+      "translation": "SPLICE_F_GIFT",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104342Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "Without `SPLICE_F_GIFT`, the kernel copies the pages before they enter the pipe (because the user might modify them before the pipe consumer reads them).",
+      "source_hash": 4932349582990271888,
+      "context_hash": 2869188654208113574,
+      "translation": "`SPLICE_F_GIFT`가 없으면 커널은 페이지가 파이프에 들어가기 전에 복사합니다(파이프 소비자가 읽기 전에 사용자가 페이지를 수정할 수 있기 때문입니다).",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:03.104342Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:1",
+      "source": "With `SPLICE_F_GIFT`, the user promises not to modify or free the pages — the kernel accepts them as a gift and maps them directly into the pipe ring:",
+      "source_hash": 17546170104149180689,
+      "context_hash": 13681113716259037446,
+      "translation": "`SPLICE_F_GIFT`를 사용하면 사용자는 페이지를 수정하거나 해제하지 않겠다고 약속하며, 커널은 이를 선물(gift)로 받아 파이프 링에 직접 매핑합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:03.104342Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "`SPLICE_F_GIFT` is effectively a zero-copy transfer of user pages to the kernel. `SPLICE_F_GIFT` is a user-space contract — the kernel trusts the caller not to modify the pages after the gift.",
+      "source_hash": 4714819230199085269,
+      "context_hash": 11357991375344321517,
+      "translation": "`SPLICE_F_GIFT`는 사실상 사용자 페이지를 커널로 제로 카피 전송하는 것입니다. `SPLICE_F_GIFT`는 사용자 공간의 약속이며, 커널은 호출자가 선물 이후 페이지를 수정하지 않으리라고 신뢰합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "user-space": "사용자 공간",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T22:42:03.104342Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:1",
+      "source": "There is no kernel-level enforcement; the kernel does NOT unmap the pages from the calling process.",
+      "source_hash": 10929769360281021679,
+      "context_hash": 5502800928082818295,
+      "translation": "커널 수준의 강제 수단은 없으며, 커널은 호출 프로세스에서 페이지의 매핑을 해제하지 않습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:42:03.104343Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:2",
+      "source": "Accessing `buf` after the gift is undefined behaviour that may silently corrupt data in the pipe, but will not cause a segfault or other kernel protection.",
+      "source_hash": 4039239922504632306,
+      "context_hash": 7282062714557210764,
+      "translation": "선물 이후 `buf`에 접근하는 것은 정의되지 않은 동작으로, 파이프 안의 데이터를 조용히 손상시킬 수 있지만 segfault나 그 밖의 커널 보호 동작을 일으키지는 않습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:03.104343Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:3",
+      "source": "In practice, `vmsplice` + `SPLICE_F_GIFT` is used in high-performance message brokers and kernel bypass-adjacent code.",
+      "source_hash": 15310223999138661507,
+      "context_hash": 5006662895401318003,
+      "translation": "실제로 `vmsplice` + `SPLICE_F_GIFT`는 고성능 메시지 브로커와 커널 우회(kernel bypass)에 가까운 코드에서 사용됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:03.104343Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Practical patterns",
+      "source_hash": 8765027645995792807,
+      "context_hash": 10173098868744129608,
+      "translation": "실용적인 패턴",
+      "glossary_snapshot": {
+        "Practical patterns": "실용적인 패턴"
+      },
+      "translated_at": "2026-11-14T23:31:22.428331Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Pattern 1: nginx-style static file serving",
+      "source_hash": 9557759735292024366,
+      "context_hash": 12773919950931749042,
+      "translation": "패턴 1: nginx 방식의 정적 파일 제공",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:03.104343Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "This is the fundamental zero-copy web server loop.",
+      "source_hash": 7885343501841761996,
+      "context_hash": 13791832259915393297,
+      "translation": "이것은 기본적인 제로 카피 웹 서버 루프입니다.",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428332Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:1",
+      "source": "Real nginx uses `sendfile` directly; the splice version shown below works for any socket type:",
+      "source_hash": 15093793759189808326,
+      "context_hash": 771459290866362183,
+      "translation": "실제 nginx는 `sendfile`을 직접 사용하지만, 아래에 나오는 splice 버전은 모든 소켓 유형에서 동작합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794424Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Pattern 2: splice-based log shipping with tee",
+      "source_hash": 3569507767037688859,
+      "context_hash": 8905571223154100170,
+      "translation": "패턴 2: tee를 이용한 splice 기반 로그 전송",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794424Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Forward a byte stream to both a log file and a downstream service, zero-copy:",
+      "source_hash": 8415173230075879458,
+      "context_hash": 13370969892678527037,
+      "translation": "바이트 스트림을 로그 파일과 다운스트림 서비스 양쪽으로 제로 카피로 전달합니다:",
+      "glossary_snapshot": {
+        "byte": "바이트",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428332Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "Pattern 3: pipe-stage data processing",
+      "source_hash": 2611537122407031226,
+      "context_hash": 9519777686760637569,
+      "translation": "패턴 3: 파이프 단계 데이터 처리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794424Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "When a transformation is required (e.g., prepend a header to each message), splice the data around the transform:",
+      "source_hash": 14174409045846531285,
+      "context_hash": 6267406498243507531,
+      "translation": "변환이 필요한 경우(예: 각 메시지 앞에 헤더 추가)에는 변환 단계를 사이에 두고 데이터를 splice하십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794424Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "When zero-copy doesn't help",
+      "source_hash": 14482519748920949520,
+      "context_hash": 4065009119475096341,
+      "translation": "제로 카피가 도움이 되지 않는 경우",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428333Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Zero-copy is not universally beneficial.",
+      "source_hash": 10843028550154638816,
+      "context_hash": 5069148747950600572,
+      "translation": "제로 카피가 항상 이득인 것은 아닙니다.",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428333Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "Understand the cases where it hurts or doesn't apply:",
+      "source_hash": 4515099248549607518,
+      "context_hash": 16620673997393997867,
+      "translation": "오히려 손해가 되거나 적용되지 않는 경우를 이해해 두십시오:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794425Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Small files",
+      "source_hash": 9974196734878567818,
+      "context_hash": 13451811987406649940,
+      "translation": "작은 파일",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794425Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "`sendfile` and `splice` have per-call overhead: syscall entry, pipe buffer allocation, page reference management, and scatter-gather descriptor setup.",
+      "source_hash": 13729380179497903148,
+      "context_hash": 8986660604853091275,
+      "translation": "`sendfile`과 `splice`에는 호출마다 발생하는 오버헤드가 있습니다: 시스템 콜 진입, 파이프 버퍼 할당, 페이지 참조 관리, scatter-gather 디스크립터 설정입니다.",
+      "glossary_snapshot": {
+        "descriptor": "디스크립터",
+        "overhead": "오버헤드",
+        "pipe buffer": "파이프 버퍼",
+        "scatter-gather": "scatter-gather",
+        "syscall entry": "시스템 콜 진입"
+      },
+      "translated_at": "2026-11-14T22:42:05.794425Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:1",
+      "source": "For files smaller than roughly 64 KB, this overhead can exceed the cost of a simple `read+write` with a hot CPU cache.",
+      "source_hash": 2778885216511570004,
+      "context_hash": 4775425536104339303,
+      "translation": "대략 64 KB보다 작은 파일에서는 이 오버헤드가 CPU 캐시가 뜨거운 상태에서의 단순한 `read+write` 비용보다 커질 수 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "cache": "캐시",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:42:05.794425Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:2",
+      "source": "Static asset servers often use `sendfile` only for files above a configurable threshold.",
+      "source_hash": 1358207106009178249,
+      "context_hash": 1440933048310206385,
+      "translation": "정적 자원 서버는 설정 가능한 임계값보다 큰 파일에만 `sendfile`을 사용하는 경우가 많습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794425Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "HTTPS without kTLS",
+      "source_hash": 15901568404060447779,
+      "context_hash": 17346075472000906112,
+      "translation": "kTLS 없는 HTTPS",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794426Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "TLS encryption requires reading plaintext, encrypting it, and writing ciphertext.",
+      "source_hash": 4470257248858975354,
+      "context_hash": 7848739602750983923,
+      "translation": "TLS 암호화는 평문을 읽고, 암호화하고, 암호문을 쓰는 과정을 필요로 합니다.",
+      "glossary_snapshot": {
+        "encryption": "암호화"
+      },
+      "translated_at": "2026-11-14T22:42:05.794426Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:1",
+      "source": "The CPU *must* touch the data. `sendfile` cannot help unless **kTLS** (`SO_TLS_TX`) is in use (Linux 4.17+).",
+      "source_hash": 832312114184364012,
+      "context_hash": 12978061027484743531,
+      "translation": "CPU가 데이터를 *반드시* 건드려야 합니다. **kTLS**(`SO_TLS_TX`)를 사용하지 않는 한(Linux 4.17+) `sendfile`은 도움이 되지 않습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:42:05.794426Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:2",
+      "source": "With kTLS, the kernel's TLS record layer encrypts pages on their way to the NIC, preserving zero-copy for the file-to-network segment.",
+      "source_hash": 12566603565143188855,
+      "context_hash": 4602493337438157494,
+      "translation": "kTLS를 사용하면 커널의 TLS 레코드 계층이 페이지가 NIC로 전달되는 도중에 암호화하므로, 파일에서 네트워크로 가는 구간의 제로 카피가 유지됩니다.",
+      "glossary_snapshot": {
+        "NIC": "NIC",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428334Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:3",
+      "source": "See [kTLS](../net/ktls.md).",
+      "source_hash": 17301785695516954337,
+      "context_hash": 6739097694913728825,
+      "translation": "[kTLS](../net/ktls.md)를 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794426Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "Without kTLS:",
+      "source_hash": 15730778163585970640,
+      "context_hash": 10080351958989984983,
+      "translation": "kTLS가 없는 경우:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794426Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "Compressed content",
+      "source_hash": 699055926806386098,
+      "context_hash": 3693255025499417814,
+      "translation": "압축된 콘텐츠",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794426Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "Sending gzip or Brotli-compressed files can use `sendfile` fine — the compressed bytes are already in the page cache.",
+      "source_hash": 9463806324031895482,
+      "context_hash": 12825939039319406206,
+      "translation": "gzip이나 Brotli로 압축된 파일을 전송할 때는 `sendfile`을 문제없이 사용할 수 있습니다 — 압축된 바이트가 이미 페이지 캐시에 있기 때문입니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:05.794427Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:1",
+      "source": "However, *on-the-fly compression* (as nginx does with `gzip on`) requires reading and compressing in userspace, so zero-copy provides no benefit for that path.",
+      "source_hash": 16694915153117372568,
+      "context_hash": 6714480816223426732,
+      "translation": "그러나 *실시간(on-the-fly) 압축*(nginx가 `gzip on`으로 수행하는 방식)은 사용자 공간에서 읽고 압축해야 하므로, 이 경로에서는 제로 카피가 아무런 이점을 주지 않습니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428334Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Content transformations",
+      "source_hash": 9810056657829696521,
+      "context_hash": 7382314165134836424,
+      "translation": "콘텐츠 변환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794427Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "Any transformation — substitution, encoding conversion, image resizing — requires touching the bytes.",
+      "source_hash": 6765533558966311842,
+      "context_hash": 6533167836649385332,
+      "translation": "치환, 인코딩 변환, 이미지 크기 조정 등 어떤 변환이든 바이트를 건드려야 합니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:42:05.794427Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:1",
+      "source": "In those cases, the only optimisation available is to minimise extra copies (use `O_DIRECT` + `mmap` for the source, write directly to the socket buffer), not `splice` or `sendfile`.",
+      "source_hash": 13299711454475740701,
+      "context_hash": 11002454215991718985,
+      "translation": "이런 경우 가능한 유일한 최적화는 `splice`나 `sendfile`이 아니라 추가 복사를 최소화하는 것입니다(소스에는 `O_DIRECT` + `mmap`을 사용하고, 소켓 버퍼에 직접 쓰기).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794427Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "High-frequency small sends (MSG_ZEROCOPY)",
+      "source_hash": 17687274650246020152,
+      "context_hash": 9897301771745538853,
+      "translation": "고빈도 소량 전송(MSG_ZEROCOPY)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794427Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "`MSG_ZEROCOPY` has a per-send completion notification that must be collected from the error queue.",
+      "source_hash": 4601765143326381282,
+      "context_hash": 6259985376481158391,
+      "translation": "`MSG_ZEROCOPY`에는 전송마다 완료 알림이 있으며, 이 알림은 에러 큐에서 수거해야 합니다.",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:42:05.794427Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:1",
+      "source": "For messages smaller than ~10 KB, the synchronisation cost dominates.",
+      "source_hash": 12744289774093713494,
+      "context_hash": 15260857590008156622,
+      "translation": "~10 KB보다 작은 메시지에서는 동기화 비용이 지배적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:05.794428Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:2",
+      "source": "Benchmarks from the Linux networking team suggest the break-even point is around 10–100 KB depending on the workload.",
+      "source_hash": 780275330666899247,
+      "context_hash": 1315713933212926757,
+      "translation": "Linux 네트워킹 팀의 벤치마크에 따르면 손익분기점은 워크로드에 따라 약 10–100 KB입니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:42:05.794428Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "NUMA effects",
+      "source_hash": 1021981196144689991,
+      "context_hash": 12592329308856577271,
+      "translation": "NUMA 영향",
+      "glossary_snapshot": {
+        "NUMA": "NUMA"
+      },
+      "translated_at": "2026-11-14T22:42:05.794428Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "When the NIC and the page cache are on different NUMA nodes, the DMA read that the NIC performs crosses the interconnect.",
+      "source_hash": 7944812678633583479,
+      "context_hash": 10200439491440357868,
+      "translation": "NIC와 페이지 캐시가 서로 다른 NUMA 노드에 있으면 NIC가 수행하는 DMA 읽기가 인터커넥트를 가로지릅니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "NIC": "NIC",
+        "NUMA nodes": "NUMA 노드",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:42:04.759410Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:1",
+      "source": "This is inherent to the hardware topology and not something splice can fix.",
+      "source_hash": 6339305167750970546,
+      "context_hash": 5057177628210843529,
+      "translation": "이는 하드웨어 토폴로지에 내재된 문제이며 splice로 해결할 수 있는 것이 아닙니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:42:04.759413Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:2",
+      "source": "For latency-sensitive paths on multi-socket systems, pin worker threads and their page allocations to the NUMA node local to the NIC.",
+      "source_hash": 578248574360970045,
+      "context_hash": 8211212776577004219,
+      "translation": "멀티 소켓 시스템에서 지연 시간에 민감한 경로라면 워커 스레드와 그 페이지 할당을 NIC에 로컬인 NUMA 노드에 고정하십시오.",
+      "glossary_snapshot": {
+        "NIC": "NIC",
+        "NUMA node": "NUMA 노드",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:42:04.759414Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "`copy_file_range(2)` — server-side file copy",
+      "source_hash": 3969077296378464119,
+      "context_hash": 15866202256447522737,
+      "translation": "`copy_file_range(2)` — 서버 측 파일 복사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759415Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "`copy_file_range` was added in Linux 4.5.",
+      "source_hash": 16354262701208626234,
+      "context_hash": 11713490928357163663,
+      "translation": "`copy_file_range`는 Linux 4.5에서 추가되었습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:42:04.759416Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:1",
+      "source": "It copies bytes between two file descriptors entirely within the kernel — no userspace buffer involved.",
+      "source_hash": 13477607457154254590,
+      "context_hash": 9666848906732953198,
+      "translation": "이 시스템 콜은 두 파일 디스크립터 사이에서 바이트를 전적으로 커널 안에서 복사하며, 사용자 공간 버퍼가 전혀 관여하지 않습니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "file descriptors": "파일 디스크립터",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:42:04.759416Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "`flags` is currently unused and must be 0. `off_in` and `off_out` are optional; if NULL, the file's current position is used.",
+      "source_hash": 11313574716742623464,
+      "context_hash": 3690817581841542669,
+      "translation": "`flags`는 현재 사용되지 않으며 반드시 0이어야 합니다. `off_in`과 `off_out`은 선택 사항이며, NULL이면 파일의 현재 위치가 사용됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759418Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "The filesystem shortcut",
+      "source_hash": 3864581472066956338,
+      "context_hash": 5342057285253713841,
+      "translation": "파일시스템 지름길",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759418Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "The kernel calls the filesystem's `copy_file_range` operation first:",
+      "source_hash": 13217859245642284184,
+      "context_hash": 931318991084755162,
+      "translation": "커널은 먼저 파일시스템의 `copy_file_range` 연산을 호출합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:42:04.759419Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "On filesystems that implement it:",
+      "source_hash": 6061311710893770360,
+      "context_hash": 13932696724076088017,
+      "translation": "이 연산을 구현한 파일시스템에서는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759419Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "**Btrfs** (`btrfs_copy_file_range`): performs a **reflink** — the destination file shares the source's extent tree nodes, with copy-on-write semantics.",
+      "source_hash": 12087577967514108412,
+      "context_hash": 348910076495839127,
+      "translation": "**Btrfs**(`btrfs_copy_file_range`): **reflink**를 수행합니다. 대상 파일이 copy-on-write 의미론으로 원본의 extent 트리 노드를 공유합니다.",
+      "glossary_snapshot": {
+        "btrfs": "btrfs",
+        "copy-on-write": "copy-on-write",
+        "nodes": "노드"
+      },
+      "translated_at": "2026-11-14T22:42:04.759419Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:1",
+      "source": "The copy completes in microseconds regardless of file size; no data is read from or written to disk.",
+      "source_hash": 17133482827967559970,
+      "context_hash": 7157862207557550098,
+      "translation": "복사는 파일 크기와 관계없이 마이크로초 단위로 완료되며, 디스크에서 데이터를 읽거나 디스크에 데이터를 쓰지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759420Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "**XFS** (with `reflink=1` mount option, Linux 4.16+): same reflink semantics.",
+      "source_hash": 6509874696191422191,
+      "context_hash": 16975868704620227099,
+      "translation": "**XFS**(`reflink=1` 마운트 옵션 사용 시, Linux 4.16+): 동일한 reflink 의미론",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:42:04.759421Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:10/seg:0",
+      "source": "**NFS v4.2+** (`nfs42_copy_file_range`): delegates to `COPY` operation on the server — the server copies internally.",
+      "source_hash": 3622753424547572214,
+      "context_hash": 18185963200363224903,
+      "translation": "**NFS v4.2+**(`nfs42_copy_file_range`): 서버의 `COPY` 연산에 위임하며, 서버가 내부적으로 복사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759422Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "**SMB3** (`smb2_copychunk_range`): uses the `IOCTL FSCTL_SRV_COPYCHUNK` operation.",
+      "source_hash": 8533100463709410264,
+      "context_hash": 4382550237955064024,
+      "translation": "**SMB3**(`smb2_copychunk_range`): `IOCTL FSCTL_SRV_COPYCHUNK` 연산을 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759422Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:12/seg:0",
+      "source": "**All others**: fall back to `do_splice_direct`, which opens a temporary pipe and uses splice internally.",
+      "source_hash": 12657180880382315662,
+      "context_hash": 17856190332016817328,
+      "translation": "**그 밖의 모든 파일시스템**: `do_splice_direct`로 폴백하며, 이 함수는 임시 파이프를 열고 내부적으로 splice를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759423Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:12/seg:1",
+      "source": "Still zero userspace copies, but not instantaneous.",
+      "source_hash": 14565260512690377380,
+      "context_hash": 6577192904856619851,
+      "translation": "여전히 사용자 공간 복사는 전혀 없지만 즉시 완료되지는 않습니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:42:04.759423Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:0",
+      "source": "Reflink: copy-on-write file copies",
+      "source_hash": 6244514037002413111,
+      "context_hash": 3204214139353447691,
+      "translation": "Reflink: copy-on-write 파일 복사",
+      "glossary_snapshot": {
+        "copy-on-write": "copy-on-write"
+      },
+      "translated_at": "2026-11-14T22:42:04.759424Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:15/seg:0",
+      "source": "The practical effect: `cp --reflink=always large-file copy` returns instantly:",
+      "source_hash": 3058666823486316700,
+      "context_hash": 9557237908481233989,
+      "translation": "실제 효과로, `cp --reflink=always large-file copy`는 즉시 반환됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759425Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:0",
+      "source": "copy_file_range and cross-filesystem copies",
+      "source_hash": 14705922542927124764,
+      "context_hash": 12452910845750374356,
+      "translation": "copy_file_range와 파일시스템 간 복사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759425Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:0",
+      "source": "`copy_file_range` returns `-EXDEV` when `fd_in` and `fd_out` are on different filesystems (or different mounts of the same filesystem).",
+      "source_hash": 12058406406848032384,
+      "context_hash": 8235003491302374063,
+      "translation": "`fd_in`과 `fd_out`이 서로 다른 파일시스템(또는 같은 파일시스템의 서로 다른 마운트)에 있으면 `copy_file_range`는 `-EXDEV`를 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759425Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:1",
+      "source": "The kernel falls back to `do_splice_direct` in this case since Linux 5.3; earlier kernels returned the error to userspace.",
+      "source_hash": 9377358919313762815,
+      "context_hash": 9359135812918633141,
+      "translation": "Linux 5.3부터 커널은 이 경우 `do_splice_direct`로 폴백하며, 이전 커널은 오류를 사용자 공간에 반환했습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "kernel": "커널",
+        "kernels": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:42:04.759426Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:0",
+      "source": "Comparison with splice for file copies",
+      "source_hash": 9648616242354663171,
+      "context_hash": 2941331607987563886,
+      "translation": "파일 복사에서 splice와의 비교",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:20/seg:0",
+      "source": "`splice` (via pipe)",
+      "source_hash": 17611549150186920361,
+      "context_hash": 3550813186730637398,
+      "translation": "`splice`(파이프 경유)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:21/seg:0",
+      "source": "`copy_file_range`",
+      "source_hash": 6185973527403218755,
+      "context_hash": 10809469576476398779,
+      "translation": "`copy_file_range`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:22/seg:0",
+      "source": "Needs pipe fd",
+      "source_hash": 832185773406213277,
+      "context_hash": 2397522276426920312,
+      "translation": "파이프 fd 필요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759433Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:23/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16802271947766034424,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:42:04.759434Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:24/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 2530392631868343592,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:42:04.759434Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:25/seg:0",
+      "source": "Works file→file",
+      "source_hash": 4683739567565972008,
+      "context_hash": 9183105388631184689,
+      "translation": "파일→파일 동작",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759435Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:26/seg:0",
+      "source": "Yes (via pipe)",
+      "source_hash": 15934795689561402921,
+      "context_hash": 11597888153473213305,
+      "translation": "예(파이프 경유)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759435Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:27/seg:0",
+      "source": "Yes (direct)",
+      "source_hash": 5147866271894022791,
+      "context_hash": 15103856217029881796,
+      "translation": "예(직접)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759436Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:28/seg:0",
+      "source": "Reflink support",
+      "source_hash": 212753615634616561,
+      "context_hash": 655992434088105785,
+      "translation": "Reflink 지원",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:42:04.759436Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:29/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 8072826542259703129,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T21:51:56.906379Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:30/seg:0",
+      "source": "Yes (on capable FS)",
+      "source_hash": 6871978647073418736,
+      "context_hash": 14835251660722742074,
+      "translation": "예 (지원하는 FS에서)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906381Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:31/seg:0",
+      "source": "Cross-fs",
+      "source_hash": 10204224819329525218,
+      "context_hash": 15354929912445320581,
+      "translation": "파일 시스템 간",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906381Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:32/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 15391267316507743957,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T21:51:56.906381Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:33/seg:0",
+      "source": "No (EXDEV)",
+      "source_hash": 16192523472227660550,
+      "context_hash": 10693443885169264792,
+      "translation": "아니요 (EXDEV)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906381Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:34/seg:0",
+      "source": "Typical speed",
+      "source_hash": 8549103193593989707,
+      "context_hash": 14015841048605408746,
+      "translation": "일반적인 속도",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:35/seg:0",
+      "source": "Fast (page refs)",
+      "source_hash": 2251699461312154329,
+      "context_hash": 2128276639070472743,
+      "translation": "빠름 (페이지 참조)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:36/seg:0",
+      "source": "Instantaneous (reflink)",
+      "source_hash": 6343228555165292689,
+      "context_hash": 13331951707614478913,
+      "translation": "즉시 (reflink)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Kernel source references",
+      "source_hash": 17084913328815036606,
+      "context_hash": 12389157512219139549,
+      "translation": "커널 소스 참조",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "The implementation lives in two main files:",
+      "source_hash": 3911002532720360006,
+      "context_hash": 5864278472317654959,
+      "translation": "구현은 두 개의 주요 파일에 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "`fs/splice.c` — `sys_splice`, `sys_tee`, `sys_vmsplice`, `do_splice_to`, `do_splice_from`, `splice_pipe_to_pipe`, `splice_from_pipe`, `filemap_splice_read`, `generic_splice_sendpage`",
+      "source_hash": 15878416555079157099,
+      "context_hash": 481857328917042236,
+      "translation": "`fs/splice.c` — `sys_splice`, `sys_tee`, `sys_vmsplice`, `do_splice_to`, `do_splice_from`, `splice_pipe_to_pipe`, `splice_from_pipe`, `filemap_splice_read`, `generic_splice_sendpage`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "`include/linux/splice.h` — `struct splice_pipe_desc`, `splice_actor` typedef, `splice_from_pipe` / `splice_to_pipe` prototypes, pipe buffer operation tables",
+      "source_hash": 3836292360200882211,
+      "context_hash": 708624675984822457,
+      "translation": "`include/linux/splice.h` — `struct splice_pipe_desc`, `splice_actor` typedef, `splice_from_pipe` / `splice_to_pipe` 프로토타입, 파이프 버퍼 연산 테이블",
+      "glossary_snapshot": {
+        "pipe buffer": "파이프 버퍼"
+      },
+      "translated_at": "2026-11-14T23:31:22.428335Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "`fs/read_write.c` — `sys_sendfile64`, `do_sendfile`, `sys_copy_file_range`, `do_splice_direct`",
+      "source_hash": 8282271489254211650,
+      "context_hash": 9906165608888174851,
+      "translation": "`fs/read_write.c` — `sys_sendfile64`, `do_sendfile`, `sys_copy_file_range`, `do_splice_direct`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "`include/linux/pipe_fs_i.h` — `struct pipe_inode_info`, `struct pipe_buffer`, `struct pipe_buf_operations`",
+      "source_hash": 3421742923451980165,
+      "context_hash": 606703941460842032,
+      "translation": "`include/linux/pipe_fs_i.h` — `struct pipe_inode_info`, `struct pipe_buffer`, `struct pipe_buf_operations`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "`net/socket.c` — `sock_splice_read`, `sock_splice_write` (socket-side splice hooks)",
+      "source_hash": 12792413129320186963,
+      "context_hash": 5351271603993145172,
+      "translation": "`net/socket.c` — `sock_splice_read`, `sock_splice_write` (소켓 측 splice 훅)",
+      "glossary_snapshot": {
+        "hooks": "훅"
+      },
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 1540318002342058036,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:51:56.906382Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "[Buffered I/O and the page cache](buffered-io.md) — what splice's page references point into",
+      "source_hash": 12866605958536548382,
+      "context_hash": 7051285029242671668,
+      "translation": "[버퍼드 I/O와 페이지 캐시](buffered-io.md) — splice의 페이지 참조가 가리키는 대상",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:51:56.906383Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "[Direct I/O](direct-io.md) — why O_DIRECT and splice don't mix well",
+      "source_hash": 12926794677611061865,
+      "context_hash": 2123154206927462237,
+      "translation": "[Direct I/O](direct-io.md) — O_DIRECT와 splice가 잘 어울리지 않는 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906383Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[io_uring: Operations](../io-uring/io-uring-ops.md) — `IORING_OP_SPLICE` and `IORING_OP_TEE`",
+      "source_hash": 14513640082706390974,
+      "context_hash": 14071698755031945288,
+      "translation": "[io_uring: 연산](../io-uring/io-uring-ops.md) — `IORING_OP_SPLICE`와 `IORING_OP_TEE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906383Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "[kTLS](../net/ktls.md) — zero-copy HTTPS via in-kernel TLS",
+      "source_hash": 5837445356770676167,
+      "context_hash": 286051541504059382,
+      "translation": "[kTLS](../net/ktls.md) — 커널 내 TLS를 통한 제로 카피 HTTPS",
+      "glossary_snapshot": {
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428336Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "[splice, sendfile, copy_file_range (VFS layer)](../vfs/splice-sendfile.md) — VFS-level view of the same syscalls",
+      "source_hash": 16022502363216735714,
+      "context_hash": 8003712234101298776,
+      "translation": "[splice, sendfile, copy_file_range (VFS 계층)](../vfs/splice-sendfile.md) — 같은 시스템 콜을 VFS 수준에서 본 관점",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T21:51:56.906383Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "[Page cache](../mm/page-cache.md) — page reference counting that makes zero-copy safe",
+      "source_hash": 4488394509539880023,
+      "context_hash": 16277117725902004024,
+      "translation": "[페이지 캐시](../mm/page-cache.md) — 제로 카피를 안전하게 만드는 페이지 참조 카운팅",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:31:22.428336Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "`fs/splice.c` — canonical implementation",
+      "source_hash": 6437989212778616781,
+      "context_hash": 16697162954148579564,
+      "translation": "`fs/splice.c` — 표준 구현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:51:56.906384Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "`include/linux/splice.h` — data structures and exported helpers",
+      "source_hash": 10523203878524331996,
+      "context_hash": 10752941951991042712,
+      "translation": "`include/linux/splice.h` — 자료 구조와 export된 헬퍼",
+      "glossary_snapshot": {
+        "data structures": "자료 구조"
+      },
+      "translated_at": "2026-11-14T21:51:56.906384Z",
+      "issues": []
+    }
+  ]
+}

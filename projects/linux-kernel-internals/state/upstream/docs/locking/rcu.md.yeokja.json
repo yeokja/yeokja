@@ -1,0 +1,827 @@
+{
+  "version": 1,
+  "source_hash": 6366889023707740323,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "RCU (Read-Copy-Update)",
+      "source_hash": 14529873974826463112,
+      "context_hash": 11349998021928878318,
+      "translation": "RCU (Read-Copy-Update)",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:55.022958Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Lock-free reads through grace periods — the highest-performance synchronization in the kernel",
+      "source_hash": 17172916594230932832,
+      "context_hash": 6496704402455279638,
+      "translation": "grace period를 통한 락 없는 읽기 — 커널에서 가장 성능이 높은 동기화 기법",
+      "glossary_snapshot": {
+        "grace periods": "grace period",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:15:55.022959Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The core idea",
+      "source_hash": 15922500070673345573,
+      "context_hash": 3723865224411230359,
+      "translation": "핵심 아이디어",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022959Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "RCU was added to Linux in kernel 2.5.43 (October 2002) by Dipankar Sarma (IBM) and Paul E. McKenney — confirmed in [\"What is RCU, Fundamentally?\"](https://lwn.net/Articles/262464/) (McKenney & Walpole, LWN 2007): *\"RCU added to the Linux kernel in October 2002.\"*",
+      "source_hash": 13012443979909154383,
+      "context_hash": 14633308832258609834,
+      "translation": "RCU는 커널 2.5.43(2002년 10월)에서 Dipankar Sarma(IBM)와 Paul E. McKenney에 의해 Linux에 추가되었으며, 이는 [\"What is RCU, Fundamentally?\"](https://lwn.net/Articles/262464/)(McKenney & Walpole, LWN 2007)에서 확인됩니다: *\"RCU는 2002년 10월에 Linux 커널에 추가되었습니다.\"*",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "Linux": "Linux",
+        "Linux kernel": "Linux 커널",
+        "RCU": "RCU",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:15:55.022959Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "RCU solves a specific problem: how do you allow many readers to access a data structure with zero synchronization overhead, while still allowing writers to modify it safely?",
+      "source_hash": 18204331460504454158,
+      "context_hash": 5480841648273815581,
+      "translation": "RCU는 특정한 문제를 해결합니다. 다수의 reader가 동기화 오버헤드 없이 자료 구조에 접근하도록 허용하면서도, writer가 이를 안전하게 수정할 수 있게 하려면 어떻게 해야 할까요?",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "data structure": "자료 구조",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:15:55.022959Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "The insight: **readers never modify the data**, so they can run truly concurrently as long as the writer doesn't free the old data until all readers that could see it have finished.",
+      "source_hash": 6798803811105790575,
+      "context_hash": 3141907513865656507,
+      "translation": "핵심 통찰은 **reader는 데이터를 절대 수정하지 않는다**는 점이며, 따라서 writer가 이전 데이터를 볼 수 있는 모든 reader가 끝날 때까지 그 데이터를 해제하지 않는 한 reader들은 진정으로 동시에 실행될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022960Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "The critical property: **readers pay almost nothing**.",
+      "source_hash": 18364307814772427555,
+      "context_hash": 5362081764443543763,
+      "translation": "결정적인 특성은 **reader가 치르는 비용이 거의 없다**는 점입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022960Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "On non-preemptible kernels, `rcu_read_lock()` is literally a compiler barrier with preemption disabled — no atomic operations, no cache line bouncing.",
+      "source_hash": 11711698498290285225,
+      "context_hash": 6765289103304055339,
+      "translation": "선점 불가능한 커널에서 `rcu_read_lock()`는 말 그대로 선점이 비활성화된 컴파일러 배리어일 뿐이며, 원자적 연산도 캐시 라인 바운싱도 없습니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "kernels": "커널",
+        "preemption": "선점"
+      },
+      "translated_at": "2026-11-14T22:15:55.022960Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "The grace period",
+      "source_hash": 10756031328729211566,
+      "context_hash": 13003558115649355837,
+      "translation": "grace period",
+      "glossary_snapshot": {
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:55.022961Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "A **grace period** is the time the writer waits after publishing the new pointer before freeing the old one.",
+      "source_hash": 10218006276762520113,
+      "context_hash": 8206108004361258563,
+      "translation": "**grace period**는 writer가 새 포인터를 게시한 후 이전 포인터를 해제하기 전까지 기다리는 시간입니다.",
+      "glossary_snapshot": {
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:55.022961Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "A grace period ends when every CPU has passed through a **quiescent state** — a point where no RCU read-side critical section can be in progress.",
+      "source_hash": 5376317907092205382,
+      "context_hash": 4903343265781477669,
+      "translation": "grace period는 모든 CPU가 **quiescent state**, 즉 어떤 RCU 읽기 측 임계 구역도 진행 중일 수 없는 지점을 통과했을 때 끝납니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "RCU": "RCU",
+        "critical section": "임계 구역",
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:55.022961Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Quiescent states include:",
+      "source_hash": 7354559455740113600,
+      "context_hash": 12134918819191262312,
+      "translation": "quiescent state에는 다음이 포함됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022961Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Context switch (the CPU was preempted)",
+      "source_hash": 11976281665301668142,
+      "context_hash": 16879909387335290019,
+      "translation": "컨텍스트 스위치(CPU가 선점됨)",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "context switch": "컨텍스트 스위치"
+      },
+      "translated_at": "2026-11-14T22:15:55.022961Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Idle (the CPU has no work)",
+      "source_hash": 2776030617594142529,
+      "context_hash": 16123245237727784309,
+      "translation": "유휴(CPU에 할 일이 없음)",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:15:55.022961Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "User mode execution",
+      "source_hash": 1012929610026701490,
+      "context_hash": 18411486704472883575,
+      "translation": "사용자 모드 실행",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022961Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "On a non-preemptible kernel, a grace period completes when every CPU has scheduled at least once.",
+      "source_hash": 11264697584721097670,
+      "context_hash": 6832045875844434168,
+      "translation": "선점 불가능한 커널에서는 모든 CPU가 최소 한 번 스케줄링되면 grace period가 완료됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "grace period": "grace period",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:15:55.022962Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "This is why context switches are RCU quiescent states.",
+      "source_hash": 4449707337796170761,
+      "context_hash": 2732335321502460091,
+      "translation": "이것이 컨텍스트 스위치가 RCU quiescent state인 이유입니다.",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "context switches": "컨텍스트 스위치"
+      },
+      "translated_at": "2026-11-14T22:15:55.022962Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "API",
+      "source_hash": 17306549135961116108,
+      "context_hash": 214310280299331887,
+      "translation": "API",
+      "glossary_snapshot": {
+        "API": "API"
+      },
+      "translated_at": "2026-11-14T22:15:55.022962Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Embedding rcu_head",
+      "source_hash": 7497759264419864059,
+      "context_hash": 17888107244637958287,
+      "translation": "rcu_head 임베딩",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022962Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Any object freed via RCU must embed `struct rcu_head`:",
+      "source_hash": 7973884004953796128,
+      "context_hash": 5980483568972551859,
+      "translation": "RCU를 통해 해제되는 모든 객체는 `struct rcu_head`를 포함해야 합니다:",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:55.022962Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "kfree_rcu shorthand",
+      "source_hash": 1198466605553391857,
+      "context_hash": 4125403224915010471,
+      "translation": "kfree_rcu 축약형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022962Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "For objects that just need `kfree()` after a grace period, `kfree_rcu()` is a shorthand that avoids writing a callback:",
+      "source_hash": 17375338663633590329,
+      "context_hash": 8349286687642862752,
+      "translation": "grace period 후에 `kfree()`만 호출하면 되는 객체의 경우, `kfree_rcu()`는 콜백을 작성하지 않아도 되는 축약형입니다:",
+      "glossary_snapshot": {
+        "callback": "콜백",
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "A complete example: RCU-protected lookup table",
+      "source_hash": 14168980845251938262,
+      "context_hash": 12141090107905681317,
+      "translation": "전체 예제: RCU로 보호되는 조회 테이블",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "RCU-protected lists",
+      "source_hash": 9268794350588334970,
+      "context_hash": 13652226944706350493,
+      "translation": "RCU로 보호되는 리스트",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The kernel provides `rculist.h` for linked lists:",
+      "source_hash": 5746446095749972863,
+      "context_hash": 1505790798132468574,
+      "translation": "커널은 연결 리스트를 위해 `rculist.h`를 제공합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "RCU flavors",
+      "source_hash": 6809633287085167491,
+      "context_hash": 15645274748431412108,
+      "translation": "RCU flavor",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "There are three main RCU flavors for different contexts:",
+      "source_hash": 16210845242894013944,
+      "context_hash": 4244476058504013511,
+      "translation": "서로 다른 컨텍스트를 위한 세 가지 주요 RCU flavor가 있습니다:",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Flavor",
+      "source_hash": 10200194191301780892,
+      "context_hash": 14176805596550290513,
+      "translation": "flavor",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Read-side lock",
+      "source_hash": 14811506929710477126,
+      "context_hash": 12097014216944818855,
+      "translation": "읽기 측 락",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "Quiescent state",
+      "source_hash": 10836031221382243521,
+      "context_hash": 7368340733884839115,
+      "translation": "quiescent state",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "Use when",
+      "source_hash": 17663801946021758225,
+      "context_hash": 4141151024325143892,
+      "translation": "사용 시점",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022963Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "`rcu`",
+      "source_hash": 3462351817915717781,
+      "context_hash": 3251612806463212360,
+      "translation": "`rcu`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:55.022964Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "`rcu_read_lock()`",
+      "source_hash": 8286067328533227497,
+      "context_hash": 2902825194233962266,
+      "translation": "`rcu_read_lock()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:57.863621Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "context switch, idle, user mode",
+      "source_hash": 14559746745485087050,
+      "context_hash": 4696012820253871620,
+      "translation": "컨텍스트 스위치, idle, 사용자 모드",
+      "glossary_snapshot": {
+        "context switch": "컨텍스트 스위치"
+      },
+      "translated_at": "2026-11-14T22:15:57.863622Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Most kernel code",
+      "source_hash": 1432299374736026301,
+      "context_hash": 15798418921262441802,
+      "translation": "대부분의 커널 코드",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:15:57.863622Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "`rcu_bh`",
+      "source_hash": 11604921820001892322,
+      "context_hash": 15754447877325448002,
+      "translation": "`rcu_bh`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:57.863622Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "`rcu_read_lock_bh()`",
+      "source_hash": 7454916237664880584,
+      "context_hash": 9005823512885678512,
+      "translation": "`rcu_read_lock_bh()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:57.863622Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "any BH-disabled region",
+      "source_hash": 475171068159165612,
+      "context_hash": 1344557728829767925,
+      "translation": "BH가 비활성화된 모든 영역",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "Legacy, BH context",
+      "source_hash": 953906284435195145,
+      "context_hash": 11812525889656177599,
+      "translation": "레거시, BH 컨텍스트",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "`rcu_sched`",
+      "source_hash": 2005476909707555180,
+      "context_hash": 14330705259684886239,
+      "translation": "`rcu_sched`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "`rcu_read_lock_sched()`",
+      "source_hash": 3190788729266246467,
+      "context_hash": 13012882682456881557,
+      "translation": "`rcu_read_lock_sched()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "preemption-disabled region",
+      "source_hash": 16666900069061276876,
+      "context_hash": 7967770906759647513,
+      "translation": "선점이 비활성화된 영역",
+      "glossary_snapshot": {
+        "preemption": "선점"
+      },
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "Scheduler internals",
+      "source_hash": 10467652900502317631,
+      "context_hash": 15056209152406309922,
+      "translation": "스케줄러 내부",
+      "glossary_snapshot": {
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:0",
+      "source": "Since Linux 5.0, all three are unified — `synchronize_rcu()` waits for all three simultaneously.",
+      "source_hash": 3794191100604332796,
+      "context_hash": 12897208714631304721,
+      "translation": "Linux 5.0부터 세 가지가 모두 통합되었으며, `synchronize_rcu()`는 세 가지 모두를 동시에 기다립니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "SRCU: sleepable RCU",
+      "source_hash": 17877356675090966814,
+      "context_hash": 10062209406755632728,
+      "translation": "SRCU: 슬립 가능한 RCU",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "SRCU": "SRCU"
+      },
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Standard RCU read-side critical sections cannot sleep.",
+      "source_hash": 15997267788092427298,
+      "context_hash": 3001042391066604010,
+      "translation": "표준 RCU 읽기 측 임계 구역(critical section)에서는 슬립할 수 없습니다.",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "critical sections": "임계 구역"
+      },
+      "translated_at": "2026-11-14T22:15:57.863623Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "SRCU (Sleepable RCU) lifts this restriction at the cost of higher read-side overhead:",
+      "source_hash": 3813169056807273890,
+      "context_hash": 17319633458399420760,
+      "translation": "SRCU(Sleepable RCU)는 읽기 측 오버헤드가 더 커지는 대신 이 제약을 없앱니다:",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "SRCU": "SRCU",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T22:15:57.863624Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "SRCU is used where readers need to sleep, such as notifier chains, filesystem operations, and BPF program invocation.",
+      "source_hash": 2739512069114260275,
+      "context_hash": 549541882454757405,
+      "translation": "SRCU는 notifier chain, 파일시스템 연산, BPF 프로그램 호출처럼 읽기 측이 슬립해야 하는 곳에서 사용됩니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "SRCU": "SRCU",
+        "notifier": "notifier"
+      },
+      "translated_at": "2026-11-14T22:15:57.863624Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "When to use RCU",
+      "source_hash": 8787945839810589418,
+      "context_hash": 14652070237246406772,
+      "translation": "RCU를 사용해야 하는 경우",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:57.863624Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Tree RCU: grace period detection mechanism",
+      "source_hash": 16711309803966021831,
+      "context_hash": 12989177424980156220,
+      "translation": "Tree RCU: grace period 감지 메커니즘",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:57.863624Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "`synchronize_rcu()` on a real system can't simply \"wait for every CPU to context switch\" — it would block the caller indefinitely on a loaded system.",
+      "source_hash": 14539117251793473289,
+      "context_hash": 11769239300929990757,
+      "translation": "실제 시스템에서 `synchronize_rcu()`는 단순히 \"모든 CPU가 컨텍스트 스위치할 때까지 기다릴\" 수 없습니다. 그렇게 하면 부하가 걸린 시스템에서 호출자가 무기한 블록될 것입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "context switch": "컨텍스트 스위치"
+      },
+      "translated_at": "2026-11-14T22:15:57.863624Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "Tree RCU solves this with an efficient hierarchical algorithm:",
+      "source_hash": 12868246446460120745,
+      "context_hash": 2734100554623390648,
+      "translation": "Tree RCU는 효율적인 계층적 알고리즘으로 이 문제를 해결합니다:",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "Grace period phases",
+      "source_hash": 11828208991606006820,
+      "context_hash": 3899006338114686932,
+      "translation": "Grace period 단계",
+      "glossary_snapshot": {
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "Expedited grace periods",
+      "source_hash": 4921798712068211295,
+      "context_hash": 8908557106182409002,
+      "translation": "Expedited grace period",
+      "glossary_snapshot": {
+        "grace periods": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "`synchronize_rcu_expedited()` forces a fast grace period by sending IPIs to all CPUs to make them immediately report a quiescent state:",
+      "source_hash": 7963142971224792126,
+      "context_hash": 6710468575318860030,
+      "translation": "`synchronize_rcu_expedited()`는 모든 CPU에 IPI를 보내 즉시 quiescent state를 보고하게 함으로써 grace period를 빠르게 끝내도록 강제합니다:",
+      "glossary_snapshot": {
+        "CPUs": "CPU",
+        "grace period": "grace period"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "TASKS RCU",
+      "source_hash": 12585040834437828156,
+      "context_hash": 4220726140031803678,
+      "translation": "TASKS RCU",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "For \"tasks\" (non-atomic, can-sleep contexts), Tasks RCU tracks quiescent states differently:",
+      "source_hash": 9126369179165884726,
+      "context_hash": 17537069225987306273,
+      "translation": "\"태스크\"(원자적이지 않고 슬립할 수 있는 컨텍스트)에 대해 Tasks RCU는 quiescent state를 다른 방식으로 추적합니다:",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "RCU torture testing",
+      "source_hash": 17431598632496592884,
+      "context_hash": 5940065067995749840,
+      "translation": "RCU torture 테스트",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "The kernel includes an extensive RCU stress test:",
+      "source_hash": 16382931888836145859,
+      "context_hash": 9277444786686716498,
+      "translation": "커널에는 광범위한 RCU 스트레스 테스트가 포함되어 있습니다:",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "RCU in the kernel: key usage sites",
+      "source_hash": 10356443344647173496,
+      "context_hash": 10653881550242611747,
+      "translation": "커널 내 RCU: 주요 사용처",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Debugging RCU",
+      "source_hash": 13092630865235473036,
+      "context_hash": 4311400183404678667,
+      "translation": "RCU 디버깅",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 7899234845200970523,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:15:57.863625Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "[RCU in Memory Management](../mm/rcu-mm.md) — How RCU is used in the mm subsystem",
+      "source_hash": 10443378060445328041,
+      "context_hash": 5512071557615830972,
+      "translation": "[메모리 관리에서의 RCU](../mm/rcu-mm.md) — mm 서브시스템에서 RCU를 사용하는 방식",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "memory management": "메모리 관리",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:15:57.863626Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:0",
+      "source": "[Spinlock](spinlock.md) — For write-heavy short critical sections",
+      "source_hash": 16092855514771557117,
+      "context_hash": 7374422322410321644,
+      "translation": "[스핀락](spinlock.md) — 쓰기가 많은 짧은 임계 구역용",
+      "glossary_snapshot": {
+        "critical sections": "임계 구역",
+        "spinlock": "스핀락"
+      },
+      "translated_at": "2026-11-14T22:15:57.863626Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "[rwsem](rwlock-rwsem.md) — For sleeping reader-writer locking",
+      "source_hash": 10857167142998451543,
+      "context_hash": 4220234387910202043,
+      "translation": "[rwsem](rwlock-rwsem.md) — 슬립 가능한 reader-writer 락용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:02.513181Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:0",
+      "source": "[SRCU](srcu.md) — Sleepable RCU for contexts that need to sleep",
+      "source_hash": 11874501629102454030,
+      "context_hash": 4343990058577338431,
+      "translation": "[SRCU](srcu.md) — 슬립이 필요한 컨텍스트를 위한 슬립 가능한 RCU",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "SRCU": "SRCU"
+      },
+      "translated_at": "2026-11-14T21:49:02.513181Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:0",
+      "source": "`Documentation/RCU/` in the kernel tree — Paul McKenney's extensive RCU docs",
+      "source_hash": 7098001630528371995,
+      "context_hash": 17423275022229375075,
+      "translation": "커널 트리의 `Documentation/RCU/` — Paul McKenney의 방대한 RCU 문서",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T21:49:02.513181Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "`kernel/rcu/tree.c` — Tree RCU implementation",
+      "source_hash": 11088581119225848636,
+      "context_hash": 15524120858884469412,
+      "translation": "`kernel/rcu/tree.c` — Tree RCU 구현",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T21:49:02.513181Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:7/seg:0",
+      "source": "`kernel/rcu/tasks.h` — Tasks RCU",
+      "source_hash": 12523398275810422076,
+      "context_hash": 13524709903572450741,
+      "translation": "`kernel/rcu/tasks.h` — Tasks RCU",
+      "glossary_snapshot": {
+        "RCU": "RCU"
+      },
+      "translated_at": "2026-11-14T21:49:02.513181Z",
+      "issues": []
+    }
+  ]
+}

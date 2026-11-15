@@ -1,0 +1,1678 @@
+{
+  "version": 1,
+  "source_hash": 4575822293695907097,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "GEM Buffer Objects and dma-buf: Allocating and Sharing GPU Memory",
+      "source_hash": 10800473363767919286,
+      "context_hash": 13969793532441660352,
+      "translation": "GEM 버퍼 객체와 dma-buf: GPU 메모리 할당과 공유",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "GPU": "GPU",
+        "dma-buf": "dma-buf",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:14.711677Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "One base object every driver's buffer type embeds for refcounted GPU memory, and one framework — dma-buf — for handing that memory to a completely different device without copying it",
+      "source_hash": 5380969553993287311,
+      "context_hash": 14351591882907086506,
+      "translation": "모든 드라이버의 버퍼 타입이 참조 카운트되는 GPU 메모리를 위해 내장하는 하나의 기본 객체, 그리고 그 메모리를 복사 없이 완전히 다른 디바이스에 넘겨주기 위한 하나의 프레임워크인 dma-buf",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "device": "디바이스",
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T23:29:09.576139Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem: GPU memory needs a lifecycle, and it needs to leave the GPU",
+      "source_hash": 8685687730538791332,
+      "context_hash": 10887572138676620237,
+      "translation": "문제: GPU 메모리에는 생명 주기가 필요하고, GPU 밖으로 나갈 수 있어야 함",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:14.711678Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A frame a GPU renders doesn't stay on the GPU.",
+      "source_hash": 15375400836975142920,
+      "context_hash": 1889185362261915988,
+      "translation": "GPU가 렌더링한 프레임은 GPU에 머무르지 않습니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-11-14T22:49:14.711678Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "It gets scanned out by a display controller that might be a second, entirely separate driver on a hybrid-graphics laptop.",
+      "source_hash": 4565712127321657748,
+      "context_hash": 17957677356706150121,
+      "translation": "이 프레임은 디스플레이 컨트롤러가 스캔아웃하는데, 하이브리드 그래픽 노트북에서는 이 컨트롤러가 완전히 별개인 두 번째 드라이버일 수도 있습니다.",
+      "glossary_snapshot": {
+        "controller": "컨트롤러",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:14.711679Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "A frame a camera captures doesn't stay in the camera driver either — a compositor wants to hand it straight to the GPU for scaling and color conversion, with no CPU copy in between.",
+      "source_hash": 654031607856622440,
+      "context_hash": 4576702294907068094,
+      "translation": "카메라가 캡처한 프레임도 카메라 드라이버에 머무르지 않습니다. 컴포지터는 그 사이에 CPU 복사 없이 스케일링과 색 변환을 위해 프레임을 GPU로 곧바로 넘기고자 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "GPU": "GPU",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:14.711679Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:3",
+      "source": "Both cases need the same two things: a kernel-tracked, refcounted object to represent a chunk of GPU-visible memory, and a way to pass a *reference* to that memory across a driver boundary the exporting driver knows nothing about, safely and without copying.",
+      "source_hash": 6374529796292433444,
+      "context_hash": 6425435163070016550,
+      "translation": "두 경우 모두 같은 두 가지가 필요합니다. 하나는 GPU가 접근할 수 있는 메모리 덩어리를 나타내는, 커널이 추적하고 참조 카운트하는 객체이고, 다른 하나는 그 메모리에 대한 *참조*를 내보내는 드라이버가 전혀 알지 못하는 드라이버 경계 너머로 안전하게, 복사 없이 전달하는 방법입니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "driver": "드라이버",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:14.711679Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**GEM (Graphics Execution Manager)** is the first piece: the base buffer-object type every DRM driver's memory allocator builds on, and the per-process/per-device handle system userspace uses to refer to it. **dma-buf** is the second: a cross-subsystem framework, not DRM-specific, for exporting any kernel buffer as a file descriptor another driver can attach to, map for its own DMA, and synchronize against — whether that other driver is a second GPU, a display controller, or a V4L2 video capture device.",
+      "source_hash": 9598158326051587974,
+      "context_hash": 12169858202806307985,
+      "translation": "**GEM** (Graphics Execution Manager)이 첫 번째 요소입니다. 모든 DRM 드라이버의 메모리 할당자가 기반으로 삼는 기본 버퍼 객체 타입이자, 사용자 공간이 이를 가리킬 때 사용하는 프로세스별/디바이스별 핸들 체계입니다. **dma-buf**가 두 번째 요소입니다. DRM 전용이 아닌 서브시스템 간 프레임워크로, 임의의 커널 버퍼를 파일 디스크립터로 내보내 다른 드라이버가 여기에 attach하고, 자신의 DMA를 위해 매핑하고, 이를 기준으로 동기화할 수 있게 합니다. 그 다른 드라이버가 두 번째 GPU이든, 디스플레이 컨트롤러이든, V4L2 비디오 캡처 디바이스이든 마찬가지입니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "DRM": "DRM",
+        "GEM": "GEM",
+        "GPU": "GPU",
+        "Memory Allocator": "메모리 할당자",
+        "controller": "컨트롤러",
+        "device": "디바이스",
+        "dma-buf": "dma-buf",
+        "file descriptor": "파일 디스크립터",
+        "subsystem": "서브시스템",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:29:09.576140Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "DRM's own binding to it is called **PRIME**.",
+      "source_hash": 3234132818162970929,
+      "context_hash": 12298263488376891329,
+      "translation": "DRM 자체의 dma-buf 바인딩은 **PRIME** 이라고 부릅니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM"
+      },
+      "translated_at": "2026-11-14T22:49:14.711680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "GEM: the base buffer object",
+      "source_hash": 18193713940462379682,
+      "context_hash": 10326218058496146440,
+      "translation": "GEM: 기본 버퍼 객체",
+      "glossary_snapshot": {
+        "GEM": "GEM"
+      },
+      "translated_at": "2026-11-14T22:49:14.711680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "`struct drm_gem_object` (`include/drm/drm_gem.h`) is the generic part every driver-specific buffer type embeds as its first member.",
+      "source_hash": 3998673302259900860,
+      "context_hash": 4235920130382483338,
+      "translation": "`struct drm_gem_object` (`include/drm/drm_gem.h`)는 모든 드라이버별 버퍼 타입이 첫 번째 멤버로 내장하는 범용 부분입니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:14.711680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "It doesn't know anything about pixel formats or hardware placement — that's left to the driver or to helper layers built on top — it just handles refcounting, mmap bookkeeping, and the plumbing that makes a GEM object exportable:",
+      "source_hash": 8667896029275361932,
+      "context_hash": 4235259558054156235,
+      "translation": "이 구조체는 픽셀 포맷이나 하드웨어 배치에 대해서는 아무것도 알지 못합니다. 그런 부분은 드라이버나 그 위에 구축된 헬퍼 계층에 맡겨집니다. 이 구조체는 참조 카운팅, mmap 관련 관리, 그리고 GEM 객체를 내보낼 수 있게 해 주는 연결 작업만 처리합니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "driver": "드라이버",
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:49:14.711680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "A few things worth noting directly from that layout:",
+      "source_hash": 11641700575382121477,
+      "context_hash": 13745104843354694455,
+      "translation": "이 레이아웃에서 바로 알 수 있는 몇 가지 주목할 점은 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:14.711680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "**Refcounting is a plain `struct kref`.** `drm_gem_object_get()` calls `kref_get()`; `drm_gem_object_put()` calls `kref_put()` against `drm_gem_object_free()`, which dispatches to the driver's `funcs->free`.",
+      "source_hash": 9472630744023170391,
+      "context_hash": 5844157685553534822,
+      "translation": "**참조 카운팅은 평범한 `struct kref`입니다.** `drm_gem_object_get()`은 `kref_get()`을 호출하고, `drm_gem_object_put()`은 `drm_gem_object_free()`를 대상으로 `kref_put()`을 호출하며, 이 함수는 드라이버의 `funcs->free`로 처리를 넘깁니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:14.711680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "**`resv` and `_resv` are separate fields on purpose.** For a normal, locally allocated object `resv` just points back at its own embedded `_resv`.",
+      "source_hash": 14114246344434104893,
+      "context_hash": 299613243358074229,
+      "translation": "**`resv`와 `_resv`는 의도적으로 분리된 필드입니다.** 로컬에서 할당된 일반 객체의 경우 `resv`는 단순히 자신에게 내장된 `_resv`를 다시 가리킵니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:14.711680Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "For an object imported from another device's dma-buf, `resv` instead points at the *exporter's* reservation object — so fence tracking follows the underlying buffer, not whichever driver most recently imported it, which is exactly what lets two different GPU drivers agree on who's still using a shared buffer (see [Fences and `dma_resv`](#fences-and-dma_resv), below).",
+      "source_hash": 15066347345646791958,
+      "context_hash": 13241106385578321151,
+      "translation": "다른 디바이스의 dma-buf에서 import한 객체의 경우에는 `resv`가 대신 *exporter의* reservation 객체를 가리킵니다. 따라서 펜스 추적은 가장 최근에 import한 드라이버가 아니라 실제 기반 버퍼를 따라가며, 바로 이 점 덕분에 서로 다른 두 GPU 드라이버가 공유 버퍼를 아직 누가 사용 중인지에 대해 합의할 수 있습니다(아래 [펜스와 `dma_resv`](#fences-and-dma_resv) 참조).",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "device": "디바이스",
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T23:29:09.576143Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "**`dma_buf` and `import_attach` are the two dma-buf linkage points.** `dma_buf` is set for a GEM object either way — exported or imported (`drm_gem.h` documents it as associated with the object \"either through importing or exporting\"). `import_attach` is what's specific to the import direction (pointing at this device's attachment to someone else's dma-buf), which is exactly why `drm_gem_is_imported()` tests `!!obj->import_attach` rather than checking `dma_buf`, which wouldn't distinguish the two cases.",
+      "source_hash": 13549577300015641825,
+      "context_hash": 16818096762947418706,
+      "translation": "**`dma_buf`와 `import_attach`는 두 가지 dma-buf 연결 지점입니다.** `dma_buf`는 GEM 객체가 export되든 import되든 어느 경우에나 설정됩니다(`drm_gem.h`는 이를 \"either through importing or exporting\" 객체와 연관된 것으로 문서화합니다). `import_attach`는 import 방향에만 해당하는 필드로(다른 쪽 dma-buf에 대한 이 디바이스의 attachment를 가리킴), 바로 이 때문에 `drm_gem_is_imported()`는 두 경우를 구분하지 못하는 `dma_buf`를 확인하는 대신 `!!obj->import_attach`를 검사합니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "device": "디바이스",
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T23:29:09.576146Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "**`name` is the deprecated global name** — more on why below.",
+      "source_hash": 7910362709845846814,
+      "context_hash": 16258941683903071039,
+      "translation": "**`name`은 더 이상 권장되지 않는(deprecated) 전역 이름입니다.** 그 이유는 아래에서 자세히 설명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:14.711681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "Three ways to reference a GEM object, and why two of them are obsolete",
+      "source_hash": 3031438776716338409,
+      "context_hash": 14793205437913352021,
+      "translation": "GEM 객체를 참조하는 세 가지 방법과 그중 두 가지가 낡은 방식이 된 이유",
+      "glossary_snapshot": {
+        "GEM": "GEM"
+      },
+      "translated_at": "2026-11-14T22:49:14.711681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "A GEM object needs some integer userspace can pass through an ioctl — you can't hand a raw kernel pointer across the syscall boundary.",
+      "source_hash": 8801714986053859896,
+      "context_hash": 14759151525612114546,
+      "translation": "GEM 객체에는 사용자 공간이 ioctl을 통해 전달할 수 있는 정수가 필요합니다. 커널의 원시 포인터를 시스템 콜 경계 너머로 넘겨줄 수는 없기 때문입니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "ioctl": "ioctl",
+        "kernel": "커널",
+        "syscall": "시스템 콜",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:49:14.711681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "DRM has had three answers to \"which integer,\" introduced in roughly this order, each fixing a limitation or security problem in the last:",
+      "source_hash": 17678115188494519690,
+      "context_hash": 18198742539614419481,
+      "translation": "DRM에는 \"어떤 정수인가\"에 대한 세 가지 답이 있었으며, 대략 다음 순서로 도입되었고 각각 이전 방식의 한계나 보안 문제를 해결했습니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM"
+      },
+      "translated_at": "2026-11-14T22:49:14.711681Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "**1.",
+      "source_hash": 169585496999793679,
+      "context_hash": 12705514190920888235,
+      "translation": "**1.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:1",
+      "source": "The handle** — a `u32` returned by whatever ioctl created or imported the object (a driver's dumb-buffer or GEM-create ioctl, or `DRM_IOCTL_PRIME_FD_TO_HANDLE`), scoped to a single `struct drm_file` — i.e., to one open file description on `/dev/dri/card0` or `/dev/dri/renderD128`.",
+      "source_hash": 5083105343139075554,
+      "context_hash": 6778190761302680221,
+      "translation": "핸들** — 객체를 생성하거나 가져온 ioctl(드라이버의 dumb-buffer 또는 GEM 생성 ioctl, 혹은 `DRM_IOCTL_PRIME_FD_TO_HANDLE`)이 반환하는 `u32`로, 하나의 `struct drm_file`, 즉 `/dev/dri/card0` 또는 `/dev/dri/renderD128`에 대한 하나의 열린 파일 디스크립션으로 범위가 한정됩니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "driver": "드라이버",
+        "ioctl": "ioctl"
+      },
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:2",
+      "source": "It lives in that file's `object_idr` (`include/drm/drm_file.h`: \"Mapping of mm object handles to object pointers.",
+      "source_hash": 15786945587734239675,
+      "context_hash": 4489498868239025044,
+      "translation": "핸들은 해당 파일의 `object_idr`에 저장됩니다(`include/drm/drm_file.h`: \"mm 객체 핸들을 객체 포인터로 매핑합니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:3",
+      "source": "Used by the GEM subsystem.\").",
+      "source_hash": 8710971811395632019,
+      "context_hash": 1376566839157783004,
+      "translation": "GEM 서브시스템에서 사용합니다.\").",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:4",
+      "source": "A handle from one process's fd means nothing to another process; there's no cross-process sharing story here at all.",
+      "source_hash": 13684641140051248883,
+      "context_hash": 8702024413545737236,
+      "translation": "한 프로세스의 fd에서 얻은 핸들은 다른 프로세스에게는 아무 의미가 없으며, 여기에는 프로세스 간 공유 방안이 전혀 없습니다.",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:5",
+      "source": "It's released with `DRM_IOCTL_GEM_CLOSE`.",
+      "source_hash": 18265124381984928788,
+      "context_hash": 3862743933286968822,
+      "translation": "핸들은 `DRM_IOCTL_GEM_CLOSE`로 해제합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "**2.",
+      "source_hash": 7495526238661281177,
+      "context_hash": 2166088789727665127,
+      "translation": "**2.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:1",
+      "source": "The global name (`GEM_FLINK`/`GEM_OPEN`) — deprecated.** `DRM_IOCTL_GEM_FLINK` turns a handle into a small global integer (`struct drm_gem_object.name`) visible to *any* process that can open the DRM node; `DRM_IOCTL_GEM_OPEN` turns that integer back into a handle in the caller's own namespace.",
+      "source_hash": 3490075119887841897,
+      "context_hash": 12312347803635227847,
+      "translation": "전역 이름(`GEM_FLINK`/`GEM_OPEN`) — 더 이상 권장되지 않음.** `DRM_IOCTL_GEM_FLINK`는 핸들을 DRM 노드를 열 수 있는 *모든* 프로세스에게 보이는 작은 전역 정수(`struct drm_gem_object.name`)로 바꾸고, `DRM_IOCTL_GEM_OPEN`은 그 정수를 호출자 자신의 네임스페이스에 있는 핸들로 되돌립니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "namespace": "네임스페이스",
+        "node": "노드",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:49:14.711682Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:2",
+      "source": "The problem is exactly what it sounds like: a flink name is a small, sequentially-ish allocated integer with **no access control** — nothing stops a second, unrelated process on the same system from calling `GEM_OPEN` with a guessed or brute-forced name and getting a handle to a buffer it was never given. `docs.kernel.org`'s DRM uAPI documentation is blunt about the consequence: render nodes, introduced to let unprivileged clients submit rendering work, are explicitly designed to avoid \"the buffer-leaks, which occur if clients guess the flink names,\" and state outright that **\"New clients must not use the insecure FLINK interface.\"**",
+      "source_hash": 14801356365640597083,
+      "context_hash": 4468027192007272067,
+      "translation": "문제는 말 그대로입니다. flink 이름은 대체로 순차적으로 할당되는 작은 정수이며 **접근 제어가 없습니다**. 같은 시스템에 있는 무관한 다른 프로세스가 추측하거나 무차별 대입으로 알아낸 이름으로 `GEM_OPEN`을 호출해, 한 번도 전달받은 적 없는 버퍼의 핸들을 얻는 것을 막을 방법이 없습니다. `docs.kernel.org`의 DRM uAPI 문서는 그 결과에 대해 직설적입니다. 권한 없는 클라이언트가 렌더링 작업을 제출할 수 있도록 도입된 렌더 노드(render node)는 \"the buffer-leaks, which occur if clients guess the flink names\"(클라이언트가 flink 이름을 추측할 때 발생하는 버퍼 유출)를 피하도록 명시적으로 설계되었으며, **\"New clients must not use the insecure FLINK interface.\"**(새 클라이언트는 안전하지 않은 FLINK 인터페이스를 사용해서는 안 됩니다.)라고 단호하게 명시합니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "nodes": "노드",
+        "uapi": "uapi"
+      },
+      "translated_at": "2026-11-14T23:29:09.576147Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "**3.",
+      "source_hash": 9556070984229407276,
+      "context_hash": 8073522688363963989,
+      "translation": "**3.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:46.894445Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:1",
+      "source": "The dma-buf file descriptor (via DRM PRIME) — the modern mechanism.** `DRM_IOCTL_PRIME_HANDLE_TO_FD` exports a handle as an fd backed by a `struct dma_buf`.",
+      "source_hash": 2752790027242736011,
+      "context_hash": 777276961970902457,
+      "translation": "dma-buf 파일 디스크립터(DRM PRIME 경유) — 현대적인 메커니즘.** `DRM_IOCTL_PRIME_HANDLE_TO_FD`는 핸들을 `struct dma_buf`를 기반으로 하는 fd로 export합니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "dma-buf": "dma-buf",
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:49:46.894446Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:2",
+      "source": "An fd carries ordinary Unix file-descriptor security semantics: it isn't guessable, and the only ways to get one are being handed it explicitly — passed over a `SCM_RIGHTS` control message on a Unix domain socket, or inherited across `fork()` — both of which require the sender to have chosen to share it.",
+      "source_hash": 10363203067994725775,
+      "context_hash": 8649162610699292953,
+      "translation": "fd는 일반적인 Unix 파일 디스크립터 보안 의미론을 따릅니다: 추측할 수 없으며, fd를 얻는 유일한 방법은 명시적으로 전달받는 것뿐입니다 — Unix 도메인 소켓의 `SCM_RIGHTS` 제어 메시지로 전달받거나 `fork()`를 통해 상속받는 것이며, 두 경우 모두 송신자가 공유하기로 선택해야 합니다.",
+      "glossary_snapshot": {
+        "descriptor": "디스크립터"
+      },
+      "translated_at": "2026-11-14T22:49:46.894446Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:3",
+      "source": "DRM's own kerneldoc in `drivers/gpu/drm/drm_prime.c` states the comparison directly: PRIME fds \"offer additional security: as file descriptors must be explicitly sent over UNIX domain sockets to be shared between applications, they can't be guessed like the globally unique GEM names.\" This is also the *only* one of the three that works across devices — a name or a handle only ever means something to one specific DRM driver's own object namespace; a dma-buf fd can be handed to a totally different driver (see [DRM PRIME](#drm-prime-drms-dma-buf-binding), below).",
+      "source_hash": 5981112459101877811,
+      "context_hash": 7132578007334111206,
+      "translation": "`drivers/gpu/drm/drm_prime.c`에 있는 DRM 자체의 kerneldoc은 이 비교를 직접 언급합니다: PRIME fd는 \"추가적인 보안을 제공합니다. 파일 디스크립터는 애플리케이션 간에 공유되려면 UNIX 도메인 소켓을 통해 명시적으로 전송되어야 하므로, 전역적으로 고유한 GEM 이름처럼 추측될 수 없습니다.\" 또한 세 가지 중 디바이스 간에 동작하는 것은 이것*뿐*입니다 — 이름이나 핸들은 특정 DRM 드라이버 하나의 객체 네임스페이스 안에서만 의미를 가지지만, dma-buf fd는 전혀 다른 드라이버에 넘겨줄 수 있습니다(아래 [DRM PRIME](#drm-prime-drms-dma-buf-binding) 참고).",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GEM": "GEM",
+        "devices": "디바이스",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "file descriptors": "파일 디스크립터",
+        "namespace": "네임스페이스"
+      },
+      "translated_at": "2026-11-14T22:49:46.894446Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Backing memory: shmem helpers vs. TTM",
+      "source_hash": 1341031856780280305,
+      "context_hash": 13819467272116598634,
+      "translation": "백킹 메모리: shmem 헬퍼 vs. TTM",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "shmem": "shmem"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "`drm_gem_object` itself says nothing about *where* the bytes live — that's the job of a backing-memory helper layered on top, and which one a driver uses tracks directly to whether its GPU has its own dedicated video memory.",
+      "source_hash": 14064437543465388363,
+      "context_hash": 15034448224344043831,
+      "translation": "`drm_gem_object` 자체는 바이트가 *어디에* 존재하는지에 대해 아무것도 정하지 않습니다 — 그것은 그 위에 얹히는 백킹 메모리 헬퍼의 역할이며, 드라이버가 어느 헬퍼를 사용하는지는 해당 GPU가 자체 전용 비디오 메모리를 가지고 있는지에 직접적으로 대응합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "bytes": "바이트",
+        "driver": "드라이버",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "**`struct drm_gem_shmem_object`** (`include/drm/drm_gem_shmem_helper.h`) is the simple, common case: `struct drm_gem_shmem_object { struct drm_gem_object base; struct page **pages; ... struct sg_table *sgt; void *vaddr; ... }`.",
+      "source_hash": 1260857196226088517,
+      "context_hash": 16804406060426224343,
+      "translation": "**`struct drm_gem_shmem_object`**(`include/drm/drm_gem_shmem_helper.h`)는 단순하고 흔한 경우입니다: `struct drm_gem_shmem_object { struct drm_gem_object base; struct page **pages; ... struct sg_table *sgt; void *vaddr; ... }`.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:1",
+      "source": "Backing storage is an ordinary shmem file (`drm_gem_object.filp`) — swappable system RAM, the same pool any other process memory comes from.",
+      "source_hash": 5940396683404167160,
+      "context_hash": 16302358149513151005,
+      "translation": "백킹 스토리지는 일반 shmem 파일(`drm_gem_object.filp`)입니다 — 스왑 가능한 시스템 RAM으로, 다른 모든 프로세스 메모리가 할당되는 것과 같은 풀입니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "memory": "메모리",
+        "pool": "풀",
+        "process": "프로세스",
+        "shmem": "shmem"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:2",
+      "source": "This is what integrated GPUs and simpler SoC display/render drivers use, because there's no second memory pool to manage: system RAM is the only memory the GPU can address.",
+      "source_hash": 16506472252090998549,
+      "context_hash": 9407375194455860753,
+      "translation": "통합 GPU와 비교적 단순한 SoC 디스플레이/렌더 드라이버가 이 방식을 사용하는데, 관리할 두 번째 메모리 풀이 없기 때문입니다: 시스템 RAM이 GPU가 주소 지정할 수 있는 유일한 메모리입니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "RAM": "RAM",
+        "SoC": "SoC",
+        "address": "주소",
+        "drivers": "드라이버",
+        "memory": "메모리",
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "Discrete GPUs don't have that luxury — they have their own on-board VRAM, which is faster than going over PCIe to system memory but far more limited in size, so the kernel has to decide what lives where and migrate buffers between the two as pressure demands.",
+      "source_hash": 8046748846181866753,
+      "context_hash": 2317647161448196844,
+      "translation": "외장 GPU(discrete GPU)에는 그런 여유가 없습니다 — 자체 온보드 VRAM을 가지고 있는데, 이는 PCIe를 거쳐 시스템 메모리에 접근하는 것보다 빠르지만 크기는 훨씬 제한적이므로, 커널은 무엇을 어디에 둘지 결정하고 메모리 압박에 따라 두 메모리 사이에서 버퍼를 마이그레이션해야 합니다.",
+      "glossary_snapshot": {
+        "PCIe": "PCIe",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "That's **TTM (Translation Table Manager)**, DRM's original, older memory manager, predating GEM.",
+      "source_hash": 6182886325783948154,
+      "context_hash": 9005437153417528352,
+      "translation": "이것이 바로 **TTM(Translation Table Manager)**으로, GEM보다 앞선 DRM 본래의, 더 오래된 메모리 관리자입니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GEM": "GEM",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:2",
+      "source": "There's no separate `drm_gem_ttm_object` type — instead `struct ttm_buffer_object` (`include/drm/ttm/ttm_bo.h`) embeds a `struct drm_gem_object base` directly, the same pattern the shmem helper uses:",
+      "source_hash": 6803777937518773629,
+      "context_hash": 17090753397559613575,
+      "translation": "별도의 `drm_gem_ttm_object` 타입은 없습니다 — 대신 `struct ttm_buffer_object`(`include/drm/ttm/ttm_bo.h`)가 shmem 헬퍼와 같은 패턴으로 `struct drm_gem_object base`를 직접 내장합니다:",
+      "glossary_snapshot": {
+        "shmem": "shmem"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "`drm_gem_ttm_helper.h` supplies the glue (`drm_gem_ttm_vmap()`, `drm_gem_ttm_mmap()`, a `drm_gem_ttm_of_gem()` `container_of` macro) that lets a TTM-backed object still present a normal `drm_gem_object_funcs` vtable to the rest of DRM.",
+      "source_hash": 13656582115084667314,
+      "context_hash": 15858099607191468466,
+      "translation": "`drm_gem_ttm_helper.h`는 TTM 기반 객체가 DRM의 나머지 부분에 여전히 일반적인 `drm_gem_object_funcs` vtable을 제공할 수 있도록 하는 연결 코드(`drm_gem_ttm_vmap()`, `drm_gem_ttm_mmap()`, `drm_gem_ttm_of_gem()` `container_of` 매크로)를 제공합니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "macro": "매크로"
+      },
+      "translated_at": "2026-11-14T22:49:46.894447Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:1",
+      "source": "The kernel's own memory-management documentation frames the split this way: TTM \"tri[es] to be a one-size-fits-them all solution\" for VRAM-plus-system-memory placement and eviction, while GEM \"identified common code between drivers and created a support library to share it\" for the simpler UMA case — which is why amdgpu and nouveau sit on TTM and most integrated/SoC drivers sit on the shmem helper.",
+      "source_hash": 17728257149811376601,
+      "context_hash": 16719183083196277741,
+      "translation": "커널 자체의 메모리 관리 문서는 이 구분을 다음과 같이 설명합니다: TTM은 VRAM과 시스템 메모리에 걸친 배치와 축출(eviction)을 위해 \"모든 경우에 맞는 단일 해법이 되려고 시도\"하는 반면, GEM은 더 단순한 UMA 경우를 위해 \"드라이버 간의 공통 코드를 찾아내 이를 공유하기 위한 지원 라이브러리를 만들었습니다\" — 이것이 amdgpu와 nouveau는 TTM 위에, 대부분의 통합/SoC 드라이버는 shmem 헬퍼 위에 있는 이유입니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "SoC": "SoC",
+        "drivers": "드라이버",
+        "eviction": "축출",
+        "kernel": "커널",
+        "memory": "메모리",
+        "shmem": "shmem"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:2",
+      "source": "TTM's internal eviction and placement machinery is its own large subsystem and out of scope here; what matters for this page is just that both backing types are `drm_gem_object` underneath, so everything above — handles, names, dma-buf export, `resv` — works identically regardless of which one a driver picked.",
+      "source_hash": 8834178138898267513,
+      "context_hash": 3379042572832160762,
+      "translation": "TTM 내부의 축출 및 배치 메커니즘은 그 자체로 큰 서브시스템이므로 여기서는 다루지 않습니다; 이 페이지에서 중요한 것은 두 백킹 유형 모두 내부적으로는 `drm_gem_object`이므로, 위에서 설명한 모든 것 — 핸들, 이름, dma-buf export, `resv` — 이 드라이버가 어느 쪽을 선택했든 동일하게 동작한다는 점뿐입니다.",
+      "glossary_snapshot": {
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "eviction": "축출",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "dma-buf: sharing a buffer across driver boundaries",
+      "source_hash": 640940675506690287,
+      "context_hash": 5534841356141225455,
+      "translation": "dma-buf: 드라이버 경계를 넘는 버퍼 공유",
+      "glossary_snapshot": {
+        "dma-buf": "dma-buf",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Why it exists",
+      "source_hash": 16660226320495497759,
+      "context_hash": 5378785819367274505,
+      "translation": "존재 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Before dma-buf, if a V4L2 capture driver had a frame and a separate DRM driver's GPU needed to touch it — scale it, color-convert it, composite it — the only options were a real memory copy, or a one-off hack coupling those two specific drivers together.",
+      "source_hash": 11410926060775454715,
+      "context_hash": 11157954843575308023,
+      "translation": "dma-buf 이전에는 V4L2 캡처 드라이버가 가진 프레임을 별개의 DRM 드라이버의 GPU가 다뤄야 할 때 — 스케일링하거나, 색 변환하거나, 합성하는 등 — 선택지는 실제 메모리 복사이거나, 그 두 특정 드라이버를 서로 결합하는 일회성 해킹뿐이었습니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GPU": "GPU",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "drivers": "드라이버",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "Neither scales: a copy costs bandwidth and latency on every frame, and driver-pair-specific glue means every new combination of producer and consumer needs its own code.",
+      "source_hash": 8826975145525975592,
+      "context_hash": 11298982827754482414,
+      "translation": "어느 쪽도 확장성이 없습니다: 복사는 매 프레임마다 대역폭과 지연 시간을 소모하고, 드라이버 쌍마다 특화된 연결 코드는 생산자와 소비자의 새로운 조합마다 별도의 코드가 필요하다는 뜻입니다.",
+      "glossary_snapshot": {
+        "bandwidth": "대역폭",
+        "driver": "드라이버",
+        "latency": "지연 시간",
+        "producer": "생산자"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "dma-buf was proposed at the 2011 Linaro/kernel mini-summits and landed as a generic, subsystem-agnostic framework rather than a GPU-specific one.",
+      "source_hash": 8494973282678625856,
+      "context_hash": 8480818719314531680,
+      "translation": "dma-buf는 2011년 Linaro/커널 미니 서밋에서 제안되었으며, GPU 전용이 아닌 범용적이고 서브시스템에 독립적인 프레임워크로 머지되었습니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "dma-buf": "dma-buf",
+        "kernel": "커널",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "The foundational commit, [`d15bd7ee445d`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d15bd7ee445d0702ad801fdaece348fdb79e6581) (\"dma-buf: Introduce dma buffer sharing mechanism,\" Sumit Semwal, authored 26 December 2011, committed by Dave Airlie 6 January 2012 for the Linux 3.3 merge window), is explicit that it's building on earlier work — \"based on design suggestions from many people at the mini-summits... most notably from Arnd Bergmann, Rob Clark and Daniel Vetter\" — and that the whole mechanism was demonstrated first between two V4L2 devices by Tomasz Stanislawski.",
+      "source_hash": 12360075080536522115,
+      "context_hash": 3605490259778989269,
+      "translation": "기반이 된 커밋인 [`d15bd7ee445d`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d15bd7ee445d0702ad801fdaece348fdb79e6581)(\"dma-buf: Introduce dma buffer sharing mechanism,\" Sumit Semwal, 2011년 12월 26일 작성, Linux 3.3 머지 윈도를 위해 2012년 1월 6일 Dave Airlie가 커밋)은 이전 작업을 기반으로 한다는 점을 명시합니다 — \"미니 서밋에서 많은 사람들이 제시한 설계 제안에 기반하며... 특히 Arnd Bergmann, Rob Clark, Daniel Vetter의 제안에 기반합니다\" — 또한 전체 메커니즘이 Tomasz Stanislawski에 의해 두 V4L2 디바이스 사이에서 처음 시연되었다는 점도 명시합니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "Linux": "Linux",
+        "devices": "디바이스",
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "That design took three public RFC rounds to settle: the [second of them](https://lore.kernel.org/dri-devel/1322816252-19955-1-git-send-email-sumit.semwal@ti.com/), posted 2 December 2011, is where most of the subsystem-agnostic shape got argued over, with Arnd Bergmann, Daniel Vetter, Rob Clark, Dave Airlie, Alan Cox, NVIDIA's Robert Morell, Inki Dae, and, from the media side, maintainer Mauro Carvalho Chehab plus V4L2 developers Hans Verkuil and Sakari Ailus all weighing in on the same thread.",
+      "source_hash": 4185442013386263478,
+      "context_hash": 10403586030214573835,
+      "translation": "이 설계가 확정되기까지 세 차례의 공개 RFC 라운드가 걸렸습니다: 2011년 12월 2일에 게시된 [그중 두 번째](https://lore.kernel.org/dri-devel/1322816252-19955-1-git-send-email-sumit.semwal@ti.com/)에서 서브시스템에 독립적인 형태의 대부분이 논의되었으며, Arnd Bergmann, Daniel Vetter, Rob Clark, Dave Airlie, Alan Cox, NVIDIA의 Robert Morell, Inki Dae, 그리고 미디어 쪽에서는 메인테이너 Mauro Carvalho Chehab과 V4L2 개발자 Hans Verkuil, Sakari Ailus가 모두 같은 스레드에서 의견을 냈습니다.",
+      "glossary_snapshot": {
+        "RFC": "RFC",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:3",
+      "source": "LWN's coverage at the time, [**\"DMA buffer sharing in 3.3\"**](https://lwn.net/Articles/474819/) (Jonathan Corbet, January 11, 2012), states the intended use case in almost exactly the terms this page opened with: *\"The initial target use is sharing buffers between producers and consumers of video streams; a camera device, for example, could acquire a stream of frames into a series of buffers that are shared with the graphics adapter, enabling the capture and display of the data with no copying in the kernel.\"*",
+      "source_hash": 283969819189684974,
+      "context_hash": 14341135029186114646,
+      "translation": "당시 LWN의 기사 [**\"DMA buffer sharing in 3.3\"**](https://lwn.net/Articles/474819/)(Jonathan Corbet, 2012년 1월 11일)은 의도된 사용 사례를 이 페이지의 서두와 거의 똑같은 표현으로 설명합니다: *\"초기 목표 용도는 비디오 스트림의 생산자와 소비자 사이에서 버퍼를 공유하는 것입니다. 예를 들어 카메라 디바이스는 그래픽 어댑터와 공유되는 일련의 버퍼로 프레임 스트림을 받아들일 수 있으며, 이를 통해 커널 내 복사 없이 데이터를 캡처하고 표시할 수 있습니다.\"*",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "Jonathan Corbet": "Jonathan Corbet",
+        "LWN's": "LWN",
+        "device": "디바이스",
+        "kernel": "커널",
+        "producers": "생산자"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "DRM's own binding on top, **PRIME**, followed not long after: [`3248877ea179`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3248877ea1796915419fba7c89315fdbf00cb56a) (\"drm: base prime/dma-buf support (v5),\" Dave Airlie, authored 25 November 2011, committed 30 March 2012 for the Linux 3.4 merge window) added the GEM-handle-to-dma-buf-fd translation layer, explicitly as an \"agreed upon starting point\" for driver support that followed in nouveau, i915, and others.",
+      "source_hash": 18382075436927451319,
+      "context_hash": 9933466779885715827,
+      "translation": "그 위에 얹힌 DRM 자체의 바인딩인 **PRIME**이 머지않아 뒤따랐습니다: [`3248877ea179`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3248877ea1796915419fba7c89315fdbf00cb56a)(\"drm: base prime/dma-buf support (v5),\" Dave Airlie, 2011년 11월 25일 작성, Linux 3.4 머지 윈도를 위해 2012년 3월 30일 커밋)는 GEM 핸들과 dma-buf fd 사이의 변환 계층을 추가했으며, 이는 이후 nouveau, i915 등에서 이어진 드라이버 지원을 위한 \"합의된 출발점\"으로 명시적으로 제시되었습니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GEM": "GEM",
+        "Linux": "Linux",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "The v5 posting collected `Reviewed-by` tags from Daniel Vetter, Rob Clark, Sumit Semwal, and Inki Dae, plus an [`Acked-by` from Ben Widawsky](https://lore.kernel.org/dri-devel/20120327183151.0523bf8d@bwidawsk.net/), all within about sixteen hours of Dave Airlie posting it on 27 March 2012; Airlie committed it three days later.",
+      "source_hash": 13266595184582137321,
+      "context_hash": 15798089878116023572,
+      "translation": "v5 게시물은 Daniel Vetter, Rob Clark, Sumit Semwal, Inki Dae의 `Reviewed-by` 태그와 [Ben Widawsky의 `Acked-by`](https://lore.kernel.org/dri-devel/20120327183151.0523bf8d@bwidawsk.net/)를 받았는데, 이는 모두 Dave Airlie가 2012년 3월 27일 이를 게시한 지 약 16시간 안에 이루어졌습니다; Airlie는 사흘 뒤에 이를 커밋했습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:46.894448Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`struct dma_buf`",
+      "source_hash": 16053268109663133738,
+      "context_hash": 13837694230188905859,
+      "translation": "`struct dma_buf`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:46.894449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "`include/linux/dma-buf.h` defines the exported object itself:",
+      "source_hash": 8817559386199090322,
+      "context_hash": 10263452918484150611,
+      "translation": "`include/linux/dma-buf.h`는 export되는 객체 자체를 정의합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:46.894449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "`ops` is a `struct dma_buf_ops` the exporting driver fills in — `attach`/`detach`, `map_dma_buf`/`unmap_dma_buf`, `pin`/`unpin`, `mmap`, `vmap`/`vunmap`, and `release` — the vtable every dma-buf importer interacts with indirectly through the generic `dma_buf_*()` API rather than ever calling an exporter's callback directly.",
+      "source_hash": 1383798030665042114,
+      "context_hash": 13652555099326344736,
+      "translation": "`ops`는 export하는 드라이버가 채우는 `struct dma_buf_ops`입니다 — `attach`/`detach`, `map_dma_buf`/`unmap_dma_buf`, `pin`/`unpin`, `mmap`, `vmap`/`vunmap`, `release` — 모든 dma-buf importer가 exporter의 콜백을 직접 호출하는 대신 범용 `dma_buf_*()` API를 통해 간접적으로 상호작용하는 vtable입니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "callback": "콜백",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:46.894449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "The attach/map dance",
+      "source_hash": 12841141108923036160,
+      "context_hash": 6504956016767413018,
+      "translation": "attach/map 절차",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:46.894449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Getting from \"I have an fd\" to \"I can DMA into this buffer\" is deliberately two steps, not one:",
+      "source_hash": 5556937946794946029,
+      "context_hash": 8954708542204956874,
+      "translation": "\"fd를 가지고 있다\"에서 \"이 버퍼에 DMA할 수 있다\"까지 가는 과정은 의도적으로 한 단계가 아닌 두 단계로 되어 있습니다:",
+      "glossary_snapshot": {
+        "DMA": "DMA"
+      },
+      "translated_at": "2026-11-14T22:49:46.894449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "**`dma_buf_attach(struct dma_buf *dmabuf, struct device *dev)`** — the importer declares *intent* to use the buffer from a specific device, and creates a `struct dma_buf_attachment`.",
+      "source_hash": 9858390947227808934,
+      "context_hash": 861871876515585220,
+      "translation": "**`dma_buf_attach(struct dma_buf *dmabuf, struct device *dev)`** — importer가 특정 디바이스에서 버퍼를 사용하려는 *의도*를 선언하고, `struct dma_buf_attachment`를 생성합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T22:49:46.894449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "This calls the exporter's optional `dma_buf_ops.attach` callback, which is the exporter's chance to say no: kerneldoc for that callback spells out exactly why — \"exporters which support buffer objects in special locations like VRAM or device-specific carveout areas should check whether the buffer could be move [sic] to system memory (or directly accessed by the provided device), and otherwise need to fail the attach operation.\" A buffer sitting in one GPU's VRAM might be physically unreachable by a second GPU or by an unrelated capture device without first being migrated or bounced through system memory — `attach()` is where that gets negotiated, before anyone commits to a mapping.",
+      "source_hash": 17907773608158521536,
+      "context_hash": 1925884826237122795,
+      "translation": "이는 exporter의 선택적 `dma_buf_ops.attach` 콜백을 호출하는데, 이 콜백은 exporter가 거절할 수 있는 기회입니다: 해당 콜백의 kerneldoc은 그 이유를 정확히 설명합니다 — \"VRAM이나 디바이스 전용 carveout 영역 같은 특수한 위치의 버퍼 객체를 지원하는 exporter는 버퍼를 시스템 메모리로 옮길 수 있는지 [sic] (또는 주어진 디바이스가 직접 접근할 수 있는지) 확인해야 하며, 그렇지 않으면 attach 연산을 실패시켜야 합니다.\" 한 GPU의 VRAM에 있는 버퍼는 먼저 시스템 메모리로 마이그레이션되거나 시스템 메모리를 거쳐 바운스되지 않으면 두 번째 GPU나 관련 없는 캡처 디바이스가 물리적으로 접근하지 못할 수 있습니다 — 누군가 매핑을 확정하기 전에 이를 협상하는 곳이 바로 `attach()`입니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "callback": "콜백",
+        "device": "디바이스",
+        "mapping": "매핑",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:46.894449Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "**`dma_buf_map_attachment(struct dma_buf_attachment *attach, enum dma_data_direction dir)`** — now actually get a `struct sg_table`, DMA-mapped for *this* attachment's device specifically.",
+      "source_hash": 5921262805089921227,
+      "context_hash": 5151773145520683536,
+      "translation": "**`dma_buf_map_attachment(struct dma_buf_attachment *attach, enum dma_data_direction dir)`** — 이제 실제로 `struct sg_table`을 얻으며, 이는 *이* attachment의 디바이스에 맞춰 특별히 DMA 매핑된 것입니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T22:49:15.567038Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:1",
+      "source": "The kerneldoc for `map_dma_buf` notes this \"may sleep, e.g. when the backing storage first needs to be allocated, or moved to a location suitable for all currently attached devices\" — and that on the first call for a buffer, the exporter is free to look across *all* current attachments and choose backing storage that satisfies every one of them at once.",
+      "source_hash": 3561606155398572335,
+      "context_hash": 13362006235416459838,
+      "translation": "`map_dma_buf`의 kerneldoc은 이 호출이 \"may sleep, e.g. when the backing storage first needs to be allocated, or moved to a location suitable for all currently attached devices\"(예를 들어 backing storage를 처음 할당해야 하거나, 현재 attach된 모든 디바이스에 적합한 위치로 옮겨야 할 때 sleep할 수 있다)라고 설명하며, 버퍼에 대한 첫 호출에서 exporter는 현재의 *모든* attachment를 살펴보고 그 모두를 한꺼번에 만족하는 backing storage를 자유롭게 선택할 수 있다고 덧붙입니다.",
+      "glossary_snapshot": {
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T22:49:15.567039Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "The two-step split exists because a GPU and, say, a camera capture engine can have genuinely different DMA addressing constraints — different IOMMU domains, different reachable physical ranges, different alignment needs — and the exporter needs the chance to migrate or pin the buffer into a location that works for the new device *before* that device is allowed to touch it, rather than finding out mid-access that the placement was wrong.",
+      "source_hash": 9545629424145236574,
+      "context_hash": 13762690323124441839,
+      "translation": "이렇게 두 단계로 나뉘어 있는 이유는 GPU와, 예컨대 카메라 캡처 엔진이 실제로 서로 다른 DMA 주소 지정 제약 — 서로 다른 IOMMU 도메인, 서로 다른 접근 가능 물리 주소 범위, 서로 다른 정렬 요구 사항 — 을 가질 수 있기 때문이며, exporter는 새 디바이스가 버퍼에 접근하도록 허용되기 *전에* 그 디바이스에서 동작하는 위치로 버퍼를 migrate하거나 pin할 기회를 가져야 하고, 접근 도중에야 배치가 잘못되었음을 알게 되어서는 안 되기 때문입니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "GPU": "GPU",
+        "IOMMU": "IOMMU",
+        "alignment": "정렬",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T22:49:15.567040Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "DRM PRIME: DRM's dma-buf binding",
+      "source_hash": 316695198157638316,
+      "context_hash": 18438982369382932652,
+      "translation": "DRM PRIME: DRM의 dma-buf 바인딩",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T22:49:15.567040Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "PRIME is how a GEM handle in one driver's namespace becomes a GEM handle in a completely different driver's namespace, by round-tripping through a dma-buf fd.",
+      "source_hash": 1485955420240686673,
+      "context_hash": 2111202778155093655,
+      "translation": "PRIME은 한 드라이버의 네임스페이스에 있는 GEM 핸들을 dma-buf fd를 거쳐 왕복시킴으로써 완전히 다른 드라이버의 네임스페이스에 있는 GEM 핸들로 만드는 방법입니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "namespace": "네임스페이스"
+      },
+      "translated_at": "2026-11-14T22:49:15.567040Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:1",
+      "source": "The two ioctls, and what actually happens underneath them (`drivers/gpu/drm/drm_prime.c`):",
+      "source_hash": 5129411725928537236,
+      "context_hash": 1583470827100587320,
+      "translation": "두 ioctl과 그 아래에서 실제로 일어나는 일(`drivers/gpu/drm/drm_prime.c`)은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "ioctls": "ioctl"
+      },
+      "translated_at": "2026-11-14T22:49:15.567041Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "**`DRM_IOCTL_PRIME_HANDLE_TO_FD`** — export.",
+      "source_hash": 7820571210052094137,
+      "context_hash": 3087967782846705896,
+      "translation": "**`DRM_IOCTL_PRIME_HANDLE_TO_FD`** — export.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567041Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:1",
+      "source": "Handler `drm_prime_handle_to_fd_ioctl()` calls `drm_gem_prime_handle_to_fd()`, which calls `drm_gem_prime_handle_to_dmabuf()`: that looks up the GEM object for the handle and calls either the driver's own `drm_gem_object_funcs.export`, or the generic default, **`drm_gem_prime_export()`**.",
+      "source_hash": 4739107498659036417,
+      "context_hash": 9660369669076304353,
+      "translation": "핸들러 `drm_prime_handle_to_fd_ioctl()`은 `drm_gem_prime_handle_to_fd()`를 호출하고, 이것은 다시 `drm_gem_prime_handle_to_dmabuf()`를 호출합니다. 이 함수는 핸들에 해당하는 GEM 객체를 찾은 뒤 드라이버 자체의 `drm_gem_object_funcs.export` 또는 범용 기본 구현인 **`drm_gem_prime_export()`를** 호출합니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "driver": "드라이버",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:49:15.567042Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:2",
+      "source": "Either way the result is a `struct dma_buf`; `dma_buf_fd()`-equivalent plumbing (`fd_install()` on an already-reserved fd) hands userspace back an fd in `drm_prime_handle.fd`.",
+      "source_hash": 7432030079546528626,
+      "context_hash": 823492785944417613,
+      "translation": "어느 쪽이든 결과는 `struct dma_buf`이며, `dma_buf_fd()`에 해당하는 처리 과정(이미 예약된 fd에 대한 `fd_install()`)이 `drm_prime_handle.fd`에 담긴 fd를 사용자 공간에 돌려줍니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:49:15.567042Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "**`DRM_IOCTL_PRIME_FD_TO_HANDLE`** — import.",
+      "source_hash": 16718279806321014307,
+      "context_hash": 402295105644875019,
+      "translation": "**`DRM_IOCTL_PRIME_FD_TO_HANDLE`** — import.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567042Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:1",
+      "source": "Handler `drm_prime_fd_to_handle_ioctl()` calls `drm_gem_prime_fd_to_handle()`: it takes a reference on the dma-buf (`dma_buf_get()`), checks whether *this* driver has already imported this exact dma-buf before (a per-`drm_file` lookup cache, so re-importing the same buffer twice returns the same handle rather than creating a duplicate object), and otherwise calls the driver's `gem_prime_import` callback or the generic **`drm_gem_prime_import()`**, which creates a new GEM object with `import_attach` set and `resv` pointed at the exporter's reservation object.",
+      "source_hash": 11965617906528270483,
+      "context_hash": 2421311967038547696,
+      "translation": "핸들러 `drm_prime_fd_to_handle_ioctl()`은 `drm_gem_prime_fd_to_handle()`을 호출합니다. 이 함수는 dma-buf에 대한 참조를 얻고(`dma_buf_get()`), *이* 드라이버가 바로 이 dma-buf를 이전에 이미 import한 적이 있는지 확인하며(`drm_file`별 조회 캐시로, 같은 버퍼를 두 번 다시 import하면 중복 객체를 만들지 않고 같은 핸들을 반환합니다), 그렇지 않으면 드라이버의 `gem_prime_import` 콜백 또는 범용 **`drm_gem_prime_import()`를** 호출합니다. 이 함수는 `import_attach`가 설정되고 `resv`가 exporter의 reservation 객체를 가리키는 새 GEM 객체를 생성합니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "cache": "캐시",
+        "callback": "콜백",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:49:15.567042Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:2",
+      "source": "A fresh handle for that object is then created in the *importing* driver's own `object_idr` — same handle mechanism as any locally-allocated object, just wrapping memory this driver didn't allocate.",
+      "source_hash": 15991322506014800653,
+      "context_hash": 18422575653202824042,
+      "translation": "그런 다음 해당 객체에 대한 새 핸들이 *import하는* 드라이버 자체의 `object_idr`에 생성됩니다. 이는 로컬에서 할당한 다른 객체와 동일한 핸들 메커니즘이며, 단지 이 드라이버가 할당하지 않은 메모리를 감싸고 있을 뿐입니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:15.567043Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "This is the literal mechanism behind both scenarios this page opened with: a compositor exporting a rendered frame's GEM handle as a fd and handing that fd (over a Unix socket, e.g. the Wayland protocol) to a separate display-controller driver's `PRIME_FD_TO_HANDLE`; or a V4L2 driver exporting a captured frame the same way for a GPU driver to import and treat as an ordinary, zero-copy-populated GEM object.",
+      "source_hash": 9030908423039137876,
+      "context_hash": 2195933694040756496,
+      "translation": "이것이 이 페이지 서두에서 소개한 두 시나리오의 실제 메커니즘입니다. 하나는 컴포지터가 렌더링된 프레임의 GEM 핸들을 fd로 export하고, 그 fd를 (Unix 소켓, 예를 들어 Wayland 프로토콜을 통해) 별도의 디스플레이 컨트롤러 드라이버의 `PRIME_FD_TO_HANDLE`에 넘겨주는 경우이고, 다른 하나는 V4L2 드라이버가 캡처한 프레임을 같은 방식으로 export하여 GPU 드라이버가 이를 import해 제로 카피로 채워진 평범한 GEM 객체로 다루는 경우입니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "GPU": "GPU",
+        "controller": "컨트롤러",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:29:09.576148Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Fences and `dma_resv`",
+      "source_hash": 17459252261640448353,
+      "context_hash": 790056353072955551,
+      "translation": "Fence와 `dma_resv`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567043Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Two drivers sharing a buffer both need an answer to \"is anyone still using this,\" without either one understanding anything about how the other's hardware works or what its command queues look like. dma-buf answers that with two cooperating pieces.",
+      "source_hash": 17438796924676923064,
+      "context_hash": 9302574693533278537,
+      "translation": "버퍼를 공유하는 두 드라이버는 모두 \"아직 누가 이것을 사용하고 있는가\"에 대한 답이 필요하며, 이때 어느 쪽도 상대 하드웨어가 어떻게 동작하는지나 상대의 커맨드 큐가 어떤 모습인지 전혀 알 필요가 없어야 합니다. dma-buf는 서로 협력하는 두 요소로 이 질문에 답합니다.",
+      "glossary_snapshot": {
+        "dma-buf": "dma-buf",
+        "drivers": "드라이버",
+        "hardware": "하드웨어",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:49:15.567043Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "`struct dma_fence`: a one-shot completion signal",
+      "source_hash": 11519416523696451894,
+      "context_hash": 3409758706721047313,
+      "translation": "`struct dma_fence`: 일회성 완료 신호",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567043Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`struct dma_fence` (`include/linux/dma-fence.h`) is the primitive:",
+      "source_hash": 5425734509557604492,
+      "context_hash": 17348574324640178541,
+      "translation": "`struct dma_fence`(`include/linux/dma-fence.h`)가 그 기본 요소입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567043Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "A fence represents one specific piece of GPU work finishing — a command-buffer submission, a page-table update, a copy — and nothing more.",
+      "source_hash": 342500675994633793,
+      "context_hash": 2330506869467353764,
+      "translation": "Fence는 GPU 작업 하나 — 커맨드 버퍼 제출, 페이지 테이블 갱신, 복사 — 가 끝나는 것을 나타내며, 그 이상은 아닙니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-11-14T22:49:15.567044Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "It doesn't know or care what engine produced it.",
+      "source_hash": 2911563823566851128,
+      "context_hash": 4381708094342658770,
+      "translation": "Fence는 어떤 엔진이 자신을 만들었는지 알지도 신경 쓰지도 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567044Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:2",
+      "source": "Other code can `dma_fence_wait()` on it (block until it signals) or `dma_fence_add_callback()` (get notified asynchronously, e.g. to unblock a later scheduled GPU job without the CPU ever having to block), and the `dma_fence_ops.enable_signaling` callback is where an implementation hooks up whatever interrupt or polling mechanism actually detects hardware completion.",
+      "source_hash": 6775036679944669860,
+      "context_hash": 14944654313909342424,
+      "translation": "다른 코드는 이 fence에 대해 `dma_fence_wait()`를 호출하거나(signal될 때까지 블록) `dma_fence_add_callback()`을 호출할 수 있으며(비동기적으로 통지를 받음. 예를 들어 CPU가 전혀 블록하지 않고도 나중에 스케줄된 GPU 작업의 블록을 해제하는 경우), `dma_fence_ops.enable_signaling` 콜백은 구현이 하드웨어 완료를 실제로 감지하는 인터럽트나 폴링 메커니즘을 연결하는 훅(hook) 지점입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "GPU": "GPU",
+        "callback": "콜백",
+        "hooks": "훅",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T23:29:09.576148Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:3",
+      "source": "Every wait-for-completion in the GPU stack — a driver waiting to reuse a buffer, a display controller waiting before scanning one out, one GPU job waiting on a dependency from another — reduces to waiting on one or more `dma_fence` objects, regardless of which driver or which piece of silicon produced them.",
+      "source_hash": 2465225901513435484,
+      "context_hash": 4159394257338733410,
+      "translation": "GPU 스택의 모든 완료 대기 — 버퍼를 재사용하려고 기다리는 드라이버, 버퍼를 scanout하기 전에 기다리는 디스플레이 컨트롤러, 다른 작업에 대한 의존성을 기다리는 GPU 작업 — 는 어떤 드라이버나 어떤 실리콘이 만들었는지와 관계없이 하나 이상의 `dma_fence` 객체를 기다리는 것으로 귀결됩니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "controller": "컨트롤러",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:15.567045Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "`struct dma_resv`: which fences belong to a buffer, and why",
+      "source_hash": 10076506784809986821,
+      "context_hash": 16798659386290790574,
+      "translation": "`struct dma_resv`: 버퍼에 속하는 fence와 그 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "`struct dma_resv` (`include/linux/dma-resv.h`) is the container attached to a buffer — `dma_buf.resv`, and by extension `drm_gem_object.resv` — that tracks which fences apply to it:",
+      "source_hash": 8987518525538523418,
+      "context_hash": 13348942713587243577,
+      "translation": "`struct dma_resv`(`include/linux/dma-resv.h`)는 버퍼에 붙어 있는 컨테이너 — `dma_buf.resv`, 그리고 그 연장으로 `drm_gem_object.resv` — 로, 해당 버퍼에 적용되는 fence를 추적합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "The current kernel doesn't split \"the one writer fence\" from \"the shared reader fences\" into two separate fields the way older documentation describes — that model has evolved.",
+      "source_hash": 6827802777073602741,
+      "context_hash": 14194124486453933001,
+      "translation": "현재 커널은 예전 문서에서 설명하는 방식처럼 \"단일 writer fence\"와 \"공유 reader fence\"를 두 개의 별도 필드로 나누지 않습니다. 그 모델은 이미 바뀌었습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:1",
+      "source": "Instead every fence added via `dma_resv_add_fence()` carries an `enum dma_resv_usage` tag, in strict ascending order of \"how much can safely run concurrently with it\":",
+      "source_hash": 16683326479371135747,
+      "context_hash": 12320519994861906193,
+      "translation": "대신 `dma_resv_add_fence()`로 추가되는 모든 fence는 `enum dma_resv_usage` 태그를 가지며, 이 태그는 \"그 fence와 얼마나 안전하게 동시에 실행될 수 있는가\"의 엄격한 오름차순으로 정렬됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "Asking for fences at a given usage level (`dma_resv_get_fences()`, `dma_resv_wait_timeout()`, ...) also returns every fence at a *lower* usage level in that list — asking for `WRITE` fences implicitly includes `KERNEL` fences, asking for `READ` includes both `WRITE` and `KERNEL`.",
+      "source_hash": 1567029769752018418,
+      "context_hash": 6910338625398490953,
+      "translation": "특정 usage 수준의 fence를 요청하면(`dma_resv_get_fences()`, `dma_resv_wait_timeout()`, ...) 그 목록에서 *더 낮은* usage 수준의 fence도 모두 반환됩니다. `WRITE` fence를 요청하면 `KERNEL` fence가 암묵적으로 포함되고, `READ`를 요청하면 `WRITE`와 `KERNEL`이 모두 포함됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:1",
+      "source": "That's what encodes the familiar reader/writer rule (many concurrent readers are fine; a writer must wait for everyone) without needing two separate storage slots: a new read only has to wait for existing *write* fences, but a new write has to wait for both existing reads and existing writes, which is precisely what `dma_resv_usage_rw()`'s inverted-looking mapping (`write ? DMA_RESV_USAGE_READ : DMA_RESV_USAGE_WRITE`) implements — asking \"what must a new write wait for\" returns the read-and-below set.",
+      "source_hash": 233720328513664899,
+      "context_hash": 3775243137504083613,
+      "translation": "바로 이것이 별도의 저장 슬롯 두 개 없이도 익숙한 reader/writer 규칙(동시에 여러 reader가 있어도 괜찮지만, writer는 모두를 기다려야 함)을 표현하는 방식입니다. 새 읽기는 기존 *쓰기* fence만 기다리면 되지만, 새 쓰기는 기존 읽기와 기존 쓰기를 모두 기다려야 하며, 이것이 정확히 `dma_resv_usage_rw()`의 거꾸로 보이는 매핑(`write ? DMA_RESV_USAGE_READ : DMA_RESV_USAGE_WRITE`)이 구현하는 내용입니다. \"새 쓰기는 무엇을 기다려야 하는가\"를 물으면 읽기 이하의 집합이 반환됩니다.",
+      "glossary_snapshot": {
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Why this matters concretely",
+      "source_hash": 9971747400377722257,
+      "context_hash": 9787780333058413508,
+      "translation": "이것이 구체적으로 중요한 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "Every place two pieces of hardware might touch the same buffer without one waiting for the other to physically finish is a use-after-scanout or a torn-frame bug waiting to happen, and none of these devices can inspect each other's command queues to know when that is.",
+      "source_hash": 7029598362498900894,
+      "context_hash": 18127108448167747029,
+      "translation": "두 하드웨어가 한쪽이 다른 쪽의 물리적 완료를 기다리지 않은 채 같은 버퍼에 접근할 수 있는 모든 지점은 use-after-scanout이나 torn-frame 버그가 일어나기 직전의 상태이며, 이 디바이스들 중 어느 것도 그 시점을 알기 위해 서로의 커맨드 큐를 들여다볼 수 없습니다.",
+      "glossary_snapshot": {
+        "bug": "버그",
+        "devices": "디바이스",
+        "hardware": "하드웨어",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:49:15.567046Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:1",
+      "source": "So instead they all agree to go through `dma_resv`: a GPU driver about to evict or reuse a buffer's memory checks (or waits on) the fences in its `dma_resv` rather than assuming the job that last wrote it is done; a display driver about to scan a buffer out for the first time after a render does the same before it programs the CRTC; a dynamic dma-buf importer (one that participates in migration, per the `dma_buf_attach_ops.invalidate_mappings` callback) is required by the documented rules in `dma-buf.h` to \"obey the write fences and wait for them to signal before allowing access to the buffer's underlying storage through the device.\" None of this requires the display driver to understand GPU command-buffer semantics, or the GPU driver to understand display-controller timing — both just wait on fences.",
+      "source_hash": 14201873393808070920,
+      "context_hash": 16663256173105207342,
+      "translation": "그래서 이들은 모두 `dma_resv`를 거치기로 합의합니다. 버퍼의 메모리를 evict하거나 재사용하려는 GPU 드라이버는 마지막으로 그 버퍼에 쓴 작업이 끝났다고 가정하는 대신 `dma_resv`의 fence를 확인(또는 대기)하고, 렌더링 후 처음으로 버퍼를 scanout하려는 디스플레이 드라이버도 CRTC를 프로그래밍하기 전에 같은 일을 하며, 동적 dma-buf importer(`dma_buf_attach_ops.invalidate_mappings` 콜백에 따라 migration에 참여하는 importer)는 `dma-buf.h`에 문서화된 규칙에 따라 \"obey the write fences and wait for them to signal before allowing access to the buffer's underlying storage through the device\"(디바이스를 통해 버퍼의 실제 저장소에 접근하도록 허용하기 전에 write fence를 따르고 그것들이 signal될 때까지 기다려야 한다)해야 합니다. 이 중 어느 것도 디스플레이 드라이버가 GPU 커맨드 버퍼의 의미를 이해하거나 GPU 드라이버가 디스플레이 컨트롤러의 타이밍을 이해할 것을 요구하지 않으며, 양쪽 모두 그저 fence를 기다릴 뿐입니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "callback": "콜백",
+        "controller": "컨트롤러",
+        "device": "디바이스",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:15.567047Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Worked example: a camera frame becomes a GPU texture, zero-copy",
+      "source_hash": 16551622300139142648,
+      "context_hash": 7207284192822130559,
+      "translation": "실전 예제: 카메라 프레임이 제로 카피로 GPU 텍스처가 되는 과정",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "zero-copy": "제로 카피"
+      },
+      "translated_at": "2026-11-14T23:29:09.576149Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "A V4L2 capture driver has just filled a buffer with a captured frame and a compositor wants to use it as a GPU texture for scaling/color-conversion, without a CPU copy in either direction.",
+      "source_hash": 6434603657121537229,
+      "context_hash": 7095980771605354888,
+      "translation": "V4L2 캡처 드라이버가 캡처한 프레임으로 버퍼를 막 채웠고, 컴포지터는 어느 방향으로도 CPU 복사 없이 이 버퍼를 스케일링/색 변환용 GPU 텍스처로 사용하려 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "GPU": "GPU",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:15.567047Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "**1.",
+      "source_hash": 169585496999793679,
+      "context_hash": 1221855205732315744,
+      "translation": "**1.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:32.764340Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "Capture side exports.** The V4L2 driver, acting as a dma-buf exporter for its capture buffers (the same role any `dma_buf_ops`-implementing driver plays — V4L2's own buffer-sharing API is a thin wrapper over exactly this mechanism, and was in fact dma-buf's original demonstrated use case), hands userspace a dma-buf fd for the just-captured frame.",
+      "source_hash": 16771183198129598309,
+      "context_hash": 17831236758737337988,
+      "translation": "캡처 측의 내보내기.** V4L2 드라이버는 캡처 버퍼의 dma-buf exporter로서(`dma_buf_ops`를 구현하는 모든 드라이버가 맡는 것과 같은 역할로, V4L2 자체의 버퍼 공유 API는 바로 이 메커니즘을 감싼 얇은 래퍼이며 실제로 dma-buf가 처음 시연한 사용 사례이기도 합니다) 방금 캡처한 프레임에 대한 dma-buf fd를 사용자 공간에 넘겨줍니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:49:32.764342Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "**2.",
+      "source_hash": 7495526238661281177,
+      "context_hash": 2378766322573587944,
+      "translation": "**2.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:32.764343Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "The compositor imports it into the GPU driver.** It passes that fd to `DRM_IOCTL_PRIME_FD_TO_HANDLE` on the GPU's DRM fd.",
+      "source_hash": 10996458690844615944,
+      "context_hash": 10954947374356678438,
+      "translation": "컴포지터가 이를 GPU 드라이버로 가져옵니다.** 컴포지터는 그 fd를 GPU의 DRM fd에 대한 `DRM_IOCTL_PRIME_FD_TO_HANDLE`에 전달합니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GPU": "GPU",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:32.764343Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:2",
+      "source": "Kernel-side: `drm_gem_prime_fd_to_handle()` takes a reference on the dma-buf, doesn't find it in this file's import cache (first time seeing this buffer), and calls the GPU driver's `gem_prime_import` — which bottoms out in `drm_gem_prime_import()` / `drm_gem_prime_import_dev()`.",
+      "source_hash": 13444231891193896416,
+      "context_hash": 12263073202490023722,
+      "translation": "커널 쪽에서는 `drm_gem_prime_fd_to_handle()`이 dma-buf에 대한 참조를 얻고, 이 파일의 import 캐시에서 해당 버퍼를 찾지 못한 뒤(이 버퍼를 처음 보는 경우) GPU 드라이버의 `gem_prime_import`를 호출하며, 이 호출은 결국 `drm_gem_prime_import()` / `drm_gem_prime_import_dev()`에 도달합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU",
+        "cache": "캐시",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:49:32.764344Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:3",
+      "source": "That creates a new `drm_gem_object` in the GPU driver with `import_attach` set (from an internal `dma_buf_attach()` against the GPU's device) and `resv` pointed at the *V4L2 driver's* reservation object, not a fresh one — this GEM object and the original V4L2 buffer now share fence tracking.",
+      "source_hash": 3723968450156012089,
+      "context_hash": 3424822005700756933,
+      "translation": "이 과정에서 GPU 드라이버에 새 `drm_gem_object`가 생성되는데, `import_attach`가 설정되고(GPU 디바이스를 대상으로 한 내부 `dma_buf_attach()` 호출로부터) `resv`는 새로 만든 것이 아니라 *V4L2 드라이버의* reservation 객체를 가리킵니다. 이로써 이 GEM 객체와 원래의 V4L2 버퍼는 펜스 추적을 공유합니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "GPU": "GPU",
+        "device": "디바이스",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:32.764344Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:4",
+      "source": "A handle for it lands in `object_idr` for the compositor's DRM file descriptor.",
+      "source_hash": 17014065940963230684,
+      "context_hash": 7707851421194439703,
+      "translation": "이 객체에 대한 핸들은 컴포지터의 DRM 파일 디스크립터에 대한 `object_idr`에 등록됩니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:49:32.764345Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "**3.",
+      "source_hash": 9556070984229407276,
+      "context_hash": 6341504917791207913,
+      "translation": "**3.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:32.764345Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "Mapping for actual GPU access.** `drm_gem_prime_import_dev()` already did the attach/map work on the compositor's behalf during step 2 — calling `dma_buf_attach()` and then `dma_buf_map_attachment_unlocked()` (the variant for callers not already holding the `dma_resv` lock) for the GPU's attachment, getting back an `sg_table` DMA-mapped for the GPU's own address space/IOMMU domain.",
+      "source_hash": 2579167288674482405,
+      "context_hash": 11334487676912510285,
+      "translation": "실제 GPU 접근을 위한 매핑.** `drm_gem_prime_import_dev()`는 2단계에서 이미 컴포지터를 대신해 attach/map 작업을 수행했습니다. 즉 GPU의 attachment에 대해 `dma_buf_attach()`를 호출한 뒤 `dma_buf_map_attachment_unlocked()`(아직 `dma_resv` 락을 잡고 있지 않은 호출자를 위한 변형)를 호출하여, GPU 자신의 주소 공간/IOMMU 도메인에 맞게 DMA 매핑된 `sg_table`을 돌려받았습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "GPU": "GPU",
+        "IOMMU": "IOMMU",
+        "address space": "주소 공간",
+        "mapping": "매핑"
+      },
+      "translated_at": "2026-11-14T22:49:32.764346Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "A V4L2 capture engine and a GPU render engine can easily have different reachable physical ranges, which is exactly the case the attach/map split exists for.",
+      "source_hash": 4781237431385154323,
+      "context_hash": 13893913612376845581,
+      "translation": "V4L2 캡처 엔진과 GPU 렌더 엔진은 접근 가능한 물리 주소 범위가 서로 다를 수 있으며, attach/map 분리는 바로 이런 경우를 위해 존재합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-11-14T22:49:32.764346Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "**4.",
+      "source_hash": 8225791692807945303,
+      "context_hash": 132202832149728078,
+      "translation": "**4.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:32.764346Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "Fencing keeps it safe — except V4L2 is a documented exception.** Because the imported GEM object's `resv` points at the *exporter's* `dma_resv`, any fence the exporting driver attaches is automatically visible to the GPU driver, and gets folded into the GPU job's dependencies under implicit sync (or waited on explicitly).",
+      "source_hash": 13540965712456217044,
+      "context_hash": 13977060294759144959,
+      "translation": "펜싱이 안전을 보장합니다 — 단, V4L2는 문서화된 예외입니다.** 가져온 GEM 객체의 `resv`가 *exporter의* `dma_resv`를 가리키므로, 내보낸 드라이버가 붙이는 모든 펜스는 GPU 드라이버에 자동으로 보이며, 암시적 동기화에서는 GPU 작업의 의존성에 포함됩니다(또는 명시적으로 대기 대상이 됩니다).",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "GPU": "GPU",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:32.764346Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:2",
+      "source": "But `dma-buf.h`'s implicit-synchronization rules call out V4L2 by name as a driver that doesn't participate: \"Some drivers only expose a synchronous userspace API with no pipelining across drivers.",
+      "source_hash": 10961768095458040670,
+      "context_hash": 8403261783401260371,
+      "translation": "그러나 `dma-buf.h`의 암시적 동기화 규칙은 V4L2를 참여하지 않는 드라이버로 명시적으로 언급합니다. \"일부 드라이버는 드라이버 간 파이프라이닝이 없는 동기식 사용자 공간 API만 노출합니다.",
+      "glossary_snapshot": {
+        "API": "API",
+        "driver": "드라이버",
+        "drivers": "드라이버",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:49:32.764347Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:3",
+      "source": "These do not set any fences for their access.",
+      "source_hash": 5514796367959708753,
+      "context_hash": 11115874560864661006,
+      "translation": "이러한 드라이버는 자신의 접근에 대해 어떤 펜스도 설정하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:32.764348Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:4",
+      "source": "An example here is v4l.\" V4L2 gets its ordering from `VIDIOC_DQBUF` instead — a captured buffer isn't handed back to userspace (and so isn't passed on as a dma-buf fd) until the capture DMA has already completed, so by the time the compositor imports it there's nothing left in flight to fence.",
+      "source_hash": 2526829444949255261,
+      "context_hash": 10095944578554240136,
+      "translation": "그 예가 v4l입니다.\" 대신 V4L2는 `VIDIOC_DQBUF`로부터 순서를 보장받습니다. 캡처된 버퍼는 캡처 DMA가 이미 완료된 뒤에야 사용자 공간에 돌려주어지므로(따라서 그 전에는 dma-buf fd로 전달되지도 않으므로), 컴포지터가 이를 가져오는 시점에는 펜스로 보호해야 할 진행 중인 작업이 남아 있지 않습니다.",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "dma-buf": "dma-buf",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:49:32.764348Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:5",
+      "source": "The shared-`resv` fencing path is what carries dependencies in the GPU-to-GPU case, where both sides pipeline asynchronously — see below.",
+      "source_hash": 16873213797745159933,
+      "context_hash": 16283843128649890880,
+      "translation": "공유 `resv`를 통한 펜싱 경로는 양쪽 모두 비동기적으로 파이프라이닝하는 GPU 간 사례에서 의존성을 전달하는 역할을 합니다. 아래를 참고하십시오.",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-11-14T22:49:32.764348Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "**5.",
+      "source_hash": 13484919543697484990,
+      "context_hash": 16842944023002230817,
+      "translation": "**5.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:32.764348Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "Teardown.** The compositor eventually calls `DRM_IOCTL_GEM_CLOSE` on its GPU-side handle.",
+      "source_hash": 9830369109857041193,
+      "context_hash": 1089507018611207375,
+      "translation": "해제.** 컴포지터는 결국 GPU 측 핸들에 대해 `DRM_IOCTL_GEM_CLOSE`를 호출합니다.",
+      "glossary_snapshot": {
+        "GPU": "GPU"
+      },
+      "translated_at": "2026-11-14T22:49:32.764349Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:2",
+      "source": "Handle release, not the dma-buf fd itself, is what drops the GPU driver's GEM object reference; the underlying dma-buf stays alive as long as anyone still holds a reference to it — the compositor's own dma-buf fd, or any other importer's `get_dma_buf()` reference.",
+      "source_hash": 6235376238220396352,
+      "context_hash": 1445924747355430548,
+      "translation": "GPU 드라이버의 GEM 객체 참조를 놓는 것은 dma-buf fd 자체가 아니라 핸들 해제입니다. 기반 dma-buf는 누군가 여전히 그에 대한 참조를 가지고 있는 한, 즉 컴포지터 자신의 dma-buf fd나 다른 importer의 `get_dma_buf()` 참조가 남아 있는 한 계속 살아 있습니다.",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "GPU": "GPU",
+        "dma-buf": "dma-buf",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T22:49:32.764349Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:3",
+      "source": "The V4L2 side is the reverse of what you might expect: exporting the buffer took a reference *on the underlying vb2 buffer*, so that capture buffer's memory cannot be freed until the dma-buf itself is finally released, not the other way around.",
+      "source_hash": 4949873521468063636,
+      "context_hash": 9221435844864594709,
+      "translation": "V4L2 쪽은 예상과 반대입니다. 버퍼를 내보낼 때 *기반 vb2 버퍼에 대한* 참조를 얻었으므로, 그 반대가 아니라 해당 캡처 버퍼의 메모리가 dma-buf 자체가 최종적으로 해제될 때까지 해제될 수 없습니다.",
+      "glossary_snapshot": {
+        "dma-buf": "dma-buf",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:32.764350Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "The same export/import shape — `PRIME_HANDLE_TO_FD` on one driver's GEM handle, `PRIME_FD_TO_HANDLE` on another driver's DRM fd — is how a render GPU hands a composited frame to a physically separate display-output GPU on a hybrid-graphics laptop, except there the fencing is live: the render GPU attaches a `DMA_RESV_USAGE_WRITE` fence for its submission via `dma_resv_add_fence()`, and the display driver, seeing the same `dma_resv` through the imported object's `resv`, picks that fence up before the flip. `drm_gem_plane_helper_prepare_fb()` — the default `prepare_fb` hook for GEM-backed drivers — calls `dma_resv_get_singleton(obj->resv, DMA_RESV_USAGE_WRITE, ...)` and stashes the result in the plane state, which `drm_atomic_helper_wait_for_fences()` then waits on before the commit actually programs the hardware.",
+      "source_hash": 9068399227131901150,
+      "context_hash": 16067538014421752864,
+      "translation": "하이브리드 그래픽 노트북에서 렌더링 GPU가 합성된 프레임을 물리적으로 분리된 디스플레이 출력 GPU에 넘겨주는 방식도 같은 내보내기/가져오기 형태, 즉 한 드라이버의 GEM 핸들에 대한 `PRIME_HANDLE_TO_FD`와 다른 드라이버의 DRM fd에 대한 `PRIME_FD_TO_HANDLE`을 따르지만, 그 경우에는 펜싱이 실제로 동작합니다. 렌더링 GPU는 `dma_resv_add_fence()`를 통해 자신의 제출에 대한 `DMA_RESV_USAGE_WRITE` 펜스를 붙이고, 디스플레이 드라이버는 가져온 객체의 `resv`를 통해 같은 `dma_resv`를 보면서 flip 전에 그 펜스를 가져옵니다. GEM 기반 드라이버의 기본 `prepare_fb` 훅인 `drm_gem_plane_helper_prepare_fb()`는 `dma_resv_get_singleton(obj->resv, DMA_RESV_USAGE_WRITE, ...)`을 호출하고 그 결과를 plane 상태에 저장하며, `drm_atomic_helper_wait_for_fences()`는 커밋이 실제로 하드웨어를 프로그래밍하기 전에 그 펜스를 기다립니다.",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GEM": "GEM",
+        "GPU": "GPU",
+        "driver": "드라이버",
+        "drivers": "드라이버",
+        "hardware": "하드웨어",
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T22:49:32.764350Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:1",
+      "source": "Only which side is \"exporter\" and which is \"importer\" changes.",
+      "source_hash": 15990104974683858011,
+      "context_hash": 8063129461484459460,
+      "translation": "바뀌는 것은 어느 쪽이 \"exporter\"이고 어느 쪽이 \"importer\"인지뿐입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:49:32.764350Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 5682679913443961934,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:49:32.764350Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "[Kernel docs: DRM Memory Management (GEM, TTM)](https://docs.kernel.org/gpu/drm-mm.html) — the authoritative GEM/TTM design and API reference",
+      "source_hash": 1674489612941768659,
+      "context_hash": 1198092816398168423,
+      "translation": "[Kernel docs: DRM Memory Management (GEM, TTM)](https://docs.kernel.org/gpu/drm-mm.html) — GEM/TTM 설계와 API에 대한 공식 참고 문서",
+      "glossary_snapshot": {
+        "API": "API",
+        "DRM": "DRM",
+        "GEM": "GEM"
+      },
+      "translated_at": "2026-11-14T22:49:32.764351Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "[Kernel docs: Buffer Sharing and Synchronization (dma-buf)](https://docs.kernel.org/driver-api/dma-buf.html) — dma-buf, dma-buf attachments, and implicit vs. explicit fencing",
+      "source_hash": 1838920668283154923,
+      "context_hash": 1152651932925884620,
+      "translation": "[Kernel docs: Buffer Sharing and Synchronization (dma-buf)](https://docs.kernel.org/driver-api/dma-buf.html) — dma-buf, dma-buf attachment, 암시적 펜싱과 명시적 펜싱의 비교",
+      "glossary_snapshot": {
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T22:49:32.764351Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "[Kernel docs: DRM uAPI](https://docs.kernel.org/gpu/drm-uapi.html) — includes the explicit \"New clients must not use the insecure FLINK interface\" guidance",
+      "source_hash": 977385312485793034,
+      "context_hash": 12339244688571921204,
+      "translation": "[Kernel docs: DRM uAPI](https://docs.kernel.org/gpu/drm-uapi.html) — \"새 클라이언트는 안전하지 않은 FLINK 인터페이스를 사용해서는 안 됩니다\"라는 명시적 지침 포함",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "uapi": "uapi"
+      },
+      "translated_at": "2026-11-14T22:49:32.764351Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "[`d15bd7ee445d`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d15bd7ee445d0702ad801fdaece348fdb79e6581) — \"dma-buf: Introduce dma buffer sharing mechanism,\" Sumit Semwal, merged for Linux 3.3 (early 2012)",
+      "source_hash": 9848768188824537800,
+      "context_hash": 12444926839150707549,
+      "translation": "[`d15bd7ee445d`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d15bd7ee445d0702ad801fdaece348fdb79e6581) — \"dma-buf: Introduce dma buffer sharing mechanism,\" Sumit Semwal, Linux 3.3에 병합(2012년 초)",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "Linux": "Linux",
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T22:49:32.764351Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "[lore.kernel.org: [RFC v2] Introduce DMA buffer sharing mechanism](https://lore.kernel.org/dri-devel/1322816252-19955-1-git-send-email-sumit.semwal@ti.com/) — the second (December 2011) RFC round, where the subsystem-agnostic design was argued over",
+      "source_hash": 3863938208508806791,
+      "context_hash": 11790537363559502259,
+      "translation": "[lore.kernel.org: [RFC v2] Introduce DMA buffer sharing mechanism](https://lore.kernel.org/dri-devel/1322816252-19955-1-git-send-email-sumit.semwal@ti.com/) — 서브시스템에 독립적인 설계를 두고 논쟁이 벌어진 두 번째(2011년 12월) RFC 라운드",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "RFC": "RFC",
+        "subsystem": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:49:32.764352Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "[`3248877ea179`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3248877ea1796915419fba7c89315fdbf00cb56a) — \"drm: base prime/dma-buf support (v5),\" Dave Airlie, merged for Linux 3.4 (spring 2012): DRM's GEM-handle-to-dma-buf-fd binding",
+      "source_hash": 13127393164929316148,
+      "context_hash": 1035984669040435759,
+      "translation": "[`3248877ea179`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3248877ea1796915419fba7c89315fdbf00cb56a) — \"drm: base prime/dma-buf support (v5),\" Dave Airlie, Linux 3.4에 병합(2012년 봄): DRM의 GEM 핸들과 dma-buf fd 간 바인딩",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GEM": "GEM",
+        "Linux": "Linux",
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T22:49:32.764352Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "[LWN: \"DMA buffer sharing in 3.3\"](https://lwn.net/Articles/474819/) — Jonathan Corbet, January 11, 2012, on the merged framework and its camera-to-GPU motivating use case",
+      "source_hash": 203712465538228002,
+      "context_hash": 5277898838285804408,
+      "translation": "[LWN: \"DMA buffer sharing in 3.3\"](https://lwn.net/Articles/474819/) — Jonathan Corbet, 2012년 1월 11일, 병합된 프레임워크와 그 동기가 된 카메라-GPU 사용 사례에 관한 글",
+      "glossary_snapshot": {
+        "DMA": "DMA",
+        "GPU": "GPU",
+        "Jonathan Corbet": "Jonathan Corbet",
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:49:32.764352Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "`include/drm/drm_gem.h`, `include/drm/drm_gem_shmem_helper.h`, `include/drm/drm_gem_ttm_helper.h` — GEM object and backing-memory helper definitions",
+      "source_hash": 10507672454988482646,
+      "context_hash": 3578635507547301758,
+      "translation": "`include/drm/drm_gem.h`, `include/drm/drm_gem_shmem_helper.h`, `include/drm/drm_gem_ttm_helper.h` — GEM 객체 및 백킹 메모리 헬퍼 정의",
+      "glossary_snapshot": {
+        "GEM": "GEM",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:49:32.764352Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "`include/linux/dma-buf.h`, `include/linux/dma-resv.h`, `include/linux/dma-fence.h` — the dma-buf, reservation, and fence structures",
+      "source_hash": 15338005851071370668,
+      "context_hash": 191953305373521360,
+      "translation": "`include/linux/dma-buf.h`, `include/linux/dma-resv.h`, `include/linux/dma-fence.h` — dma-buf, reservation, 펜스 구조체",
+      "glossary_snapshot": {
+        "dma-buf": "dma-buf"
+      },
+      "translated_at": "2026-11-14T22:49:32.764352Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "`drivers/gpu/drm/drm_prime.c` — the DRM PRIME implementation of export/import",
+      "source_hash": 2725031182719227753,
+      "context_hash": 10722576412681296499,
+      "translation": "`drivers/gpu/drm/drm_prime.c` — 내보내기/가져오기를 구현하는 DRM PRIME 코드",
+      "glossary_snapshot": {
+        "DRM": "DRM"
+      },
+      "translated_at": "2026-11-14T21:56:07.376789Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "[DRM: the Direct Rendering Manager](README.md) · [Kernel Mode Setting (KMS)](kms.md) — where GEM buffers end up once they're on screen",
+      "source_hash": 3241406050964057675,
+      "context_hash": 6268866677961688708,
+      "translation": "[DRM: Direct Rendering Manager](README.md) · [Kernel Mode Setting(KMS)](kms.md) — 화면에 표시되는 GEM 버퍼가 최종적으로 도달하는 곳",
+      "glossary_snapshot": {
+        "DRM": "DRM",
+        "GEM": "GEM"
+      },
+      "translated_at": "2026-11-14T21:56:07.376789Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,2688 @@
+{
+  "version": 1,
+  "source_hash": 16246800481361225666,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Life of a write",
+      "source_hash": 1375841599874898721,
+      "context_hash": 17402789452698679785,
+      "translation": "write의 일생",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839317Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Tracing a write() syscall from userspace through the page cache, dirty throttling, writeback, and down to storage",
+      "source_hash": 954319512808969284,
+      "context_hash": 2743851037274489192,
+      "translation": "사용자 공간에서 페이지 캐시, dirty 스로틀링, writeback을 거쳐 스토리지까지 write() 시스템 콜을 트레이싱",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시",
+        "syscall": "시스템 콜",
+        "throttling": "스로틀링",
+        "tracing": "트레이싱",
+        "userspace": "사용자 공간",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T23:27:34.635083Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What happens when you write to a file?",
+      "source_hash": 2755298735347572084,
+      "context_hash": 7690950322918949014,
+      "translation": "파일에 쓰면 어떤 일이 일어날까?",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839321Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "When a program writes to a file, the data almost never goes directly to disk.",
+      "source_hash": 7693002901659163730,
+      "context_hash": 14009944729487842671,
+      "translation": "프로그램이 파일에 쓸 때 데이터는 거의 절대 디스크로 바로 가지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839321Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Instead, the kernel copies it into a **page cache** page, marks that page **dirty**, and returns immediately.",
+      "source_hash": 6984694200630423942,
+      "context_hash": 4506810828146781607,
+      "translation": "대신 커널은 데이터를 **페이지 캐시** 페이지에 복사하고, 그 페이지를 **dirty**로 표시한 뒤 즉시 반환합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:11:15.839322Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "The data reaches storage later — either when the OS flushes it in the background, when memory pressure forces eviction, or when the application explicitly calls `fsync()`.",
+      "source_hash": 7650207124680233458,
+      "context_hash": 4222191562721595216,
+      "translation": "데이터는 나중에 스토리지에 도달합니다. OS가 백그라운드에서 플러시할 때, 메모리 압박으로 축출(eviction)이 강제될 때, 또는 애플리케이션이 명시적으로 `fsync()`를 호출할 때입니다.",
+      "glossary_snapshot": {
+        "eviction": "축출",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:11:15.839323Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "The critical insight: **write() returns before your data is durable**.",
+      "source_hash": 16996566305771528537,
+      "context_hash": 5717235851699694225,
+      "translation": "핵심 통찰: **write()는 데이터가 영속화되기 전에 반환합니다**.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839323Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "This is a deliberate design choice — buffering writes in DRAM and flushing them asynchronously in large batches is orders of magnitude faster than writing every byte synchronously.",
+      "source_hash": 15710455740705315435,
+      "context_hash": 10027243733137830136,
+      "translation": "이는 의도적인 설계 선택입니다. 쓰기를 DRAM에 버퍼링하고 큰 묶음으로 비동기 플러시하는 것은 모든 바이트를 동기적으로 쓰는 것보다 몇 자릿수나 빠릅니다.",
+      "glossary_snapshot": {
+        "DRAM": "DRAM",
+        "byte": "바이트"
+      },
+      "translated_at": "2026-11-14T22:11:15.839324Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "But it means applications that need durability must explicitly ask for it with `fsync()` or `O_SYNC`.",
+      "source_hash": 14339558418133174066,
+      "context_hash": 12196379499656078713,
+      "translation": "하지만 이는 내구성이 필요한 애플리케이션이 `fsync()` 또는 `O_SYNC`로 이를 명시적으로 요청해야 한다는 뜻입니다.",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T23:27:34.635085Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Stage 1: The write() syscall entry",
+      "source_hash": 6755053473058618671,
+      "context_hash": 8710277963753280798,
+      "translation": "1단계: write() 시스템 콜 진입",
+      "glossary_snapshot": {
+        "syscall entry": "시스템 콜 진입"
+      },
+      "translated_at": "2026-11-14T22:11:15.839324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "A user program calls `write()`:",
+      "source_hash": 14886314516919141076,
+      "context_hash": 6064010834922939786,
+      "translation": "사용자 프로그램이 `write()`를 호출합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839326Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "From syscall to VFS: ksys_write and vfs_write",
+      "source_hash": 17271441902307883868,
+      "context_hash": 9207347569580301822,
+      "translation": "시스템 콜에서 VFS로: ksys_write와 vfs_write",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:11:15.839326Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "The syscall stub simply calls `ksys_write()`. `ksys_write()` wraps the fd resolution so the same logic can be called from kernel code without going through `SYSCALL_DEFINE`. `vfs_write()` does the permission checks and dispatches to the filesystem:",
+      "source_hash": 17664427845188005070,
+      "context_hash": 14816697557815289766,
+      "translation": "시스템 콜 스텁은 단순히 `ksys_write()`를 호출합니다. `ksys_write()`는 fd 해석을 감싸서 같은 로직을 `SYSCALL_DEFINE`을 거치지 않고 커널 코드에서 호출할 수 있게 합니다. `vfs_write()`는 권한 검사를 수행하고 파일시스템으로 디스패치합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:11:15.839327Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "Nearly every modern filesystem uses the `write_iter` path. `new_sync_write()` wraps the synchronous interface into the iterator-based one:",
+      "source_hash": 7433180802999494805,
+      "context_hash": 7472300630789029167,
+      "translation": "거의 모든 현대 파일시스템은 `write_iter` 경로를 사용합니다. `new_sync_write()`는 동기 인터페이스를 이터레이터 기반 인터페이스로 감쌉니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839328Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "The kiocb and iov_iter",
+      "source_hash": 136926038905215241,
+      "context_hash": 13719891613440838064,
+      "translation": "kiocb와 iov_iter",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839328Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "Two structs carry per-operation state through the entire write path:",
+      "source_hash": 13262840325206782964,
+      "context_hash": 6017325817060452429,
+      "translation": "두 구조체가 연산별 상태를 write 경로 전체에 걸쳐 전달합니다:",
+      "glossary_snapshot": {
+        "structs": "구조체"
+      },
+      "translated_at": "2026-11-14T22:11:15.839329Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "`iov_iter` abstracts the source of data — a user buffer, a kernel buffer, a pipe, or a scatter-gather list:",
+      "source_hash": 1597271637917536582,
+      "context_hash": 9584233559680283818,
+      "translation": "`iov_iter`는 데이터의 출처를 추상화합니다. 사용자 버퍼, 커널 버퍼, 파이프, 또는 scatter-gather 리스트가 그 출처입니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "scatter-gather": "scatter-gather"
+      },
+      "translated_at": "2026-11-14T22:11:15.839329Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "Using `iov_iter` means that `generic_perform_write()` does not need to know whether the data is coming from a userspace buffer, a kernel buffer, or an `iovec` array — it calls `copy_page_from_iter_atomic()` uniformly.",
+      "source_hash": 1386432459338649718,
+      "context_hash": 9801814922723315408,
+      "translation": "`iov_iter`를 사용하면 `generic_perform_write()`는 데이터가 사용자 공간 버퍼, 커널 버퍼, `iovec` 배열 중 어디에서 오는지 알 필요가 없습니다. 일관되게 `copy_page_from_iter_atomic()`을 호출할 뿐입니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:11:15.839329Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Most filesystems wire `f_op->write_iter` to `generic_file_write_iter()`:",
+      "source_hash": 314145988799169959,
+      "context_hash": 2964253127948203799,
+      "translation": "대부분의 파일시스템은 `f_op->write_iter`를 `generic_file_write_iter()`에 연결합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839330Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "The `inode_lock()` / `inode_unlock()` wrapping `generic_perform_write` is the inode's `i_rwsem`.",
+      "source_hash": 13404856320240385519,
+      "context_hash": 9917939730959372795,
+      "translation": "`generic_perform_write`를 감싸는 `inode_lock()` / `inode_unlock()`은 inode의 `i_rwsem`입니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:11:15.839330Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "This serialises concurrent writers on the same file — only one write is in `generic_perform_write` at a time for buffered I/O.",
+      "source_hash": 8097876907401532415,
+      "context_hash": 6675721722620711739,
+      "translation": "이는 같은 파일에 대한 동시 writer들을 직렬화합니다. 버퍼드 I/O에서는 한 번에 하나의 write만 `generic_perform_write`에 들어갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839330Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Stage 2: The page cache write path",
+      "source_hash": 10780124497509072694,
+      "context_hash": 12651206744362820585,
+      "translation": "2단계: 페이지 캐시 write 경로",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:11:15.839331Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`generic_perform_write()` is the engine of the buffered write path.",
+      "source_hash": 3920604701802849085,
+      "context_hash": 6081247431598914021,
+      "translation": "`generic_perform_write()`는 버퍼드 write 경로의 엔진입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839331Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "It loops over the write range one page at a time, calling into the filesystem for each page via the `address_space_operations` (`a_ops`) dispatch table:",
+      "source_hash": 11800622406671656126,
+      "context_hash": 14510410927594258685,
+      "translation": "이 함수는 write 범위를 한 번에 한 페이지씩 순회하며, 각 페이지마다 `address_space_operations`(`a_ops`) 디스패치 테이블을 통해 파일시스템을 호출합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839332Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "write_begin: preparing the page",
+      "source_hash": 2269283100815767233,
+      "context_hash": 5439492310478729681,
+      "translation": "write_begin: 페이지 준비",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839332Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "`a_ops->write_begin` is the filesystem's hook to prepare the target folio before the copy.",
+      "source_hash": 13330537759530583743,
+      "context_hash": 8818649856374457870,
+      "translation": "`a_ops->write_begin`은 복사 전에 대상 폴리오를 준비하기 위한 파일시스템의 훅입니다.",
+      "glossary_snapshot": {
+        "folio": "폴리오",
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T22:11:15.839332Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "For iomap-based filesystems, the `a_ops->write_begin` dispatch goes through the filesystem's own write_begin implementation (e.g., `ext4_write_begin`), which then calls into the iomap machinery — `iomap_write_begin()` is an internal iomap helper, not the `a_ops` callback itself.",
+      "source_hash": 2436341743697343679,
+      "context_hash": 15842406758836113010,
+      "translation": "iomap 기반 파일시스템에서 `a_ops->write_begin` 디스패치는 파일시스템 자체의 write_begin 구현(예: `ext4_write_begin`)을 거치고, 이 구현이 다시 iomap 메커니즘을 호출합니다. `iomap_write_begin()`은 iomap 내부 헬퍼이며, `a_ops` 콜백 자체가 아닙니다.",
+      "glossary_snapshot": {
+        "callback": "콜백",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T22:11:15.839333Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:2",
+      "source": "It must:",
+      "source_hash": 3150633572511364944,
+      "context_hash": 11157803879921313686,
+      "translation": "이 훅은 다음을 수행해야 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839333Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Find or allocate the page in the page cache at the target offset.",
+      "source_hash": 799906060270657710,
+      "context_hash": 13127520695344035172,
+      "translation": "대상 오프셋에서 페이지 캐시의 페이지를 찾거나 할당합니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:11:15.839334Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "For a **partial page write** — a write that does not cover the entire 4 KB page — read the existing page content from disk first, so the unwritten bytes retain their on-disk values.",
+      "source_hash": 5240365104072723582,
+      "context_hash": 4834922446706300717,
+      "translation": "**부분 페이지 쓰기**(4 KB 페이지 전체를 덮지 않는 쓰기)의 경우, 쓰지 않는 바이트가 디스크상의 값을 유지하도록 먼저 디스크에서 기존 페이지 내용을 읽습니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:11:15.839334Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "This read-modify-write pattern avoids exposing uninitialised data.",
+      "source_hash": 8426326782527946018,
+      "context_hash": 2325117341482497898,
+      "translation": "이 read-modify-write 패턴은 초기화되지 않은 데이터가 노출되는 것을 방지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:15.839335Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Allocate any filesystem metadata needed (e.g., journal credits in ext4).",
+      "source_hash": 17608929351010035912,
+      "context_hash": 2238971658658704068,
+      "translation": "필요한 파일시스템 메타데이터(예: ext4의 저널 크레딧)를 할당합니다.",
+      "glossary_snapshot": {
+        "journal": "저널",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:11:15.839335Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Return the locked page to the caller.",
+      "source_hash": 3041133137932809255,
+      "context_hash": 14528221915796563281,
+      "translation": "잠긴 페이지를 호출자에게 반환합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923693Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "The read-on-partial-write is an important performance concern.",
+      "source_hash": 13961708706471145868,
+      "context_hash": 6646975634286796426,
+      "translation": "부분 쓰기 시의 읽기(read-on-partial-write)는 중요한 성능 문제입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923695Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:1",
+      "source": "If your application always writes 4 KB-aligned, full-page chunks, the kernel skips this extra read.",
+      "source_hash": 7547573507508241191,
+      "context_hash": 9003582856417166595,
+      "translation": "애플리케이션이 항상 4 KB 정렬된 전체 페이지 단위로 쓴다면 커널은 이 추가 읽기를 건너뜁니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:11:18.923696Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:2",
+      "source": "Databases and write-optimised applications often align writes for exactly this reason.",
+      "source_hash": 16519936829505988071,
+      "context_hash": 10304131909126796817,
+      "translation": "데이터베이스와 쓰기 최적화 애플리케이션은 바로 이 이유로 쓰기를 정렬하는 경우가 많습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923696Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "copy_page_from_iter_atomic: the actual copy",
+      "source_hash": 1274538160515839288,
+      "context_hash": 2918703783883256250,
+      "translation": "copy_page_from_iter_atomic: 실제 복사",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923697Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "With the page locked and uptodate, the kernel copies from the user iterator into the page:",
+      "source_hash": 17252176703033306000,
+      "context_hash": 9934466062171199706,
+      "translation": "페이지가 잠기고 uptodate 상태가 되면 커널은 사용자 반복자(iterator)에서 페이지로 데이터를 복사합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:11:18.923697Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:14/seg:0",
+      "source": "write_end: marking the page dirty",
+      "source_hash": 15705878814878625546,
+      "context_hash": 14126542551085445503,
+      "translation": "write_end: 페이지를 dirty로 표시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923698Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "`a_ops->write_end` is called after the copy.",
+      "source_hash": 14163064601001787865,
+      "context_hash": 4305533859264513267,
+      "translation": "`a_ops->write_end`는 복사 후에 호출됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923698Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:1",
+      "source": "It does three things:",
+      "source_hash": 1708007939397669923,
+      "context_hash": 8832217456883240118,
+      "translation": "이 함수는 세 가지 일을 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923698Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "Updates the inode size (`i_size`) if the write extended the file.",
+      "source_hash": 2058647089822241286,
+      "context_hash": 15911775134102337148,
+      "translation": "쓰기로 파일이 확장되었다면 inode 크기(`i_size`)를 갱신합니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:11:18.923699Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "Calls `folio_mark_dirty()` to mark the folio dirty.",
+      "source_hash": 12942389627787262257,
+      "context_hash": 15452894965647747459,
+      "translation": "`folio_mark_dirty()`를 호출하여 폴리오를 dirty로 표시합니다.",
+      "glossary_snapshot": {
+        "folio": "폴리오"
+      },
+      "translated_at": "2026-11-14T22:11:18.923699Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:1",
+      "source": "For file-backed pages, only `folio_mark_dirty()` (or its wrappers) should be used — raw flag setters like `SetPageDirty` bypass the `a_ops->dirty_folio` dispatch and inode accounting.",
+      "source_hash": 4368293479841134902,
+      "context_hash": 2350023910408666851,
+      "translation": "파일 기반 페이지에는 `folio_mark_dirty()`(또는 그 래퍼)만 사용해야 합니다. `SetPageDirty` 같은 원시 플래그 설정 함수는 `a_ops->dirty_folio` 디스패치와 inode 어카운팅을 우회합니다.",
+      "glossary_snapshot": {
+        "accounting": "어카운팅",
+        "file-backed pages": "파일 기반 페이지",
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T23:27:34.635085Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "Unlocks the page so other waiters can proceed.",
+      "source_hash": 6193251646847699380,
+      "context_hash": 2342229380846720849,
+      "translation": "다른 대기자가 진행할 수 있도록 페이지 잠금을 해제합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923702Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Stage 3: What \"dirty\" means",
+      "source_hash": 4087058260887393112,
+      "context_hash": 535871893212502991,
+      "translation": "3단계: \"dirty\"의 의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923702Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "Marking a page dirty is the key event that separates \"data written to memory\" from \"data written to disk\".",
+      "source_hash": 18246875219301973877,
+      "context_hash": 4202292332747893356,
+      "translation": "페이지를 dirty로 표시하는 것은 \"메모리에 기록된 데이터\"와 \"디스크에 기록된 데이터\"를 구분하는 핵심 사건입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:11:18.923703Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The kernel tracks dirty pages globally, per-node, and per-cgroup.",
+      "source_hash": 2283294487815707097,
+      "context_hash": 4057458587347038888,
+      "translation": "커널은 dirty 페이지를 전역, 노드별, cgroup별로 추적합니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "dirty pages": "dirty 페이지",
+        "kernel": "커널",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:11:18.923703Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "folio_mark_dirty and SetPageDirty",
+      "source_hash": 1162086813469742382,
+      "context_hash": 14370005229159721917,
+      "translation": "folio_mark_dirty와 SetPageDirty",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923704Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "The `dirty_folio` a_ops hook dispatches to one of two implementations depending on whether the filesystem uses buffer heads:",
+      "source_hash": 13825821344191376579,
+      "context_hash": 14445837829104910427,
+      "translation": "`dirty_folio` a_ops 훅은 파일시스템이 버퍼 헤드를 사용하는지에 따라 두 구현 중 하나로 디스패치됩니다:",
+      "glossary_snapshot": {
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T22:11:18.923705Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "**`filemap_dirty_folio`** (used by iomap-based filesystems — ext4 with iomap, xfs, btrfs, f2fs; replaces the legacy page-based `__set_page_dirty_nobuffers`):",
+      "source_hash": 7610103847032819692,
+      "context_hash": 13796267985642737921,
+      "translation": "**`filemap_dirty_folio`**(iomap 기반 파일시스템에서 사용 — iomap을 쓰는 ext4, xfs, btrfs, f2fs; 레거시 페이지 기반 `__set_page_dirty_nobuffers`를 대체):",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "btrfs": "btrfs",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T22:11:18.923706Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "**`__set_page_dirty_buffers`** (used by filesystems that still track per-block state with `struct buffer_head`, e.g., some ext2/ext3 codepaths):",
+      "source_hash": 11929228649547906115,
+      "context_hash": 12436456121071329579,
+      "translation": "**`__set_page_dirty_buffers`**(여전히 `struct buffer_head`로 블록별 상태를 추적하는 파일시스템에서 사용, 예: 일부 ext2/ext3 코드 경로):",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923706Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Dirty page accounting",
+      "source_hash": 15331768344633529072,
+      "context_hash": 10154624931796739303,
+      "translation": "dirty 페이지 어카운팅",
+      "glossary_snapshot": {
+        "accounting": "어카운팅",
+        "dirty page": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T23:27:34.635086Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "`folio_account_dirtied()` increments the global and per-node dirty page counters:",
+      "source_hash": 291007918617369758,
+      "context_hash": 3705578634909042466,
+      "translation": "`folio_account_dirtied()`는 전역 및 노드별 dirty 페이지 카운터를 증가시킵니다:",
+      "glossary_snapshot": {
+        "dirty page": "dirty 페이지",
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T22:11:18.923707Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "You can observe these counters directly:",
+      "source_hash": 7649044804840876783,
+      "context_hash": 17336686447848978955,
+      "translation": "이 카운터는 직접 관찰할 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923707Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "__mark_inode_dirty: the inode dirty list",
+      "source_hash": 4674469883817258629,
+      "context_hash": 14711777170939009390,
+      "translation": "__mark_inode_dirty: inode dirty 리스트",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:11:18.923707Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "Dirtying a page also marks the owning inode dirty.",
+      "source_hash": 2861216644655514250,
+      "context_hash": 2512988008302806842,
+      "translation": "페이지를 dirty로 만들면 해당 페이지를 소유한 inode도 dirty로 표시됩니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:11:18.923708Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:1",
+      "source": "This is how the writeback worker knows which inodes have pages to flush:",
+      "source_hash": 8229504451478225507,
+      "context_hash": 3736394187679513557,
+      "translation": "이를 통해 writeback 워커는 어떤 inode에 플러시할 페이지가 있는지 알게 됩니다:",
+      "glossary_snapshot": {
+        "inodes": "inode",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:11:18.923708Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Stage 4: Dirty throttling",
+      "source_hash": 4478984112804816598,
+      "context_hash": 16943227514513239453,
+      "translation": "4단계: dirty 스로틀링",
+      "glossary_snapshot": {
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:11:18.923708Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Buffering writes is fast, but if writers produce dirty pages faster than writeback can flush them, memory fills up.",
+      "source_hash": 15909489567255711218,
+      "context_hash": 4312133697993099583,
+      "translation": "쓰기를 버퍼링하면 빠르지만, 쓰기 작업이 writeback이 플러시하는 속도보다 빠르게 dirty 페이지를 만들어 내면 메모리가 가득 찹니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "memory": "메모리",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:11:18.923708Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "To prevent this, every loop iteration of `generic_perform_write()` calls `balance_dirty_pages_ratelimited()`.",
+      "source_hash": 7909629041579005820,
+      "context_hash": 15512938337961319248,
+      "translation": "이를 막기 위해 `generic_perform_write()`의 매 루프 반복마다 `balance_dirty_pages_ratelimited()`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "The two thresholds",
+      "source_hash": 8319578807865867115,
+      "context_hash": 5116744414069911540,
+      "translation": "두 가지 임계값",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.923709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "The kernel enforces two dirty-memory thresholds, both expressed as percentages of available memory:",
+      "source_hash": 912114452146030165,
+      "context_hash": 3895564614001798093,
+      "translation": "커널은 두 가지 dirty 메모리 임계값을 강제하며, 둘 다 가용 메모리에 대한 백분율로 표현됩니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:11:18.923709Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "sysctl",
+      "source_hash": 1980884651143088515,
+      "context_hash": 10937738046012484212,
+      "translation": "sysctl",
+      "glossary_snapshot": {
+        "sysctl": "sysctl"
+      },
+      "translated_at": "2026-11-14T22:11:18.923710Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "Default",
+      "source_hash": 8341519292606584866,
+      "context_hash": 3255346340870539004,
+      "translation": "기본값",
+      "glossary_snapshot": {
+        "Default": "기본값"
+      },
+      "translated_at": "2026-11-14T22:11:18.595810Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 5416558191452137921,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595812Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "`vm.dirty_background_ratio`",
+      "source_hash": 8415686227987536080,
+      "context_hash": 1812419827556318280,
+      "translation": "`vm.dirty_background_ratio`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595813Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "10%",
+      "source_hash": 10590821241219788072,
+      "context_hash": 16292385467533593507,
+      "translation": "10%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595813Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Soft limit — wake background flusher, don't block writers",
+      "source_hash": 13787104635760439524,
+      "context_hash": 3366347837302980096,
+      "translation": "소프트 한도 — 백그라운드 flusher를 깨우며, 쓰기 작업자를 블록하지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595814Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "`vm.dirty_ratio`",
+      "source_hash": 10418112837577313687,
+      "context_hash": 7052243004034971356,
+      "translation": "`vm.dirty_ratio`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595814Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "20%",
+      "source_hash": 12053568581482347238,
+      "context_hash": 17243482693872078901,
+      "translation": "20%",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595815Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Hard limit — block writers until dirty pages drain",
+      "source_hash": 7595303793420825596,
+      "context_hash": 15836542746324260787,
+      "translation": "하드 한도 — dirty 페이지가 비워질 때까지 쓰기 작업자를 블록함",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T22:11:18.595816Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "`vm.dirty_background_bytes`",
+      "source_hash": 5548684575992400549,
+      "context_hash": 7592063225688686637,
+      "translation": "`vm.dirty_background_bytes`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595816Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "0",
+      "source_hash": 7148434200721666028,
+      "context_hash": 12302334459176197970,
+      "translation": "0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595816Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "Absolute soft limit in bytes (overrides ratio when non-zero)",
+      "source_hash": 7436754429575613498,
+      "context_hash": 5227310284481417520,
+      "translation": "바이트 단위의 절대 소프트 한도(0이 아니면 ratio보다 우선함)",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:11:18.595817Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "`vm.dirty_bytes`",
+      "source_hash": 15466188199455442741,
+      "context_hash": 898467606585380161,
+      "translation": "`vm.dirty_bytes`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595817Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "0",
+      "source_hash": 7148434200721666028,
+      "context_hash": 18359064388889313371,
+      "translation": "0",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595817Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "Absolute hard limit in bytes (overrides ratio when non-zero)",
+      "source_hash": 9401869375048196499,
+      "context_hash": 8537797045278023677,
+      "translation": "바이트 단위의 절대 하드 한도(0이 아니면 ratio보다 우선함)",
+      "glossary_snapshot": {
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:11:18.595818Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "`vm.dirty_writeback_centisecs`",
+      "source_hash": 5281724178889075478,
+      "context_hash": 6399631715347570807,
+      "translation": "`vm.dirty_writeback_centisecs`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595818Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "500",
+      "source_hash": 12667669577372699657,
+      "context_hash": 4040321903825024598,
+      "translation": "500",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595819Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "Flusher wakeup interval (centiseconds; 500 = 5 s)",
+      "source_hash": 4476345881074975978,
+      "context_hash": 5308524789465004793,
+      "translation": "flusher 깨우기 간격(센티초 단위, 500 = 5 s)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595819Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "`vm.dirty_expire_centisecs`",
+      "source_hash": 7740553076907528401,
+      "context_hash": 15174931530214177314,
+      "translation": "`vm.dirty_expire_centisecs`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595819Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "3000",
+      "source_hash": 6636995655541298601,
+      "context_hash": 6824252705917068690,
+      "translation": "3000",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595820Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "Pages dirty longer than this are eligible for writeback (30 s)",
+      "source_hash": 14170540036853343184,
+      "context_hash": 17144634079345058937,
+      "translation": "이 시간보다 오래 dirty 상태인 페이지가 writeback 대상이 됨(30 s)",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:11:18.595820Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:0",
+      "source": "**Note:** The `HardThrottle` state is not a single transition. `balance_dirty_pages()` loops internally — it sleeps the writer, wakes up, rechecks the dirty count, and sleeps again if the count is still above the threshold.",
+      "source_hash": 6335992908375733072,
+      "context_hash": 1125977945782730380,
+      "translation": "**참고:** `HardThrottle` 상태는 한 번의 전이로 끝나지 않습니다. `balance_dirty_pages()`는 내부적으로 루프를 돌며, 쓰기 작업자를 재우고, 깨어나서 dirty 개수를 다시 확인하고, 개수가 여전히 임계값을 넘으면 다시 재웁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595821Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:1",
+      "source": "The writer is unblocked only once dirty pages drain below the limit.",
+      "source_hash": 676542477594644378,
+      "context_hash": 16458344495736319611,
+      "translation": "쓰기 작업자는 dirty 페이지가 한도 아래로 비워진 뒤에야 블록에서 풀려납니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T22:11:18.595821Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:27/seg:0",
+      "source": "balance_dirty_pages_ratelimited",
+      "source_hash": 7332114919176380668,
+      "context_hash": 17134815970912321482,
+      "translation": "balance_dirty_pages_ratelimited",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595821Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:28/seg:0",
+      "source": "The rate-limited wrapper avoids calling `balance_dirty_pages()` on every single write — that would be too expensive.",
+      "source_hash": 11550301249769147691,
+      "context_hash": 2143286320838796924,
+      "translation": "속도 제한 래퍼는 모든 쓰기마다 `balance_dirty_pages()`를 호출하지 않도록 합니다. 그렇게 하면 비용이 너무 크기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595822Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:28/seg:1",
+      "source": "Instead it amortizes the check:",
+      "source_hash": 15801078942051203153,
+      "context_hash": 16161261546805020728,
+      "translation": "대신 검사 비용을 분산합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595823Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:30/seg:0",
+      "source": "balance_dirty_pages: the throttling loop",
+      "source_hash": 8434603255247846200,
+      "context_hash": 18373863663333906462,
+      "translation": "balance_dirty_pages: 스로틀링 루프",
+      "glossary_snapshot": {
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:11:18.595823Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:31/seg:0",
+      "source": "When dirty pages exceed the hard limit, `balance_dirty_pages()` calculates a sleep duration proportional to how far over the limit we are, and pauses the writer:",
+      "source_hash": 1120209891481046658,
+      "context_hash": 1853641216550783624,
+      "translation": "dirty 페이지가 하드 한도를 넘으면 `balance_dirty_pages()`는 한도를 얼마나 초과했는지에 비례하는 수면 시간을 계산하여 쓰기 작업자를 일시 정지시킵니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T22:11:18.595824Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:33/seg:0",
+      "source": "What this looks like in production",
+      "source_hash": 11886996676777948913,
+      "context_hash": 4924031608857512491,
+      "translation": "프로덕션 환경에서 나타나는 모습",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595824Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:34/seg:0",
+      "source": "When writes overwhelm writeback capacity, `balance_dirty_pages()` starts sleeping writers.",
+      "source_hash": 3497802196895532575,
+      "context_hash": 12906572238944643167,
+      "translation": "쓰기가 writeback 처리 용량을 압도하면 `balance_dirty_pages()`가 쓰기 작업자를 재우기 시작합니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:11:18.595825Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:34/seg:1",
+      "source": "The effects are visible:",
+      "source_hash": 3131550547891791176,
+      "context_hash": 13783647219751599444,
+      "translation": "그 영향은 다음과 같이 눈에 띕니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:11:18.595825Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:36/seg:0",
+      "source": "The practical production impact: a single large writer can \"fill the pipe\" and cause all other processes that happen to write files to stall in `balance_dirty_pages()`.",
+      "source_hash": 15044053041576246534,
+      "context_hash": 4242576623359065628,
+      "translation": "실제 운영 환경에서의 영향은 다음과 같습니다. 대량으로 쓰는 단일 writer 하나가 \"파이프를 가득 채워\" 파일을 쓰는 다른 모든 프로세스를 `balance_dirty_pages()`에서 멈추게 할 수 있습니다.",
+      "glossary_snapshot": {
+        "impact": "영향",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:12:38.761988Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:36/seg:1",
+      "source": "This is a common source of application latency spikes on write-heavy machines.",
+      "source_hash": 9601421792745790726,
+      "context_hash": 14408890177283287890,
+      "translation": "이는 쓰기가 많은 머신에서 애플리케이션 지연 시간 급증의 흔한 원인입니다.",
+      "glossary_snapshot": {
+        "latency spikes": "지연 시간 급증"
+      },
+      "translated_at": "2026-11-14T22:12:38.761989Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:36/seg:2",
+      "source": "Tuning `dirty_ratio` and `dirty_background_ratio` or switching to `dirty_bytes` / `dirty_background_bytes` (which do not scale with memory size) can help.",
+      "source_hash": 9508564209817480641,
+      "context_hash": 11755325899089182240,
+      "translation": "`dirty_ratio`와 `dirty_background_ratio`를 튜닝하거나, 메모리 크기에 비례하지 않는 `dirty_bytes` / `dirty_background_bytes`로 전환하면 도움이 될 수 있습니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:12:38.761989Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Stage 5: When does the write actually hit storage?",
+      "source_hash": 17534775428365717113,
+      "context_hash": 16006448206841062723,
+      "translation": "5단계: 쓰기는 실제로 언제 스토리지에 도달하는가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761989Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "After `write()` returns, the data is in the page cache but not on disk.",
+      "source_hash": 13775928170116148300,
+      "context_hash": 166793714204626511,
+      "translation": "`write()`가 반환된 후 데이터는 페이지 캐시에 있지만 디스크에는 아직 없습니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:38.761990Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "There are four ways it eventually gets there.",
+      "source_hash": 5287025030719424936,
+      "context_hash": 3888217329225626554,
+      "translation": "데이터가 최종적으로 디스크에 도달하는 경로는 네 가지입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761990Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Path 1: Periodic writeback (every 5 seconds by default)",
+      "source_hash": 291230196547907256,
+      "context_hash": 10029290490251244346,
+      "translation": "경로 1: 주기적 writeback(기본값 5초마다)",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761991Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "The per-BDI writeback worker `wb_workfn` runs every `dirty_writeback_centisecs` centiseconds (default 500 = 5 s).",
+      "source_hash": 7215755969634779108,
+      "context_hash": 12789333110040924168,
+      "translation": "BDI별 writeback worker인 `wb_workfn`은 `dirty_writeback_centisecs` 센티초마다 실행됩니다(기본값 500 = 5 s).",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761991Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "Each run flushes dirty pages that have been dirty longer than `dirty_expire_centisecs` (default 3000 = 30 s).",
+      "source_hash": 1894654179060896541,
+      "context_hash": 14251923605561052015,
+      "translation": "각 실행에서는 `dirty_expire_centisecs`(기본값 3000 = 30 s)보다 오래 dirty 상태였던 dirty 페이지를 플러시합니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T22:12:38.761991Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:2",
+      "source": "This is the normal path for most workloads.",
+      "source_hash": 7876113006425932616,
+      "context_hash": 10193341655317904159,
+      "translation": "이는 대부분의 워크로드에서 일반적인 경로입니다.",
+      "glossary_snapshot": {
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:12:38.761991Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "Path 2: Background ratio crossed",
+      "source_hash": 5195723118240332180,
+      "context_hash": 16372876364953571908,
+      "translation": "경로 2: background 비율 초과",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761991Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "When dirty pages exceed `dirty_background_ratio`, `wb_start_background_writeback()` wakes the flusher immediately — without stalling the writer.",
+      "source_hash": 10436051471705567122,
+      "context_hash": 15733598797249539417,
+      "translation": "dirty 페이지가 `dirty_background_ratio`를 초과하면 `wb_start_background_writeback()`이 writer를 멈추게 하지 않고 즉시 flusher를 깨웁니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T22:12:38.761991Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "The flusher runs concurrently with writes.",
+      "source_hash": 2267890174778368277,
+      "context_hash": 17165377404713585758,
+      "translation": "flusher는 쓰기와 동시에 실행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761991Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "Path 3: Memory pressure",
+      "source_hash": 7857896853630286785,
+      "context_hash": 14491243201966517746,
+      "translation": "경로 3: 메모리 압박",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:12:38.761992Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "When `kswapd` is trying to reclaim pages for new allocations, it cannot reclaim dirty pages until they have been written back.",
+      "source_hash": 16557932011759456203,
+      "context_hash": 5939765238478789027,
+      "translation": "`kswapd`가 새로운 할당을 위해 페이지를 회수하려 할 때, dirty 페이지는 writeback이 완료될 때까지 회수할 수 없습니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:12:38.761992Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:1",
+      "source": "It calls `wakeup_flusher_threads()` to accelerate writeback.",
+      "source_hash": 6735440767662506494,
+      "context_hash": 15429029420067118957,
+      "translation": "회수 과정은 writeback을 앞당기기 위해 `wakeup_flusher_threads()`를 호출합니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761992Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:2",
+      "source": "If writeback is too slow, `kswapd` itself may write pages directly — this is called **direct writeback** and is a sign of memory pressure.",
+      "source_hash": 14237731069077520976,
+      "context_hash": 8957818630248516382,
+      "translation": "writeback이 너무 느리면 `kswapd`가 직접 페이지를 쓸 수도 있으며, 이를 **direct writeback**이라고 하고 메모리 압박의 신호입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761992Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Path 4: Explicit sync (fsync, fdatasync, sync)",
+      "source_hash": 14247737657618147292,
+      "context_hash": 14608914852095228854,
+      "translation": "경로 4: 명시적 sync(fsync, fdatasync, sync)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761993Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Applications that need durability guarantees call one of the sync syscalls:",
+      "source_hash": 7708879060175503820,
+      "context_hash": 578016302475798122,
+      "translation": "내구성 보장이 필요한 애플리케이션은 sync 계열 시스템 콜 중 하나를 호출합니다.",
+      "glossary_snapshot": {
+        "durability": "내구성",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:12:38.761993Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "The kernel path for `fsync`:",
+      "source_hash": 2723323001403473900,
+      "context_hash": 8971103364170158553,
+      "translation": "`fsync`의 커널 경로:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:12:38.761993Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "The filesystem fsync implementation must:",
+      "source_hash": 9388695094073244916,
+      "context_hash": 10544403920640317693,
+      "translation": "파일시스템의 fsync 구현은 다음을 수행해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761993Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "Writeback all dirty pages in the range (calling `filemap_write_and_wait_range`).",
+      "source_hash": 11713551164719823157,
+      "context_hash": 10109092071742726956,
+      "translation": "해당 범위의 모든 dirty 페이지를 writeback합니다(`filemap_write_and_wait_range` 호출).",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761993Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "Write the inode's metadata to the journal (if using a journalling filesystem).",
+      "source_hash": 8579060071585506632,
+      "context_hash": 13327509660739088054,
+      "translation": "inode의 메타데이터를 저널에 기록합니다(저널링 파일시스템을 사용하는 경우).",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "journal": "저널",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:12:38.761994Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "Issue a flush/FUA command to the storage device.",
+      "source_hash": 17998414199814431117,
+      "context_hash": 4216902752874356598,
+      "translation": "스토리지 디바이스에 flush/FUA 명령을 발행합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:27:34.635087Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "After `fsync()` returns, the write is durable — even if power is lost immediately afterward.",
+      "source_hash": 593959730046906700,
+      "context_hash": 5817564818720602396,
+      "translation": "`fsync()`가 반환된 후에는 직후에 전원이 끊기더라도 쓰기가 영구적으로 보존됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761994Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Stage 6: The writeback path",
+      "source_hash": 11675644365822423785,
+      "context_hash": 16485797717705579133,
+      "translation": "6단계: writeback 경로",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761994Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Writeback is the process by which the kernel actually writes dirty pages to storage.",
+      "source_hash": 561045194218132350,
+      "context_hash": 3046285058688886163,
+      "translation": "writeback은 커널이 dirty 페이지를 실제로 스토리지에 쓰는 과정입니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "kernel": "커널",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761994Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "It runs in the context of per-BDI worker threads, driven by `wb_workfn`.",
+      "source_hash": 9955389180162671297,
+      "context_hash": 5381281373012663738,
+      "translation": "writeback은 `wb_workfn`이 구동하는 BDI별 worker 스레드의 컨텍스트에서 실행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761995Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "The writeback call chain",
+      "source_hash": 14987170894278667217,
+      "context_hash": 11060334122662787840,
+      "translation": "writeback 호출 체인",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:38.761995Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "The wb_workfn worker",
+      "source_hash": 7327240279259403285,
+      "context_hash": 11636466338998709724,
+      "translation": "wb_workfn worker",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:38.761995Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "writeback_sb_inodes: the per-inode loop",
+      "source_hash": 10683521586464884520,
+      "context_hash": 6285969913237994746,
+      "translation": "writeback_sb_inodes: inode별 루프",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:12:38.761995Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "The writeback_control struct",
+      "source_hash": 3147949595881390141,
+      "context_hash": 17710917447053331808,
+      "translation": "writeback_control 구조체",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:12:38.761995Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "`writeback_control` is the instruction packet passed down through the call chain.",
+      "source_hash": 804592169655389107,
+      "context_hash": 7919956964594685750,
+      "translation": "`writeback_control`은 호출 체인을 따라 아래로 전달되는 명령 패킷입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893821Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:1",
+      "source": "It tells each layer how much to write, in what mode, and for what reason:",
+      "source_hash": 12363033390120151013,
+      "context_hash": 9179529214395978847,
+      "translation": "이 구조체는 각 계층에 얼마나 쓸지, 어떤 모드로 쓸지, 어떤 이유로 쓰는지를 알려 줍니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893822Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "WB_REASON: why writeback was triggered",
+      "source_hash": 10140646142244899498,
+      "context_hash": 5275446308532797208,
+      "translation": "WB_REASON: writeback이 트리거된 이유",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:43.893822Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "The `wb_writeback_work` struct carries a `reason` field that records what triggered this writeback pass:",
+      "source_hash": 13978610237872311905,
+      "context_hash": 17818862526774386968,
+      "translation": "`wb_writeback_work` 구조체에는 이번 writeback 패스를 무엇이 트리거했는지 기록하는 `reason` 필드가 있습니다:",
+      "glossary_snapshot": {
+        "struct": "구조체",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:43.893822Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:14/seg:0",
+      "source": "This is visible in writeback tracepoints — useful for diagnosing unexpected write storms.",
+      "source_hash": 5648767024863413376,
+      "context_hash": 9948272910320880904,
+      "translation": "이 값은 writeback 트레이스포인트에서 확인할 수 있으며, 예상치 못한 쓰기 폭주를 진단하는 데 유용합니다.",
+      "glossary_snapshot": {
+        "tracepoints": "트레이스포인트",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:43.893823Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "do_writepages and a_ops->writepages",
+      "source_hash": 18333565506856352750,
+      "context_hash": 7231900680701690091,
+      "translation": "do_writepages와 a_ops->writepages",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893823Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "At the bottom of the writeback call chain, `do_writepages()` calls into the filesystem:",
+      "source_hash": 15737567522225537474,
+      "context_hash": 8074591540081211504,
+      "translation": "writeback 호출 체인의 맨 아래에서 `do_writepages()`가 파일시스템을 호출합니다:",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:12:43.893823Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:0",
+      "source": "For ext4 and xfs using iomap, `a_ops->writepages` is `iomap_writepages`.",
+      "source_hash": 12496471208147624904,
+      "context_hash": 5259124498282065230,
+      "translation": "iomap을 사용하는 ext4와 xfs의 경우 `a_ops->writepages`는 `iomap_writepages`입니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "iomap": "iomap"
+      },
+      "translated_at": "2026-11-14T22:12:43.893824Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:18/seg:1",
+      "source": "It walks the dirty folios in the address space, calls `iomap_begin` to get block mappings, builds `struct bio` objects, and calls `submit_bio()`.",
+      "source_hash": 9971532697923971880,
+      "context_hash": 4554195997110932429,
+      "translation": "이 함수는 주소 공간의 dirty 폴리오를 순회하면서 `iomap_begin`을 호출해 블록 매핑을 얻고, `struct bio` 객체를 만든 뒤 `submit_bio()`를 호출합니다.",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "folios": "폴리오",
+        "mappings": "매핑"
+      },
+      "translated_at": "2026-11-14T22:12:43.893824Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:19/seg:0",
+      "source": "The folio state transitions during this process:",
+      "source_hash": 7348648409841836354,
+      "context_hash": 15048118998993734760,
+      "translation": "이 과정에서의 폴리오 상태 전이는 다음과 같습니다:",
+      "glossary_snapshot": {
+        "folio": "폴리오"
+      },
+      "translated_at": "2026-11-14T22:12:43.893824Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Stage 7: Block layer handoff",
+      "source_hash": 16470583038093149055,
+      "context_hash": 13012937897654339450,
+      "translation": "7단계: 블록 계층으로의 인계",
+      "glossary_snapshot": {
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T22:12:43.893825Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "When `submit_bio()` is called, control passes from the filesystem to the block layer.",
+      "source_hash": 15783716974593405733,
+      "context_hash": 16268591981727110325,
+      "translation": "`submit_bio()`가 호출되면 제어권이 파일시스템에서 블록 계층으로 넘어갑니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T22:12:43.893825Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "The write is now a `struct bio` — a description of the I/O operation:",
+      "source_hash": 5972506515097314799,
+      "context_hash": 10546216341852288056,
+      "translation": "이제 쓰기는 I/O 연산을 기술하는 `struct bio`가 됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893825Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "submit_bio to blk_mq_submit_bio",
+      "source_hash": 5351234925853843578,
+      "context_hash": 9523155930435737479,
+      "translation": "submit_bio에서 blk_mq_submit_bio로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893826Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "`blk_mq_submit_bio` places the bio into the appropriate hardware dispatch queue, handles I/O scheduling (BFQ, mq-deadline, none), merges adjacent bios where possible, and ultimately calls the device driver's queue command function.",
+      "source_hash": 3349411653096266659,
+      "context_hash": 9552863575922756299,
+      "translation": "`blk_mq_submit_bio`는 bio를 적절한 하드웨어 디스패치 큐에 넣고, I/O 스케줄링(BFQ, mq-deadline, none)을 처리하며, 가능하면 인접한 bio를 병합하고, 최종적으로 디바이스 드라이버의 큐 명령 함수를 호출합니다.",
+      "glossary_snapshot": {
+        "BFQ": "BFQ",
+        "device driver": "디바이스 드라이버",
+        "function": "함수",
+        "hardware": "하드웨어",
+        "queue": "큐",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:12:43.893826Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "For a deeper look at request queues, I/O schedulers, and driver dispatch, see the [block layer docs](../block/README.md).",
+      "source_hash": 167692736420120930,
+      "context_hash": 12699150257895217990,
+      "translation": "요청 큐, I/O 스케줄러, 드라이버 디스패치에 대해 더 자세히 알아보려면 [블록 계층 문서](../block/README.md)를 참고하십시오.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "driver": "드라이버",
+        "queues": "큐",
+        "schedulers": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:12:43.893826Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Stage 8: Barriers and persistence guarantees",
+      "source_hash": 10271792720254788469,
+      "context_hash": 5307272225576291155,
+      "translation": "8단계: 배리어와 영속성 보장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893826Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "O_SYNC and O_DSYNC",
+      "source_hash": 17205893942263048362,
+      "context_hash": 13317811576120597781,
+      "translation": "O_SYNC와 O_DSYNC",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893827Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Opening a file with `O_SYNC` makes every `write()` call synchronous — it does not return until data and metadata have been confirmed durable by the storage device. `O_DSYNC` is the data-only equivalent (like `fdatasync()` on every write):",
+      "source_hash": 1762855796466085797,
+      "context_hash": 15738197107072319097,
+      "translation": "`O_SYNC`로 파일을 열면 모든 `write()` 호출이 동기식이 됩니다. 즉, 스토리지 디바이스가 데이터와 메타데이터의 내구성을 확인할 때까지 반환하지 않습니다. `O_DSYNC`는 데이터만 대상으로 하는 동등한 방식입니다(모든 쓰기마다 `fdatasync()`를 수행하는 것과 같습니다):",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T23:27:34.635087Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "These flags set `IOCB_SYNC` / `IOCB_DSYNC` on the `kiocb`.",
+      "source_hash": 8629863289927065502,
+      "context_hash": 11129655483785275071,
+      "translation": "이 플래그들은 `kiocb`에 `IOCB_SYNC` / `IOCB_DSYNC`를 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893827Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:1",
+      "source": "After `generic_perform_write()` returns, `generic_file_write_iter()` checks:",
+      "source_hash": 1648212074225801645,
+      "context_hash": 2414065339486443717,
+      "translation": "`generic_perform_write()`가 반환된 후 `generic_file_write_iter()`는 다음을 검사합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893827Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "FUA vs FLUSH",
+      "source_hash": 11323706683099632525,
+      "context_hash": 10570285119450479213,
+      "translation": "FUA 대 FLUSH",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893827Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "The block layer communicates ordering requirements to the storage device via two mechanisms:",
+      "source_hash": 9221794526819705839,
+      "context_hash": 17081230012342571244,
+      "translation": "블록 계층은 두 가지 메커니즘을 통해 스토리지 디바이스에 순서 요구 사항을 전달합니다:",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:27:34.635088Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "Mechanism",
+      "source_hash": 559233746687605355,
+      "context_hash": 6032574234048122499,
+      "translation": "메커니즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893827Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "How it works",
+      "source_hash": 16935900381963222246,
+      "context_hash": 2284617193292210583,
+      "translation": "동작 방식",
+      "glossary_snapshot": {
+        "How it works": "동작 방식"
+      },
+      "translated_at": "2026-11-14T22:12:43.893828Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Cost",
+      "source_hash": 310717914420497943,
+      "context_hash": 4156884368178849071,
+      "translation": "비용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893828Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "`REQ_PREFLUSH`",
+      "source_hash": 4689258935968168996,
+      "context_hash": 4831783717751114684,
+      "translation": "`REQ_PREFLUSH`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893828Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "Flush the device's write cache before the write",
+      "source_hash": 1211762057539985646,
+      "context_hash": 14578328324825431628,
+      "translation": "쓰기 전에 디바이스의 쓰기 캐시를 flush",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T23:27:34.635089Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "Extra round-trip",
+      "source_hash": 13964320410620196263,
+      "context_hash": 3397177241461870089,
+      "translation": "추가 왕복",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893828Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "`REQ_FUA` (Force Unit Access)",
+      "source_hash": 15767444625897106579,
+      "context_hash": 7719046761798070954,
+      "translation": "`REQ_FUA` (Force Unit Access)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893828Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "Bypass the write cache for this specific write",
+      "source_hash": 14773657345459128511,
+      "context_hash": 14583794320256630477,
+      "translation": "이 특정 쓰기에 대해 쓰기 캐시를 우회",
+      "glossary_snapshot": {
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:43.893828Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:16/seg:0",
+      "source": "~same as write",
+      "source_hash": 13053851126811768120,
+      "context_hash": 10205644039066865240,
+      "translation": "~쓰기와 거의 동일",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:43.893828Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:17/seg:0",
+      "source": "`REQ_SYNC`",
+      "source_hash": 14421120158682972361,
+      "context_hash": 12232861184379768865,
+      "translation": "`REQ_SYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915611Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:18/seg:0",
+      "source": "Hint: this is a synchronous write (priority)",
+      "source_hash": 14260829480886535126,
+      "context_hash": 17923300267951346973,
+      "translation": "힌트: 동기 쓰기임(우선순위)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915612Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:19/seg:0",
+      "source": "None",
+      "source_hash": 4387124778405518223,
+      "context_hash": 13913914486252171193,
+      "translation": "없음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915612Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:20/seg:0",
+      "source": "For `O_DSYNC` writes, the block layer uses FUA if the device supports it (`/sys/block/sda/queue/fua` == 1), avoiding the cost of a separate flush command.",
+      "source_hash": 13913747480729625741,
+      "context_hash": 16597647815889864331,
+      "translation": "`O_DSYNC` 쓰기의 경우, 디바이스가 지원하면(`/sys/block/sda/queue/fua` == 1) 블록 계층은 FUA를 사용하여 별도의 flush 명령 비용을 피합니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:27:34.635089Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:20/seg:1",
+      "source": "For `fsync()`, the filesystem issues a `REQ_PREFLUSH` after flushing dirty pages to ensure ordering.",
+      "source_hash": 7611672333850472168,
+      "context_hash": 4480493465799398546,
+      "translation": "`fsync()`의 경우, 파일시스템은 순서를 보장하기 위해 dirty 페이지를 플러시한 후 `REQ_PREFLUSH`를 발행합니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T22:12:59.915613Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:22/seg:0",
+      "source": "NVMe ordering",
+      "source_hash": 13259114256117608143,
+      "context_hash": 9709478683857176883,
+      "translation": "NVMe 순서 보장",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:12:59.915613Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:23/seg:0",
+      "source": "NVMe has native support for FUA and the `Flush` command.",
+      "source_hash": 5367846686621305298,
+      "context_hash": 9112022593234221145,
+      "translation": "NVMe는 FUA와 `Flush` 명령을 기본적으로 지원합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:12:59.915613Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:23/seg:1",
+      "source": "On NVMe, `fsync()` typically maps to:",
+      "source_hash": 8851067769508510019,
+      "context_hash": 1385733878925898373,
+      "translation": "NVMe에서 `fsync()`는 일반적으로 다음과 같이 대응됩니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:12:59.915613Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:24/seg:0",
+      "source": "Write all dirty data pages (normal write commands).",
+      "source_hash": 374786355371370225,
+      "context_hash": 3281812320632894746,
+      "translation": "모든 dirty 데이터 페이지 쓰기(일반 쓰기 명령)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:25/seg:0",
+      "source": "Write the inode/journal.",
+      "source_hash": 8644683811293847718,
+      "context_hash": 6673087217472501417,
+      "translation": "inode/저널 쓰기",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:26/seg:0",
+      "source": "Issue one `Flush` command to the NVMe controller.",
+      "source_hash": 17927383067563734401,
+      "context_hash": 7510757959990383950,
+      "translation": "NVMe 컨트롤러에 `Flush` 명령 한 번 발행",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "controller": "컨트롤러"
+      },
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:27/seg:0",
+      "source": "NVMe controllers are required to honour the Flush command — all preceding writes must be committed to non-volatile storage before the Flush command completes.",
+      "source_hash": 14216116112211201877,
+      "context_hash": 13007179535548271858,
+      "translation": "NVMe 컨트롤러는 Flush 명령을 반드시 준수해야 합니다. 즉, Flush 명령이 완료되기 전에 앞선 모든 쓰기가 비휘발성 저장소에 커밋되어야 합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "controllers": "컨트롤러"
+      },
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:27/seg:1",
+      "source": "This is the hardware guarantee that makes `fsync()` meaningful.",
+      "source_hash": 16591767348467576134,
+      "context_hash": 11871406852042482728,
+      "translation": "이것이 `fsync()`를 의미 있게 만드는 하드웨어 보장입니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Stage 9: What can go wrong",
+      "source_hash": 15880341274488602607,
+      "context_hash": 3886460338065156531,
+      "translation": "9단계: 무엇이 잘못될 수 있는가",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "The volatile write cache problem",
+      "source_hash": 6771298112929642950,
+      "context_hash": 13446991977733234587,
+      "translation": "휘발성 쓰기 캐시 문제",
+      "glossary_snapshot": {
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "Most HDDs and many SSDs have a DRAM write cache.",
+      "source_hash": 10222369548353509293,
+      "context_hash": 480411432320082421,
+      "translation": "대부분의 HDD와 많은 SSD에는 DRAM 쓰기 캐시가 있습니다.",
+      "glossary_snapshot": {
+        "DRAM": "DRAM",
+        "HDDs": "HDD",
+        "SSDs": "SSD",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:1",
+      "source": "When the kernel issues a write, the device acknowledges it as soon as the data lands in this cache — before writing it to the platters or NAND.",
+      "source_hash": 8282142207244318867,
+      "context_hash": 14202403504973285543,
+      "translation": "커널이 쓰기를 발행하면, 디바이스는 데이터가 이 캐시에 도달하는 즉시, 즉 플래터나 NAND에 기록하기 전에 완료를 응답합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:27:34.635090Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:2",
+      "source": "If power fails between the acknowledgement and the actual physical write, data is lost.",
+      "source_hash": 4661929219457171162,
+      "context_hash": 9227847830377239297,
+      "translation": "응답과 실제 물리적 쓰기 사이에 전원이 끊기면 데이터가 손실됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915614Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "This means that even after `fsync()` returns successfully, data can be lost on drives with volatile write caches unless:",
+      "source_hash": 3731102771324915795,
+      "context_hash": 13793734269798590676,
+      "translation": "즉, `fsync()`가 성공적으로 반환된 후에도 휘발성 쓰기 캐시가 있는 드라이브에서는 다음 조건 중 하나를 충족하지 않는 한 데이터가 손실될 수 있습니다.",
+      "glossary_snapshot": {
+        "write caches": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915615Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "The drive's write cache is disabled (`hdparm -W 0 /dev/sda`), or",
+      "source_hash": 7628109828503657799,
+      "context_hash": 8445745342119173287,
+      "translation": "드라이브의 쓰기 캐시가 비활성화되어 있음(`hdparm -W 0 /dev/sda`), 또는",
+      "glossary_snapshot": {
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915615Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "The drive supports and honours FUA / Flush commands.",
+      "source_hash": 17332785543282003736,
+      "context_hash": 1622570603876431268,
+      "translation": "드라이브가 FUA / Flush 명령을 지원하고 준수함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915615Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "Enterprise HDDs and SSDs typically have battery-backed or capacitor-backed write caches, which mitigate this — the cache survives brief power loss long enough to flush to persistent storage.",
+      "source_hash": 16196512678311838634,
+      "context_hash": 9480480756400771762,
+      "translation": "엔터프라이즈 HDD와 SSD는 일반적으로 배터리나 커패시터로 보호되는 쓰기 캐시를 갖추고 있어 이 문제를 완화합니다. 짧은 정전 동안에도 캐시가 영구 저장소로 플러시할 수 있을 만큼 오래 유지됩니다.",
+      "glossary_snapshot": {
+        "HDDs": "HDD",
+        "SSDs": "SSD",
+        "cache": "캐시",
+        "write caches": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915615Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "Kernel buffering fooling applications",
+      "source_hash": 13946258317376088762,
+      "context_hash": 3184515439647491307,
+      "translation": "애플리케이션을 속이는 커널 버퍼링",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:12:59.915615Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "A common mistake: an application writes data and calls `close()` without `fsync()`, and assumes the data is safe because `close()` succeeded.",
+      "source_hash": 6176184538202431821,
+      "context_hash": 11246429689345011070,
+      "translation": "흔한 실수: 애플리케이션이 데이터를 쓰고 `fsync()` 없이 `close()`를 호출한 뒤, `close()`가 성공했으므로 데이터가 안전하다고 가정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915615Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:1",
+      "source": "In fact, `close()` does not flush dirty pages — it merely decrements the file descriptor reference count.",
+      "source_hash": 5213152805936455942,
+      "context_hash": 17436894143829300079,
+      "translation": "실제로 `close()`는 dirty 페이지를 플러시하지 않으며, 단지 파일 디스크립터의 참조 카운트를 감소시킬 뿐입니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "file descriptor": "파일 디스크립터",
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:12:59.915615Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:2",
+      "source": "Dirty pages may remain in the page cache for up to 30 seconds (the `dirty_expire_centisecs` default) after `close()` returns.",
+      "source_hash": 2121726066148582283,
+      "context_hash": 8094166638658479126,
+      "translation": "`close()`가 반환된 후에도 dirty 페이지는 최대 30초(`dirty_expire_centisecs` 기본값) 동안 페이지 캐시에 남아 있을 수 있습니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915616Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:10/seg:0",
+      "source": "fsync on a directory for rename safety",
+      "source_hash": 18084554348878629906,
+      "context_hash": 17915117061702642445,
+      "translation": "rename 안전성을 위한 디렉터리 fsync",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915616Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "Renaming a file (which is how most applications do \"atomic write\": write to a temp file, then rename into place) requires `fsync()` on the directory, not just the file:",
+      "source_hash": 12873748296033324882,
+      "context_hash": 14681490969028262058,
+      "translation": "파일 이름 변경(대부분의 애플리케이션이 \"원자적 쓰기\"를 수행하는 방식으로, 임시 파일에 쓴 다음 rename으로 제자리에 옮기는 방식)에는 파일뿐 아니라 디렉터리에 대한 `fsync()`도 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915616Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:0",
+      "source": "Without the directory `fsync`, the rename's directory entry update may still be in the page cache after a crash.",
+      "source_hash": 12814134685846386820,
+      "context_hash": 6898188008088657345,
+      "translation": "디렉터리 `fsync`가 없으면, 크래시 후에도 rename의 디렉터리 엔트리 갱신이 여전히 페이지 캐시에만 남아 있을 수 있습니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915617Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:1",
+      "source": "On reboot, neither the old nor the new name might exist, leaving the file orphaned or missing.",
+      "source_hash": 3134298165115742575,
+      "context_hash": 14154841306108855780,
+      "translation": "재부팅 시 이전 이름과 새 이름 모두 존재하지 않을 수 있으며, 이로 인해 파일이 고아 상태가 되거나 사라질 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:12:59.915617Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:14/seg:0",
+      "source": "Page cache and direct I/O coherency",
+      "source_hash": 5141795705517659304,
+      "context_hash": 8305771872568614647,
+      "translation": "페이지 캐시와 direct I/O 일관성",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915617Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:15/seg:0",
+      "source": "Mixing buffered writes (which go through the page cache) with direct reads (`O_DIRECT`, which bypass the cache) can produce stale reads:",
+      "source_hash": 4162289176003197550,
+      "context_hash": 9766253158621884909,
+      "translation": "버퍼링된 쓰기(페이지 캐시를 거침)와 direct 읽기(캐시를 우회하는 `O_DIRECT`)를 섞어 사용하면 오래된 데이터를 읽을 수 있습니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:12:59.915617Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:0",
+      "source": "The kernel does not automatically flush the page cache when a direct read is issued.",
+      "source_hash": 7332327183823877678,
+      "context_hash": 778456617450665053,
+      "translation": "커널은 direct read가 발생할 때 페이지 캐시를 자동으로 플러시하지 않습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:13:24.315717Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:1",
+      "source": "Applications that mix buffered and direct I/O must call `fsync()` before switching from buffered writes to direct reads.",
+      "source_hash": 481002276484992174,
+      "context_hash": 2638221270134359724,
+      "translation": "buffered I/O와 direct I/O를 함께 사용하는 애플리케이션은 buffered write에서 direct read로 전환하기 전에 반드시 `fsync()`를 호출해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315718Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:0",
+      "source": "NFS and distributed write safety",
+      "source_hash": 11095556179233118941,
+      "context_hash": 12680765767943599722,
+      "translation": "NFS와 분산 환경의 쓰기 안전성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315719Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:0",
+      "source": "On NFS, `write()` calls may be buffered by the NFS client.",
+      "source_hash": 2150511100465294094,
+      "context_hash": 2163972607603005394,
+      "translation": "NFS에서는 `write()` 호출이 NFS 클라이언트에 의해 버퍼링될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315719Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:1",
+      "source": "The server does not see the writes until the client flushes them. `fsync()` on an NFS client sends a `COMMIT` RPC to the server, requesting that the server flush its own buffers to stable storage.",
+      "source_hash": 14577359261662172451,
+      "context_hash": 1923049709172933089,
+      "translation": "서버는 클라이언트가 쓰기를 플러시하기 전까지 그 쓰기를 보지 못합니다. NFS 클라이언트에서 `fsync()`를 호출하면 서버로 `COMMIT` RPC를 보내 서버가 자신의 버퍼를 안정적인 저장소(stable storage)로 플러시하도록 요청합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315719Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:2",
+      "source": "If the server crashes between the client's write and the `COMMIT`, data can be lost even if the client's `write()` returned success — this is NFS's \"unstable write\" behaviour.",
+      "source_hash": 15489778321078841231,
+      "context_hash": 15502744834996212240,
+      "translation": "클라이언트의 쓰기와 `COMMIT` 사이에 서버가 크래시하면, 클라이언트의 `write()`가 성공을 반환했더라도 데이터가 유실될 수 있습니다 — 이것이 NFS의 \"unstable write\" 동작입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315719Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Try it yourself",
+      "source_hash": 18329884058255754057,
+      "context_hash": 9248250302711076158,
+      "translation": "직접 해 보기",
+      "glossary_snapshot": {
+        "Try It Yourself": "직접 해 보기"
+      },
+      "translated_at": "2026-11-14T22:13:24.315720Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Trace a write with strace",
+      "source_hash": 13985044211011239366,
+      "context_hash": 3652837676959764941,
+      "translation": "strace로 쓰기 추적하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315720Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "Watch dirty pages accumulate and flush",
+      "source_hash": 11119538768817621303,
+      "context_hash": 15810690873708487608,
+      "translation": "dirty 페이지가 쌓이고 플러시되는 과정 관찰하기",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지"
+      },
+      "translated_at": "2026-11-14T22:13:24.315720Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "Measure the cost of fsync",
+      "source_hash": 8684508253523549485,
+      "context_hash": 16887073730659377077,
+      "translation": "fsync의 비용 측정하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315720Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "Watch writeback with iostat",
+      "source_hash": 5341775746674256873,
+      "context_hash": 17516693237379369344,
+      "translation": "iostat로 writeback 관찰하기",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:13:24.315720Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "Observe the writeback worker with ftrace",
+      "source_hash": 18312473852476602839,
+      "context_hash": 11147643935585973200,
+      "translation": "ftrace로 writeback worker 관찰하기",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:13:24.315721Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "Check dirty throttling thresholds",
+      "source_hash": 7427414641710408175,
+      "context_hash": 2997391782875951629,
+      "translation": "dirty 스로틀링 임계값 확인",
+      "glossary_snapshot": {
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T23:27:34.635090Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "Monitor per-BDI writeback state",
+      "source_hash": 3750729802611471607,
+      "context_hash": 16582542341984532042,
+      "translation": "BDI별 writeback 상태 모니터링하기",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:13:24.315721Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Key source files",
+      "source_hash": 11048178491662595550,
+      "context_hash": 648747466546032113,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T22:13:24.315721Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 12391593062388629219,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:13:24.315721Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "What It Does",
+      "source_hash": 5055828438660409602,
+      "context_hash": 5319538921913323850,
+      "translation": "역할",
+      "glossary_snapshot": {
+        "What It Does": "역할"
+      },
+      "translated_at": "2026-11-14T22:13:24.315721Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "[`mm/filemap.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/filemap.c)",
+      "source_hash": 7065889614535717815,
+      "context_hash": 5463178334781838849,
+      "translation": "[`mm/filemap.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/filemap.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315721Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "`generic_file_write_iter`, `generic_perform_write`, `filemap_dirty_folio`",
+      "source_hash": 15499358466870706437,
+      "context_hash": 16259426801847804442,
+      "translation": "`generic_file_write_iter`, `generic_perform_write`, `filemap_dirty_folio`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315721Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "[`mm/page-writeback.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/page-writeback.c)",
+      "source_hash": 12301134661017752553,
+      "context_hash": 4886855273132294689,
+      "translation": "[`mm/page-writeback.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/page-writeback.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315722Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "`balance_dirty_pages`, dirty accounting, `do_writepages`, `folio_mark_dirty`",
+      "source_hash": 14467108115700288279,
+      "context_hash": 17250368558144495589,
+      "translation": "`balance_dirty_pages`, dirty 어카운팅, `do_writepages`, `folio_mark_dirty`",
+      "glossary_snapshot": {
+        "accounting": "어카운팅"
+      },
+      "translated_at": "2026-11-14T23:27:34.635091Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "[`fs/fs-writeback.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/fs-writeback.c)",
+      "source_hash": 2037912441749599834,
+      "context_hash": 7250018758489744596,
+      "translation": "[`fs/fs-writeback.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/fs-writeback.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315722Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "`wb_workfn`, `writeback_sb_inodes`, `__writeback_single_inode`, `__mark_inode_dirty`",
+      "source_hash": 3591822316421491617,
+      "context_hash": 2588721643752626394,
+      "translation": "`wb_workfn`, `writeback_sb_inodes`, `__writeback_single_inode`, `__mark_inode_dirty`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315722Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "[`fs/sync.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/sync.c)",
+      "source_hash": 11726382804135939409,
+      "context_hash": 7232285274423130506,
+      "translation": "[`fs/sync.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/sync.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315723Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "`fsync`, `fdatasync`, `sync` syscall implementations",
+      "source_hash": 2946908239481681762,
+      "context_hash": 13876609942042420425,
+      "translation": "`fsync`, `fdatasync`, `sync` 시스템 콜 구현",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:13:24.315723Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "[`fs/read_write.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/read_write.c)",
+      "source_hash": 9449670528775320579,
+      "context_hash": 12132722786524812334,
+      "translation": "[`fs/read_write.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/read_write.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315723Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:12/seg:0",
+      "source": "`vfs_write`, `ksys_write`, `new_sync_write`",
+      "source_hash": 17455959967350906918,
+      "context_hash": 7150406453919880974,
+      "translation": "`vfs_write`, `ksys_write`, `new_sync_write`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315723Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:13/seg:0",
+      "source": "[`include/linux/fs.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/fs.h)",
+      "source_hash": 3578600051398143505,
+      "context_hash": 3058943005572891474,
+      "translation": "[`include/linux/fs.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/fs.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315723Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:14/seg:0",
+      "source": "`struct address_space`, `struct kiocb`, `address_space_operations`",
+      "source_hash": 13105778143532490052,
+      "context_hash": 11183580659804003690,
+      "translation": "`struct address_space`, `struct kiocb`, `address_space_operations`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315724Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:15/seg:0",
+      "source": "[`include/linux/writeback.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/writeback.h)",
+      "source_hash": 7672511510553700106,
+      "context_hash": 685589218372815921,
+      "translation": "[`include/linux/writeback.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/writeback.h)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315724Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:16/seg:0",
+      "source": "`struct writeback_control`, `wb_reason` enum",
+      "source_hash": 1855185982300837006,
+      "context_hash": 4001069711806543131,
+      "translation": "`struct writeback_control`, `wb_reason` enum",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315724Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:17/seg:0",
+      "source": "[`fs/iomap/buffered-io.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/iomap/buffered-io.c)",
+      "source_hash": 101972169118457925,
+      "context_hash": 16250853196823791961,
+      "translation": "[`fs/iomap/buffered-io.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/iomap/buffered-io.c)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:24.315724Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:18/seg:0",
+      "source": "`iomap_write_begin`, `iomap_write_end`, `iomap_writepages`",
+      "source_hash": 5979059924568797835,
+      "context_hash": 6595610459105546563,
+      "translation": "`iomap_write_begin`, `iomap_write_end`, `iomap_writepages`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:56.771578Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 16764962755525369338,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:49:56.771578Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "Related docs",
+      "source_hash": 7097932963041183752,
+      "context_hash": 8249032820430268685,
+      "translation": "관련 문서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:56.771579Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:0",
+      "source": "[Page cache writeback](page-cache-writeback.md) — writeback mechanics in depth",
+      "source_hash": 9365518957055388453,
+      "context_hash": 7799022604889981496,
+      "translation": "[페이지 캐시 writeback](page-cache-writeback.md) — writeback 메커니즘 심층 분석",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T21:49:56.771579Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "[Buffered I/O](buffered-io.md) — the full read and write path through the page cache",
+      "source_hash": 1743946585223659678,
+      "context_hash": 4432571511246726981,
+      "translation": "[Buffered I/O](buffered-io.md) — 페이지 캐시를 거치는 전체 읽기 및 쓰기 경로",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:49:56.771579Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:4/seg:0",
+      "source": "[Direct I/O](direct-io.md) — bypassing the page cache entirely with `O_DIRECT`",
+      "source_hash": 8133180075938598818,
+      "context_hash": 6042420585097770771,
+      "translation": "[Direct I/O](direct-io.md) — `O_DIRECT`로 페이지 캐시를 완전히 우회하는 방법",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T21:49:56.771580Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:5/seg:0",
+      "source": "[Async I/O](async-io.md) — io_uring for non-blocking write submission",
+      "source_hash": 12414439933376484060,
+      "context_hash": 10215162006564227311,
+      "translation": "[비동기 I/O](async-io.md) — 논블로킹 쓰기 제출을 위한 io_uring",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:56.771580Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:6/seg:0",
+      "source": "[Life of a read](../mm/life-of-read.md) — the read-side counterpart to this page",
+      "source_hash": 1580199627372691682,
+      "context_hash": 311502747089655066,
+      "translation": "[읽기의 일생](../mm/life-of-read.md) — 이 페이지에 대응하는 읽기 측 문서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:56.771580Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:7/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 15177484963888938058,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T21:49:56.771580Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:8/seg:0",
+      "source": "[Writeback and control groups](https://lwn.net/Articles/648292/) (2015) — per-cgroup writeback accounting",
+      "source_hash": 16861921838511191452,
+      "context_hash": 2435496645142377538,
+      "translation": "[Writeback and control groups](https://lwn.net/Articles/648292/) (2015) — cgroup별 writeback 어카운팅",
+      "glossary_snapshot": {
+        "accounting": "어카운팅",
+        "cgroup": "cgroup",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T21:49:56.771581Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:9/seg:0",
+      "source": "[Dynamic writeback throttling](https://lwn.net/Articles/405076/) (2010) — dirty throttling history",
+      "source_hash": 11469802901987211171,
+      "context_hash": 4486491455334108469,
+      "translation": "[Dynamic writeback throttling](https://lwn.net/Articles/405076/) (2010) — dirty 스로틀링의 역사",
+      "glossary_snapshot": {
+        "throttling": "스로틀링",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T23:27:34.635091Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:10/seg:0",
+      "source": "[Flushing out pdflush](https://lwn.net/Articles/326552/) — replacing the single pdflush thread with per-BDI flusher threads",
+      "source_hash": 3115386193249797202,
+      "context_hash": 8841532687193333335,
+      "translation": "[Flushing out pdflush](https://lwn.net/Articles/326552/) — 단일 pdflush 스레드를 BDI별 flusher 스레드로 대체한 변경",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:56.771581Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:11/seg:0",
+      "source": "[The end of block barriers](https://lwn.net/Articles/400541/) — the move from I/O barriers to the FLUSH/FUA model",
+      "source_hash": 10530944916607605272,
+      "context_hash": 9723888768689368024,
+      "translation": "[The end of block barriers](https://lwn.net/Articles/400541/) — I/O 배리어에서 FLUSH/FUA 모델로의 전환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:56.771581Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:12/seg:0",
+      "source": "[The rapid growth of io_uring](https://lwn.net/Articles/810414/) (2020) — the first year of io_uring's feature growth",
+      "source_hash": 7778022976332112961,
+      "context_hash": 14998449760035941138,
+      "translation": "[The rapid growth of io_uring](https://lwn.net/Articles/810414/) (2020) — io_uring 기능 확장의 첫 1년",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:49:56.771581Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,735 @@
+{
+  "version": 1,
+  "source_hash": 15380343019805701048,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Futex Internals",
+      "source_hash": 3054581857613380883,
+      "context_hash": 12701911881467921904,
+      "translation": "Futex 내부 구조",
+      "glossary_snapshot": {
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T23:02:12.223320Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How userspace mutex and condition variable implementations work in the kernel",
+      "source_hash": 16157529206489119012,
+      "context_hash": 10238726667630373472,
+      "translation": "사용자 공간 뮤텍스와 조건 변수 구현이 커널에서 동작하는 방식",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "mutex": "뮤텍스",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:02:12.223321Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why futexes exist",
+      "source_hash": 14696949221108007627,
+      "context_hash": 4371415225466364444,
+      "translation": "futex가 존재하는 이유",
+      "glossary_snapshot": {
+        "futexes": "futex"
+      },
+      "translated_at": "2026-11-14T23:02:12.223322Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Before futexes, every POSIX mutex operation went through the kernel. `pthread_mutex_lock()` called `sem_wait()` or a similar syscall; `pthread_mutex_unlock()` called `sem_post()`.",
+      "source_hash": 1480487058842487788,
+      "context_hash": 16633469577305353559,
+      "translation": "futex 이전에는 모든 POSIX 뮤텍스 연산이 커널을 거쳤습니다. `pthread_mutex_lock()`은 `sem_wait()` 또는 이와 유사한 시스템 콜을 호출했고, `pthread_mutex_unlock()`은 `sem_post()`를 호출했습니다.",
+      "glossary_snapshot": {
+        "POSIX": "POSIX",
+        "futexes": "futex",
+        "kernel": "커널",
+        "mutex": "뮤텍스",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:02:12.223322Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "A syscall costs ~100–300 ns on modern hardware.",
+      "source_hash": 6555773963190222619,
+      "context_hash": 6571118111238844482,
+      "translation": "최신 하드웨어에서 시스템 콜 하나의 비용은 ~100–300 ns입니다.",
+      "glossary_snapshot": {
+        "hardware": "하드웨어",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:02:12.223322Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "A program that holds fine-grained mutexes for short durations (a hash table lock held for a few cache accesses, for example) could spend more time in the kernel than doing actual work.",
+      "source_hash": 9541671378651115375,
+      "context_hash": 8291796587490942730,
+      "translation": "세분화된 뮤텍스를 짧은 시간 동안 잡는 프로그램(예를 들어 몇 번의 캐시 접근 동안만 잡는 해시 테이블 락)은 실제 작업보다 커널 안에서 더 많은 시간을 보낼 수 있었습니다.",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "kernel": "커널",
+        "mutexes": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T23:02:12.223322Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Hubertus Franke (IBM), Rusty Russell, and Matthew Kirkwood designed futexes in 2002 to eliminate this overhead — presented at the Ottawa Linux Symposium 2002 in [\"Fuss, Futexes and Furwocks: Fast Userlevel Locking in Linux\"](https://www.kernel.org/doc/ols/2002/ols2002-pages-479-495.pdf). (Ulrich Drepper later designed glibc's `pthread_mutex_t` *on top of* futexes; Ingo Molnár contributed early race-condition fixes.) The key observation: **locking is only expensive when there's contention**.",
+      "source_hash": 17832695370193752665,
+      "context_hash": 5208384429807184548,
+      "translation": "Hubertus Franke(IBM), Rusty Russell, Matthew Kirkwood는 이 오버헤드를 없애기 위해 2002년에 futex를 설계했으며, 이를 Ottawa Linux Symposium 2002에서 [\"Fuss, Futexes and Furwocks: Fast Userlevel Locking in Linux\"](https://www.kernel.org/doc/ols/2002/ols2002-pages-479-495.pdf)로 발표했습니다. (이후 Ulrich Drepper가 futex *위에* glibc의 `pthread_mutex_t`를 설계했고, Ingo Molnár는 초기 경쟁 조건(race condition) 수정에 기여했습니다.) 핵심 관찰은 **락은 경합이 있을 때만 비용이 크다**는 것입니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "contention": "경합",
+        "futexes": "futex",
+        "glibc": "glibc",
+        "overhead": "오버헤드"
+      },
+      "translated_at": "2026-11-14T23:02:12.223323Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "When no other thread is waiting, the entire lock/unlock operation can be two atomic instructions in userspace.",
+      "source_hash": 1942363626183384475,
+      "context_hash": 2160875335073815970,
+      "translation": "대기 중인 다른 스레드가 없으면 락/언락 연산 전체가 사용자 공간의 원자적 명령어 두 개로 끝날 수 있습니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:02:12.223323Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:2",
+      "source": "The kernel only needs to be called to park and unpark threads.",
+      "source_hash": 14532075659740489492,
+      "context_hash": 1338818808835014905,
+      "translation": "커널은 스레드를 재우고(park) 깨우기(unpark) 위해서만 호출되면 됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:02:12.223323Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "futex(2) entered Linux 2.6.0 (December 2003) — see [`man 2 futex`](https://www.man7.org/linux/man-pages/man2/futex.2.html).",
+      "source_hash": 10327992662015065399,
+      "context_hash": 2521911368946867611,
+      "translation": "futex(2)는 Linux 2.6.0(2003년 12월)에 포함되었습니다. [`man 2 futex`](https://www.man7.org/linux/man-pages/man2/futex.2.html)를 참고하십시오.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T23:02:12.223323Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "Today, glibc's `pthread_mutex_t`, `pthread_cond_t`, `pthread_rwlock_t`, `sem_t`, and C++ `std::mutex` are all implemented on top of futexes.",
+      "source_hash": 1505863351005406228,
+      "context_hash": 8774651009153059350,
+      "translation": "오늘날 glibc의 `pthread_mutex_t`, `pthread_cond_t`, `pthread_rwlock_t`, `sem_t`와 C++의 `std::mutex`는 모두 futex 위에 구현되어 있습니다.",
+      "glossary_snapshot": {
+        "futexes": "futex",
+        "glibc": "glibc"
+      },
+      "translated_at": "2026-11-14T23:02:12.223323Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "What is a futex?",
+      "source_hash": 1943428918442011668,
+      "context_hash": 11167638521206005846,
+      "translation": "futex란 무엇인가",
+      "glossary_snapshot": {
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T23:02:12.223323Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "A **futex** (fast userspace mutex) is the kernel mechanism that allows userspace locking primitives (pthreads mutex, condition variables, semaphores) to be efficient.",
+      "source_hash": 14581695794158339767,
+      "context_hash": 1079746443330776864,
+      "translation": "**futex**(fast userspace mutex)는 사용자 공간 락 프리미티브(pthreads 뮤텍스, 조건 변수, 세마포어)가 효율적으로 동작할 수 있게 해 주는 커널 메커니즘입니다.",
+      "glossary_snapshot": {
+        "futex": "futex",
+        "kernel": "커널",
+        "mutex": "뮤텍스",
+        "semaphores": "세마포어",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:02:12.223324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "The key insight: in the common uncontended case, locking and unlocking should happen entirely in userspace with no kernel involvement.",
+      "source_hash": 6900415262080571776,
+      "context_hash": 8200063114354049659,
+      "translation": "핵심 통찰은 흔히 발생하는 경합 없는 경우에는 락과 언락이 커널의 개입 없이 전적으로 사용자 공간에서 이루어져야 한다는 것입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:02:12.223324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:2",
+      "source": "The kernel is only called when there's actual contention.",
+      "source_hash": 11808191551873784557,
+      "context_hash": 13026626890063816378,
+      "translation": "커널은 실제 경합이 있을 때만 호출됩니다.",
+      "glossary_snapshot": {
+        "contention": "경합",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:02:12.223324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The futex syscall (`futex(2)`) provides two core operations:",
+      "source_hash": 2426377505098801125,
+      "context_hash": 501065216692424997,
+      "translation": "futex 시스템 콜(`futex(2)`)은 두 가지 핵심 연산을 제공합니다.",
+      "glossary_snapshot": {
+        "futex": "futex",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:02:12.223324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`FUTEX_WAIT`: sleep if the futex word has a given value",
+      "source_hash": 7895232328351852197,
+      "context_hash": 13515691642738851576,
+      "translation": "`FUTEX_WAIT`: futex 워드가 주어진 값이면 잠듦",
+      "glossary_snapshot": {
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T23:02:12.223324Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`FUTEX_WAKE`: wake one or more waiters",
+      "source_hash": 17859923314523641162,
+      "context_hash": 6655334297630379628,
+      "translation": "`FUTEX_WAKE`: 하나 이상의 대기자를 깨움",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:02:12.223324Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The uncontended fast path",
+      "source_hash": 17836509955621084873,
+      "context_hash": 17827701269661670355,
+      "translation": "경합 없는 빠른 경로",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T23:02:12.223325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "A pthread mutex, for example, is implemented over a 32-bit integer in userspace memory:",
+      "source_hash": 1949421713258408859,
+      "context_hash": 14265000143281707625,
+      "translation": "예를 들어 pthread 뮤텍스는 사용자 공간 메모리의 32비트 정수 위에 구현됩니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "memory": "메모리",
+        "mutex": "뮤텍스",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:02:12.223325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "The kernel is called only when:",
+      "source_hash": 14889421770470342737,
+      "context_hash": 8423493177079318513,
+      "translation": "커널은 다음 경우에만 호출됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:02:12.223325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Locking: the lock is already held (someone needs to sleep)",
+      "source_hash": 4573235016612135542,
+      "context_hash": 17657821985658304370,
+      "translation": "락: 락이 이미 잡혀 있는 경우(누군가 잠들어야 함)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:02:12.223325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "Unlocking: there are waiters that need to be woken",
+      "source_hash": 3008176696638998198,
+      "context_hash": 15776902250155356949,
+      "translation": "언락: 깨워야 할 대기자가 있는 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:02:12.223325Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "For a lightly-contended mutex, most lock/unlock operations complete entirely in userspace with two atomic instructions.",
+      "source_hash": 4064791660327918636,
+      "context_hash": 2323825667440707854,
+      "translation": "경합이 적은 뮤텍스에서는 대부분의 락/언락 연산이 원자적 명령어 두 개로 전적으로 사용자 공간에서 완료됩니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:02:12.223325Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Kernel-side data structures",
+      "source_hash": 2987801198573660077,
+      "context_hash": 1461316447450871061,
+      "translation": "커널 측 자료 구조",
+      "glossary_snapshot": {
+        "data structures": "자료 구조",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:02:12.223326Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "The hash table has `1 << CONFIG_FUTEX_HASHBITS` buckets (default 256 on most configs).",
+      "source_hash": 11125250098572041239,
+      "context_hash": 7550582441691554950,
+      "translation": "해시 테이블에는 `1 << CONFIG_FUTEX_HASHBITS`개의 버킷이 있습니다(대부분의 설정에서 기본값 256).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:02:12.223326Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "Multiple futexes may share a bucket — the key is used to identify the specific futex when waking.",
+      "source_hash": 15047944463245238803,
+      "context_hash": 2086740954630281485,
+      "translation": "여러 futex가 하나의 버킷을 공유할 수 있으며, 깨울 때는 키를 사용해 특정 futex를 식별합니다.",
+      "glossary_snapshot": {
+        "futex": "futex",
+        "futexes": "futex"
+      },
+      "translated_at": "2026-11-14T23:02:12.223326Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Private vs shared futexes",
+      "source_hash": 6526315531605612282,
+      "context_hash": 10447136260539224061,
+      "translation": "private futex와 shared futex",
+      "glossary_snapshot": {
+        "futexes": "futex"
+      },
+      "translated_at": "2026-11-14T23:02:12.223326Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Private futexes are slightly faster because the key is just the virtual address — no page table walk needed.",
+      "source_hash": 7014161027821139094,
+      "context_hash": 8780975688162888258,
+      "translation": "private futex는 키가 단순히 가상 주소이므로 페이지 테이블 탐색이 필요 없어 약간 더 빠릅니다.",
+      "glossary_snapshot": {
+        "futexes": "futex",
+        "page table": "페이지 테이블",
+        "virtual address": "가상 주소"
+      },
+      "translated_at": "2026-11-14T23:02:12.223326Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "Shared futexes use the underlying page's physical address (via `page->mapping` + offset) so multiple processes mapping the same page see the same futex.",
+      "source_hash": 18140504681707858782,
+      "context_hash": 17014431852361076524,
+      "translation": "shared futex는 같은 페이지를 매핑한 여러 프로세스가 같은 futex를 보도록 해당 페이지의 물리 주소(`page->mapping` + 오프셋을 통해)를 사용합니다.",
+      "glossary_snapshot": {
+        "futex": "futex",
+        "futexes": "futex",
+        "mapping": "매핑",
+        "physical address": "물리 주소",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:02:12.223326Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "FUTEX_WAIT: going to sleep",
+      "source_hash": 10538339946425304721,
+      "context_hash": 10484342614005350704,
+      "translation": "FUTEX_WAIT: 잠들기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:02:12.223327Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "The crucial step is checking the value **under the hash bucket lock** (step 3).",
+      "source_hash": 12545538186668102270,
+      "context_hash": 6486696111141146691,
+      "translation": "결정적인 단계는 **해시 버킷 락을 잡은 상태에서** 값을 확인하는 것입니다(3단계).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562951Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "This prevents a race where:",
+      "source_hash": 9410452087770947410,
+      "context_hash": 15235546759431679809,
+      "translation": "이는 다음과 같은 경쟁 상태를 방지합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562952Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Userspace sees the lock is contended and calls FUTEX_WAIT",
+      "source_hash": 8804589912205786669,
+      "context_hash": 11214786360366919069,
+      "translation": "사용자 공간이 락이 경합 중임을 확인하고 FUTEX_WAIT를 호출합니다",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:13:53.562952Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "The lock holder unlocks and calls FUTEX_WAKE before we've queued",
+      "source_hash": 6819395353749386902,
+      "context_hash": 8205106040924895067,
+      "translation": "락 보유자가 우리가 큐에 들어가기 전에 락을 해제하고 FUTEX_WAKE를 호출합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562952Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "We'd sleep forever without the lock check",
+      "source_hash": 6269291775588948645,
+      "context_hash": 8858083341075021869,
+      "translation": "락 확인이 없다면 영원히 잠들게 됩니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562953Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "FUTEX_WAKE: waking sleepers",
+      "source_hash": 10326607244273102478,
+      "context_hash": 12981222184321345102,
+      "translation": "FUTEX_WAKE: 잠든 태스크 깨우기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562953Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "PI futexes",
+      "source_hash": 12663155028422474506,
+      "context_hash": 11591908145931391310,
+      "translation": "PI futex",
+      "glossary_snapshot": {
+        "futexes": "futex"
+      },
+      "translated_at": "2026-11-14T22:13:53.562953Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Priority-inheritance futexes (`FUTEX_LOCK_PI`, `FUTEX_UNLOCK_PI`) implement the priority inheritance protocol for userspace mutexes.",
+      "source_hash": 8617030874371609759,
+      "context_hash": 13664084415489376042,
+      "translation": "우선순위 상속 futex(`FUTEX_LOCK_PI`, `FUTEX_UNLOCK_PI`)는 사용자 공간 뮤텍스를 위한 우선순위 상속 프로토콜을 구현합니다.",
+      "glossary_snapshot": {
+        "futexes": "futex",
+        "mutexes": "뮤텍스",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:13:53.562953Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "When a high-priority task blocks on a PI futex held by a low-priority task, the low-priority task's effective priority is boosted.",
+      "source_hash": 119446731286244239,
+      "context_hash": 15319651619696450057,
+      "translation": "높은 우선순위 태스크가 낮은 우선순위 태스크가 보유한 PI futex에서 블록되면, 낮은 우선순위 태스크의 실효 우선순위가 상향됩니다.",
+      "glossary_snapshot": {
+        "futex": "futex"
+      },
+      "translated_at": "2026-11-14T22:13:53.562954Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "The kernel maintains a `futex_pi_state` struct that connects the `futex_q` to an `rt_mutex` — the same priority-inheritance machinery used by `rt_mutex_t` in the kernel.",
+      "source_hash": 2681722802301658582,
+      "context_hash": 4547047006498062443,
+      "translation": "커널은 `futex_q`를 `rt_mutex`에 연결하는 `futex_pi_state` 구조체를 유지합니다. 이는 커널에서 `rt_mutex_t`가 사용하는 것과 동일한 우선순위 상속 메커니즘입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:13:53.562954Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Condition variables (FUTEX_WAIT + FUTEX_WAKE)",
+      "source_hash": 8781622213732920028,
+      "context_hash": 16866952132109251000,
+      "translation": "조건 변수(FUTEX_WAIT + FUTEX_WAKE)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562954Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "`pthread_cond_wait` is implemented as:",
+      "source_hash": 11734674483808683122,
+      "context_hash": 11299870444900098605,
+      "translation": "`pthread_cond_wait`는 다음과 같이 구현됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562954Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "Release the associated mutex (userspace atomic)",
+      "source_hash": 3997832406174074723,
+      "context_hash": 5368805131326997364,
+      "translation": "연관된 뮤텍스 해제(사용자 공간 원자적 연산)",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:13:53.562955Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "`FUTEX_WAIT` on the condition variable word",
+      "source_hash": 12180838475705787426,
+      "context_hash": 8078755927637041559,
+      "translation": "조건 변수 워드에 대한 `FUTEX_WAIT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562955Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "On wake: re-acquire the mutex",
+      "source_hash": 1140703277905849526,
+      "context_hash": 7413715095066829456,
+      "translation": "깨어나면: 뮤텍스 재획득",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:13:53.562955Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "`pthread_cond_signal` / `pthread_cond_broadcast` use `FUTEX_WAKE` (signal) or `FUTEX_REQUEUE` (broadcast, to efficiently move waiters to the mutex's queue without waking them all).",
+      "source_hash": 11398441490822703807,
+      "context_hash": 13155910475416636689,
+      "translation": "`pthread_cond_signal` / `pthread_cond_broadcast`는 `FUTEX_WAKE`(signal) 또는 `FUTEX_REQUEUE`(broadcast, 대기자를 모두 깨우지 않고 뮤텍스의 큐로 효율적으로 옮기기 위함)를 사용합니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:13:53.562956Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "Why FUTEX_REQUEUE exists",
+      "source_hash": 16774002163137239749,
+      "context_hash": 1047223922574925686,
+      "translation": "FUTEX_REQUEUE가 존재하는 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562956Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "The naive implementation of `pthread_cond_broadcast` is `FUTEX_WAKE` with a large count — wake all waiters.",
+      "source_hash": 18325584469145356291,
+      "context_hash": 1266442432654689402,
+      "translation": "`pthread_cond_broadcast`의 단순한 구현은 큰 카운트로 `FUTEX_WAKE`를 호출하여 모든 대기자를 깨우는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562956Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:1",
+      "source": "The problem: all N waiters wake up simultaneously, all try to re-acquire the associated mutex, and N-1 of them immediately go back to sleep.",
+      "source_hash": 2839836764991368795,
+      "context_hash": 10998319873258851979,
+      "translation": "문제는 N개의 대기자가 모두 동시에 깨어나 연관된 뮤텍스를 재획득하려 하고, 그중 N-1개가 즉시 다시 잠든다는 점입니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:13:53.562956Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:2",
+      "source": "This is a **thundering herd**.",
+      "source_hash": 16974142379842921030,
+      "context_hash": 11896417055252188861,
+      "translation": "이것이 바로 **thundering herd**입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562957Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "`FUTEX_CMP_REQUEUE` (added in Linux 2.6.7, 2004 — [`man 2 futex`](https://www.man7.org/linux/man-pages/man2/futex.2.html)) moves sleeping threads from the condvar queue to the mutex queue *without waking them*.",
+      "source_hash": 4214572354073343740,
+      "context_hash": 4557240598520637461,
+      "translation": "`FUTEX_CMP_REQUEUE`(Linux 2.6.7, 2004년에 추가됨 — [`man 2 futex`](https://www.man7.org/linux/man-pages/man2/futex.2.html))는 잠든 스레드를 *깨우지 않고* condvar 큐에서 뮤텍스 큐로 옮깁니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "mutex": "뮤텍스",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:13:53.562957Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:1",
+      "source": "One waiter is woken (to acquire the mutex), and the rest are requeued.",
+      "source_hash": 7464829827186408077,
+      "context_hash": 12297031159998531945,
+      "translation": "대기자 하나는 (뮤텍스를 획득하기 위해) 깨어나고, 나머지는 리큐됩니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:13:53.562958Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:2",
+      "source": "When the first waiter releases the mutex, the next requeued waiter wakes up, and so on.",
+      "source_hash": 14476691577862153279,
+      "context_hash": 3940292130907007160,
+      "translation": "첫 번째 대기자가 뮤텍스를 해제하면 리큐된 다음 대기자가 깨어나는 식으로 이어집니다.",
+      "glossary_snapshot": {
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:13:53.562958Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:3",
+      "source": "N waiters are processed sequentially rather than all competing at once.",
+      "source_hash": 11386155674301885577,
+      "context_hash": 12390658192989447128,
+      "translation": "N개의 대기자가 한꺼번에 경쟁하는 대신 순차적으로 처리됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:53.562958Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 5581645063660853717,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:13:53.562958Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "[Mutex and rt_mutex](mutex.md) — Kernel-side sleeping locks",
+      "source_hash": 13492028125741256852,
+      "context_hash": 914963909959402812,
+      "translation": "[뮤텍스와 rt_mutex](mutex.md) — 커널 측 슬리핑 락",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "mutex": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:13:53.562959Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "[Priority Inversion & PI Mutexes](../sched/pi-mutexes.md) — The rt_mutex PI mechanism",
+      "source_hash": 16917073191624429485,
+      "context_hash": 15001606041341854097,
+      "translation": "[우선순위 역전 & PI 뮤텍스](../sched/pi-mutexes.md) — rt_mutex PI 메커니즘",
+      "glossary_snapshot": {
+        "Priority Inversion": "우선순위 역전",
+        "mutexes": "뮤텍스"
+      },
+      "translated_at": "2026-11-14T22:13:53.562960Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "`man 2 futex` — Syscall interface",
+      "source_hash": 5962490278782923705,
+      "context_hash": 8914482674829470179,
+      "translation": "`man 2 futex` — 시스템 콜 인터페이스",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:13:53.562960Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "`Documentation/locking/` in the kernel tree",
+      "source_hash": 5540094963155553312,
+      "context_hash": 17327902996174205067,
+      "translation": "커널 트리의 `Documentation/locking/`",
+      "glossary_snapshot": {
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T22:13:53.562960Z",
+      "issues": []
+    }
+  ]
+}

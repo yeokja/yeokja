@@ -1,0 +1,2240 @@
+{
+  "version": 1,
+  "source_hash": 4402155289595895747,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "What Happens When a Container Hits Its Memory Limit",
+      "source_hash": 7228521724536209310,
+      "context_hash": 12653088163760213551,
+      "translation": "컨테이너가 메모리 제한에 도달하면 일어나는 일",
+      "glossary_snapshot": {
+        "memory limit": "메모리 제한"
+      },
+      "translated_at": "2026-11-14T22:59:29.144669Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "The full sequence from normal operation to OOM kill and recovery",
+      "source_hash": 5413160479318750104,
+      "context_hash": 4968005020343865586,
+      "translation": "정상 동작부터 OOM kill과 복구까지의 전체 과정",
+      "glossary_snapshot": {
+        "OOM kill": "OOM kill"
+      },
+      "translated_at": "2026-11-14T22:59:29.144670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The Story in Brief",
+      "source_hash": 6052707829313921795,
+      "context_hash": 15908912562859281163,
+      "translation": "요약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:29.144670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A container's memory limit is not a wall that appears without warning.",
+      "source_hash": 13040046720774231707,
+      "context_hash": 18168442580124567710,
+      "translation": "컨테이너의 메모리 제한은 아무런 경고 없이 나타나는 벽이 아닙니다.",
+      "glossary_snapshot": {
+        "memory limit": "메모리 제한"
+      },
+      "translated_at": "2026-11-14T22:59:29.144670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The kernel's cgroup memory controller imposes a graduated series of interventions before killing anything: soft throttling at `memory.high`, escalating reclaim pressure, PSI signals visible to observability tooling, and finally — only if all else fails — a cgroup-scoped OOM kill that is entirely separate from the global OOM killer.",
+      "source_hash": 14454632655101834854,
+      "context_hash": 18287473545706729919,
+      "translation": "커널의 cgroup 메모리 컨트롤러는 무언가를 kill하기 전에 단계적인 일련의 개입을 가합니다. `memory.high`에서의 소프트 스로틀링, 점차 강해지는 회수 압력, 관측 도구에서 볼 수 있는 PSI 신호, 그리고 마지막으로 — 다른 모든 수단이 실패했을 때에만 — 전역 OOM 킬러와는 완전히 별개인 cgroup 범위의 OOM kill입니다.",
+      "glossary_snapshot": {
+        "OOM kill": "OOM kill",
+        "OOM killer": "OOM 킬러",
+        "PSI": "PSI",
+        "cgroup": "cgroup",
+        "controller": "컨트롤러",
+        "kernel": "커널",
+        "memory": "메모리",
+        "reclaim": "회수",
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:59:29.144670Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Understanding each stage helps you set limits intelligently, write alerting that fires early enough to be useful, and diagnose OOM kills that already happened.",
+      "source_hash": 2808929797559521131,
+      "context_hash": 5791160511527658665,
+      "translation": "각 단계를 이해하면 제한을 현명하게 설정하고, 쓸모 있을 만큼 일찍 발생하는 알림을 작성하고, 이미 발생한 OOM kill을 진단하는 데 도움이 됩니다.",
+      "glossary_snapshot": {
+        "OOM kills": "OOM kill"
+      },
+      "translated_at": "2026-11-14T22:59:29.144671Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "This page follows that path step by step.",
+      "source_hash": 6744496035930226501,
+      "context_hash": 4330166944722085224,
+      "translation": "이 페이지는 그 경로를 단계별로 따라갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:29.144671Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "See [Memory Cgroups](memcg.md) for how the accounting works, [Tuning Containers](tuning-containers.md) for how to configure limits, and [Running out of memory](oom.md) for the global OOM path that operates outside cgroups.",
+      "source_hash": 13773584956661285598,
+      "context_hash": 17366355252403771370,
+      "translation": "cgroup이 어카운팅을 어떻게 수행하는지는 [메모리 cgroup](memcg.md)을, 제한을 설정하는 방법은 [Tuning Containers](tuning-containers.md)를, cgroup 밖에서 동작하는 전역 OOM 경로는 [Running out of memory](oom.md)를 참고하십시오.",
+      "glossary_snapshot": {
+        "Memory Cgroups": "메모리 cgroup",
+        "OOM": "OOM",
+        "accounting": "어카운팅",
+        "cgroups": "cgroup"
+      },
+      "translated_at": "2026-11-14T23:33:01.093787Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Stage 1: Normal Operation (below memory.high)",
+      "source_hash": 2209595009933501224,
+      "context_hash": 693092129807805033,
+      "translation": "1단계: 정상 동작 (memory.high 미만)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:29.144671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "While `memory.current` stays below `memory.high`, the cgroup memory controller is effectively invisible to running processes.",
+      "source_hash": 1875819710470028388,
+      "context_hash": 220469468842082996,
+      "translation": "`memory.current`가 `memory.high` 미만으로 유지되는 동안, cgroup 메모리 컨트롤러는 실행 중인 프로세스에게 사실상 보이지 않습니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "controller": "컨트롤러",
+        "memory": "메모리",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:29.144671Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "Allocations succeed at normal speed; kswapd runs at the system level for global pressure; no per-cgroup throttling occurs.",
+      "source_hash": 3385365137046248865,
+      "context_hash": 737807707442949376,
+      "translation": "할당은 정상 속도로 성공하고, kswapd는 전역 압력에 대응해 시스템 수준에서 실행되며, cgroup별 스로틀링은 발생하지 않습니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "kswapd": "kswapd",
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "The kernel tracks per-cgroup memory usage via struct `mem_cgroup` in [`include/linux/memcontrol.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/memcontrol.h).",
+      "source_hash": 371195192800916049,
+      "context_hash": 17249151832764756993,
+      "translation": "커널은 [`include/linux/memcontrol.h`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/memcontrol.h)의 struct `mem_cgroup`을 통해 cgroup별 메모리 사용량을 추적합니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "kernel": "커널",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Every page charged to a cgroup updates the per-cpu counters attached to that struct via `mod_lruvec_state()` in [`mm/memcontrol.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memcontrol.c).",
+      "source_hash": 4951301476295785220,
+      "context_hash": 3171670463191811438,
+      "translation": "cgroup에 charge되는 모든 페이지는 [`mm/memcontrol.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memcontrol.c)의 `mod_lruvec_state()`를 통해 해당 struct에 연결된 per-cpu 카운터를 갱신합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:2",
+      "source": "The counters are periodically synced to the global `mem_cgroup->vmstats` array that `memory.stat` reads.",
+      "source_hash": 14024204800369995281,
+      "context_hash": 4550163676436102646,
+      "translation": "이 카운터들은 `memory.stat`이 읽는 전역 `mem_cgroup->vmstats` 배열에 주기적으로 동기화됩니다.",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "The PSI file at `$CGROUP/memory.pressure` will show all zeros during this stage — no tasks are stalling on memory.",
+      "source_hash": 17139644333665565956,
+      "context_hash": 13605048851355494097,
+      "translation": "이 단계에서는 `$CGROUP/memory.pressure`의 PSI 파일이 모두 0을 표시합니다 — 메모리 때문에 정체되는 태스크가 없습니다.",
+      "glossary_snapshot": {
+        "PSI": "PSI",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Stage 2: Approaching memory.high — Throttling Begins",
+      "source_hash": 17654474125036215039,
+      "context_hash": 4995257326239878784,
+      "translation": "2단계: memory.high에 근접 — 스로틀링 시작",
+      "glossary_snapshot": {
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "When an allocation would push `memory.current` past `memory.high`, the kernel enters `mem_cgroup_handle_over_high()` in [`mm/memcontrol.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memcontrol.c).",
+      "source_hash": 16826701753962341426,
+      "context_hash": 2437151745889107801,
+      "translation": "할당으로 인해 `memory.current`가 `memory.high`를 넘어서게 되면, 커널은 [`mm/memcontrol.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memcontrol.c)의 `mem_cgroup_handle_over_high()`에 진입합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "This function is called from the task's return-to-userspace path (not from the charge function directly — the `over_high` check is deferred to avoid reclaiming on every allocation).",
+      "source_hash": 10096174415690584705,
+      "context_hash": 3248164132524274194,
+      "translation": "이 함수는 태스크의 사용자 공간 복귀 경로에서 호출됩니다(charge 함수에서 직접 호출되는 것이 아닙니다 — 할당마다 회수가 일어나는 것을 피하기 위해 `over_high` 검사가 지연됩니다).",
+      "glossary_snapshot": {
+        "function": "함수",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:59:29.144672Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "The throttling mechanism",
+      "source_hash": 8327348468362912532,
+      "context_hash": 6557525783109465974,
+      "translation": "스로틀링 메커니즘",
+      "glossary_snapshot": {
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:59:29.144673Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "`mem_cgroup_handle_over_high()` does two things:",
+      "source_hash": 15330090447179739541,
+      "context_hash": 10521248837580327356,
+      "translation": "`mem_cgroup_handle_over_high()`는 두 가지 일을 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:29.144673Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "**Triggers synchronous reclaim** on the current cgroup.",
+      "source_hash": 7994209547717286465,
+      "context_hash": 2859436937504559416,
+      "translation": "현재 cgroup에 대해 **동기식 회수를 트리거합니다**.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:29.144673Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "It calls `reclaim_high()`, which calls `try_to_free_mem_cgroup_pages()` to reclaim pages from the cgroup's LRU lists.",
+      "source_hash": 12462404918232131572,
+      "context_hash": 13568896049249771944,
+      "translation": "이 함수는 `reclaim_high()`를 호출하고, 이것이 다시 `try_to_free_mem_cgroup_pages()`를 호출하여 cgroup의 LRU 리스트에서 페이지를 회수합니다.",
+      "glossary_snapshot": {
+        "LRU lists": "LRU 리스트",
+        "cgroup": "cgroup",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:29.144673Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:2",
+      "source": "This is direct reclaim scoped to a single cgroup — it does not touch other cgroups.",
+      "source_hash": 11394341422833139563,
+      "context_hash": 648381462946059153,
+      "translation": "이는 단일 cgroup 범위로 한정된 직접 회수(direct reclaim)이며, 다른 cgroup은 건드리지 않습니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "cgroups": "cgroup",
+        "direct reclaim": "직접 회수"
+      },
+      "translated_at": "2026-11-14T22:59:29.144673Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "**Throttles the allocating process** if reclaim did not bring usage back below `memory.high`.",
+      "source_hash": 6180799340223744303,
+      "context_hash": 16713681508380101189,
+      "translation": "회수로 사용량이 `memory.high` 미만으로 돌아오지 않으면 **할당 중인 프로세스를 스로틀링합니다**.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:29.144674Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "The process is put to sleep for a calculated number of jiffies, yielding the CPU.",
+      "source_hash": 413364488967862523,
+      "context_hash": 10274442876250239403,
+      "translation": "프로세스는 계산된 jiffies 수만큼 sleep 상태가 되어 CPU를 양보합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "jiffies": "jiffies",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:29.144674Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:2",
+      "source": "The sleep duration scales with how far over `memory.high` the cgroup is — a small overage causes a short sleep; a large overage causes a proportionally longer one (this scaling is a heuristic, not a fixed table).",
+      "source_hash": 3393014191554356533,
+      "context_hash": 9609054930785450133,
+      "translation": "sleep 시간은 cgroup이 `memory.high`를 얼마나 초과했는지에 비례하여 늘어납니다 — 조금 초과하면 짧게 sleep하고, 많이 초과하면 그에 비례해 더 길게 sleep합니다(이 비례 관계는 고정된 표가 아니라 휴리스틱입니다).",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:29.144674Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "The throttling is per-process, not per-cgroup",
+      "source_hash": 4829508849528974554,
+      "context_hash": 15833722380840186097,
+      "translation": "스로틀링은 cgroup 단위가 아니라 프로세스 단위",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "process": "프로세스",
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:59:29.144674Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Each process that allocates while the cgroup is over `memory.high` incurs its own sleep.",
+      "source_hash": 12936146390465383632,
+      "context_hash": 13101025481990868303,
+      "translation": "cgroup이 `memory.high`를 초과한 상태에서 할당하는 각 프로세스는 각자 sleep을 겪습니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:29.144674Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "A single-threaded application serializes its own allocations naturally.",
+      "source_hash": 3423044752905602628,
+      "context_hash": 137924976409645113,
+      "translation": "단일 스레드 애플리케이션은 자신의 할당을 자연스럽게 직렬화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:29.144675Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:2",
+      "source": "A massively multi-threaded application may have many threads sleeping simultaneously.",
+      "source_hash": 7865743133874490945,
+      "context_hash": 16009503356330100139,
+      "translation": "스레드가 매우 많은 멀티스레드 애플리케이션에서는 많은 스레드가 동시에 sleep할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:29.144675Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "What you observe externally",
+      "source_hash": 17152619687958810381,
+      "context_hash": 5946375223363962832,
+      "translation": "외부에서 관찰되는 현상",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:29.144675Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "From outside the container, the process appears to be using CPU less efficiently — its runnable time increases while it blocks inside the kernel.",
+      "source_hash": 15527539008095391435,
+      "context_hash": 4687722957719663970,
+      "translation": "컨테이너 외부에서 보면 프로세스가 CPU를 덜 효율적으로 사용하는 것처럼 보입니다. 커널 내부에서 블록되는 동안 실행 가능(runnable) 시간이 늘어나기 때문입니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "kernel": "커널",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:24.069820Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:1",
+      "source": "PSI begins to register:",
+      "source_hash": 9157229944877071494,
+      "context_hash": 11711780795727817605,
+      "translation": "PSI가 이를 기록하기 시작합니다.",
+      "glossary_snapshot": {
+        "PSI": "PSI"
+      },
+      "translated_at": "2026-11-14T22:59:24.069820Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "`some` goes above zero because at least one task is stalling on memory. `full` stays zero as long as there is at least one runnable task in the cgroup not blocked on memory.",
+      "source_hash": 11618468575789356578,
+      "context_hash": 4850665272290624803,
+      "translation": "최소 하나의 태스크가 메모리 때문에 지연(stall)되고 있으므로 `some`은 0보다 커집니다. cgroup 안에 메모리에 블록되지 않은 실행 가능한 태스크가 하나라도 있는 한 `full`은 0으로 유지됩니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:24.069820Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:1",
+      "source": "See [PSI](psi.md) for how these are computed.",
+      "source_hash": 13306993828386640476,
+      "context_hash": 2247873129947042100,
+      "translation": "이 값들이 어떻게 계산되는지는 [PSI](psi.md)를 참고하십시오.",
+      "glossary_snapshot": {
+        "PSI": "PSI"
+      },
+      "translated_at": "2026-11-14T22:59:24.069821Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "The `memory.events` counter `high` increments each time `memory.high` is crossed:",
+      "source_hash": 11981659669548675868,
+      "context_hash": 14124661749168537462,
+      "translation": "`memory.events`의 `high` 카운터는 `memory.high`를 넘을 때마다 증가합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069821Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:16/seg:0",
+      "source": "Set memory.high as your first alert threshold",
+      "source_hash": 367571688843455891,
+      "context_hash": 7361871079005848033,
+      "translation": "memory.high를 첫 번째 경보 임계값으로 설정하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069821Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "A rising `high` counter with no `oom` events means the container is exercising the throttle path regularly.",
+      "source_hash": 10396777226626795320,
+      "context_hash": 14586907176206641856,
+      "translation": "`oom` 이벤트 없이 `high` 카운터가 증가한다는 것은 컨테이너가 스로틀 경로를 정기적으로 거치고 있다는 뜻입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069821Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:1",
+      "source": "This is the ideal place to add more memory or tune the application — before it gets worse.",
+      "source_hash": 9474874744873203820,
+      "context_hash": 11968609137166546740,
+      "translation": "상황이 악화되기 전에 메모리를 추가하거나 애플리케이션을 튜닝하기에 가장 적절한 시점입니다.",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:24.069821Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Stage 3: Sustained Throttling — Reclaim, PSI, and Feedback",
+      "source_hash": 13353145386719393470,
+      "context_hash": 470516607730043412,
+      "translation": "3단계: 지속적인 스로틀링 — 회수, PSI, 피드백",
+      "glossary_snapshot": {
+        "PSI": "PSI",
+        "reclaim": "회수",
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T22:59:24.069821Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "If the workload continues to allocate faster than reclaim can free pages, `memory.current` remains near or above `memory.high` for an extended period.",
+      "source_hash": 15545236705728579112,
+      "context_hash": 5331492520454592965,
+      "translation": "워크로드가 회수로 페이지를 해제하는 속도보다 빠르게 계속 할당하면, `memory.current`는 오랜 기간 `memory.high` 근처 또는 그 이상에 머무릅니다.",
+      "glossary_snapshot": {
+        "reclaim": "회수",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:59:24.069822Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The system enters a self-balancing loop:",
+      "source_hash": 3932055974992952163,
+      "context_hash": 1225696810478133001,
+      "translation": "시스템은 스스로 균형을 맞추는 루프에 들어갑니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069822Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`try_to_free_mem_cgroup_pages()` calls `shrink_lruvec()` in [`mm/vmscan.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c) which walks the cgroup's LRU lists in priority order: inactive file cache first (cheapest to reclaim), then active file cache, then — if no reclaimable file pages remain — anonymous pages (which may require swap I/O).",
+      "source_hash": 9049323066232093764,
+      "context_hash": 16111928855077355942,
+      "translation": "`try_to_free_mem_cgroup_pages()`는 [`mm/vmscan.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/vmscan.c)의 `shrink_lruvec()`를 호출하며, 이 함수는 cgroup의 LRU 리스트를 우선순위 순서대로 순회합니다. 먼저 비활성 파일 캐시(회수 비용이 가장 낮음), 다음으로 활성 파일 캐시, 그리고 회수할 수 있는 파일 페이지가 남아 있지 않으면 익명 페이지(swap I/O가 필요할 수 있음)를 순회합니다.",
+      "glossary_snapshot": {
+        "LRU lists": "LRU 리스트",
+        "cache": "캐시",
+        "cgroup": "cgroup",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:24.069822Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "What gets reclaimed and in what order",
+      "source_hash": 16713722116172501713,
+      "context_hash": 17377592660441833355,
+      "translation": "회수 대상과 회수 순서",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069823Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Page type",
+      "source_hash": 9672569079463619963,
+      "context_hash": 6314647662552451566,
+      "translation": "페이지 유형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069823Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "Reclaimable?",
+      "source_hash": 7691424612557115017,
+      "context_hash": 9106790918766401102,
+      "translation": "회수 가능 여부",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069823Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "Notes",
+      "source_hash": 6248434630477978300,
+      "context_hash": 12440039549837394861,
+      "translation": "비고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069823Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "Inactive file-backed (page cache)",
+      "source_hash": 13907411715687404238,
+      "context_hash": 7048368822522095727,
+      "translation": "비활성 파일 기반 페이지(페이지 캐시)",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:59:24.069823Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:9/seg:0",
+      "source": "Yes, always",
+      "source_hash": 13685496939542065481,
+      "context_hash": 12597023583774531703,
+      "translation": "예, 항상",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069824Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "Cleanest reclaim — no I/O if not dirty",
+      "source_hash": 4248309533111849791,
+      "context_hash": 5999242778229347330,
+      "translation": "가장 깔끔한 회수 — dirty가 아니면 I/O 없음",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:24.069824Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "Dirty file-backed",
+      "source_hash": 8882045160692754131,
+      "context_hash": 10665111141365195958,
+      "translation": "dirty 파일 기반 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069824Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:12/seg:0",
+      "source": "Yes, after writeback",
+      "source_hash": 11957964378935956942,
+      "context_hash": 7241881694445706525,
+      "translation": "예, writeback 후",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:59:24.069824Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:13/seg:0",
+      "source": "Requires flushing to disk first",
+      "source_hash": 13707605950926610661,
+      "context_hash": 7673201148294370704,
+      "translation": "먼저 디스크로 플러시 필요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069824Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:14/seg:0",
+      "source": "Active file-backed",
+      "source_hash": 12838446014061000184,
+      "context_hash": 7727176733410247447,
+      "translation": "활성 파일 기반 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069824Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:15/seg:0",
+      "source": "Yes, after LRU aging",
+      "source_hash": 12866823766642076092,
+      "context_hash": 5833937103463570601,
+      "translation": "예, LRU 에이징 후",
+      "glossary_snapshot": {
+        "LRU": "LRU"
+      },
+      "translated_at": "2026-11-14T22:59:24.069824Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:16/seg:0",
+      "source": "Kernel tries to preserve hot pages",
+      "source_hash": 16893976622492037821,
+      "context_hash": 10705716737049346728,
+      "translation": "커널이 hot 페이지 보존을 시도",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:17/seg:0",
+      "source": "Anonymous (heap, stack)",
+      "source_hash": 5695587151729694494,
+      "context_hash": 5020758755244352476,
+      "translation": "익명 페이지(힙, 스택)",
+      "glossary_snapshot": {
+        "heap": "힙"
+      },
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:18/seg:0",
+      "source": "Only if swap is available",
+      "source_hash": 8186914639930759755,
+      "context_hash": 14042790890238005265,
+      "translation": "swap을 사용할 수 있는 경우에만",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:19/seg:0",
+      "source": "Triggers swap I/O if swapped out",
+      "source_hash": 14167116136677874030,
+      "context_hash": 6309639442093613518,
+      "translation": "swap out되면 swap I/O 발생",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:20/seg:0",
+      "source": "`memory.min`-protected pages",
+      "source_hash": 8417612349330541002,
+      "context_hash": 16632964642716586637,
+      "translation": "`memory.min`으로 보호되는 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:21/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 10205642912146036795,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:22/seg:0",
+      "source": "Hard floor, never reclaimed",
+      "source_hash": 802437908930531396,
+      "context_hash": 4628871489563493165,
+      "translation": "하드 하한, 절대 회수되지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:23/seg:0",
+      "source": "`memory.low`-protected pages",
+      "source_hash": 9101998120575594279,
+      "context_hash": 6268521494261034924,
+      "translation": "`memory.low`로 보호되는 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:24.069825Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:24/seg:0",
+      "source": "Not unless critical",
+      "source_hash": 18304531249406563721,
+      "context_hash": 1653974998086156676,
+      "translation": "긴급한 경우가 아니면 아니요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:35.542208Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:25/seg:0",
+      "source": "Best-effort floor",
+      "source_hash": 6531476000367580938,
+      "context_hash": 3387775720909631362,
+      "translation": "최선 노력 하한",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:35.542210Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:26/seg:0",
+      "source": "Shared memory (tmpfs, shmem)",
+      "source_hash": 116234280209626055,
+      "context_hash": 7162611673083706162,
+      "translation": "공유 메모리 (tmpfs, shmem)",
+      "glossary_snapshot": {
+        "shared memory": "공유 메모리",
+        "shmem": "shmem",
+        "tmpfs": "tmpfs"
+      },
+      "translated_at": "2026-11-14T22:59:35.542210Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:27/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16455260712871010488,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:59:35.542210Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:28/seg:0",
+      "source": "Charged to cgroup that faulted it in",
+      "source_hash": 10217277839085383,
+      "context_hash": 14262112705100104477,
+      "translation": "페이지 폴트로 이를 불러들인 cgroup에 과금",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:35.542210Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:29/seg:0",
+      "source": "Kernel slab (kmem)",
+      "source_hash": 5964001061870651741,
+      "context_hash": 16147776181752682736,
+      "translation": "커널 slab (kmem)",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "slab": "slab"
+      },
+      "translated_at": "2026-11-14T22:59:35.542211Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:30/seg:0",
+      "source": "Partially",
+      "source_hash": 3197512789915037410,
+      "context_hash": 781209894828543504,
+      "translation": "부분적",
+      "glossary_snapshot": {
+        "Partially": "부분적"
+      },
+      "translated_at": "2026-11-14T23:33:01.093790Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:31/seg:0",
+      "source": "Reclaimable dentries and inodes via `shrink_slab()`",
+      "source_hash": 7424356628558135374,
+      "context_hash": 8688327173300739403,
+      "translation": "`shrink_slab()`을 통한 회수 가능한 dentry 및 inode",
+      "glossary_snapshot": {
+        "dentries": "dentry",
+        "inodes": "inode"
+      },
+      "translated_at": "2026-11-14T22:59:35.542211Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:32/seg:0",
+      "source": "PSI pressure builds",
+      "source_hash": 14316234150926574841,
+      "context_hash": 10168261445706376020,
+      "translation": "PSI 압력 누적",
+      "glossary_snapshot": {
+        "PSI": "PSI"
+      },
+      "translated_at": "2026-11-14T22:59:35.542211Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:33/seg:0",
+      "source": "As reclaim consumes CPU time and swap I/O delays resume of throttled tasks, PSI pressure accumulates:",
+      "source_hash": 10631046120848484927,
+      "context_hash": 6049655284940276481,
+      "translation": "회수가 CPU 시간을 소비하고 swap I/O가 스로틀링된 태스크의 재개를 지연시킴에 따라 PSI 압력이 누적됩니다:",
+      "glossary_snapshot": {
+        "CPU time": "CPU 시간",
+        "PSI": "PSI",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:35.542212Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:35/seg:0",
+      "source": "A `full` value above zero means there were moments when every task in the cgroup was simultaneously blocked on memory — no useful work was happening at all.",
+      "source_hash": 6012377545246878700,
+      "context_hash": 4608181576508658815,
+      "translation": "`full` 값이 0보다 크다는 것은 cgroup 내의 모든 태스크가 동시에 메모리 때문에 블록된 순간이 있었다는 뜻이며, 그 순간에는 유용한 작업이 전혀 수행되지 않았습니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:35.542212Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:35/seg:1",
+      "source": "This is a serious signal.",
+      "source_hash": 2518287521149690732,
+      "context_hash": 1432660370295104151,
+      "translation": "이는 심각한 신호입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:35.542212Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:36/seg:0",
+      "source": "PSI is the foundation of proactive memory management tools like Meta's [`oomd`](https://facebookincubator.github.io/oomd/) and systemd-oomd, which monitor `memory.pressure` and kill workloads before the kernel OOM killer fires.",
+      "source_hash": 7122238914765135732,
+      "context_hash": 14748320815305912507,
+      "translation": "PSI는 Meta의 [`oomd`](https://facebookincubator.github.io/oomd/)나 systemd-oomd 같은 선제적 메모리 관리 도구의 기반으로, 이러한 도구는 `memory.pressure`를 모니터링하여 커널 OOM 킬러가 동작하기 전에 워크로드를 종료합니다.",
+      "glossary_snapshot": {
+        "OOM killer": "OOM 킬러",
+        "PSI": "PSI",
+        "kernel": "커널",
+        "memory management": "메모리 관리",
+        "systemd": "systemd",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:59:35.542212Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:36/seg:1",
+      "source": "See [PSI](psi.md) for how to set up a `memory.pressure` notification trigger.",
+      "source_hash": 3987008665086445593,
+      "context_hash": 8296856449089490112,
+      "translation": "`memory.pressure` 알림 트리거를 설정하는 방법은 [PSI](psi.md)를 참고하십시오.",
+      "glossary_snapshot": {
+        "PSI": "PSI"
+      },
+      "translated_at": "2026-11-14T22:59:35.542213Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:37/seg:0",
+      "source": "memory.reclaim for proactive relief",
+      "source_hash": 16825099789120624068,
+      "context_hash": 10744002087025196179,
+      "translation": "선제적 완화를 위한 memory.reclaim",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:35.542213Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:38/seg:0",
+      "source": "If you detect rising `high` counts or PSI pressure through monitoring, you can manually trigger proactive reclaim without waiting for the kernel to throttle processes:",
+      "source_hash": 17425097848115000169,
+      "context_hash": 15627637121060545538,
+      "translation": "모니터링을 통해 `high` 카운트의 증가나 PSI 압력을 감지했다면, 커널이 프로세스를 스로틀링할 때까지 기다리지 않고 선제적 회수를 수동으로 트리거할 수 있습니다:",
+      "glossary_snapshot": {
+        "PSI": "PSI",
+        "kernel": "커널",
+        "processes": "프로세스",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:35.542213Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:40/seg:0",
+      "source": "This was introduced in [commit 94968384dde1](https://git.kernel.org/linus/94968384dde1) (\"memcg: introduce per-memcg reclaim interface\") by Shakeel Butt ([LWN article](https://lwn.net/Articles/894849/)).",
+      "source_hash": 5042429835858191837,
+      "context_hash": 7654496905461476612,
+      "translation": "이 회수 인터페이스는 Shakeel Butt가 [commit 94968384dde1](https://git.kernel.org/linus/94968384dde1)(\"memcg: introduce per-memcg reclaim interface\")에서 도입했습니다([LWN 기사](https://lwn.net/Articles/894849/)).",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "memcg": "memcg"
+      },
+      "translated_at": "2026-11-14T22:59:35.542214Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:40/seg:1",
+      "source": "It is a write-only interface that triggers `try_to_free_mem_cgroup_pages()` directly from userspace, useful for pre-emptive memory management in orchestrators.",
+      "source_hash": 18171531380756191865,
+      "context_hash": 10561983410978793515,
+      "translation": "이는 사용자 공간에서 `try_to_free_mem_cgroup_pages()`를 직접 트리거하는 쓰기 전용 인터페이스로, 오케스트레이터에서 선제적 메모리 관리에 유용합니다.",
+      "glossary_snapshot": {
+        "memory management": "메모리 관리",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:59:35.542214Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Stage 4: Exceeding memory.max — Cgroup OOM",
+      "source_hash": 14135425031223593987,
+      "context_hash": 15803078692939550063,
+      "translation": "4단계: memory.max 초과 — cgroup OOM",
+      "glossary_snapshot": {
+        "cgroup OOM": "cgroup OOM"
+      },
+      "translated_at": "2026-11-14T22:59:35.542214Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "If reclaim from the throttle path cannot keep `memory.current` below `memory.high`, and usage continues to rise until it reaches `memory.max`, the kernel invokes a different path: the cgroup OOM killer.",
+      "source_hash": 13585642966522060093,
+      "context_hash": 3741614414193187050,
+      "translation": "스로틀 경로의 회수로 `memory.current`를 `memory.high` 아래로 유지하지 못하고 사용량이 계속 증가하여 `memory.max`에 도달하면, 커널은 다른 경로인 cgroup OOM 킬러를 호출합니다.",
+      "glossary_snapshot": {
+        "OOM killer": "OOM 킬러",
+        "cgroup OOM": "cgroup OOM",
+        "kernel": "커널",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:35.542215Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Entry point: mem_cgroup_out_of_memory()",
+      "source_hash": 121398235571514096,
+      "context_hash": 14088140359712767227,
+      "translation": "진입점: mem_cgroup_out_of_memory()",
+      "glossary_snapshot": {
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T22:59:35.542216Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "When an allocation fails after exhausting cgroup reclaim, `mem_cgroup_oom()` in [`mm/memcontrol.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memcontrol.c) is called.",
+      "source_hash": 13256869615035968462,
+      "context_hash": 5048253024646828843,
+      "translation": "cgroup 회수를 모두 소진한 후에도 할당이 실패하면 [`mm/memcontrol.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/memcontrol.c)의 `mem_cgroup_oom()`이 호출됩니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:35.542216Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:1",
+      "source": "It:",
+      "source_hash": 2647418959242728900,
+      "context_hash": 6914336485548543681,
+      "translation": "이 함수는 다음을 수행합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:35.542216Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Calls `out_of_memory()` in [`mm/oom_kill.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/oom_kill.c) with `oom_memcg` set — this signals a cgroup-scoped OOM.",
+      "source_hash": 10418514261791727020,
+      "context_hash": 15758605170277190157,
+      "translation": "`oom_memcg`를 설정한 상태로 [`mm/oom_kill.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/oom_kill.c)의 `out_of_memory()`를 호출합니다. 이는 cgroup 범위의 OOM임을 나타냅니다.",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:35.542217Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "`select_bad_process()` is called with the cgroup constraint, so it only considers tasks within the target cgroup.",
+      "source_hash": 18053550471375673668,
+      "context_hash": 4145984483518593063,
+      "translation": "`select_bad_process()`가 cgroup 제약 조건과 함께 호출되므로, 대상 cgroup 내의 태스크만 고려합니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:35.542217Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "After the victim is selected, `oom_kill_process()` calls `mem_cgroup_get_oom_group()` to check whether `memory.oom.group` is set — if so, the entire cgroup subtree is killed, not just the victim.",
+      "source_hash": 8040502894912150797,
+      "context_hash": 1444793842187217082,
+      "translation": "희생 태스크가 선택된 후 `oom_kill_process()`는 `mem_cgroup_get_oom_group()`을 호출하여 `memory.oom.group`이 설정되어 있는지 확인합니다. 설정되어 있다면 희생 태스크만이 아니라 cgroup 하위 트리 전체가 종료됩니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:35.542217Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "How cgroup OOM differs from global OOM",
+      "source_hash": 10346958350877144656,
+      "context_hash": 11024074893668776645,
+      "translation": "cgroup OOM과 전역 OOM의 차이",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "cgroup OOM": "cgroup OOM"
+      },
+      "translated_at": "2026-11-14T22:59:35.542217Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "Global OOM",
+      "source_hash": 839723347678134572,
+      "context_hash": 10046147479249037604,
+      "translation": "전역 OOM",
+      "glossary_snapshot": {
+        "OOM": "OOM"
+      },
+      "translated_at": "2026-11-14T22:59:35.542217Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "Cgroup OOM",
+      "source_hash": 9242034464346314167,
+      "context_hash": 7753168016960744247,
+      "translation": "cgroup OOM",
+      "glossary_snapshot": {
+        "cgroup OOM": "cgroup OOM"
+      },
+      "translated_at": "2026-11-14T22:59:35.542218Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "**Trigger**",
+      "source_hash": 13231959099870117467,
+      "context_hash": 1183608097177369808,
+      "translation": "**트리거**",
+      "glossary_snapshot": {
+        "Trigger": "트리거"
+      },
+      "translated_at": "2026-11-14T22:59:35.542218Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "System-wide allocation fails after direct reclaim",
+      "source_hash": 2422002142392082510,
+      "context_hash": 13265323015903978866,
+      "translation": "직접 회수 후 시스템 전체 할당 실패",
+      "glossary_snapshot": {
+        "direct reclaim": "직접 회수"
+      },
+      "translated_at": "2026-11-14T22:59:35.542218Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "Cgroup `memory.max` exceeded after cgroup reclaim",
+      "source_hash": 17500890486081591264,
+      "context_hash": 10528025661945569373,
+      "translation": "cgroup 회수 후 cgroup `memory.max` 초과",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:35.542218Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "**Candidate pool**",
+      "source_hash": 14038167501361772857,
+      "context_hash": 5516638538236915651,
+      "translation": "**후보 풀**",
+      "glossary_snapshot": {
+        "pool": "풀"
+      },
+      "translated_at": "2026-11-14T22:59:28.225461Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "All processes on the system",
+      "source_hash": 18182197373491957856,
+      "context_hash": 9786825510034512440,
+      "translation": "시스템의 모든 프로세스",
+      "glossary_snapshot": {
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:28.225463Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "Only processes in the affected cgroup (and descendents)",
+      "source_hash": 14312510979085230427,
+      "context_hash": 9146923140245640924,
+      "translation": "영향을 받은 cgroup(및 하위 cgroup)의 프로세스만",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:28.225464Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "**Score basis**",
+      "source_hash": 8631549193608287571,
+      "context_hash": 3310650169822957052,
+      "translation": "**점수 기준**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225465Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "`totalpages` = system RAM + swap",
+      "source_hash": 18100187499394792201,
+      "context_hash": 15821590945591803710,
+      "translation": "`totalpages` = 시스템 RAM + swap",
+      "glossary_snapshot": {
+        "RAM": "RAM"
+      },
+      "translated_at": "2026-11-14T22:59:28.225466Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "`totalpages` = cgroup `memory.max`",
+      "source_hash": 9403029802639356052,
+      "context_hash": 10478277758439411671,
+      "translation": "`totalpages` = cgroup `memory.max`",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:28.225466Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "**Kill prefix in dmesg**",
+      "source_hash": 17811013394346153500,
+      "context_hash": 2175822274827849287,
+      "translation": "**dmesg의 kill 접두어**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225467Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "`Out of memory:`",
+      "source_hash": 5311998880531801720,
+      "context_hash": 16255007988860011144,
+      "translation": "`Out of memory:`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225467Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "`Memory cgroup out of memory:`",
+      "source_hash": 16336026334068454719,
+      "context_hash": 16470331742502627720,
+      "translation": "`Memory cgroup out of memory:`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225468Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "**Constraint field**",
+      "source_hash": 7256647780962760933,
+      "context_hash": 15155671796254369882,
+      "translation": "**Constraint 필드**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225468Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "`CONSTRAINT_NONE`",
+      "source_hash": 15936997065562699447,
+      "context_hash": 12375096888283609536,
+      "translation": "`CONSTRAINT_NONE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225469Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "`CONSTRAINT_MEMCG`",
+      "source_hash": 10069587204168795630,
+      "context_hash": 10470849524663908413,
+      "translation": "`CONSTRAINT_MEMCG`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225469Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:25/seg:0",
+      "source": "**Memory dump**",
+      "source_hash": 12387177396176916944,
+      "context_hash": 4067227526768953717,
+      "translation": "**메모리 덤프**",
+      "glossary_snapshot": {
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:28.225470Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:0",
+      "source": "Full zone/node Mem-Info",
+      "source_hash": 7884730402124079238,
+      "context_hash": 18302438894063032597,
+      "translation": "전체 zone/노드 Mem-Info",
+      "glossary_snapshot": {
+        "node": "노드"
+      },
+      "translated_at": "2026-11-14T23:33:01.093791Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:27/seg:0",
+      "source": "Cgroup memory stats via `mem_cgroup_print_oom_meminfo()`",
+      "source_hash": 14870785570362857117,
+      "context_hash": 18385666634405715382,
+      "translation": "`mem_cgroup_print_oom_meminfo()`를 통한 cgroup 메모리 통계",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:28.225471Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:28/seg:0",
+      "source": "**Other containers affected**",
+      "source_hash": 259635072336904322,
+      "context_hash": 15241817612609941839,
+      "translation": "**다른 컨테이너 영향 여부**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225472Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:29/seg:0",
+      "source": "Potentially",
+      "source_hash": 7551090978426201128,
+      "context_hash": 17453181501588699798,
+      "translation": "가능성 있음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225472Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:30/seg:0",
+      "source": "No — completely isolated",
+      "source_hash": 1920637095025189274,
+      "context_hash": 2046111375176588951,
+      "translation": "아니요 — 완전히 격리됨",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225472Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:31/seg:0",
+      "source": "The OOM kill sequence",
+      "source_hash": 11129241180838530131,
+      "context_hash": 12417478207240247323,
+      "translation": "OOM kill 순서",
+      "glossary_snapshot": {
+        "OOM kill": "OOM kill"
+      },
+      "translated_at": "2026-11-14T22:59:28.225473Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:33/seg:0",
+      "source": "What dmesg shows for a cgroup OOM",
+      "source_hash": 7732320924202740228,
+      "context_hash": 3356597202918608260,
+      "translation": "cgroup OOM 발생 시 dmesg에 표시되는 내용",
+      "glossary_snapshot": {
+        "cgroup OOM": "cgroup OOM"
+      },
+      "translated_at": "2026-11-14T22:59:28.225473Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:35/seg:0",
+      "source": "Key differences from a global OOM log:",
+      "source_hash": 1092936139173330788,
+      "context_hash": 2795828932409178034,
+      "translation": "전역 OOM 로그와의 주요 차이점:",
+      "glossary_snapshot": {
+        "OOM": "OOM"
+      },
+      "translated_at": "2026-11-14T22:59:28.225474Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:36/seg:0",
+      "source": "The line begins with `Memory cgroup out of memory:` not `Out of memory:`",
+      "source_hash": 7417286062376031528,
+      "context_hash": 15967564908389269385,
+      "translation": "줄이 `Out of memory:`가 아니라 `Memory cgroup out of memory:`로 시작합니다",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225475Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:37/seg:0",
+      "source": "The `constraint=CONSTRAINT_MEMCG` field in the kill line names the cgroup path",
+      "source_hash": 4708256465627133026,
+      "context_hash": 4478592157100950074,
+      "translation": "kill 줄의 `constraint=CONSTRAINT_MEMCG` 필드가 cgroup 경로를 나타냅니다",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:28.225475Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:38/seg:0",
+      "source": "The memory state section shows cgroup stats, not global zone stats",
+      "source_hash": 13360612702710005772,
+      "context_hash": 1535614108877081278,
+      "translation": "메모리 상태 섹션에는 전역 zone 통계가 아니라 cgroup 통계가 표시됩니다",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T22:59:28.225476Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:39/seg:0",
+      "source": "The task table lists only processes inside the cgroup",
+      "source_hash": 5212145834486454567,
+      "context_hash": 3454133145716850819,
+      "translation": "태스크 표에는 cgroup 내부의 프로세스만 나열됩니다",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:28.225476Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:40/seg:0",
+      "source": "See [Reading an OOM log](reading-oom-log.md) for a full annotated breakdown of these fields.",
+      "source_hash": 6419475484606358772,
+      "context_hash": 11655960199749216485,
+      "translation": "이 필드들에 대한 자세한 주석 설명은 [OOM 로그 읽기](reading-oom-log.md)를 참조하십시오.",
+      "glossary_snapshot": {
+        "OOM": "OOM"
+      },
+      "translated_at": "2026-11-14T22:59:28.225477Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:41/seg:0",
+      "source": "memory.oom.group: kill the whole container at once",
+      "source_hash": 4144806420053055413,
+      "context_hash": 5669975722168478252,
+      "translation": "memory.oom.group: 컨테이너 전체를 한 번에 kill하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225478Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:42/seg:0",
+      "source": "By default, the OOM killer selects a single process within the cgroup.",
+      "source_hash": 10304449778153655425,
+      "context_hash": 12924688016797149918,
+      "translation": "기본적으로 OOM 킬러는 cgroup 내에서 프로세스 하나를 선택합니다.",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "cgroup": "cgroup",
+        "killer": "킬러",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:28.225478Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:42/seg:1",
+      "source": "For multi-process containers (web servers with worker pools, sidecars, etc.), killing one process often leaves the rest in a broken state.",
+      "source_hash": 2948881709069387337,
+      "context_hash": 7490929928807059292,
+      "translation": "다중 프로세스 컨테이너(워커 풀을 가진 웹 서버, 사이드카 등)에서는 프로세스 하나만 kill하면 나머지가 비정상 상태로 남는 경우가 많습니다.",
+      "glossary_snapshot": {
+        "pools": "풀",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:28.225479Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:43/seg:0",
+      "source": "[Commit 3d8b38eb81ca](https://git.kernel.org/linus/3d8b38eb81ca) (\"mm, oom: introduce memory.oom.group\", Roman Gushchin, kernel v4.19) introduced `memory.oom.group`:",
+      "source_hash": 13511804070857674087,
+      "context_hash": 17444371084165006587,
+      "translation": "[Commit 3d8b38eb81ca](https://git.kernel.org/linus/3d8b38eb81ca)(\"mm, oom: introduce memory.oom.group\", Roman Gushchin, 커널 v4.19)에서 `memory.oom.group`이 도입되었습니다:",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:59:28.225480Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:45/seg:0",
+      "source": "When set, `mem_cgroup_get_oom_group()` walks up the cgroup hierarchy to find the highest ancestor with `oom_group` set, then `oom_cgroup_kill()` sends SIGKILL to every task in that subtree (except those with `oom_score_adj = -1000`).",
+      "source_hash": 4045047246389220095,
+      "context_hash": 10827819095385124713,
+      "translation": "이 값이 설정되면 `mem_cgroup_get_oom_group()`이 cgroup 계층을 거슬러 올라가 `oom_group`이 설정된 가장 상위의 조상을 찾고, 이어서 `oom_cgroup_kill()`이 해당 서브트리의 모든 태스크(`oom_score_adj = -1000`인 태스크는 제외)에 SIGKILL을 보냅니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:28.225480Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:45/seg:1",
+      "source": "The dmesg log includes:",
+      "source_hash": 11619704838836149604,
+      "context_hash": 1665155908409554225,
+      "translation": "dmesg 로그에는 다음이 포함됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:28.225481Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:48/seg:0",
+      "source": "oom.group and nested cgroups",
+      "source_hash": 5714014167993540214,
+      "context_hash": 5754718193724970485,
+      "translation": "oom.group과 중첩 cgroup",
+      "glossary_snapshot": {
+        "cgroups": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:33.985353Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:49/seg:0",
+      "source": "When `memory.oom.group` is set on an ancestor, all tasks in all descendant cgroups are killed, not just the cgroup that triggered the OOM.",
+      "source_hash": 8154997047084736042,
+      "context_hash": 1204561425932432013,
+      "translation": "`memory.oom.group`이 상위 cgroup에 설정되어 있으면 OOM을 일으킨 cgroup뿐 아니라 모든 하위 cgroup의 모든 태스크가 종료됩니다.",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "cgroup": "cgroup",
+        "cgroups": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:33.985354Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:49/seg:1",
+      "source": "Design your cgroup hierarchy accordingly if you have mixed-criticality workloads sharing a parent.",
+      "source_hash": 6926881300403867322,
+      "context_hash": 2641545453644311628,
+      "translation": "중요도가 서로 다른 워크로드가 같은 부모를 공유한다면 이에 맞추어 cgroup 계층을 설계하십시오.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:59:33.985354Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:50/seg:0",
+      "source": "memory.events after an OOM",
+      "source_hash": 6249321225364106813,
+      "context_hash": 12583468053000227395,
+      "translation": "OOM 이후의 memory.events",
+      "glossary_snapshot": {
+        "OOM": "OOM"
+      },
+      "translated_at": "2026-11-14T22:59:33.985354Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:52/seg:0",
+      "source": "`max` counts how many times usage reached `memory.max` — this includes attempts that triggered reclaim successfully before requiring an OOM kill. `oom` and `oom_kill` count only cases where the OOM killer actually ran.",
+      "source_hash": 16580312217724270848,
+      "context_hash": 8732340936291594105,
+      "translation": "`max`는 사용량이 `memory.max`에 도달한 횟수를 셉니다. 여기에는 OOM kill이 필요해지기 전에 회수를 일으켜 성공한 시도도 포함됩니다. `oom`과 `oom_kill`은 OOM 킬러가 실제로 실행된 경우만 셉니다.",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "OOM kill": "OOM kill",
+        "killer": "킬러",
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T22:59:33.985355Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Stage 5: Recovery After OOM Kill",
+      "source_hash": 11011627735450326743,
+      "context_hash": 9325401385408352468,
+      "translation": "5단계: OOM kill 이후의 복구",
+      "glossary_snapshot": {
+        "OOM kill": "OOM kill"
+      },
+      "translated_at": "2026-11-14T22:59:33.985355Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "When the victim process exits, its pages are freed back to the cgroup.",
+      "source_hash": 16620608176715597889,
+      "context_hash": 12172724708573255211,
+      "translation": "희생 프로세스가 종료되면 그 페이지가 해제되어 cgroup으로 반환됩니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:33.985355Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "The sequence:",
+      "source_hash": 1865001004592727727,
+      "context_hash": 3587578439450899364,
+      "translation": "순서",
+      "glossary_snapshot": {
+        "The sequence:": "순서"
+      },
+      "translated_at": "2026-11-14T23:33:01.093792Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "The process receives SIGKILL and its signal handler (or default disposition) terminates it.",
+      "source_hash": 6214120225273127152,
+      "context_hash": 2150281386484501618,
+      "translation": "프로세스가 SIGKILL을 받고, 시그널 핸들러(또는 기본 동작)가 프로세스를 종료합니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:33.985356Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "`exit_mm()` is called, which calls `mmput()`, which drops the `mm_struct` reference count.",
+      "source_hash": 1580478329160235196,
+      "context_hash": 5753840992462291158,
+      "translation": "`exit_mm()`이 호출되고, 이것이 `mmput()`을 호출하며, `mmput()`은 `mm_struct`의 참조 카운트를 감소시킵니다.",
+      "glossary_snapshot": {
+        "reference count": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:59:33.985356Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "When the count reaches zero, `__mmput()` runs `exit_mmap()`, which calls `unmap_vmas()` to walk all VMAs and `free_pgtables()` to release page tables.",
+      "source_hash": 9509435211975838818,
+      "context_hash": 10301430415031873831,
+      "translation": "카운트가 0이 되면 `__mmput()`이 `exit_mmap()`을 실행하고, `exit_mmap()`은 `unmap_vmas()`를 호출해 모든 VMA를 순회하며 `free_pgtables()`를 호출해 페이지 테이블을 해제합니다.",
+      "glossary_snapshot": {
+        "VMAs": "VMA",
+        "page tables": "페이지 테이블"
+      },
+      "translated_at": "2026-11-14T22:59:33.985356Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "Each page is unmapped and freed via `release_pages()`, which calls `mem_cgroup_uncharge()` (which takes a `struct folio *` in current kernels) to subtract from the cgroup's counter.",
+      "source_hash": 10936403094259458955,
+      "context_hash": 4327646689962590002,
+      "translation": "각 페이지는 `release_pages()`를 통해 매핑이 해제되고 반환되며, `release_pages()`는 `mem_cgroup_uncharge()`(현재 커널에서는 `struct folio *`를 인자로 받음)를 호출해 cgroup의 카운터에서 차감합니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T22:59:33.985356Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "`memory.current` drops.",
+      "source_hash": 8999564804253196648,
+      "context_hash": 4567394768929372372,
+      "translation": "`memory.current`가 감소합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985357Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:1",
+      "source": "If it falls below `memory.max`, further allocations can succeed.",
+      "source_hash": 13741372241678034390,
+      "context_hash": 646322433905622301,
+      "translation": "이 값이 `memory.max` 아래로 내려가면 이후의 할당이 성공할 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985357Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "Will the container recover automatically?",
+      "source_hash": 4410964612504099179,
+      "context_hash": 13180663673928333783,
+      "translation": "컨테이너는 자동으로 복구될까",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985357Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "It depends on what was killed and what the container runtime does:",
+      "source_hash": 4675478871655119450,
+      "context_hash": 3907565360527828140,
+      "translation": "무엇이 종료되었는지, 그리고 컨테이너 런타임이 어떻게 동작하는지에 따라 다릅니다.",
+      "glossary_snapshot": {
+        "container runtime": "컨테이너 런타임"
+      },
+      "translated_at": "2026-11-14T22:59:33.985357Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "**Single-process container (PID 1 killed)**: The container runtime detects that PID 1 exited and restarts the container according to its restart policy (e.g., `--restart=always` in Docker, `restartPolicy: Always` in Kubernetes).",
+      "source_hash": 8736600079416038265,
+      "context_hash": 11468276078038066026,
+      "translation": "**단일 프로세스 컨테이너(PID 1 종료)**: 컨테이너 런타임이 PID 1의 종료를 감지하고 재시작 정책(예: Docker의 `--restart=always`, Kubernetes의 `restartPolicy: Always`)에 따라 컨테이너를 재시작합니다.",
+      "glossary_snapshot": {
+        "Kubernetes": "Kubernetes",
+        "container runtime": "컨테이너 런타임",
+        "policy": "정책",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:33.985357Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "**Multi-process container (worker killed, not PID 1)**: If `memory.oom.group` is not set, only the selected process dies.",
+      "source_hash": 10865362985209728485,
+      "context_hash": 9531929678905371114,
+      "translation": "**다중 프로세스 컨테이너(PID 1이 아닌 워커 종료)**: `memory.oom.group`이 설정되어 있지 않으면 선택된 프로세스만 종료됩니다.",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:33.985357Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:1",
+      "source": "The container may continue running in a degraded state — this is the most dangerous case, because the OOM kill is silent from the perspective of container health checks unless you explicitly monitor `memory.events`.",
+      "source_hash": 7214130837065906304,
+      "context_hash": 14839366659734558204,
+      "translation": "컨테이너는 성능이 저하된 상태로 계속 실행될 수 있습니다. `memory.events`를 명시적으로 모니터링하지 않는 한 컨테이너 헬스 체크의 관점에서는 OOM kill이 드러나지 않으므로, 이것이 가장 위험한 경우입니다.",
+      "glossary_snapshot": {
+        "OOM kill": "OOM kill"
+      },
+      "translated_at": "2026-11-14T22:59:33.985358Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "**`memory.oom.group = 1`**: All processes die.",
+      "source_hash": 7346564127900512812,
+      "context_hash": 930737477586096155,
+      "translation": "**`memory.oom.group = 1`**: 모든 프로세스가 종료됩니다.",
+      "glossary_snapshot": {
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:59:33.985358Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:1",
+      "source": "The runtime detects the exit of PID 1 and performs a clean restart.",
+      "source_hash": 18446051931228535258,
+      "context_hash": 10601924387587324290,
+      "translation": "런타임이 PID 1의 종료를 감지하고 깔끔하게 재시작합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985358Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "The memory.events oom_kill counter does not reset",
+      "source_hash": 12584732176450246048,
+      "context_hash": 4463725914506622807,
+      "translation": "memory.events의 oom_kill 카운터는 초기화되지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985358Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "`memory.events` counters are monotonically increasing since the cgroup was created.",
+      "source_hash": 550724955027237102,
+      "context_hash": 7563416246948814339,
+      "translation": "`memory.events` 카운터는 cgroup이 생성된 이후로 단조 증가합니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:33.985358Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:1",
+      "source": "They do not reset when an OOM kill occurs or when the container restarts (as long as the cgroup is reused).",
+      "source_hash": 13817860304862350623,
+      "context_hash": 9572876292523775345,
+      "translation": "OOM kill이 발생하거나 컨테이너가 재시작되어도(cgroup이 재사용되는 한) 초기화되지 않습니다.",
+      "glossary_snapshot": {
+        "OOM kill": "OOM kill",
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:33.985358Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:2",
+      "source": "Some orchestrators recreate the cgroup on restart, giving you a fresh baseline.",
+      "source_hash": 6381344445404771482,
+      "context_hash": 7535520458150379893,
+      "translation": "일부 오케스트레이터는 재시작 시 cgroup을 다시 생성하므로 새로운 기준값에서 시작하게 됩니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:3",
+      "source": "Others reuse it.",
+      "source_hash": 6048809307000014411,
+      "context_hash": 7193711106494851570,
+      "translation": "다른 오케스트레이터는 cgroup을 재사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:4",
+      "source": "Check which behavior your runtime uses before building alerting on absolute event counts.",
+      "source_hash": 9973045160701152536,
+      "context_hash": 4556822338099748130,
+      "translation": "이벤트의 절대 횟수를 기준으로 알림을 구축하기 전에 사용 중인 런타임이 어느 방식으로 동작하는지 확인하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "Alert on rate, not absolute count",
+      "source_hash": 6931958965407126998,
+      "context_hash": 3061040749369129939,
+      "translation": "절대 횟수가 아닌 비율 기준의 알림",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "Build alerts on `oom_kill` events per unit time (e.g., rate over 5 minutes) rather than the raw counter value.",
+      "source_hash": 14135475293714316592,
+      "context_hash": 16383793587291613956,
+      "translation": "원시 카운터 값이 아니라 단위 시간당 `oom_kill` 이벤트 수(예: 5분간의 비율)를 기준으로 알림을 구축하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:1",
+      "source": "A container that had one OOM kill three weeks ago should not be permanently in alert state.",
+      "source_hash": 6046672533177401081,
+      "context_hash": 16095279701019626502,
+      "translation": "3주 전에 OOM kill이 한 번 발생한 컨테이너가 영구적으로 알림 상태에 머물러서는 안 됩니다.",
+      "glossary_snapshot": {
+        "OOM kill": "OOM kill"
+      },
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "The Full Sequence at a Glance",
+      "source_hash": 17836417677467590152,
+      "context_hash": 13701310436393655245,
+      "translation": "전체 순서 한눈에 보기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Practical Configuration",
+      "source_hash": 448782114470354476,
+      "context_hash": 4632130933009207763,
+      "translation": "실무 설정",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:59:33.985359Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "The gap between `memory.high` and `memory.max` is the throttle zone.",
+      "source_hash": 16398002482691742751,
+      "context_hash": 18122389452364807107,
+      "translation": "`memory.high`와 `memory.max` 사이의 간격이 스로틀 구간입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221140Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "A well-configured container reaches `memory.high` under load, gets throttled and reclaimed back, and never reaches `memory.max`.",
+      "source_hash": 9679792670531047018,
+      "context_hash": 13245058603190294158,
+      "translation": "잘 구성된 컨테이너는 부하가 걸리면 `memory.high`에 도달하고, 스로틀링되어 다시 회수되며, `memory.max`에는 결코 도달하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221141Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:2",
+      "source": "This design is explained in [Tuning Containers](tuning-containers.md).",
+      "source_hash": 11740123189611933171,
+      "context_hash": 713993063565837963,
+      "translation": "이 설계는 [Tuning Containers](tuning-containers.md)에서 설명합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221141Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "The 80% and 1.5x figures are heuristics",
+      "source_hash": 13238081711454657420,
+      "context_hash": 7981793902220532536,
+      "translation": "80%와 1.5x 수치는 경험적 기준",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221141Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "There is no universally correct gap between `memory.high` and `memory.max`.",
+      "source_hash": 16322244781310106945,
+      "context_hash": 3469346482944596200,
+      "translation": "`memory.high`와 `memory.max` 사이에 보편적으로 올바른 간격은 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221142Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:1",
+      "source": "The right value depends on your application's allocation burst size and how fast your reclaim path is.",
+      "source_hash": 2264842741469246568,
+      "context_hash": 9552333661566960234,
+      "translation": "적절한 값은 애플리케이션의 할당 버스트 크기와 회수 경로의 속도에 따라 달라집니다.",
+      "glossary_snapshot": {
+        "reclaim": "회수"
+      },
+      "translated_at": "2026-11-14T21:55:04.221142Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:2",
+      "source": "Observe `memory.pressure` and `memory.events` under load to calibrate.",
+      "source_hash": 6299973640868927517,
+      "context_hash": 7295159513530126681,
+      "translation": "부하 상태에서 `memory.pressure`와 `memory.events`를 관찰하여 값을 보정하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221143Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Key Kernel Functions (mm/memcontrol.c)",
+      "source_hash": 16499110577421238994,
+      "context_hash": 18291503918620630634,
+      "translation": "주요 커널 함수 (mm/memcontrol.c)",
+      "glossary_snapshot": {
+        "functions": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:55:04.221144Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Function",
+      "source_hash": 12017511910326844596,
+      "context_hash": 2792101514941109994,
+      "translation": "함수",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T21:55:04.221144Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "What it does",
+      "source_hash": 13594834282886189535,
+      "context_hash": 7272196264892462159,
+      "translation": "역할",
+      "glossary_snapshot": {
+        "What It Does": "역할"
+      },
+      "translated_at": "2026-11-14T21:55:04.221144Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "`mem_cgroup_charge()`",
+      "source_hash": 787217052345420388,
+      "context_hash": 12366482269337454165,
+      "translation": "`mem_cgroup_charge()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221153Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "Called on every page allocation to update cgroup counters and check limits",
+      "source_hash": 5920399306221377523,
+      "context_hash": 11661517300944267131,
+      "translation": "모든 페이지 할당 시 호출되어 cgroup 카운터를 갱신하고 한도를 검사",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T21:55:04.221153Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "`mem_cgroup_handle_over_high()`",
+      "source_hash": 8424555077825665413,
+      "context_hash": 17210247781822520873,
+      "translation": "`mem_cgroup_handle_over_high()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221153Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "Entry point for high-limit throttling; calls `reclaim_high()` then sleeps",
+      "source_hash": 6096982714170623959,
+      "context_hash": 18328572594408155089,
+      "translation": "high 한도 스로틀링의 진입점; `reclaim_high()`를 호출한 뒤 슬립",
+      "glossary_snapshot": {
+        "entry point": "진입점",
+        "throttling": "스로틀링"
+      },
+      "translated_at": "2026-11-14T21:55:04.221153Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "`reclaim_high()`",
+      "source_hash": 17523932942018218040,
+      "context_hash": 16925242963327721565,
+      "translation": "`reclaim_high()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221153Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "Calls `try_to_free_mem_cgroup_pages()` to free pages from the cgroup",
+      "source_hash": 5112180945232131103,
+      "context_hash": 8771749003408620654,
+      "translation": "`try_to_free_mem_cgroup_pages()`를 호출하여 cgroup에서 페이지를 해제",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T21:55:04.221154Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "`mem_cgroup_oom()`",
+      "source_hash": 6953932112182005949,
+      "context_hash": 1513547776086072149,
+      "translation": "`mem_cgroup_oom()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221154Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "Entry point for max-limit OOM; selects victim and invokes `out_of_memory()`",
+      "source_hash": 16593555767341385948,
+      "context_hash": 1089351479387603548,
+      "translation": "max 한도 OOM의 진입점; 희생 프로세스를 선택하고 `out_of_memory()`를 호출",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T21:55:04.221154Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "`mem_cgroup_get_oom_group()`",
+      "source_hash": 12044671279985002345,
+      "context_hash": 6980198482106296999,
+      "translation": "`mem_cgroup_get_oom_group()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221160Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:12/seg:0",
+      "source": "Determines the target cgroup for OOM (respects `memory.oom.group`)",
+      "source_hash": 9073136766080833586,
+      "context_hash": 952511450616949528,
+      "translation": "OOM 대상 cgroup을 결정 (`memory.oom.group`을 따름)",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T21:55:04.221160Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "`mem_cgroup_print_oom_meminfo()`",
+      "source_hash": 1774665388509616318,
+      "context_hash": 13781343606441459024,
+      "translation": "`mem_cgroup_print_oom_meminfo()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221161Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:14/seg:0",
+      "source": "Dumps cgroup memory stats to dmesg during OOM",
+      "source_hash": 9272529447950530706,
+      "context_hash": 4322433294987257368,
+      "translation": "OOM 발생 시 cgroup 메모리 통계를 dmesg로 덤프",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "cgroup": "cgroup",
+        "memory": "메모리"
+      },
+      "translated_at": "2026-11-14T21:55:04.221161Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "`mem_cgroup_uncharge()`",
+      "source_hash": 4078587319536600307,
+      "context_hash": 9966433853151786238,
+      "translation": "`mem_cgroup_uncharge()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221161Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:16/seg:0",
+      "source": "Called on page free to subtract from cgroup counters",
+      "source_hash": 13084922981587302269,
+      "context_hash": 3011591358333272301,
+      "translation": "페이지 해제 시 호출되어 cgroup 카운터에서 차감",
+      "glossary_snapshot": {
+        "cgroup": "cgroup"
+      },
+      "translated_at": "2026-11-14T21:55:04.221161Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Further Reading",
+      "source_hash": 16149536966054822133,
+      "context_hash": 1571586764265421448,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:55:04.221162Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "[Memory Cgroups](memcg.md) — How the accounting works and what is charged",
+      "source_hash": 11751438512291696706,
+      "context_hash": 7159234346167526804,
+      "translation": "[메모리 cgroup](memcg.md) — 어카운팅의 동작 방식과 과금 대상",
+      "glossary_snapshot": {
+        "Memory Cgroups": "메모리 cgroup",
+        "accounting": "어카운팅"
+      },
+      "translated_at": "2026-11-14T23:33:01.093792Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "[Tuning Containers](tuning-containers.md) — How to set memory.high, memory.max, and memory.min correctly",
+      "source_hash": 2793671743722281659,
+      "context_hash": 1638263158758495180,
+      "translation": "[Tuning Containers](tuning-containers.md) — memory.high, memory.max, memory.min을 올바르게 설정하는 방법",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:55:04.221163Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "[Reading an OOM log](reading-oom-log.md) — How to parse the dmesg output from a cgroup OOM kill",
+      "source_hash": 435456609177575859,
+      "context_hash": 15784971067053609442,
+      "translation": "[Reading an OOM log](reading-oom-log.md) — cgroup OOM kill로 출력된 dmesg 내용을 해석하는 방법",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "OOM kill": "OOM kill",
+        "cgroup OOM": "cgroup OOM"
+      },
+      "translated_at": "2026-11-14T21:55:04.221163Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:4/seg:0",
+      "source": "[Running out of memory](oom.md) — The global OOM path: watermarks, kswapd, direct reclaim",
+      "source_hash": 6587408968795093635,
+      "context_hash": 6464166629159418446,
+      "translation": "[Running out of memory](oom.md) — 전역 OOM 경로: 워터마크, kswapd, 직접 회수",
+      "glossary_snapshot": {
+        "OOM": "OOM",
+        "direct reclaim": "직접 회수",
+        "kswapd": "kswapd",
+        "watermarks": "워터마크"
+      },
+      "translated_at": "2026-11-14T21:55:04.221163Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "[PSI](psi.md) — How pressure stall information is computed and how to use it for alerting",
+      "source_hash": 84542358698060906,
+      "context_hash": 4947044117562646082,
+      "translation": "[PSI](psi.md) — PSI(pressure stall information)의 계산 방식과 이를 알림에 활용하는 방법",
+      "glossary_snapshot": {
+        "PSI": "PSI"
+      },
+      "translated_at": "2026-11-14T21:55:04.221164Z",
+      "issues": []
+    }
+  ]
+}

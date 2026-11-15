@@ -1,0 +1,1409 @@
+{
+  "version": 1,
+  "source_hash": 793563053741587816,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "32-bit Compat Syscalls",
+      "source_hash": 12212308177216892275,
+      "context_hash": 1763481047796428083,
+      "translation": "32비트 compat 시스템 콜",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "compat": "compat",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:01:04.554962Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Supporting 32-bit userspace on 64-bit kernels",
+      "source_hash": 1910887427809136270,
+      "context_hash": 10880671588540718168,
+      "translation": "64비트 커널에서 32비트 사용자 공간 지원",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "kernels": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:01:04.554962Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Why compat exists",
+      "source_hash": 6661689176954898668,
+      "context_hash": 11459196147970954654,
+      "translation": "compat이 존재하는 이유",
+      "glossary_snapshot": {
+        "compat": "compat"
+      },
+      "translated_at": "2026-11-14T23:01:04.554962Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A 64-bit kernel can run 32-bit ELF binaries directly (via `CONFIG_IA32_EMULATION` on x86-64).",
+      "source_hash": 4471268008221161913,
+      "context_hash": 6365339252393289720,
+      "translation": "64비트 커널은 32비트 ELF 바이너리를 직접 실행할 수 있습니다(x86-64에서는 `CONFIG_IA32_EMULATION`을 통해).",
+      "glossary_snapshot": {
+        "ELF": "ELF",
+        "bit": "비트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The problem is that 32-bit and 64-bit ABIs differ in ways that go beyond register width:",
+      "source_hash": 11239402618584658530,
+      "context_hash": 50674121300172358,
+      "translation": "문제는 32비트 ABI와 64비트 ABI가 레지스터 폭 이상의 측면에서 차이가 난다는 점입니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "**Pointer size**: 32-bit userspace uses 4-byte pointers; the kernel uses 8-byte pointers.",
+      "source_hash": 16731959996049257186,
+      "context_hash": 3097652679053396708,
+      "translation": "**포인터 크기**: 32비트 사용자 공간은 4바이트 포인터를 사용하고, 커널은 8바이트 포인터를 사용합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "byte": "바이트",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**`time_t` and `off_t`**: 32-bit ABIs define these as `int` (32 bits); 64-bit ABIs use `long` (64 bits).",
+      "source_hash": 17393250219857700246,
+      "context_hash": 8166226214333817427,
+      "translation": "**`time_t`와 `off_t`**: 32비트 ABI는 이들을 `int`(32비트)로 정의하고, 64비트 ABI는 `long`(64비트)을 사용합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "bits": "비트"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**Struct layout**: structs containing `long`, `size_t`, or pointer members have different padding and sizes.",
+      "source_hash": 16375256876834491273,
+      "context_hash": 8571681125791552620,
+      "translation": "**구조체 레이아웃**: `long`, `size_t` 또는 포인터 멤버를 포함하는 구조체는 패딩과 크기가 다릅니다.",
+      "glossary_snapshot": {
+        "struct": "구조체",
+        "structs": "구조체"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**Argument passing**: 32-bit x86 uses the `int 0x80` path or `sysenter`; arguments are 32-bit registers.",
+      "source_hash": 2448776198705161227,
+      "context_hash": 2186579617848506353,
+      "translation": "**인자 전달**: 32비트 x86은 `int 0x80` 경로 또는 `sysenter`를 사용하며, 인자는 32비트 레지스터입니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "If a 32-bit process calls `read()`, it passes a 32-bit pointer for `buf`.",
+      "source_hash": 15393310936579519251,
+      "context_hash": 14627404204066370717,
+      "translation": "32비트 프로세스가 `read()`를 호출하면 `buf`에 32비트 포인터를 전달합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "The kernel cannot treat that as a 64-bit pointer directly — it must zero-extend the value and validate it within the 32-bit address space.",
+      "source_hash": 7019151488412918024,
+      "context_hash": 7815377359657363047,
+      "translation": "커널은 이를 64비트 포인터로 바로 취급할 수 없으며, 값을 제로 확장(zero-extend)한 뒤 32비트 주소 공간 안에서 검증해야 합니다.",
+      "glossary_snapshot": {
+        "address space": "주소 공간",
+        "bit": "비트",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:2",
+      "source": "For simple syscalls like `read()`, the difference is minor.",
+      "source_hash": 5211400545468320002,
+      "context_hash": 3570947786614410721,
+      "translation": "`read()`와 같은 단순한 시스템 콜에서는 차이가 미미합니다.",
+      "glossary_snapshot": {
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:3",
+      "source": "For syscalls that pass structs containing `time_t`, `off_t`, or embedded pointers (like `sendmsg()`, `stat()`, `select()`), the kernel needs entirely separate handlers to translate the 32-bit layout into the kernel's internal representation.",
+      "source_hash": 5552164998373449919,
+      "context_hash": 724572525937779311,
+      "translation": "`time_t`, `off_t` 또는 내장된 포인터를 포함하는 구조체를 전달하는 시스템 콜(`sendmsg()`, `stat()`, `select()` 등)의 경우, 커널은 32비트 레이아웃을 커널의 내부 표현으로 변환하기 위한 완전히 별도의 핸들러가 필요합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "handlers": "핸들러",
+        "kernel": "커널",
+        "structs": "구조체",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:01:04.554963Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "The COMPAT_SYSCALL_DEFINE macro",
+      "source_hash": 15050327464572738628,
+      "context_hash": 3138073623143449043,
+      "translation": "COMPAT_SYSCALL_DEFINE 매크로",
+      "glossary_snapshot": {
+        "macro": "매크로"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Compat syscall handlers are defined with `COMPAT_SYSCALL_DEFINE`, which lives in `include/linux/compat.h`:",
+      "source_hash": 17011069651110833817,
+      "context_hash": 8634162460325782891,
+      "translation": "compat 시스템 콜 핸들러는 `include/linux/compat.h`에 있는 `COMPAT_SYSCALL_DEFINE`으로 정의합니다.",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handlers": "핸들러",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`COMPAT_SYSCALL_DEFINE` generates a C function named `compat_sys_xxx` (e.g., `compat_sys_read`).",
+      "source_hash": 2507352922691666993,
+      "context_hash": 6999930906942860926,
+      "translation": "`COMPAT_SYSCALL_DEFINE`은 `compat_sys_xxx`라는 이름의 C 함수(예: `compat_sys_read`)를 생성합니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "On x86, the architecture-specific `__IA32_COMPAT_SYS_STUBx` macros in `arch/x86/include/asm/syscall_wrapper.h` then generate a separate `__ia32_compat_sys_xxx` entry-point stub that decodes 32-bit registers and calls `compat_sys_xxx`.",
+      "source_hash": 3880965301652524044,
+      "context_hash": 6779934236551384310,
+      "translation": "x86에서는 이어서 `arch/x86/include/asm/syscall_wrapper.h`에 있는 아키텍처별 `__IA32_COMPAT_SYS_STUBx` 매크로가 32비트 레지스터를 디코딩하고 `compat_sys_xxx`를 호출하는 별도의 `__ia32_compat_sys_xxx` 진입점 stub을 생성합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "macros": "매크로"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:2",
+      "source": "The macro itself produces `compat_sys_xxx`, not the ia32 stub.",
+      "source_hash": 8020662577388899387,
+      "context_hash": 13839347741421419558,
+      "translation": "매크로 자체가 만들어 내는 것은 ia32 stub이 아니라 `compat_sys_xxx`입니다.",
+      "glossary_snapshot": {
+        "macro": "매크로"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:3",
+      "source": "The macro also generates the necessary tracepoint metadata so compat syscalls appear in `ftrace` and `perf` output the same way native syscalls do.",
+      "source_hash": 4793516023974319627,
+      "context_hash": 10762648648645444012,
+      "translation": "이 매크로는 또한 필요한 트레이스포인트 메타데이터를 생성하므로, compat 시스템 콜도 네이티브 시스템 콜과 동일한 방식으로 `ftrace`와 `perf` 출력에 나타납니다.",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "macro": "매크로",
+        "metadata": "메타데이터",
+        "syscalls": "시스템 콜",
+        "tracepoint": "트레이스포인트"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "For syscalls where the argument types are identical at all widths (e.g., `close(int fd)`) the `SYSCALL_DEFINE` handler is reused directly; the compat table points to the same `__x64_sys_close`.",
+      "source_hash": 9487785284811278500,
+      "context_hash": 17427128070939606327,
+      "translation": "인자 타입이 모든 폭에서 동일한 시스템 콜(예: `close(int fd)`)의 경우 `SYSCALL_DEFINE` 핸들러를 그대로 재사용하며, compat 테이블은 동일한 `__x64_sys_close`를 가리킵니다.",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handler": "핸들러",
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The compat syscall tables",
+      "source_hash": 141016955975271833,
+      "context_hash": 1754445435281951182,
+      "translation": "compat 시스템 콜 테이블",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:01:04.554964Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "On x86-64, 32-bit processes are dispatched through a separate table:",
+      "source_hash": 2409170885625373797,
+      "context_hash": 4128851178225799922,
+      "translation": "x86-64에서 32비트 프로세스는 별도의 테이블을 통해 디스패치됩니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "The build system generates `arch/x86/include/generated/asm/syscalls_32.h`, which is included in:",
+      "source_hash": 17926786321258023181,
+      "context_hash": 14326681998282684520,
+      "translation": "빌드 시스템은 `arch/x86/include/generated/asm/syscalls_32.h`를 생성하며, 이 파일은 다음 위치에 포함됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "When a 32-bit process enters the kernel via `int 0x80` or `sysenter`, the entry code detects the 32-bit CS segment and calls `ia32_sys_call()`, which switches on the syscall number to the matching `__ia32_*` stub — the same switch-based dispatch pattern the native 64-bit path uses (`x64_sys_call()`; see [Syscall Entry Path](syscall-entry.md)).",
+      "source_hash": 13337659350621033778,
+      "context_hash": 5106272526366937286,
+      "translation": "32비트 프로세스가 `int 0x80` 또는 `sysenter`를 통해 커널에 진입하면, 진입 코드는 32비트 CS 세그먼트를 감지하고 `ia32_sys_call()`을 호출하며, 이 함수는 시스템 콜 번호에 대해 switch 문으로 분기하여 해당하는 `__ia32_*` stub을 호출합니다. 이는 네이티브 64비트 경로가 사용하는 것과 동일한 switch 기반 디스패치 패턴입니다(`x64_sys_call()`, [시스템 콜 진입 경로](syscall-entry.md) 참조).",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "kernel": "커널",
+        "process": "프로세스",
+        "syscall entry": "시스템 콜 진입",
+        "syscall number": "시스템 콜 번호"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "A `sys_call_table[]` array is still built for `CONFIG_X86_32`, but only because `kernel/trace/trace_syscalls.c` needs a syscall-number-to-address table for tracing — it is not used for dispatch.",
+      "source_hash": 12323679828432865197,
+      "context_hash": 13955008268279168123,
+      "translation": "`CONFIG_X86_32`에서는 여전히 `sys_call_table[]` 배열이 빌드되지만, 이는 `kernel/trace/trace_syscalls.c`가 트레이싱을 위해 시스템 콜 번호-주소 테이블을 필요로 하기 때문일 뿐이며 디스패치에는 사용되지 않습니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "array": "배열",
+        "syscall": "시스템 콜",
+        "tracing": "트레이싱"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Key compat types",
+      "source_hash": 16856401680766957307,
+      "context_hash": 11716196779670127418,
+      "translation": "주요 compat 타입",
+      "glossary_snapshot": {
+        "compat": "compat"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`old_timespec32` aligns at 4 bytes rather than 8, matching the layout a 32-bit compiler would produce.",
+      "source_hash": 4225676409280232755,
+      "context_hash": 15143656428554398157,
+      "translation": "`old_timespec32`는 8바이트가 아닌 4바이트 단위로 정렬되며, 이는 32비트 컴파일러가 만들어 내는 레이아웃과 일치합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "This is the fundamental reason 32-bit `clock_gettime()` cannot share the 64-bit handler.",
+      "source_hash": 6214752620309446143,
+      "context_hash": 14102915562248406678,
+      "translation": "이것이 32비트 `clock_gettime()`이 64비트 핸들러를 공유할 수 없는 근본적인 이유입니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "compat_ptr() and ptr_to_compat()",
+      "source_hash": 735311018811047658,
+      "context_hash": 13767050912269810321,
+      "translation": "compat_ptr()와 ptr_to_compat()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "`compat_ptr()` converts a `compat_uptr_t` (u32) into a kernel `void __user *` by zero-extending:",
+      "source_hash": 9686051773171010495,
+      "context_hash": 17379715901211996324,
+      "translation": "`compat_ptr()`는 제로 확장을 통해 `compat_uptr_t`(u32)를 커널의 `void __user *`로 변환합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "This is safe because a 32-bit process cannot have a valid address above 4 GB; the zero-extension just produces the correct 64-bit representation of the 32-bit address.",
+      "source_hash": 11120373693019193311,
+      "context_hash": 17872937720989531489,
+      "translation": "32비트 프로세스는 4 GB를 넘는 유효한 주소를 가질 수 없으므로 이 방식은 안전하며, 제로 확장은 단지 32비트 주소에 대한 올바른 64비트 표현을 만들어 낼 뿐입니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "bit": "비트",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "The reverse direction uses `ptr_to_compat()`:",
+      "source_hash": 820963387083678174,
+      "context_hash": 7353135682906504126,
+      "translation": "반대 방향의 변환에는 `ptr_to_compat()`를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:04.554965Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "in_compat_syscall()",
+      "source_hash": 1879752236722713152,
+      "context_hash": 17950169107171501753,
+      "translation": "in_compat_syscall()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:35.225489Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Code that needs to behave differently for 32-bit callers (e.g., to pick the right struct size) uses `in_compat_syscall()`.",
+      "source_hash": 14374212189262701849,
+      "context_hash": 4497846837680171894,
+      "translation": "32비트 호출자에 대해 다르게 동작해야 하는 코드(예: 올바른 구조체 크기를 선택하기 위해)는 `in_compat_syscall()`을 사용합니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T23:00:35.225491Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "On x86, it isn't a single check but a three-level chain down to a per-syscall status bit — not a thread flag.",
+      "source_hash": 5027294632955333895,
+      "context_hash": 8544842299600565410,
+      "translation": "x86에서 이는 단일 검사가 아니라 스레드 플래그가 아닌 시스템 콜별 상태 비트까지 내려가는 3단계 체인입니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:00:35.225491Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:2",
+      "source": "Some other architectures (ARM64, MIPS) use `TIF_32BIT` instead.",
+      "source_hash": 18445475178116364407,
+      "context_hash": 16173680396302518661,
+      "translation": "일부 다른 아키텍처(ARM64, MIPS)는 대신 `TIF_32BIT`를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:35.225494Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:3",
+      "source": "The generic declaration is in `include/linux/compat.h`; x86 overrides it in `arch/x86/include/asm/compat.h`:",
+      "source_hash": 8740720311036645573,
+      "context_hash": 14379284521389093151,
+      "translation": "범용 선언은 `include/linux/compat.h`에 있으며, x86은 이를 `arch/x86/include/asm/compat.h`에서 재정의합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:35.225495Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "`in_ia32_syscall()` is a macro, not a function — it's defined two levels down in `arch/x86/include/asm/thread_info.h`:",
+      "source_hash": 7675695068108113868,
+      "context_hash": 13363236714371651378,
+      "translation": "`in_ia32_syscall()`은 함수가 아니라 매크로이며, 두 단계 아래인 `arch/x86/include/asm/thread_info.h`에 정의되어 있습니다:",
+      "glossary_snapshot": {
+        "function": "함수",
+        "macro": "매크로"
+      },
+      "translated_at": "2026-11-14T23:00:35.225495Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "`TS_COMPAT` is set when a task is executing in 32-bit compatibility mode.",
+      "source_hash": 13912987077116581433,
+      "context_hash": 11050653698935840003,
+      "translation": "`TS_COMPAT`는 태스크가 32비트 호환 모드로 실행 중일 때 설정됩니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:00:35.225495Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "It is checked at various points in the VFS and networking stack so that a single in-kernel code path can serve both 32-bit and 64-bit callers where only minor differences exist.",
+      "source_hash": 8526471316936186490,
+      "context_hash": 5439795673117704958,
+      "translation": "이 비트는 VFS와 네트워킹 스택의 여러 지점에서 검사되므로, 사소한 차이만 있는 경우 하나의 커널 내 코드 경로가 32비트와 64비트 호출자를 모두 처리할 수 있습니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "bit": "비트",
+        "code path": "코드 경로",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:35.225496Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Struct layout differences: compat_iovec and compat_stat",
+      "source_hash": 6906156927920424840,
+      "context_hash": 15330565079322018512,
+      "translation": "구조체 레이아웃 차이: compat_iovec과 compat_stat",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T23:00:35.225497Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "compat_iovec",
+      "source_hash": 7026925187015797579,
+      "context_hash": 6867609524118525053,
+      "translation": "compat_iovec",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:35.225497Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "An `iovec` array passed by a 32-bit process has 8 bytes per element; the 64-bit layout has 16 bytes per element. `readv()` and `writev()` must detect the compat case and iterate using `compat_iovec`.",
+      "source_hash": 1886440531895172519,
+      "context_hash": 16857228142626993415,
+      "translation": "32비트 프로세스가 전달하는 `iovec` 배열은 요소당 8바이트이고, 64비트 레이아웃은 요소당 16바이트입니다. `readv()`와 `writev()`는 compat 경우를 감지하여 `compat_iovec`을 사용해 순회해야 합니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "bit": "비트",
+        "bytes": "바이트",
+        "compat": "compat",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:00:35.225497Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "compat_stat",
+      "source_hash": 17043062717528545988,
+      "context_hash": 17461504174796319316,
+      "translation": "compat_stat",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:35.225498Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "The native `struct stat` on x86-64 uses 64-bit `off_t` for `st_size` and 64-bit `time_t`.",
+      "source_hash": 7853518004743221510,
+      "context_hash": 10257994274338701316,
+      "translation": "x86-64의 네이티브 `struct stat`은 `st_size`에 64비트 `off_t`를 사용하고 64비트 `time_t`를 사용합니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:00:35.225498Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:1",
+      "source": "The kernel fills in both forms depending on which handler was called.",
+      "source_hash": 17064333151546518197,
+      "context_hash": 5146621455929893789,
+      "translation": "커널은 어떤 핸들러가 호출되었는지에 따라 두 형식 중 하나를 채웁니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:35.225499Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "When compat is NOT needed",
+      "source_hash": 2871281616765792939,
+      "context_hash": 13249816578346371851,
+      "translation": "compat이 필요하지 않은 경우",
+      "glossary_snapshot": {
+        "compat": "compat"
+      },
+      "translated_at": "2026-11-14T23:00:35.225500Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Modern struct-based syscalls designed with portability in mind use explicit-width types (`__u64`, `__u32`, `__s64`) rather than `long` or pointer types in their UAPI structs.",
+      "source_hash": 15298513606128967233,
+      "context_hash": 18384717470090389055,
+      "translation": "이식성을 고려하여 설계된 최신 구조체 기반 시스템 콜은 UAPI 구조체에 `long`이나 포인터 타입 대신 명시적 너비 타입(`__u64`, `__u32`, `__s64`)을 사용합니다.",
+      "glossary_snapshot": {
+        "struct": "구조체",
+        "structs": "구조체",
+        "syscalls": "시스템 콜",
+        "uapi": "uapi"
+      },
+      "translated_at": "2026-11-14T23:00:35.225514Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:1",
+      "source": "Because the struct layout is identical between 32-bit and 64-bit, no compat handler is needed:",
+      "source_hash": 13483385659102738359,
+      "context_hash": 13641611397570352631,
+      "translation": "구조체 레이아웃이 32비트와 64비트에서 동일하므로 compat 핸들러가 필요하지 않습니다:",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "compat": "compat",
+        "handler": "핸들러",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T23:00:35.225516Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "A 32-bit process that passes `struct open_how` has the same binary layout as a 64-bit process.",
+      "source_hash": 17133949931605126085,
+      "context_hash": 3370848406612100135,
+      "translation": "`struct open_how`를 전달하는 32비트 프로세스는 64비트 프로세스와 동일한 바이너리 레이아웃을 가집니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:00:35.225517Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:1",
+      "source": "The single `sys_openat2` handler works for both.",
+      "source_hash": 1147338951412271750,
+      "context_hash": 15632127361440471229,
+      "translation": "하나의 `sys_openat2` 핸들러가 양쪽 모두에서 동작합니다.",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:00:35.225517Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:2",
+      "source": "This is the recommended pattern for any new syscall.",
+      "source_hash": 7048605232403196169,
+      "context_hash": 13414219875977117716,
+      "translation": "이는 모든 새 시스템 콜에 권장되는 패턴입니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:00:35.225518Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "compat_ioctl: driver-level compat",
+      "source_hash": 11532775777479095672,
+      "context_hash": 15522074187232742083,
+      "translation": "compat_ioctl: 드라이버 수준 compat",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:00:35.225519Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "`ioctl()` is special because ioctl commands encode struct sizes, and many commands pass structs with architecture-dependent layouts.",
+      "source_hash": 15519229981559608198,
+      "context_hash": 15191139175158657975,
+      "translation": "`ioctl()`은 ioctl 명령이 구조체 크기를 인코딩하고, 많은 명령이 아키텍처에 따라 레이아웃이 달라지는 구조체를 전달하기 때문에 특별합니다.",
+      "glossary_snapshot": {
+        "ioctl": "ioctl",
+        "struct": "구조체",
+        "structs": "구조체"
+      },
+      "translated_at": "2026-11-14T23:00:35.225519Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:1",
+      "source": "Drivers implement both:",
+      "source_hash": 2861646162133492355,
+      "context_hash": 16981225478402045615,
+      "translation": "드라이버는 두 가지를 모두 구현합니다:",
+      "glossary_snapshot": {
+        "drivers": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:00:35.225519Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "When a 32-bit process calls `ioctl()`, the compat ioctl syscall first tries `do_vfs_ioctl()` for commands the VFS itself understands generically (independent of the driver).",
+      "source_hash": 13439092674180343085,
+      "context_hash": 3083803190910010886,
+      "translation": "32비트 프로세스가 `ioctl()`을 호출하면, compat ioctl 시스템 콜은 먼저 VFS 자체가 (드라이버와 무관하게) 범용적으로 이해하는 명령에 대해 `do_vfs_ioctl()`을 시도합니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "bit": "비트",
+        "compat": "compat",
+        "driver": "드라이버",
+        "ioctl": "ioctl",
+        "process": "프로세스",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:00:35.225519Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:1",
+      "source": "If that returns `-ENOIOCTLCMD` (not one of those), it falls through to the driver's `compat_ioctl`, if set.",
+      "source_hash": 15571787114318169001,
+      "context_hash": 9150625431971336413,
+      "translation": "이것이 `-ENOIOCTLCMD`를 반환하면(해당 명령이 아니면), 설정되어 있는 경우 드라이버의 `compat_ioctl`로 넘어갑니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:00:35.225520Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:2",
+      "source": "There is no generic, automatic translation-table fallback for arbitrary driver-specific commands — if `compat_ioctl` is NULL, a 32-bit caller gets `-ENOTTY` for anything the driver hasn't explicitly handled.",
+      "source_hash": 2113341243286996916,
+      "context_hash": 13238425099130504120,
+      "translation": "임의의 드라이버 고유 명령에 대한 범용 자동 변환 테이블 폴백은 없습니다. `compat_ioctl`이 NULL이면, 32비트 호출자는 드라이버가 명시적으로 처리하지 않은 모든 명령에 대해 `-ENOTTY`를 받습니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "driver": "드라이버",
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T23:00:35.225520Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:3",
+      "source": "For commands whose only argument is either absent or already compatible between widths (pointers, not raw `unsigned long` values embedding a pointer), a driver can opt in to the generic `compat_ptr_ioctl()` helper (`fs/ioctl.c`) instead of writing its own — it just zero-extends `arg` through `compat_ptr()` and calls `unlocked_ioctl`.",
+      "source_hash": 12158599361616157451,
+      "context_hash": 2520293509418710156,
+      "translation": "유일한 인자가 없거나 이미 너비 간에 호환되는 명령(포인터를 담은 원시 `unsigned long` 값이 아닌 포인터)의 경우, 드라이버는 직접 작성하는 대신 범용 `compat_ptr_ioctl()` 헬퍼(`fs/ioctl.c`)를 선택해 사용할 수 있습니다. 이 헬퍼는 `compat_ptr()`를 통해 `arg`를 제로 확장한 뒤 `unlocked_ioctl`을 호출할 뿐입니다.",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:00:35.225521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Practical example: compat_sys_read vs sys_read",
+      "source_hash": 13401277719306584331,
+      "context_hash": 2675783586231881544,
+      "translation": "실제 예: compat_sys_read 대 sys_read",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:35.225521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "`read()` only passes a 32-bit pointer and a 32-bit count.",
+      "source_hash": 12320366390626685778,
+      "context_hash": 4130383785091298925,
+      "translation": "`read()`는 32비트 포인터와 32비트 카운트만 전달합니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:00:35.225521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:1",
+      "source": "On x86-64, the kernel handles this transparently: `ia32_sys_call()`'s `read` case dispatches straight to the native `sys_read` handler, because `compat_ptr()` of the 32-bit buffer address produces the correct 64-bit user pointer, and `compat_size_t` (u32) fits in `size_t`.",
+      "source_hash": 7233668325503143755,
+      "context_hash": 17541518458904158269,
+      "translation": "x86-64에서 커널은 이를 투명하게 처리합니다. `ia32_sys_call()`의 `read` case는 네이티브 `sys_read` 핸들러로 곧바로 디스패치하는데, 32비트 버퍼 주소에 대한 `compat_ptr()`가 올바른 64비트 사용자 포인터를 만들어 내고 `compat_size_t`(u32)가 `size_t`에 들어맞기 때문입니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "bit": "비트",
+        "handler": "핸들러",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:35.225521Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:2",
+      "source": "No separate compat handler is needed.",
+      "source_hash": 6746977946005264821,
+      "context_hash": 3780299860158259659,
+      "translation": "별도의 compat 핸들러가 필요하지 않습니다.",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:00:35.225521Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Practical example: compat_sys_sendmsg vs sys_sendmsg",
+      "source_hash": 2293508204375111129,
+      "context_hash": 14431996363865331871,
+      "translation": "실제 예: compat_sys_sendmsg 대 sys_sendmsg",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:35.225522Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "`sendmsg()` passes `struct msghdr __user *`, which contains an embedded `struct iovec __user *` and a `void __user *` for the control message.",
+      "source_hash": 11087584832511825024,
+      "context_hash": 8257739418305917222,
+      "translation": "`sendmsg()`는 `struct msghdr __user *`를 전달하며, 이 구조체에는 `struct iovec __user *`와 제어 메시지를 위한 `void __user *`가 포함되어 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:14.546256Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:1",
+      "source": "Because both are pointers, they differ in size between 32-bit and 64-bit:",
+      "source_hash": 5564037735708147902,
+      "context_hash": 10711411594089887459,
+      "translation": "둘 다 포인터이므로 32비트와 64비트에서 크기가 서로 다릅니다.",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:01:14.546257Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "The `MSG_CMSG_COMPAT` flag, not a separate boolean, is what marks this as a compat call — it's OR'd in here.",
+      "source_hash": 10255796476238397594,
+      "context_hash": 4455788794576862953,
+      "translation": "이 호출을 compat 호출로 표시하는 것은 별도의 boolean 값이 아니라 `MSG_CMSG_COMPAT` 플래그이며, 이 플래그는 여기에서 OR 연산으로 추가됩니다.",
+      "glossary_snapshot": {
+        "compat": "compat"
+      },
+      "translated_at": "2026-11-14T23:01:14.546257Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:1",
+      "source": "The final argument to `__sys_sendmsg()` is `forbid_cmsg_compat`: when `true`, it rejects a caller that has `MSG_CMSG_COMPAT` set (used by the *native* `sys_sendmsg` path, to reject a native caller spoofing that flag); the compat path legitimately sets the flag itself, so it passes `false`.",
+      "source_hash": 8123832224792024085,
+      "context_hash": 2332396708580652991,
+      "translation": "`__sys_sendmsg()`의 마지막 인자는 `forbid_cmsg_compat`입니다. 이 값이 `true`이면 `MSG_CMSG_COMPAT`가 설정된 호출자를 거부합니다(*네이티브* `sys_sendmsg` 경로에서 이 플래그를 위조한 네이티브 호출자를 거부하는 데 사용됩니다). compat 경로는 이 플래그를 정당하게 직접 설정하므로 `false`를 전달합니다.",
+      "glossary_snapshot": {
+        "compat": "compat"
+      },
+      "translated_at": "2026-11-14T23:01:14.546258Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:2",
+      "source": "Downstream, `sendmsg_copy_msghdr()` (`net/socket.c`) is what actually branches on `MSG_CMSG_COMPAT`: on the compat path it calls `get_compat_msghdr()`, which reads `struct compat_msghdr` (containing `compat_uptr_t` fields) and reconstructs a native `struct msghdr` in kernel space before proceeding; on the native path it calls `copy_msghdr_from_user()` instead.",
+      "source_hash": 7306112352599061092,
+      "context_hash": 6883635310943275510,
+      "translation": "이후 단계에서 실제로 `MSG_CMSG_COMPAT`에 따라 분기하는 것은 `sendmsg_copy_msghdr()`(`net/socket.c`)입니다. compat 경로에서는 `get_compat_msghdr()`를 호출하는데, 이 함수는 `struct compat_msghdr`(`compat_uptr_t` 필드를 포함)를 읽은 다음 처리를 계속하기 전에 커널 공간에서 네이티브 `struct msghdr`를 재구성합니다. 네이티브 경로에서는 대신 `copy_msghdr_from_user()`를 호출합니다.",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "kernel space": "커널 공간"
+      },
+      "translated_at": "2026-11-14T23:01:14.546258Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Detecting 32-bit processes",
+      "source_hash": 587541760496460080,
+      "context_hash": 17692696342121652612,
+      "translation": "32비트 프로세스 감지",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "processes": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:01:14.546260Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "Inside the kernel, `task_pt_regs(task)->cs` is compared to `__USER32_CS` to determine the execution mode of a traced task.",
+      "source_hash": 4225849389704527927,
+      "context_hash": 1510401679691247457,
+      "translation": "커널 내부에서는 트레이스 대상 태스크의 실행 모드를 판별하기 위해 `task_pt_regs(task)->cs`를 `__USER32_CS`와 비교합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:01:14.546260Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:0/seg:0",
+      "source": "The old compat_alloc_user_space() pattern — removed in Linux 5.15",
+      "source_hash": 1810239199955570246,
+      "context_hash": 16809663711749649195,
+      "translation": "과거의 compat_alloc_user_space() 패턴 — Linux 5.15에서 제거됨",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T23:01:14.546261Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:1/seg:0",
+      "source": "Older compat handlers used a different strategy from the shared-helper pattern above: build a native-layout struct in a scratch region carved out below the user's own stack pointer, then call the *native* syscall handler as if userspace itself had passed that struct. `compat_alloc_user_space()` was the function that carved out that scratch region — it aligned the result to 16 bytes, checked it stayed within the caller's address range, and validated it with `access_ok()` before handing it back.",
+      "source_hash": 8647810632933187527,
+      "context_hash": 2714633733268390667,
+      "translation": "과거의 compat 핸들러는 위의 공유 헬퍼 패턴과는 다른 전략을 사용했습니다. 즉, 사용자 자신의 스택 포인터 아래에 확보한 임시 영역에 네이티브 레이아웃의 구조체를 만든 다음, 마치 사용자 공간이 직접 그 구조체를 전달한 것처럼 *네이티브* 시스템 콜 핸들러를 호출했습니다. 그 임시 영역을 확보하는 함수가 `compat_alloc_user_space()`였습니다. 이 함수는 결과를 16바이트로 정렬하고, 호출자의 주소 범위 안에 머무르는지 확인하고, `access_ok()`로 검증한 뒤 반환했습니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "bytes": "바이트",
+        "compat": "compat",
+        "function": "함수",
+        "handler": "핸들러",
+        "handlers": "핸들러",
+        "struct": "구조체",
+        "syscall": "시스템 콜",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:01:14.546261Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:0",
+      "source": "That function, and the pattern it enabled, is gone.",
+      "source_hash": 8937410295524601520,
+      "context_hash": 4249778685435689667,
+      "translation": "그 함수와 그 함수가 가능하게 했던 패턴은 이제 사라졌습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T23:01:14.546262Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:2/seg:1",
+      "source": "Arnd Bergmann's series eliminating `set_fs()`-based address-space overrides removed the last callers, and `compat_alloc_user_space()` itself in [commit a7a08b275a8b](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a7a08b275a8bbade798c4bdaad07ade68fe7003c) (\"arch: remove compat_alloc_user_space\") — first absent starting in **Linux 5.15** (October 2021).",
+      "source_hash": 2312684510236142651,
+      "context_hash": 6627517381105069180,
+      "translation": "`set_fs()` 기반 주소 공간 재정의를 없애는 Arnd Bergmann의 패치 시리즈가 마지막 호출자들을 제거했고, `compat_alloc_user_space()` 자체는 [commit a7a08b275a8b](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a7a08b275a8bbade798c4bdaad07ade68fe7003c)(\"arch: remove compat_alloc_user_space\")에서 제거되었습니다. 이 함수는 **Linux 5.15**(2021년 10월)부터 존재하지 않습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T23:01:14.546262Z",
+      "issues": []
+    },
+    {
+      "id": "section:13/block:3/seg:0",
+      "source": "The replacement isn't a new function; it's the shared-kernel-space-helper pattern this page already showed for `sendmsg()`: a common `__sys_*()` function that takes already-copied-in kernel data and is called directly from both the native and compat entry points, with any compat-specific translation (pointer width, `MSG_CMSG_COMPAT`, etc.) done in kernel space along the way — never by faking a struct on the user's own stack and re-entering as if userspace had built it. `compat_sys_socketcall()` (`net/compat.c`) — the very function this section used to cite as a `compat_alloc_user_space()` user — is a good example of the *before* and *after* in one place: it's still a genuinely separate compat handler (a 32-bit process packs its socketcall argument array as `u32`s, not native `unsigned long`s, so it can't just reuse the native parser), but it now `copy_from_user()`s that array into kernel space and dispatches straight to the same internal helpers the native path uses (`__sys_bind()`, `__sys_connect()`, ...), translating pointer-sized arguments with `compat_ptr()` along the way — no user-stack scratch space involved.",
+      "source_hash": 9757771633448735280,
+      "context_hash": 6560583930848526954,
+      "translation": "대체 수단은 새로운 함수가 아니라, 이 페이지에서 이미 `sendmsg()`에 대해 보여 준 공유 커널 공간 헬퍼 패턴입니다. 즉, 이미 복사되어 들어온 커널 데이터를 받는 공통 `__sys_*()` 함수를 네이티브 진입점과 compat 진입점 양쪽에서 직접 호출하고, compat 고유의 변환(포인터 폭, `MSG_CMSG_COMPAT` 등)은 그 과정에서 커널 공간에서 수행합니다. 사용자 자신의 스택에 구조체를 위조하고 마치 사용자 공간이 그것을 만든 것처럼 다시 진입하는 방식은 결코 사용하지 않습니다. `compat_sys_socketcall()`(`net/compat.c`)은 이 절에서 예전에 `compat_alloc_user_space()` 사용 예로 인용했던 바로 그 함수로, *이전*과 *이후*를 한곳에서 보여 주는 좋은 예입니다. 이 함수는 여전히 실제로 별도의 compat 핸들러입니다(32비트 프로세스는 socketcall 인자 배열을 네이티브 `unsigned long`이 아닌 `u32`로 채우므로 네이티브 파서를 그대로 재사용할 수 없습니다). 그러나 이제는 그 배열을 `copy_from_user()`로 커널 공간에 복사한 다음, 네이티브 경로가 사용하는 것과 동일한 내부 헬퍼(`__sys_bind()`, `__sys_connect()`, ...)로 곧바로 디스패치하며, 그 과정에서 포인터 크기의 인자를 `compat_ptr()`로 변환합니다. 사용자 스택의 임시 공간은 전혀 사용하지 않습니다.",
+      "glossary_snapshot": {
+        "array": "배열",
+        "bit": "비트",
+        "compat": "compat",
+        "entry points": "진입점",
+        "function": "함수",
+        "handler": "핸들러",
+        "kernel": "커널",
+        "kernel space": "커널 공간",
+        "process": "프로세스",
+        "struct": "구조체",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T23:01:14.546262Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:0/seg:0",
+      "source": "Summary: when to write a compat handler",
+      "source_hash": 3965701999075736953,
+      "context_hash": 3116602068693888198,
+      "translation": "요약: compat 핸들러를 작성해야 하는 경우",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:01:14.546263Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:1/seg:0",
+      "source": "Situation",
+      "source_hash": 6406082565441628687,
+      "context_hash": 8622077316172078034,
+      "translation": "상황",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:14.546263Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:2/seg:0",
+      "source": "Action",
+      "source_hash": 2731375089192003298,
+      "context_hash": 18117273189849607141,
+      "translation": "동작",
+      "glossary_snapshot": {
+        "Action": "동작"
+      },
+      "translated_at": "2026-11-14T23:34:40.670699Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:3/seg:0",
+      "source": "Syscall args are `int`, `unsigned int`, fixed-size types",
+      "source_hash": 3618908946375466132,
+      "context_hash": 11626259217842837142,
+      "translation": "시스템 콜 인자가 `int`, `unsigned int`, 고정 크기 타입인 경우",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T23:01:14.546264Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:4/seg:0",
+      "source": "Share native handler",
+      "source_hash": 6742142538053380733,
+      "context_hash": 10306644551732855674,
+      "translation": "네이티브 핸들러 공유",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:01:14.546264Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:5/seg:0",
+      "source": "Args contain `long`, `size_t`, `off_t`, or pointers",
+      "source_hash": 14798504385142839754,
+      "context_hash": 7385247022702851472,
+      "translation": "인자에 `long`, `size_t`, `off_t` 또는 포인터가 포함된 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:14.546264Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:6/seg:0",
+      "source": "Write `COMPAT_SYSCALL_DEFINE` handler",
+      "source_hash": 11478532367899732511,
+      "context_hash": 5954226937882267922,
+      "translation": "`COMPAT_SYSCALL_DEFINE` 핸들러 작성",
+      "glossary_snapshot": {
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:01:14.546265Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:7/seg:0",
+      "source": "Struct passed by pointer uses explicit `__u64`/`__u32`",
+      "source_hash": 10407126601465747573,
+      "context_hash": 11914980970251427612,
+      "translation": "포인터로 전달되는 구조체가 명시적인 `__u64`/`__u32`를 사용하는 경우",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T23:01:14.546265Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:8/seg:0",
+      "source": "Share native handler (no compat needed)",
+      "source_hash": 8621758530464224647,
+      "context_hash": 2576254274736966733,
+      "translation": "네이티브 핸들러 공유(compat 불필요)",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T23:01:14.546265Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:9/seg:0",
+      "source": "Struct has embedded pointer or `time_t`",
+      "source_hash": 14795073294092085061,
+      "context_hash": 14580029955062877443,
+      "translation": "구조체에 포인터 또는 `time_t`가 포함된 경우",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T23:01:14.546265Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:10/seg:0",
+      "source": "Write compat struct + compat handler",
+      "source_hash": 5435770143336197759,
+      "context_hash": 10359184472178842907,
+      "translation": "compat 구조체 + compat 핸들러 작성",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handler": "핸들러",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T23:01:14.546265Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:11/seg:0",
+      "source": "Driver `ioctl` with pointer args",
+      "source_hash": 13792457624150039132,
+      "context_hash": 17260918644385265299,
+      "translation": "포인터 인자를 받는 드라이버 `ioctl`",
+      "glossary_snapshot": {
+        "driver": "드라이버"
+      },
+      "translated_at": "2026-11-14T23:01:14.546265Z",
+      "issues": []
+    },
+    {
+      "id": "section:14/block:12/seg:0",
+      "source": "Implement `compat_ioctl` in `file_operations`",
+      "source_hash": 10595226735431281865,
+      "context_hash": 14092817800986782510,
+      "translation": "`file_operations`에 `compat_ioctl` 구현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:14.546265Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 4224003157328058252,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T23:01:14.546266Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 7998932448067232046,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:01:14.546266Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:2/seg:0",
+      "source": "[include/linux/compat.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/compat.h) — `COMPAT_SYSCALL_DEFINEx()` macros, `compat_ptr()`/`ptr_to_compat()`, `struct compat_iovec`",
+      "source_hash": 10174168680348717942,
+      "context_hash": 3289458725803070802,
+      "translation": "[include/linux/compat.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/compat.h) — `COMPAT_SYSCALL_DEFINEx()` 매크로, `compat_ptr()`/`ptr_to_compat()`, `struct compat_iovec`",
+      "glossary_snapshot": {
+        "macros": "매크로"
+      },
+      "translated_at": "2026-11-14T23:01:14.546266Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:3/seg:0",
+      "source": "[include/asm-generic/compat.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/asm-generic/compat.h) — the base `compat_uptr_t`, `compat_size_t`, `compat_long_t`, `compat_s64`/`compat_u64` typedefs (pulled in by each arch's `asm/compat.h`)",
+      "source_hash": 9358452671692350615,
+      "context_hash": 18385621018718823330,
+      "translation": "[include/asm-generic/compat.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/asm-generic/compat.h) — 기본 `compat_uptr_t`, `compat_size_t`, `compat_long_t`, `compat_s64`/`compat_u64` typedef(각 아키텍처의 `asm/compat.h`가 포함함)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:14.546266Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:4/seg:0",
+      "source": "[arch/x86/include/asm/compat.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/compat.h) — `struct compat_stat` and the x86 override of `in_compat_syscall()`/`in_32bit_syscall()`",
+      "source_hash": 1960974668646840232,
+      "context_hash": 7732810768644985411,
+      "translation": "[arch/x86/include/asm/compat.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/compat.h) — `struct compat_stat` 및 `in_compat_syscall()`/`in_32bit_syscall()`의 x86 재정의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:01:14.546266Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:5/seg:0",
+      "source": "[arch/x86/include/asm/thread_info.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/thread_info.h) — the `in_ia32_syscall()` macro and the `TS_COMPAT` flag it checks",
+      "source_hash": 3824212763390584585,
+      "context_hash": 18392147107256968100,
+      "translation": "[arch/x86/include/asm/thread_info.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/thread_info.h) — `in_ia32_syscall()` 매크로와 이 매크로가 검사하는 `TS_COMPAT` 플래그",
+      "glossary_snapshot": {
+        "macro": "매크로"
+      },
+      "translated_at": "2026-11-14T23:01:14.546267Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:6/seg:0",
+      "source": "[include/vdso/time32.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/vdso/time32.h) — `struct old_timespec32`, the real 32-bit-layout timespec",
+      "source_hash": 10533090013146356152,
+      "context_hash": 11223120408679280283,
+      "translation": "[include/vdso/time32.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/vdso/time32.h) — 실제 32비트 레이아웃 timespec인 `struct old_timespec32`",
+      "glossary_snapshot": {
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:01:14.546267Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:7/seg:0",
+      "source": "[arch/x86/include/asm/syscall_wrapper.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/syscall_wrapper.h) — `__IA32_COMPAT_SYS_STUBx()`: generates the `__ia32_compat_sys_xxx` entry stub",
+      "source_hash": 8173682311685282959,
+      "context_hash": 2445151880874218435,
+      "translation": "[arch/x86/include/asm/syscall_wrapper.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/include/asm/syscall_wrapper.h) — `__IA32_COMPAT_SYS_STUBx()`: `__ia32_compat_sys_xxx` 진입 스텁 생성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:40.697384Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:8/seg:0",
+      "source": "[arch/x86/entry/syscalls/syscall_32.tbl](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/syscalls/syscall_32.tbl) — the ia32 syscall table, including its compat-entry-point column",
+      "source_hash": 13645637215105680716,
+      "context_hash": 3682887034324706906,
+      "translation": "[arch/x86/entry/syscalls/syscall_32.tbl](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/arch/x86/entry/syscalls/syscall_32.tbl) — compat 진입점 열을 포함한 ia32 시스템 콜 테이블",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:40.697385Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:9/seg:0",
+      "source": "[include/uapi/linux/openat2.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/openat2.h) — `struct open_how`: an explicit-width UAPI struct that needs no compat handler",
+      "source_hash": 10003212818615847311,
+      "context_hash": 4709890498588551569,
+      "translation": "[include/uapi/linux/openat2.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/openat2.h) — `struct open_how`: compat 핸들러가 필요 없는, 폭이 명시된 UAPI 구조체",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handler": "핸들러",
+        "struct": "구조체",
+        "uapi": "uapi"
+      },
+      "translated_at": "2026-11-14T22:17:40.697386Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:10/seg:0",
+      "source": "[net/compat.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/net/compat.c) — `compat_sys_sendmsg`/`compat_sys_recvmsg`, `compat_sys_socketcall()`, and `get_compat_msghdr()`",
+      "source_hash": 4238486113306522203,
+      "context_hash": 16807435171230582810,
+      "translation": "[net/compat.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/net/compat.c) — `compat_sys_sendmsg`/`compat_sys_recvmsg`, `compat_sys_socketcall()`, `get_compat_msghdr()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:40.697386Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:11/seg:0",
+      "source": "[include/linux/fs.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/fs.h) — `struct file_operations`, including the `compat_ioctl` member",
+      "source_hash": 13774348387614778501,
+      "context_hash": 16319366877440398343,
+      "translation": "[include/linux/fs.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/fs.h) — `compat_ioctl` 멤버를 포함한 `struct file_operations`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:40.697387Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:12/seg:0",
+      "source": "[fs/ioctl.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ioctl.c) — `compat_ptr_ioctl()` and the compat `ioctl()` syscall's dispatch logic",
+      "source_hash": 16473692182704809153,
+      "context_hash": 13362589983412231301,
+      "translation": "[fs/ioctl.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/ioctl.c) — `compat_ptr_ioctl()`와 compat `ioctl()` 시스템 콜의 디스패치 로직",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:40.697387Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:13/seg:0",
+      "source": "[commit a7a08b275a8b](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a7a08b275a8bbade798c4bdaad07ade68fe7003c) — \"arch: remove compat_alloc_user_space\", Arnd Bergmann, first in Linux 5.15",
+      "source_hash": 12275106725062764712,
+      "context_hash": 2093359455916444681,
+      "translation": "[commit a7a08b275a8b](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a7a08b275a8bbade798c4bdaad07ade68fe7003c) — \"arch: remove compat_alloc_user_space\", Arnd Bergmann, Linux 5.15에서 처음 포함",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:17:40.697387Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:14/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 2253268313827591369,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:40.697387Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:15/seg:0",
+      "source": "[SYSCALL_DEFINE and Dispatch](syscall-define.md) — How native syscalls are defined and dispatched",
+      "source_hash": 2444780810872455087,
+      "context_hash": 8659297690902012064,
+      "translation": "[SYSCALL_DEFINE and Dispatch](syscall-define.md) — 네이티브 시스템 콜의 정의 및 디스패치 방식",
+      "glossary_snapshot": {
+        "syscalls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:40.697387Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:16/seg:0",
+      "source": "[Syscall Entry Path](syscall-entry.md) — `do_syscall_64()`'s dispatch and the `do_syscall_x32()` x32 path; ia32 compat dispatches through its own separate entry point (`ia32_sys_call()`) rather than through either of these",
+      "source_hash": 16804191015098054103,
+      "context_hash": 9819898047995453946,
+      "translation": "[시스템 콜 진입 경로](syscall-entry.md) — `do_syscall_64()`의 디스패치와 `do_syscall_x32()` x32 경로를 다룹니다. ia32 compat은 이 둘 중 어느 것도 거치지 않고 별도의 자체 진입점(`ia32_sys_call()`)을 통해 디스패치합니다",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "entry point": "진입점",
+        "syscall entry": "시스템 콜 진입"
+      },
+      "translated_at": "2026-11-14T22:17:40.697388Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:17/seg:0",
+      "source": "[Adding a New Syscall](adding-syscall.md) — Includes the checklist for deciding whether a new syscall needs a compat handler",
+      "source_hash": 3279528609156576174,
+      "context_hash": 14008409512198454765,
+      "translation": "[Adding a New Syscall](adding-syscall.md) — 새 시스템 콜에 compat 핸들러가 필요한지 판단하는 체크리스트 포함",
+      "glossary_snapshot": {
+        "compat": "compat",
+        "handler": "핸들러",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:40.697389Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:18/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 9851184547260959604,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:17:40.697389Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:19/seg:0",
+      "source": "[LWN: System calls and 64-bit architectures](https://lwn.net/Articles/311630/) — Jake Edge, December 2008; the `preadv()`/`pwritev()` design debate that illustrates why some syscalls need a `compat_sys_*` handler and others don't",
+      "source_hash": 8145689587626867866,
+      "context_hash": 4147983633629496039,
+      "translation": "[LWN: System calls and 64-bit architectures](https://lwn.net/Articles/311630/) — Jake Edge, 2008년 12월. 일부 시스템 콜에는 `compat_sys_*` 핸들러가 필요하고 다른 시스템 콜에는 필요하지 않은 이유를 보여 주는 `preadv()`/`pwritev()` 설계 논쟁",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "handler": "핸들러",
+        "syscalls": "시스템 콜",
+        "system calls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:40.697389Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:20/seg:0",
+      "source": "External",
+      "source_hash": 18173270850398166434,
+      "context_hash": 10796384796442051901,
+      "translation": "외부 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:40.697390Z",
+      "issues": []
+    },
+    {
+      "id": "section:15/block:21/seg:0",
+      "source": "[Adding System Calls — The Linux Kernel documentation](https://docs.kernel.org/process/adding-syscalls.html) — Rendered version of `Documentation/process/adding-syscalls.rst`; see \"Compatibility System Calls (Generic)\" for when a compat handler is required",
+      "source_hash": 17087350775771227122,
+      "context_hash": 18191167322867389807,
+      "translation": "[Adding System Calls — The Linux Kernel documentation](https://docs.kernel.org/process/adding-syscalls.html) — `Documentation/process/adding-syscalls.rst`를 렌더링한 버전입니다. compat 핸들러가 필요한 경우는 \"Compatibility System Calls (Generic)\"(호환 시스템 콜(범용)) 절을 참조하십시오",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "compat": "compat",
+        "handler": "핸들러",
+        "system calls": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:40.697390Z",
+      "issues": []
+    }
+  ]
+}

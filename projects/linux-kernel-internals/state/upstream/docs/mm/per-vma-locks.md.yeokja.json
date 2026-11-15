@@ -1,0 +1,1279 @@
+{
+  "version": 1,
+  "source_hash": 7827030464795969216,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Per-VMA Locks",
+      "source_hash": 2009565694171515508,
+      "context_hash": 6007243637143220421,
+      "translation": "VMA별 락",
+      "glossary_snapshot": {
+        "Per-VMA Locks": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873742Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Eliminating the mmap_lock bottleneck in page fault handling",
+      "source_hash": 16371168590100037470,
+      "context_hash": 15132490796968299210,
+      "translation": "페이지 폴트 처리에서 mmap_lock 병목 제거",
+      "glossary_snapshot": {
+        "page fault": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T23:00:18.428562Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The mmap_lock bottleneck",
+      "source_hash": 2074702918593645403,
+      "context_hash": 13529203612405822278,
+      "translation": "mmap_lock 병목",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.428562Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Every process has a single per-`mm_struct` read-write semaphore called `mmap_lock`.",
+      "source_hash": 13629399063634335802,
+      "context_hash": 5172663480121979683,
+      "translation": "모든 프로세스에는 `mmap_lock`이라는 `mm_struct`별 read-write 세마포어가 하나 있습니다.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "semaphore": "세마포어"
+      },
+      "translated_at": "2026-11-14T23:00:18.428563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Historically it was the gate for nearly every operation that touches the process's virtual memory layout:",
+      "source_hash": 8348447199772072807,
+      "context_hash": 15627087541071385509,
+      "translation": "역사적으로 이 락은 프로세스의 가상 메모리 레이아웃을 건드리는 거의 모든 작업의 관문이었습니다:",
+      "glossary_snapshot": {
+        "memory": "메모리",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:00:18.428563Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "Page faults acquire it **for read** (shared access with other faults)",
+      "source_hash": 16038620686712527001,
+      "context_hash": 5296524624048121760,
+      "translation": "페이지 폴트는 이 락을 **읽기용으로** 획득함(다른 폴트와 공유 접근)",
+      "glossary_snapshot": {
+        "page faults": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T23:00:18.428564Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "`mmap()`, `munmap()`, `mprotect()`, `mremap()`, `brk()` acquire it **for write** (exclusive)",
+      "source_hash": 14455263127652725863,
+      "context_hash": 5470759144232641164,
+      "translation": "`mmap()`, `munmap()`, `mprotect()`, `mremap()`, `brk()`는 이 락을 **쓰기용으로** 획득함(배타적)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.428564Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "The read-side contention problem is subtle.",
+      "source_hash": 13261940613416208734,
+      "context_hash": 17798807417875801317,
+      "translation": "읽기 측 경합 문제는 미묘합니다.",
+      "glossary_snapshot": {
+        "contention": "경합"
+      },
+      "translated_at": "2026-11-14T23:00:18.428565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "Read locks in a rwsem are shared, so multiple threads faulting simultaneously should be able to proceed in parallel — and they do, until a writer shows up.",
+      "source_hash": 2285195284022077976,
+      "context_hash": 13373729680455235705,
+      "translation": "rwsem의 읽기 락은 공유되므로 동시에 폴트를 일으키는 여러 스레드는 병렬로 진행할 수 있어야 하며, 실제로 writer가 나타나기 전까지는 그렇게 진행합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.428565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "A single `mmap()` or `munmap()` call in any thread takes the write lock and **blocks every concurrent page fault** in the process until the writer finishes.",
+      "source_hash": 1238769489641353295,
+      "context_hash": 18215276084032744721,
+      "translation": "어느 스레드에서든 `mmap()`이나 `munmap()`을 한 번만 호출해도 쓰기 락을 잡게 되며, writer가 끝날 때까지 프로세스 내의 **동시에 발생하는 모든 페이지 폴트를 차단합니다**.",
+      "glossary_snapshot": {
+        "page fault": "페이지 폴트",
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:00:18.428565Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "For multi-threaded workloads that mix frequent faults with occasional VMA modifications (think: many worker threads faulting in new heap pages while the allocator occasionally calls `mmap()`), `mmap_lock` becomes a serialization point that caps fault throughput.",
+      "source_hash": 2097261004606059373,
+      "context_hash": 10500444826478947628,
+      "translation": "빈번한 폴트와 가끔 일어나는 VMA 수정이 섞인 멀티스레드 워크로드(예: 할당자가 가끔 `mmap()`을 호출하는 동안 많은 워커 스레드가 새 힙 페이지를 폴트로 가져오는 경우)에서는 `mmap_lock`이 폴트 처리량을 제한하는 직렬화 지점이 됩니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "allocator": "할당자",
+        "heap": "힙",
+        "throughput": "처리량",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T23:00:18.428566Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The `mmap_lock` is also coarse: it protects the entire VMA tree.",
+      "source_hash": 14047647195366644036,
+      "context_hash": 8142499979983992831,
+      "translation": "`mmap_lock`은 또한 단위가 큽니다(coarse). 이 락은 VMA 트리 전체를 보호합니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.428566Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:1",
+      "source": "If thread A is faulting in region X and thread B is faulting in region Y, they still contend on the same lock even though they are touching completely different VMAs.",
+      "source_hash": 5481921860464712056,
+      "context_hash": 7777238284664297904,
+      "translation": "스레드 A가 영역 X에서 폴트를 일으키고 스레드 B가 영역 Y에서 폴트를 일으키는 경우, 두 스레드가 완전히 다른 VMA를 건드리고 있는데도 여전히 같은 락을 두고 경합합니다.",
+      "glossary_snapshot": {
+        "VMAs": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.428566Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Per-VMA lock design",
+      "source_hash": 6307943256201811967,
+      "context_hash": 12384147250245981876,
+      "translation": "VMA별 락 설계",
+      "glossary_snapshot": {
+        "per-VMA lock": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873743Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Per-VMA locks (merged in Linux 6.4) give each `vm_area_struct` its own lightweight lock.",
+      "source_hash": 12535837633935443800,
+      "context_hash": 12661416305158597546,
+      "translation": "VMA별 락(Linux 6.4에서 병합)은 각 `vm_area_struct`에 자체적인 경량 락을 부여합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "Per-VMA Locks": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873744Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "The page fault path tries this VMA-scoped lock first, only falling back to `mmap_lock` if the VMA is being modified concurrently.",
+      "source_hash": 17864300133358264374,
+      "context_hash": 17858511331043998866,
+      "translation": "페이지 폴트 경로는 먼저 이 VMA 범위의 락을 시도하며, 해당 VMA가 동시에 수정되고 있는 경우에만 `mmap_lock`으로 폴백합니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "page fault": "페이지 폴트"
+      },
+      "translated_at": "2026-11-14T23:00:18.428567Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "Lock state in the VMA",
+      "source_hash": 12690961027928458231,
+      "context_hash": 2914870279014225798,
+      "translation": "VMA의 락 상태",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.428568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "Two fields in `vm_area_struct` implement the per-VMA lock (guarded by `CONFIG_PER_VMA_LOCK`):",
+      "source_hash": 14802037182013484707,
+      "context_hash": 15221502921771733879,
+      "translation": "`vm_area_struct`의 두 필드가 VMA별 락을 구현합니다(`CONFIG_PER_VMA_LOCK`으로 보호됨).",
+      "glossary_snapshot": {
+        "per-VMA lock": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873745Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The per-`mm_struct` counterpart is:",
+      "source_hash": 1206056342694427269,
+      "context_hash": 4101184922517161942,
+      "translation": "`mm_struct`별 대응 필드는 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.428568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "A VMA is considered **unlocked** when `vma->vm_lock_seq != mm->mm_lock_seq`.",
+      "source_hash": 5864187308411108015,
+      "context_hash": 6690895665482725098,
+      "translation": "`vma->vm_lock_seq != mm->mm_lock_seq`일 때 VMA는 **잠기지 않은** 것으로 간주됩니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.428568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:1",
+      "source": "Whenever the mm is write-locked (e.g. for `mmap()`), `mm_lock_seq` is incremented, which invalidates all existing per-VMA read locks simultaneously — without touching each VMA.",
+      "source_hash": 13357592793247451951,
+      "context_hash": 5956240742173186824,
+      "translation": "mm이 쓰기 락으로 잠길 때마다(예: `mmap()`을 위해) `mm_lock_seq`가 증가하며, 이로써 각 VMA를 건드리지 않고도 기존의 모든 per-VMA 읽기 락이 한꺼번에 무효화됩니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.428568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "The `vm_refcnt` field encodes the reader count plus a special `VM_REFCNT_EXCLUDE_READERS_FLAG` bit used during write-locking and VMA detach.",
+      "source_hash": 2131817019482923289,
+      "context_hash": 271407836975610433,
+      "translation": "`vm_refcnt` 필드는 reader 수와 함께, 쓰기 락 획득과 VMA detach 중에 사용되는 특수한 `VM_REFCNT_EXCLUDE_READERS_FLAG` 비트를 인코딩합니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T23:00:18.428568Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:1",
+      "source": "The detailed state machine is documented in the `vm_area_struct` definition in `include/linux/mm_types.h`.",
+      "source_hash": 2911943653051587538,
+      "context_hash": 4548927654944416180,
+      "translation": "자세한 상태 머신은 `include/linux/mm_types.h`의 `vm_area_struct` 정의에 문서화되어 있습니다.",
+      "glossary_snapshot": {
+        "state machine": "상태 머신"
+      },
+      "translated_at": "2026-11-14T23:00:18.428569Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "The sequence counter is allowed to overflow",
+      "source_hash": 13129160464260179683,
+      "context_hash": 16149673590533202842,
+      "translation": "시퀀스 카운터의 오버플로 허용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.428569Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "The kernel comment on `vm_lock_seq` explicitly notes that overflow is acceptable.",
+      "source_hash": 15860487057529548416,
+      "context_hash": 562562151457033579,
+      "translation": "`vm_lock_seq`에 대한 커널 주석은 오버플로가 허용된다고 명시합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:18.428569Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:1",
+      "source": "Overflow can only cause an occasional unnecessary fallback to `mmap_lock`, not a correctness failure.",
+      "source_hash": 701285534606753885,
+      "context_hash": 1024286917255211963,
+      "translation": "오버플로는 가끔 불필요하게 `mmap_lock`으로 폴백하게 만들 수 있을 뿐, 정확성 문제를 일으키지는 않습니다.",
+      "glossary_snapshot": {
+        "correctness": "정확성",
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T23:00:18.428569Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "The VMA lookup: maple tree + RCU",
+      "source_hash": 4158506492428427936,
+      "context_hash": 321342506763899724,
+      "translation": "VMA 조회: maple tree + RCU",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "VMA": "VMA",
+        "maple tree": "maple tree"
+      },
+      "translated_at": "2026-11-14T23:00:18.428569Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "VMA lookups during the fast fault path use the maple tree (`mm->mm_mt`, type `struct maple_tree`) under RCU protection.",
+      "source_hash": 15388206207953684902,
+      "context_hash": 7842408728193365413,
+      "translation": "빠른 폴트 경로에서의 VMA 조회는 RCU 보호 아래에서 maple tree(`mm->mm_mt`, 타입 `struct maple_tree`)를 사용합니다.",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "VMA": "VMA",
+        "maple tree": "maple tree"
+      },
+      "translated_at": "2026-11-14T23:00:18.428569Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "The maple tree is an RCU-safe B-tree that stores VMAs keyed by address range.",
+      "source_hash": 15901687007373717439,
+      "context_hash": 5322804742196491898,
+      "translation": "maple tree는 주소 범위를 키로 VMA를 저장하는 RCU-safe B-tree입니다.",
+      "glossary_snapshot": {
+        "B-tree": "B-tree",
+        "RCU": "RCU",
+        "VMAs": "VMA",
+        "address": "주소",
+        "maple tree": "maple tree"
+      },
+      "translated_at": "2026-11-14T23:00:18.428569Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "`lock_vma_under_rcu()` in `mm/memory.c` is the entry point:",
+      "source_hash": 10766539157777586262,
+      "context_hash": 17878726248493282417,
+      "translation": "`mm/memory.c`의 `lock_vma_under_rcu()`가 진입점입니다:",
+      "glossary_snapshot": {
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T23:00:18.428570Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "`vma_start_read()` checks `vma->vm_lock_seq == mm->mm_lock_seq`.",
+      "source_hash": 7061975873604964743,
+      "context_hash": 12414241316744133170,
+      "translation": "`vma_start_read()`는 `vma->vm_lock_seq == mm->mm_lock_seq`인지 확인합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790733Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "If they match the VMA is currently write-locked and the function returns NULL (falls back to mmap_lock).",
+      "source_hash": 15930986829479816236,
+      "context_hash": 16624061462602061774,
+      "translation": "두 값이 일치하면 해당 VMA는 현재 write-lock 상태이므로 함수는 NULL을 반환합니다(mmap_lock으로 폴백합니다).",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T23:00:18.790734Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:2",
+      "source": "If they don't match it increments `vm_refcnt` using an acquire fence and re-checks, establishing the read lock.",
+      "source_hash": 6245625431384505801,
+      "context_hash": 8295795226267998084,
+      "translation": "일치하지 않으면 acquire 펜스를 사용해 `vm_refcnt`를 증가시킨 뒤 다시 확인하여 읽기 잠금을 확립합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790734Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The fault path",
+      "source_hash": 9133437803203375693,
+      "context_hash": 8244054925622612660,
+      "translation": "폴트 경로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790735Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`handle_mm_fault()` in `mm/memory.c` is called by architecture fault handlers with either the VMA lock or `mmap_lock` held, indicated by the `FAULT_FLAG_VMA_LOCK` flag:",
+      "source_hash": 990954006514408711,
+      "context_hash": 14973458512348233222,
+      "translation": "`mm/memory.c`의 `handle_mm_fault()`는 아키텍처별 폴트 핸들러가 VMA 잠금 또는 `mmap_lock` 중 하나를 잡은 상태에서 호출하며, 어느 쪽인지는 `FAULT_FLAG_VMA_LOCK` 플래그로 표시합니다:",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "fault handlers": "폴트 핸들러"
+      },
+      "translated_at": "2026-11-14T23:00:18.790735Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "The architecture-specific fault handler (e.g. `do_user_addr_fault()` on x86) first tries `lock_vma_under_rcu()`.",
+      "source_hash": 14021158184312062570,
+      "context_hash": 17278571218740610270,
+      "translation": "아키텍처별 폴트 핸들러(예: x86의 `do_user_addr_fault()`)는 먼저 `lock_vma_under_rcu()`를 시도합니다.",
+      "glossary_snapshot": {
+        "fault handler": "폴트 핸들러"
+      },
+      "translated_at": "2026-11-14T23:00:18.790736Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "On success it sets `FAULT_FLAG_VMA_LOCK` and calls `handle_mm_fault()`.",
+      "source_hash": 12658063787679090957,
+      "context_hash": 4624908066038534542,
+      "translation": "성공하면 `FAULT_FLAG_VMA_LOCK`를 설정하고 `handle_mm_fault()`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790736Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:2",
+      "source": "If the RCU fast path fails (VMA modification in progress, VMA not found, or address range mismatch), it falls back to acquiring `mmap_lock` for read in the normal way.",
+      "source_hash": 6281556926521692097,
+      "context_hash": 8381189863825189590,
+      "translation": "RCU 빠른 경로가 실패하면(VMA 수정이 진행 중이거나, VMA를 찾지 못했거나, 주소 범위가 일치하지 않는 경우) 일반적인 방식으로 `mmap_lock`을 읽기용으로 획득하는 쪽으로 폴백합니다.",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "VMA": "VMA",
+        "address": "주소",
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T23:00:18.790736Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "If a fault handler inside `__handle_mm_fault()` determines it cannot proceed without `mmap_lock` — for example when it needs to retry after blocking I/O — it releases the VMA lock with `vma_end_read()` and returns `VM_FAULT_RETRY`.",
+      "source_hash": 7936754824866630842,
+      "context_hash": 7203006371002000049,
+      "translation": "`__handle_mm_fault()` 내부의 폴트 핸들러가 `mmap_lock` 없이는 진행할 수 없다고 판단하면(예: 블로킹 I/O 이후 재시도해야 하는 경우) `vma_end_read()`로 VMA 잠금을 해제하고 `VM_FAULT_RETRY`를 반환합니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "fault handler": "폴트 핸들러"
+      },
+      "translated_at": "2026-11-14T23:00:18.790737Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "The caller then retakes `mmap_lock`.",
+      "source_hash": 15475650659591504048,
+      "context_hash": 4484516212276208468,
+      "translation": "그러면 호출자가 `mmap_lock`을 다시 획득합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790737Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "Write-locking a VMA",
+      "source_hash": 430774540199616453,
+      "context_hash": 16632459392269379136,
+      "translation": "VMA write-lock 걸기",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.790737Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "When a VMA must be modified (e.g. during `mprotect()`, split/merge during `mmap()`, or unmap during `munmap()`), the kernel calls `vma_start_write()`:",
+      "source_hash": 14587261200052826727,
+      "context_hash": 16478192279221230605,
+      "translation": "VMA를 수정해야 할 때(예: `mprotect()` 중, `mmap()` 중의 분할/병합, `munmap()` 중의 언맵) 커널은 `vma_start_write()`를 호출합니다:",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:18.790737Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "`vma_start_write()` (in `mm/mmap_lock.c`) requires that `mmap_lock` is already held for write.",
+      "source_hash": 11896860292541645345,
+      "context_hash": 15390574339775786071,
+      "translation": "`vma_start_write()`(`mm/mmap_lock.c`에 있음)는 `mmap_lock`이 이미 쓰기용으로 잡혀 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790737Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "It sets `vma->vm_lock_seq = mm->mm_lock_seq`, which makes `vma_start_read()` fail for this VMA until the write-lock is released and `mm_lock_seq` is bumped again.",
+      "source_hash": 7755797355608577104,
+      "context_hash": 14178934249106678142,
+      "translation": "이 함수는 `vma->vm_lock_seq = mm->mm_lock_seq`로 설정하며, 이로 인해 write-lock이 해제되고 `mm_lock_seq`가 다시 증가할 때까지 이 VMA에 대한 `vma_start_read()`는 실패합니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.790738Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "The protocol ensures correctness: any operation that modifies a VMA must first hold `mmap_lock` write, then call `vma_start_write()`.",
+      "source_hash": 12313533546697421703,
+      "context_hash": 8805912954954986632,
+      "translation": "이 프로토콜이 정확성을 보장합니다: VMA를 수정하는 모든 작업은 먼저 `mmap_lock`을 쓰기용으로 잡은 다음 `vma_start_write()`를 호출해야 합니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "correctness": "정확성"
+      },
+      "translated_at": "2026-11-14T23:00:18.790738Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:1",
+      "source": "Fault handlers that hold a per-VMA read lock are thereby excluded from seeing partial modifications.",
+      "source_hash": 10552053115659244011,
+      "context_hash": 2174789063951669645,
+      "translation": "이에 따라 per-VMA 읽기 잠금을 잡은 폴트 핸들러는 부분적으로 수정된 상태를 보지 않게 됩니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "fault handlers": "폴트 핸들러"
+      },
+      "translated_at": "2026-11-14T23:00:18.790738Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "Operations that still require mmap_lock",
+      "source_hash": 8542382920129879539,
+      "context_hash": 12099939814607772718,
+      "translation": "여전히 mmap_lock이 필요한 작업",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Per-VMA locks only accelerate the **read** side of faults.",
+      "source_hash": 3281537199671131200,
+      "context_hash": 607952405108862354,
+      "translation": "VMA별 락은 폴트의 **읽기** 측만 가속합니다.",
+      "glossary_snapshot": {
+        "Per-VMA Locks": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873745Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "The following operations still require `mmap_lock` for write:",
+      "source_hash": 4066206358868609187,
+      "context_hash": 6391619356567621792,
+      "translation": "다음 작업은 여전히 `mmap_lock`을 쓰기용으로 잡아야 합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "Operation",
+      "source_hash": 5951239396860851695,
+      "context_hash": 602784451416265635,
+      "translation": "연산",
+      "glossary_snapshot": {
+        "Operation": "연산"
+      },
+      "translated_at": "2026-11-14T23:30:01.873746Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "Reason",
+      "source_hash": 364383163992093991,
+      "context_hash": 4333940245797707708,
+      "translation": "이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "`mmap()` / `munmap()`",
+      "source_hash": 17134205533247625258,
+      "context_hash": 12457329817366766888,
+      "translation": "`mmap()` / `munmap()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790739Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "VMA tree insertion/removal",
+      "source_hash": 13022158304164277441,
+      "context_hash": 6106175488832113553,
+      "translation": "VMA 트리 삽입/제거",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "`mprotect()`",
+      "source_hash": 6253101886566688109,
+      "context_hash": 3533101808933448617,
+      "translation": "`mprotect()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "VMA flags modification",
+      "source_hash": 14032714712909329015,
+      "context_hash": 5746276139614906163,
+      "translation": "VMA 플래그 수정",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "`mremap()`",
+      "source_hash": 10704351347416752340,
+      "context_hash": 10667547962451790890,
+      "translation": "`mremap()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:9/seg:0",
+      "source": "VMA address range change",
+      "source_hash": 2997748528728495492,
+      "context_hash": 10253017986459503667,
+      "translation": "VMA 주소 범위 변경",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "address": "주소"
+      },
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "`brk()`",
+      "source_hash": 12575708942152170755,
+      "context_hash": 4903548207852228970,
+      "translation": "`brk()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "Heap boundary change",
+      "source_hash": 17472688557299027866,
+      "context_hash": 12407865904466927729,
+      "translation": "힙 경계 변경",
+      "glossary_snapshot": {
+        "heap": "힙"
+      },
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "VMA split/merge during fault",
+      "source_hash": 10843385441639309740,
+      "context_hash": 12667045570533889898,
+      "translation": "폴트 중의 VMA 분할/병합",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "Modifies adjacent VMAs",
+      "source_hash": 17025921671961688268,
+      "context_hash": 6427058574853465110,
+      "translation": "인접 VMA 수정",
+      "glossary_snapshot": {
+        "VMAs": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "`execve()`",
+      "source_hash": 17566595945749362380,
+      "context_hash": 16702499985805880612,
+      "translation": "`execve()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:18.790740Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "Tears down entire address space",
+      "source_hash": 15988773731955860976,
+      "context_hash": 10530008386409359324,
+      "translation": "전체 주소 공간 해체",
+      "glossary_snapshot": {
+        "address space": "주소 공간"
+      },
+      "translated_at": "2026-11-14T23:00:22.286536Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "`mmap_lock` for read is still used as the fallback for any fault where the per-VMA lock path fails.",
+      "source_hash": 15061986392627214045,
+      "context_hash": 6915809479813343995,
+      "translation": "VMA별 락 경로가 실패하는 모든 폴트에서는 여전히 읽기용 `mmap_lock`이 폴백으로 사용됩니다.",
+      "glossary_snapshot": {
+        "fallback": "폴백",
+        "per-VMA lock": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873746Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Observability",
+      "source_hash": 16459083230951941770,
+      "context_hash": 9658111424779842083,
+      "translation": "관측 가능성",
+      "glossary_snapshot": {
+        "Observability": "관측 가능성"
+      },
+      "translated_at": "2026-11-14T23:00:22.286536Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "There are no sysfs knobs for per-VMA locks — the feature is always enabled when `CONFIG_PER_VMA_LOCK=y` (which is the default in kernels >= 6.4 on supported architectures).",
+      "source_hash": 6362670901772249820,
+      "context_hash": 5916261886986004946,
+      "translation": "VMA별 락을 위한 sysfs 설정 항목은 없습니다 — 이 기능은 `CONFIG_PER_VMA_LOCK=y`일 때 항상 활성화됩니다(지원되는 아키텍처의 6.4 이상 커널에서는 이것이 기본값입니다).",
+      "glossary_snapshot": {
+        "Per-VMA Locks": "VMA별 락",
+        "sysfs": "sysfs"
+      },
+      "translated_at": "2026-11-14T23:30:01.873747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Four vmstat-style counters track per-VMA lock activity (defined in `include/linux/vm_event_item.h`):",
+      "source_hash": 1197503262008911528,
+      "context_hash": 6595440499153109454,
+      "translation": "네 개의 vmstat 방식 카운터가 VMA별 락 활동을 추적합니다(`include/linux/vm_event_item.h`에 정의됨).",
+      "glossary_snapshot": {
+        "per-VMA lock": "VMA별 락",
+        "vmstat": "vmstat"
+      },
+      "translated_at": "2026-11-14T23:30:01.873747Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Counter",
+      "source_hash": 10001973807307611107,
+      "context_hash": 7555343708005696014,
+      "translation": "카운터",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286537Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "Meaning",
+      "source_hash": 14772478590945382029,
+      "context_hash": 11084456015804894098,
+      "translation": "의미",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286537Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "`VMA_LOCK_SUCCESS`",
+      "source_hash": 13425366952830762980,
+      "context_hash": 5288600940421498724,
+      "translation": "`VMA_LOCK_SUCCESS`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286537Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "Fast path succeeded; fault handled under per-VMA lock",
+      "source_hash": 4534983868380393005,
+      "context_hash": 13691300079186795416,
+      "translation": "빠른 경로 성공, VMA별 락 아래에서 폴트 처리",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로",
+        "per-VMA lock": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873748Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "`VMA_LOCK_ABORT`",
+      "source_hash": 4176604097104551149,
+      "context_hash": 4929312166035824821,
+      "translation": "`VMA_LOCK_ABORT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286537Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "Fast path failed; fell back to `mmap_lock`",
+      "source_hash": 8409309608364744559,
+      "context_hash": 9839449204015539090,
+      "translation": "빠른 경로 실패, `mmap_lock`으로 폴백",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T23:00:22.286537Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "`VMA_LOCK_RETRY`",
+      "source_hash": 13752794895040692387,
+      "context_hash": 249857759197372853,
+      "translation": "`VMA_LOCK_RETRY`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286537Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "Fast path was retried (e.g. after a transient failure)",
+      "source_hash": 11203224696255032909,
+      "context_hash": 11009414655798452617,
+      "translation": "빠른 경로 재시도(예: 일시적 실패 이후)",
+      "glossary_snapshot": {
+        "fast path": "빠른 경로"
+      },
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "`VMA_LOCK_MISS`",
+      "source_hash": 17949645022942496239,
+      "context_hash": 171739331383449188,
+      "translation": "`VMA_LOCK_MISS`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "VMA was detached between lookup and lock; retried",
+      "source_hash": 4407710524066852072,
+      "context_hash": 1068278870198330138,
+      "translation": "조회와 잠금 사이에 VMA가 분리됨, 재시도",
+      "glossary_snapshot": {
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "These are readable via the standard `count_vm_vma_lock_event()` infrastructure.",
+      "source_hash": 2397852799199472937,
+      "context_hash": 1699280022191860438,
+      "translation": "이 카운터들은 표준 `count_vm_vma_lock_event()` 인프라를 통해 읽을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:1",
+      "source": "They appear in `/proc/vmstat` on kernels where `CONFIG_PER_VMA_LOCK` is enabled.",
+      "source_hash": 14076844493240740759,
+      "context_hash": 14508910200974760980,
+      "translation": "`CONFIG_PER_VMA_LOCK`이 활성화된 커널에서는 `/proc/vmstat`에 표시됩니다.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "Diagnosing contention",
+      "source_hash": 7033318114534581116,
+      "context_hash": 16588576232052761092,
+      "translation": "경합 진단",
+      "glossary_snapshot": {
+        "contention": "경합"
+      },
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "If `VMA_LOCK_ABORT` is high relative to `VMA_LOCK_SUCCESS`, the workload is frequently faulting during VMA modifications.",
+      "source_hash": 800190953461526298,
+      "context_hash": 15858407227101475940,
+      "translation": "`VMA_LOCK_SUCCESS`에 비해 `VMA_LOCK_ABORT`가 높다면, 워크로드가 VMA 수정 중에 자주 fault를 일으키고 있다는 뜻입니다.",
+      "glossary_snapshot": {
+        "VMA": "VMA",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:1",
+      "source": "This is expected if the application calls `mmap()`/`munmap()` at high frequency from a thread that also takes heavy faults.",
+      "source_hash": 6857987662910836346,
+      "context_hash": 11832800523564640564,
+      "translation": "애플리케이션이 fault도 많이 발생시키는 스레드에서 `mmap()`/`munmap()`을 높은 빈도로 호출한다면 이는 예상되는 결과입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Limitations and special cases",
+      "source_hash": 5112162889053315409,
+      "context_hash": 2009177076401808910,
+      "translation": "제약 사항과 특수한 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "**Hugetlb faults** do not use per-VMA locks. `handle_mm_fault()` routes `VM_HUGETLB` pages through `hugetlb_fault()`, which uses its own `hugetlb_vma_lock_read()` / `hugetlb_vma_lock_write()` infrastructure — a separate locking scheme for hugetlb VMAs.",
+      "source_hash": 679470185044820534,
+      "context_hash": 9861432361789334070,
+      "translation": "**Hugetlb 폴트**는 VMA별 락을 사용하지 않습니다. `handle_mm_fault()`는 `VM_HUGETLB` 페이지를 `hugetlb_fault()`로 보내며, 이 함수는 자체 `hugetlb_vma_lock_read()` / `hugetlb_vma_lock_write()` 인프라를 사용합니다 — hugetlb VMA를 위한 별도의 락 방식입니다.",
+      "glossary_snapshot": {
+        "Per-VMA Locks": "VMA별 락",
+        "VMAs": "VMA"
+      },
+      "translated_at": "2026-11-14T23:30:01.873749Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "**FAULT_FLAG_RETRY_NOWAIT** cannot be combined with `FAULT_FLAG_VMA_LOCK`.",
+      "source_hash": 4701561014593667766,
+      "context_hash": 510238697450974599,
+      "translation": "**FAULT_FLAG_RETRY_NOWAIT**는 `FAULT_FLAG_VMA_LOCK`과 함께 사용할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:1",
+      "source": "The kernel asserts this in `sanitize_fault_flags()`:",
+      "source_hash": 1636800178266844194,
+      "context_hash": 11040082070477955100,
+      "translation": "커널은 `sanitize_fault_flags()`에서 이를 검사합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:22.286538Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "The reason: `FAULT_FLAG_RETRY_NOWAIT` assumes the lock is not dropped on `VM_FAULT_RETRY`, but per-VMA lock protocol requires dropping it.",
+      "source_hash": 12780330092986731919,
+      "context_hash": 515956730243998806,
+      "translation": "그 이유는 다음과 같습니다. `FAULT_FLAG_RETRY_NOWAIT`는 `VM_FAULT_RETRY` 시 락이 해제되지 않는다고 가정하지만, VMA별 락 프로토콜은 락 해제를 요구합니다.",
+      "glossary_snapshot": {
+        "per-VMA lock": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873749Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "**userfaultfd** has its own interaction.",
+      "source_hash": 16545138008617217285,
+      "context_hash": 16933873120760959366,
+      "translation": "**userfaultfd**에는 고유한 상호작용이 있습니다.",
+      "glossary_snapshot": {
+        "userfaultfd": "userfaultfd"
+      },
+      "translated_at": "2026-11-14T23:00:22.286539Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:1",
+      "source": "The userfaultfd code (`mm/userfaultfd.c`) uses `lock_vma_under_rcu()` directly in some paths, calling `vma_start_read_locked()` and `vma_end_read()` explicitly.",
+      "source_hash": 9740210092084082171,
+      "context_hash": 11700798929550156095,
+      "translation": "userfaultfd 코드(`mm/userfaultfd.c`)는 일부 경로에서 `lock_vma_under_rcu()`를 직접 사용하며, `vma_start_read_locked()`와 `vma_end_read()`를 명시적으로 호출합니다.",
+      "glossary_snapshot": {
+        "userfaultfd": "userfaultfd"
+      },
+      "translated_at": "2026-11-14T23:00:22.286539Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "**madvise** for some behaviors (e.g. `MADV_DONTNEED` ranges) uses `lock_vma_under_rcu()` in the per-range path added in recent kernels.",
+      "source_hash": 18227631623623655903,
+      "context_hash": 4163625049291778434,
+      "translation": "일부 동작(예: `MADV_DONTNEED` 범위)에 대한 **madvise**는 최근 커널에 추가된 범위별 경로에서 `lock_vma_under_rcu()`를 사용합니다.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:22.286539Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "Per-VMA locks require CONFIG_PER_VMA_LOCK",
+      "source_hash": 3903332946238092770,
+      "context_hash": 12320260201379976015,
+      "translation": "VMA별 락에는 CONFIG_PER_VMA_LOCK 필요",
+      "glossary_snapshot": {
+        "Per-VMA Locks": "VMA별 락"
+      },
+      "translated_at": "2026-11-14T23:30:01.873749Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "The entire feature is compiled out if `CONFIG_PER_VMA_LOCK` is not set.",
+      "source_hash": 841088234254054521,
+      "context_hash": 2850550662595690984,
+      "translation": "`CONFIG_PER_VMA_LOCK`이 설정되지 않으면 이 기능 전체가 컴파일에서 제외됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:00:22.286539Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:1",
+      "source": "On such kernels all faults go through `mmap_lock`.",
+      "source_hash": 8795395743795506644,
+      "context_hash": 13295545239891946166,
+      "translation": "이러한 커널에서는 모든 fault가 `mmap_lock`을 거칩니다.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:22.286539Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:2",
+      "source": "Most production distro kernels enable it from 6.4 onward.",
+      "source_hash": 15044163110113371323,
+      "context_hash": 3351578554345698252,
+      "translation": "대부분의 프로덕션 배포판 커널은 6.4부터 이 기능을 활성화합니다.",
+      "glossary_snapshot": {
+        "kernels": "커널"
+      },
+      "translated_at": "2026-11-14T23:00:22.286539Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 16390894929561293138,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:08:45.351280Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 5120791401615962600,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:08:45.351281Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "[include/linux/mmap_lock.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmap_lock.h) — `vma_start_read()`, `vma_end_read()`, `vma_start_write()`, and the sequence-counter helpers",
+      "source_hash": 5995067336953171775,
+      "context_hash": 2158778132917137760,
+      "translation": "[include/linux/mmap_lock.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mmap_lock.h) — `vma_start_read()`, `vma_end_read()`, `vma_start_write()` 및 시퀀스 카운터 헬퍼",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:08:45.351281Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "[mm/mmap_lock.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/mmap_lock.c) — `lock_vma_under_rcu()`: the fast-path VMA lookup combining RCU and per-VMA locking",
+      "source_hash": 5690180847011845790,
+      "context_hash": 2579731533158195270,
+      "translation": "[mm/mmap_lock.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/mmap_lock.c) — `lock_vma_under_rcu()`: RCU와 per-VMA 락을 결합한 fast-path VMA 조회",
+      "glossary_snapshot": {
+        "RCU": "RCU",
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T22:08:45.351282Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "[include/linux/mm_types.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mm_types.h) — `vm_lock_seq`, `vm_refcnt`, and `mm_lock_seq` field definitions with their locking contracts",
+      "source_hash": 2177915866288124926,
+      "context_hash": 11878812932569162438,
+      "translation": "[include/linux/mm_types.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/mm_types.h) — `vm_lock_seq`, `vm_refcnt`, `mm_lock_seq` 필드 정의와 각 필드의 락 규약",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:08:45.351282Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Kernel commits",
+      "source_hash": 10975511428297821181,
+      "context_hash": 4513031975357023856,
+      "translation": "커널 커밋",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:08:45.351282Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "[5e31275cc997](https://git.kernel.org/linus/5e31275cc997) — Linux 6.4: \"mm: add per-VMA lock and helper functions to control it\" (Suren Baghdasaryan, Google)",
+      "source_hash": 6909141860782984200,
+      "context_hash": 7873852174150560981,
+      "translation": "[5e31275cc997](https://git.kernel.org/linus/5e31275cc997) — Linux 6.4: \"mm: add per-VMA lock and helper functions to control it\" (Suren Baghdasaryan, Google)",
+      "glossary_snapshot": {
+        "Google": "Google",
+        "Linux": "Linux",
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T22:08:45.351282Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "[d4af56c5c7c6](https://git.kernel.org/linus/d4af56c5c7c6) — Linux 6.1: maple tree VMA storage, prerequisite for scalable per-VMA locking",
+      "source_hash": 11430657117233761253,
+      "context_hash": 18390113114545443890,
+      "translation": "[d4af56c5c7c6](https://git.kernel.org/linus/d4af56c5c7c6) — Linux 6.1: 확장 가능한 per-VMA 락의 전제 조건인 maple tree 기반 VMA 저장소",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "VMA": "VMA",
+        "maple tree": "maple tree"
+      },
+      "translated_at": "2026-11-14T22:08:45.351283Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 13675575954726663236,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:08:45.351283Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "[rcu-mm.md](rcu-mm.md) — how `SLAB_TYPESAFE_BY_RCU` and the maple tree enable the lock-free VMA lookup that per-VMA locks build on",
+      "source_hash": 3240589211838604357,
+      "context_hash": 18028638160781838715,
+      "translation": "[rcu-mm.md](rcu-mm.md) — `SLAB_TYPESAFE_BY_RCU`와 maple tree가 VMA별 락의 기반이 되는 락 없는 VMA 조회를 어떻게 가능하게 하는지 설명",
+      "glossary_snapshot": {
+        "Per-VMA Locks": "VMA별 락",
+        "VMA": "VMA",
+        "maple tree": "maple tree"
+      },
+      "translated_at": "2026-11-14T23:30:01.873750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "[mmap.md](mmap.md) — operations that still require the coarse `mmap_lock` write side",
+      "source_hash": 3931315775898819573,
+      "context_hash": 13437824702733495107,
+      "translation": "[mmap.md](mmap.md) — 여전히 굵은 단위의 `mmap_lock` 쓰기 측 락이 필요한 연산",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:08:45.351283Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 17261623817182623269,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:08:45.351283Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:12/seg:0",
+      "source": "[LWN: Per-VMA locks](https://lwn.net/Articles/906852/) — 2022 article covering the design and motivation for per-VMA locking",
+      "source_hash": 9709101475019469991,
+      "context_hash": 736363478119168935,
+      "translation": "[LWN: Per-VMA locks](https://lwn.net/Articles/906852/) — VMA별 락의 설계와 동기를 다룬 2022년 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "Per-VMA Locks": "VMA별 락",
+        "VMA": "VMA"
+      },
+      "translated_at": "2026-11-14T23:30:01.873750Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:13/seg:0",
+      "source": "[LWN: Scalable page-fault handling](https://lwn.net/Articles/932298/) — follow-up covering the Linux 6.4 merge and benchmarks",
+      "source_hash": 866361927987049653,
+      "context_hash": 2639048327035116754,
+      "translation": "[LWN: Scalable page-fault handling](https://lwn.net/Articles/932298/) — Linux 6.4 병합과 벤치마크를 다룬 후속 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:08:45.351284Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,4916 @@
+{
+  "version": 1,
+  "source_hash": 14277610309405390113,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "Durability Semantics: fsync, fdatasync, O_SYNC, and Write Barriers",
+      "source_hash": 8260986205963872946,
+      "context_hash": 7354125803424046288,
+      "translation": "내구성 시맨틱: fsync, fdatasync, O_SYNC, 그리고 쓰기 배리어",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:05.672541Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "What each durability syscall actually promises, where the guarantees break down, and how databases use them correctly",
+      "source_hash": 12085804475805457490,
+      "context_hash": 975057678448492401,
+      "translation": "각 내구성 시스템 콜이 실제로 무엇을 보장하는지, 그 보장이 어디에서 무너지는지, 그리고 데이터베이스가 이를 어떻게 올바르게 사용하는지에 대한 설명",
+      "glossary_snapshot": {
+        "durability": "내구성",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:45:05.672542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The durability gap",
+      "source_hash": 4764972090736496693,
+      "context_hash": 2567618004138283341,
+      "translation": "내구성 공백",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:05.672542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "`write()` returns when data is in DRAM — specifically in the kernel's **page cache**.",
+      "source_hash": 14492358565442222281,
+      "context_hash": 3520265188394401832,
+      "translation": "`write()`는 데이터가 DRAM, 구체적으로는 커널의 **페이지 캐시**에 있을 때 반환됩니다.",
+      "glossary_snapshot": {
+        "DRAM": "DRAM",
+        "kernel": "커널",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:05.672542Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The call does not touch persistent storage.",
+      "source_hash": 2079174100010857751,
+      "context_hash": 2431562252560549757,
+      "translation": "이 호출은 영구 저장소를 건드리지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "Between the moment `write()` returns and the moment data survives a power cut, three independent layers can each lose data:",
+      "source_hash": 7105425131819327030,
+      "context_hash": 7625831944145395101,
+      "translation": "`write()`가 반환되는 시점부터 데이터가 전원 차단에도 살아남는 시점 사이에는 세 개의 독립적인 계층이 각각 데이터를 잃을 수 있습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "**Layer 1 — page cache**: A `write()` makes the page dirty and returns.",
+      "source_hash": 1665780242193499483,
+      "context_hash": 14002312580534882964,
+      "translation": "**계층 1 — 페이지 캐시**: `write()`는 페이지를 dirty 상태로 만들고 반환됩니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:05.672543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:1",
+      "source": "The kernel's writeback threads flush dirty pages to the drive at their own pace (controlled by `dirty_expire_centisecs`, `dirty_writeback_centisecs`, and memory pressure).",
+      "source_hash": 4332028527153972318,
+      "context_hash": 13607909699420687109,
+      "translation": "커널의 writeback 스레드는 자체 속도로 dirty 페이지를 드라이브로 플러시합니다(`dirty_expire_centisecs`, `dirty_writeback_centisecs`, 그리고 메모리 압박에 의해 제어됨).",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "kernel": "커널",
+        "memory": "메모리",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:45:05.672543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:2",
+      "source": "A kernel panic before writeback loses the data completely.",
+      "source_hash": 1511691213011539267,
+      "context_hash": 7704500694568727531,
+      "translation": "writeback 전에 커널 패닉이 발생하면 데이터는 완전히 사라집니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "panic": "패닉",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:45:05.672543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:0",
+      "source": "**Layer 2 — drive write buffer**: Modern drives have DRAM write caches.",
+      "source_hash": 18017209735432795779,
+      "context_hash": 14564648078302734598,
+      "translation": "**계층 2 — 드라이브 쓰기 버퍼**: 최신 드라이브에는 DRAM 쓰기 캐시가 있습니다.",
+      "glossary_snapshot": {
+        "DRAM": "DRAM",
+        "write caches": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:05.672543Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:1",
+      "source": "The kernel can deliver a block write to the drive and receive an ACK before the drive has committed to flash cells or platters.",
+      "source_hash": 1271173662975033674,
+      "context_hash": 17665754397752416639,
+      "translation": "커널은 드라이브가 플래시 셀이나 플래터에 기록을 확정하기 전에 블록 쓰기를 드라이브에 전달하고 ACK를 받을 수 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:4/seg:2",
+      "source": "A power cut at this stage loses data unless the drive has a battery-backed write cache (BBWC) or the kernel issued a FLUSH command (or FUA — Force Unit Access — on the write itself).",
+      "source_hash": 7702193521434207902,
+      "context_hash": 61916810747789823,
+      "translation": "이 단계에서 전원이 차단되면, 드라이브에 배터리 백업 쓰기 캐시(BBWC)가 있거나 커널이 FLUSH 명령을 내린(또는 쓰기 자체에 FUA — Force Unit Access — 를 지정한) 경우가 아니라면 데이터를 잃습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:0",
+      "source": "**Layer 3 — storage medium**: Once data is on the medium, only physical destruction can lose it.",
+      "source_hash": 18079535183106226995,
+      "context_hash": 6098906819680873320,
+      "translation": "**계층 3 — 저장 매체**: 데이터가 일단 매체에 기록되면 물리적 파괴 외에는 이를 잃을 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:5/seg:1",
+      "source": "Flash cells and platters are persistent.",
+      "source_hash": 16752564016419622367,
+      "context_hash": 15176128549671737670,
+      "translation": "플래시 셀과 플래터는 영구적입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:6/seg:0",
+      "source": "The contract of each durability mechanism specifies which layers it closes:",
+      "source_hash": 2854820914329504220,
+      "context_hash": 15911752672748911489,
+      "translation": "각 내구성 메커니즘의 계약은 그것이 어느 계층을 닫는지 명시합니다:",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:7/seg:0",
+      "source": "Mechanism",
+      "source_hash": 559233746687605355,
+      "context_hash": 4180955590702337392,
+      "translation": "메커니즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:8/seg:0",
+      "source": "Flushes page cache",
+      "source_hash": 3224038202653020151,
+      "context_hash": 7308453096472787494,
+      "translation": "페이지 캐시 플러시",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:9/seg:0",
+      "source": "Flushes drive buffer",
+      "source_hash": 5682093240738009766,
+      "context_hash": 15206654218592578397,
+      "translation": "드라이브 버퍼 플러시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672544Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:10/seg:0",
+      "source": "Notes",
+      "source_hash": 6248434630477978300,
+      "context_hash": 1685856524952613761,
+      "translation": "비고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672545Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:11/seg:0",
+      "source": "`write()`",
+      "source_hash": 8896201893985580040,
+      "context_hash": 8780521182490275838,
+      "translation": "`write()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672545Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:12/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14287304964437332075,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:05.672545Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:13/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 17032458679978459761,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:05.672545Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:14/seg:0",
+      "source": "Data in DRAM only",
+      "source_hash": 684994789774767023,
+      "context_hash": 7684029633979094065,
+      "translation": "데이터가 DRAM에만 있음",
+      "glossary_snapshot": {
+        "DRAM": "DRAM"
+      },
+      "translated_at": "2026-11-14T22:45:05.672545Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:15/seg:0",
+      "source": "background writeback",
+      "source_hash": 5743111004867880215,
+      "context_hash": 15959155281698507130,
+      "translation": "백그라운드 writeback",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:45:05.672545Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:16/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 2841835322653671992,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:05.672545Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:17/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 4150728398318043378,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:05.672546Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:18/seg:0",
+      "source": "Timing non-deterministic",
+      "source_hash": 2521043410538137909,
+      "context_hash": 11910529630116690043,
+      "translation": "타이밍이 비결정적",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672546Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:19/seg:0",
+      "source": "`fsync(fd)`",
+      "source_hash": 17601722990613925320,
+      "context_hash": 6868173233726143558,
+      "translation": "`fsync(fd)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672546Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:20/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 1906635603656709051,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:05.672546Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:21/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 5356545613023498711,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:05.672546Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:22/seg:0",
+      "source": "Full durability for the file",
+      "source_hash": 7096707747015887618,
+      "context_hash": 14673849662819162312,
+      "translation": "파일에 대한 완전한 내구성",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:05.672547Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:23/seg:0",
+      "source": "`fdatasync(fd)`",
+      "source_hash": 16970362091028978695,
+      "context_hash": 9718321843653510884,
+      "translation": "`fdatasync(fd)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:05.672547Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:24/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 14777534499059475320,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:16.099772Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:25/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 4308851774463657779,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:16.099774Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:26/seg:0",
+      "source": "Durability without non-essential metadata",
+      "source_hash": 14657058058522949384,
+      "context_hash": 4218392026096301490,
+      "translation": "필수적이지 않은 메타데이터를 제외한 내구성",
+      "glossary_snapshot": {
+        "durability": "내구성",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:16.099774Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:27/seg:0",
+      "source": "`sync()`",
+      "source_hash": 10486937561160628638,
+      "context_hash": 4023683774544897406,
+      "translation": "`sync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099774Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:28/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 680920916916347895,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:16.099774Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:29/seg:0",
+      "source": "No*",
+      "source_hash": 5205303382607462155,
+      "context_hash": 1974610790125643858,
+      "translation": "아니요*",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:16.099775Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:30/seg:0",
+      "source": "System-wide; see caveats below",
+      "source_hash": 14701809893415417511,
+      "context_hash": 5338241144300261301,
+      "translation": "시스템 전체, 아래 주의 사항 참조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099775Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:31/seg:0",
+      "source": "`syncfs(fd)`",
+      "source_hash": 4788730186609181787,
+      "context_hash": 8153277989585689228,
+      "translation": "`syncfs(fd)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099775Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:32/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 3406973376682146182,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:16.099775Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:33/seg:0",
+      "source": "No*",
+      "source_hash": 5205303382607462155,
+      "context_hash": 14544211427204341915,
+      "translation": "아니요*",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:16.099775Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:34/seg:0",
+      "source": "Per-filesystem; see caveats below",
+      "source_hash": 752734827393539132,
+      "context_hash": 10718226587521314303,
+      "translation": "파일시스템 단위, 아래 주의 사항 참조",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099776Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:35/seg:0",
+      "source": "`O_SYNC` write",
+      "source_hash": 6635318910915642756,
+      "context_hash": 8939831665222067561,
+      "translation": "`O_SYNC` 쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099776Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:36/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 18412806362320986475,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:16.099776Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:37/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 3542018420815004710,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:16.099776Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:38/seg:0",
+      "source": "Per-write, after each `write_iter`",
+      "source_hash": 15971951807529307438,
+      "context_hash": 13288475600240834878,
+      "translation": "쓰기 단위, 각 `write_iter` 이후",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099776Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:39/seg:0",
+      "source": "`O_DSYNC` write",
+      "source_hash": 17370512782779343239,
+      "context_hash": 435129927282115072,
+      "translation": "`O_DSYNC` 쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099776Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:40/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 14873072952993922339,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:16.099776Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:41/seg:0",
+      "source": "Yes (data+size)",
+      "source_hash": 13452242170205361052,
+      "context_hash": 10861379425878434436,
+      "translation": "예(데이터+크기)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099777Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:42/seg:0",
+      "source": "Per-write, data-only variant",
+      "source_hash": 12439047895914344956,
+      "context_hash": 13928162953128759795,
+      "translation": "쓰기 단위, 데이터 전용 변형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099777Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:43/seg:0",
+      "source": "*`sync()` and `syncfs()` do not unconditionally issue a FLUSH to each device; they rely on the filesystem's journal commit (which does issue a FLUSH) having run, or on the caller also calling `fsync()` on representative files.",
+      "source_hash": 17816261961019209839,
+      "context_hash": 8927814148803017467,
+      "translation": "*`sync()`와 `syncfs()`는 각 디바이스에 무조건 FLUSH를 발행하지 않습니다. 이들은 파일시스템의 저널 커밋(이는 FLUSH를 발행합니다)이 실행되었거나, 호출자가 대표 파일들에 대해 `fsync()`도 호출하는 것에 의존합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "journal commit": "저널 커밋"
+      },
+      "translated_at": "2026-11-14T23:30:38.283535Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "fsync()",
+      "source_hash": 10297510198658131902,
+      "context_hash": 15300378374788574221,
+      "translation": "fsync()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099777Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "POSIX definition",
+      "source_hash": 2334792905220274462,
+      "context_hash": 1703186427152241408,
+      "translation": "POSIX 정의",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:45:16.099777Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "POSIX requires that `fsync()` cause all modified data **and metadata** of the file to be transferred to the underlying hardware. \"Transferred\" means the hardware has acknowledged persistence — the application can assume the data will survive a power failure.",
+      "source_hash": 6201979977197877795,
+      "context_hash": 1115063324074016439,
+      "translation": "POSIX는 `fsync()`가 파일의 수정된 모든 데이터 **와 메타데이터**를 하부 하드웨어로 전송하도록 요구합니다. \"전송\"이란 하드웨어가 영속성을 확인(acknowledge)했다는 의미이며, 애플리케이션은 해당 데이터가 전원 장애에도 살아남는다고 가정할 수 있습니다.",
+      "glossary_snapshot": {
+        "POSIX": "POSIX",
+        "hardware": "하드웨어",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:16.099778Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "The key phrase is *all metadata*: `fsync()` must persist not only file data blocks but also the inode (size, block pointers, modification time, change time) and any filesystem-level journal records needed to make that inode state recoverable.",
+      "source_hash": 9651500572966314785,
+      "context_hash": 15237728450479336380,
+      "translation": "핵심 문구는 *모든 메타데이터*입니다. `fsync()`는 파일 데이터 블록뿐 아니라 inode(크기, 블록 포인터, 수정 시간, 변경 시간)와 해당 inode 상태를 복구 가능하게 만드는 데 필요한 모든 파일시스템 수준 저널 레코드까지 영속화해야 합니다.",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "journal": "저널",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:16.099778Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "Kernel implementation",
+      "source_hash": 289839300155434675,
+      "context_hash": 11400189205595200879,
+      "translation": "커널 구현",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:16.099778Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The entry point is `SYSCALL_DEFINE1(fsync)` in `fs/sync.c`, which calls `do_fsync(fd, 0)`.",
+      "source_hash": 11544192650972522955,
+      "context_hash": 12934664926674874524,
+      "translation": "진입점은 `fs/sync.c`의 `SYSCALL_DEFINE1(fsync)`이며, 이 함수는 `do_fsync(fd, 0)`을 호출합니다.",
+      "glossary_snapshot": {
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T22:45:16.099778Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "The `0` is the `datasync` flag — for `fsync()` it is always 0.",
+      "source_hash": 14495220906909743101,
+      "context_hash": 4154325513303979821,
+      "translation": "`0`은 `datasync` 플래그이며, `fsync()`에서는 항상 0입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099778Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:2",
+      "source": "The path from syscall to filesystem is:",
+      "source_hash": 11375811884040798306,
+      "context_hash": 1726760305103741480,
+      "translation": "시스템 콜에서 파일시스템까지의 경로는 다음과 같습니다.",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:45:16.099778Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:7/seg:0",
+      "source": "`vfs_fsync_range()` is the canonical VFS entry point:",
+      "source_hash": 15708194931214890629,
+      "context_hash": 8865396479676273976,
+      "translation": "`vfs_fsync_range()`는 표준 VFS 진입점입니다.",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "entry point": "진입점"
+      },
+      "translated_at": "2026-11-14T22:45:16.099779Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:0",
+      "source": "The range `[start, end]` is used by `msync()` for partial flushes; for a plain `fsync()` call the entire file range is passed.",
+      "source_hash": 15317486799090100529,
+      "context_hash": 12706938704594298736,
+      "translation": "범위 `[start, end]`는 `msync()`가 부분 플러시에 사용하며, 일반 `fsync()` 호출에서는 파일 전체 범위가 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:16.099779Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:9/seg:1",
+      "source": "The `datasync` argument is forwarded unchanged to the filesystem, which uses it to decide whether to flush non-essential metadata.",
+      "source_hash": 1095748850502623879,
+      "context_hash": 14124492562502960342,
+      "translation": "`datasync` 인자는 변경 없이 파일시스템으로 전달되며, 파일시스템은 이를 사용해 필수적이지 않은 메타데이터를 플러시할지 결정합니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:16.099779Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:10/seg:0",
+      "source": "What \"stable storage\" means for different hardware",
+      "source_hash": 13693965615635763157,
+      "context_hash": 16700953232465266040,
+      "translation": "하드웨어별 \"안정 저장소(stable storage)\"의 의미",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:16.099779Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:0",
+      "source": "On rotating disk, stable storage is the platter.",
+      "source_hash": 8180195119959195761,
+      "context_hash": 3569811582814540625,
+      "translation": "회전형 디스크에서 안정 저장소(stable storage)는 플래터입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333115Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:11/seg:1",
+      "source": "The drive must drain its volatile write cache — the kernel does this by issuing a `REQ_OP_FLUSH` block request, which translates to the ATA `FLUSH CACHE EXT` command or SCSI `SYNCHRONIZE CACHE`.",
+      "source_hash": 5958260517976849963,
+      "context_hash": 4260647792339859534,
+      "translation": "드라이브는 휘발성 쓰기 캐시를 비워야 합니다. 커널은 `REQ_OP_FLUSH` 블록 요청을 발행하여 이를 수행하며, 이 요청은 ATA `FLUSH CACHE EXT` 명령이나 SCSI `SYNCHRONIZE CACHE`로 변환됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:23.333116Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:0",
+      "source": "On SATA SSD and NVMe, stable storage is flash cells that have been programmed (not just sitting in the write buffer).",
+      "source_hash": 15137061801296662905,
+      "context_hash": 16292628259021330944,
+      "translation": "SATA SSD와 NVMe에서 안정 저장소는 (쓰기 버퍼에 머물러 있기만 한 것이 아니라) 프로그래밍이 완료된 플래시 셀입니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "SSD": "SSD"
+      },
+      "translated_at": "2026-11-14T22:45:23.333116Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:12/seg:1",
+      "source": "NVMe exposes two mechanisms: the `FLUSH` command (drain the write cache) and FUA (Force Unit Access) on a specific write — a flag on the NVMe write command that bypasses the write buffer for that operation only.",
+      "source_hash": 16968631615869735055,
+      "context_hash": 1063443769599572853,
+      "translation": "NVMe는 두 가지 메커니즘을 제공합니다. 하나는 `FLUSH` 명령(쓰기 캐시 비우기)이고, 다른 하나는 특정 쓰기에 대한 FUA(Force Unit Access)로, 해당 연산에 한해서만 쓰기 버퍼를 우회하도록 하는 NVMe 쓰기 명령의 플래그입니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:23.333117Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:0",
+      "source": "On enterprise flash with battery-backed write cache (BBWC) or capacitor-backed persistent memory (PMem/Optane), writes to the device's RAM are already considered durable, so FLUSH can be made a no-op.",
+      "source_hash": 14743659525900954417,
+      "context_hash": 4383163267134894309,
+      "translation": "배터리 백업 쓰기 캐시(BBWC)를 갖춘 엔터프라이즈 플래시나 커패시터 백업 영구 메모리(PMem/Optane)에서는 디바이스의 RAM에 대한 쓰기가 이미 내구성을 갖춘 것으로 간주되므로, FLUSH를 no-op으로 만들 수 있습니다.",
+      "glossary_snapshot": {
+        "RAM": "RAM",
+        "device": "디바이스",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T23:30:38.283543Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:13/seg:1",
+      "source": "The kernel respects a `BLK_FEAT_FUA` flag indicating the device honors FUA, and a `BLK_FEAT_WRITE_CACHE` flag indicating a volatile write cache is present.",
+      "source_hash": 16084015268408933189,
+      "context_hash": 8440173405809215243,
+      "translation": "커널은 디바이스가 FUA를 지원함을 나타내는 `BLK_FEAT_FUA` 플래그와, 휘발성 쓰기 캐시가 존재함을 나타내는 `BLK_FEAT_WRITE_CACHE` 플래그를 따릅니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T23:30:38.283544Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:14/seg:0",
+      "source": "Ext4 journal modes and fsync cost",
+      "source_hash": 4985605254184094237,
+      "context_hash": 1437576886479101518,
+      "translation": "Ext4 저널 모드와 fsync 비용",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:45:23.333118Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:15/seg:0",
+      "source": "Ext4 has three journal modes that dramatically affect what `fsync()` must do:",
+      "source_hash": 6682672658571040699,
+      "context_hash": 717913572760719710,
+      "translation": "Ext4에는 `fsync()`가 수행해야 하는 작업에 크게 영향을 주는 세 가지 저널 모드가 있습니다.",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:45:23.333119Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:0",
+      "source": "**`data=ordered` (default)**: Data blocks are written to disk *before* the journal commit that records metadata changes.",
+      "source_hash": 7314715738221824619,
+      "context_hash": 6265020183989277752,
+      "translation": "**`data=ordered`(기본값)**: 데이터 블록은 메타데이터 변경을 기록하는 저널 커밋보다 *먼저* 디스크에 기록됩니다.",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:23.333119Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:16/seg:1",
+      "source": "On `fsync()`:",
+      "source_hash": 7214789052095765372,
+      "context_hash": 11317034102505737907,
+      "translation": "`fsync()` 시:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333119Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:17/seg:0",
+      "source": "Dirty data pages are written back via `filemap_write_and_wait_range()`.",
+      "source_hash": 9485478138775120308,
+      "context_hash": 9853211089335677032,
+      "translation": "더티 데이터 페이지가 `filemap_write_and_wait_range()`를 통해 writeback됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333119Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:18/seg:0",
+      "source": "`ext4_sync_file()` calls `jbd2_complete_transaction()` to commit the current journal transaction.",
+      "source_hash": 15987479587604383300,
+      "context_hash": 16699573955859770373,
+      "translation": "`ext4_sync_file()`이 `jbd2_complete_transaction()`을 호출하여 현재 저널 트랜잭션을 커밋합니다.",
+      "glossary_snapshot": {
+        "journal": "저널",
+        "transaction": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:23.333120Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:19/seg:0",
+      "source": "The journal commit block is written with a FLUSH or FUA to the journal device.",
+      "source_hash": 2045996532350701393,
+      "context_hash": 13822533511944463843,
+      "translation": "저널 커밋 블록은 저널 디바이스에 FLUSH 또는 FUA와 함께 기록됩니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "journal": "저널",
+        "journal commit": "저널 커밋"
+      },
+      "translated_at": "2026-11-14T23:30:38.283545Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:20/seg:0",
+      "source": "If the file's data is on a separate device, a second FLUSH may be needed.",
+      "source_hash": 304291853685192521,
+      "context_hash": 4731959452135937049,
+      "translation": "파일의 데이터가 별도의 디바이스에 있다면 두 번째 FLUSH가 필요할 수 있습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:38.283546Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:21/seg:0",
+      "source": "This means `fsync()` typically causes one journal commit plus one storage barrier, even if no data has changed since the last commit (because the metadata journal entry referencing the data must be committed).",
+      "source_hash": 13103563934068942846,
+      "context_hash": 13413014086135329294,
+      "translation": "즉, 마지막 커밋 이후 데이터가 전혀 변경되지 않았더라도 `fsync()`는 일반적으로 한 번의 저널 커밋과 한 번의 스토리지 배리어를 일으킵니다(데이터를 참조하는 메타데이터 저널 항목을 커밋해야 하기 때문입니다).",
+      "glossary_snapshot": {
+        "journal": "저널",
+        "journal commit": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:23.333120Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:0",
+      "source": "**`data=writeback`**: Metadata is journaled but data block writes are not ordered with respect to journal commits.",
+      "source_hash": 13774670798451181497,
+      "context_hash": 15291277740812302576,
+      "translation": "**`data=writeback`**: 메타데이터는 저널링되지만 데이터 블록 쓰기는 저널 커밋에 대해 순서가 보장되지 않습니다.",
+      "glossary_snapshot": {
+        "journal commits": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:23.333120Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:1",
+      "source": "On `fsync()`, ext4 still calls `filemap_write_and_wait_range()` and commits the journal, but there is no ordering guarantee between data and metadata — a crash-and-recover can expose stale data in blocks that have valid metadata pointing to them.",
+      "source_hash": 10652844513962425783,
+      "context_hash": 6511246540031797158,
+      "translation": "`fsync()` 시 ext4는 여전히 `filemap_write_and_wait_range()`를 호출하고 저널을 커밋하지만, 데이터와 메타데이터 사이에는 순서 보장이 없습니다. 따라서 크래시 후 복구 과정에서 유효한 메타데이터가 가리키는 블록에 오래된 데이터가 노출될 수 있습니다.",
+      "glossary_snapshot": {
+        "journal": "저널",
+        "metadata": "메타데이터",
+        "stale data": "오래된 데이터"
+      },
+      "translated_at": "2026-11-14T22:45:23.333121Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:23/seg:2",
+      "source": "This mode is faster but requires the application to tolerate the risk.",
+      "source_hash": 13823874161100399815,
+      "context_hash": 9460984949300473267,
+      "translation": "이 모드는 더 빠르지만 애플리케이션이 이러한 위험을 감수할 수 있어야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333121Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:0",
+      "source": "**`data=journal`**: All data is written to the journal before being written to its final location. `fsync()` is expensive because it must commit the journal transaction that contains the data itself, not just metadata.",
+      "source_hash": 4286133706429430980,
+      "context_hash": 10530178901310836626,
+      "translation": "**`data=journal`**: 모든 데이터는 최종 위치에 기록되기 전에 저널에 먼저 기록됩니다. 메타데이터뿐 아니라 데이터 자체를 담은 저널 트랜잭션을 커밋해야 하므로 `fsync()`의 비용이 큽니다.",
+      "glossary_snapshot": {
+        "journal": "저널",
+        "metadata": "메타데이터",
+        "transaction": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:23.333121Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:24/seg:1",
+      "source": "Rarely used; reserved for applications that need strict ordering and can tolerate the write amplification.",
+      "source_hash": 6993911741328979804,
+      "context_hash": 15485403918890771451,
+      "translation": "거의 사용되지 않으며, 엄격한 순서 보장이 필요하고 쓰기 증폭을 감수할 수 있는 애플리케이션을 위한 모드입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333121Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:25/seg:0",
+      "source": "XFS: log force vs data write ordering",
+      "source_hash": 3897846610900797998,
+      "context_hash": 15025598905454703659,
+      "translation": "XFS: 로그 강제 기록(log force)과 데이터 쓰기 순서",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:45:23.333122Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:26/seg:0",
+      "source": "XFS does not use a block-level journal in the ext4 sense; it uses a log structured for transactions. `xfs_file_fsync()` issues a log force (`xfs_log_force_seq()`) to flush the in-memory log to disk, then optionally issues a storage barrier.",
+      "source_hash": 3831505446467646371,
+      "context_hash": 7470789574219326365,
+      "translation": "XFS는 ext4와 같은 의미의 블록 수준 저널을 사용하지 않고, 트랜잭션 단위로 구조화된 로그를 사용합니다. `xfs_file_fsync()`는 로그 강제 기록(`xfs_log_force_seq()`)을 발행하여 메모리 내 로그를 디스크로 플러시한 다음, 필요에 따라 스토리지 배리어를 발행합니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS",
+        "journal": "저널",
+        "memory": "메모리",
+        "transactions": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:23.333122Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:28/seg:0",
+      "source": "Typical fsync latency",
+      "source_hash": 3396160832590232833,
+      "context_hash": 2163596467870535296,
+      "translation": "일반적인 fsync 지연 시간",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:29/seg:0",
+      "source": "These are representative numbers for a single `fsync()` call with a small write workload:",
+      "source_hash": 6206377771094858082,
+      "context_hash": 9022067877351096595,
+      "translation": "다음은 작은 쓰기 워크로드에서 단일 `fsync()` 호출에 대한 대표적인 수치입니다.",
+      "glossary_snapshot": {
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:30/seg:0",
+      "source": "Storage type",
+      "source_hash": 11720269401761855217,
+      "context_hash": 5725102787870767999,
+      "translation": "스토리지 유형",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:31/seg:0",
+      "source": "Typical fsync latency",
+      "source_hash": 3396160832590232833,
+      "context_hash": 14793548538537302024,
+      "translation": "일반적인 fsync 지연 시간",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:32/seg:0",
+      "source": "NVMe SSD (PCIe 4.0)",
+      "source_hash": 14719255083373580396,
+      "context_hash": 9745699455793224684,
+      "translation": "NVMe SSD (PCIe 4.0)",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "PCIe": "PCIe",
+        "SSD": "SSD"
+      },
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:33/seg:0",
+      "source": "50–500 µs",
+      "source_hash": 1082575112032390332,
+      "context_hash": 6789768315736394610,
+      "translation": "50–500 µs",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:34/seg:0",
+      "source": "NVMe SSD (PCIe 3.0)",
+      "source_hash": 1734780475537861833,
+      "context_hash": 3381693231496045602,
+      "translation": "NVMe SSD (PCIe 3.0)",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "PCIe": "PCIe",
+        "SSD": "SSD"
+      },
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:35/seg:0",
+      "source": "100–1000 µs",
+      "source_hash": 7209081201117449844,
+      "context_hash": 16061732119963298909,
+      "translation": "100–1000 µs",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333123Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:36/seg:0",
+      "source": "SATA SSD",
+      "source_hash": 1896775256077907188,
+      "context_hash": 4781602337637480836,
+      "translation": "SATA SSD",
+      "glossary_snapshot": {
+        "SSD": "SSD"
+      },
+      "translated_at": "2026-11-14T22:45:23.333124Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:37/seg:0",
+      "source": "1–5 ms",
+      "source_hash": 7549124174118009837,
+      "context_hash": 3682030084793683349,
+      "translation": "1–5 ms",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:23.333124Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:38/seg:0",
+      "source": "SATA HDD (7200 RPM)",
+      "source_hash": 1540960082625271109,
+      "context_hash": 5474533317786401494,
+      "translation": "SATA HDD (7200 RPM)",
+      "glossary_snapshot": {
+        "HDD": "HDD"
+      },
+      "translated_at": "2026-11-14T22:45:18.033248Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:39/seg:0",
+      "source": "5–15 ms",
+      "source_hash": 11318907723469080508,
+      "context_hash": 15930625214429767523,
+      "translation": "5–15 ms",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033248Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:40/seg:0",
+      "source": "HDD (5400 RPM)",
+      "source_hash": 16114194539011272920,
+      "context_hash": 11948499880706587674,
+      "translation": "HDD (5400 RPM)",
+      "glossary_snapshot": {
+        "HDD": "HDD"
+      },
+      "translated_at": "2026-11-14T22:45:18.033249Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:41/seg:0",
+      "source": "10–30 ms",
+      "source_hash": 7626777059821769142,
+      "context_hash": 1368204895734067022,
+      "translation": "10–30 ms",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033249Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:42/seg:0",
+      "source": "Network block device (iSCSI/FC)",
+      "source_hash": 6637266258063085611,
+      "context_hash": 14214657220627068581,
+      "translation": "네트워크 블록 디바이스(iSCSI/FC)",
+      "glossary_snapshot": {
+        "block device": "블록 디바이스"
+      },
+      "translated_at": "2026-11-14T22:45:18.033249Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:43/seg:0",
+      "source": "1–10 ms (depends on storage array)",
+      "source_hash": 15753662614221694715,
+      "context_hash": 2020241088821337045,
+      "translation": "1–10 ms (스토리지 배열에 따라 다름)",
+      "glossary_snapshot": {
+        "array": "배열"
+      },
+      "translated_at": "2026-11-14T23:30:38.283547Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:0",
+      "source": "The latency is dominated by the time to drain the write cache and for the journal commit block to land on stable media.",
+      "source_hash": 193424308015460358,
+      "context_hash": 12639326444111707939,
+      "translation": "지연 시간의 대부분은 쓰기 캐시를 비우고 저널 커밋 블록이 안정적인 매체에 기록되기까지 걸리는 시간이 차지합니다.",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋",
+        "latency": "지연 시간",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:18.033249Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:44/seg:1",
+      "source": "On NVMe, a FUA write to the journal removes the need for a separate FLUSH command, cutting latency roughly in half.",
+      "source_hash": 4407343105133872148,
+      "context_hash": 2569609305827455234,
+      "translation": "NVMe에서는 저널에 FUA 쓰기를 하면 별도의 FLUSH 명령이 필요 없어지므로 지연 시간이 대략 절반으로 줄어듭니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "journal": "저널",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:18.033249Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "fdatasync()",
+      "source_hash": 7426520375449690196,
+      "context_hash": 12908478886481060041,
+      "translation": "fdatasync()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033249Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "POSIX definition",
+      "source_hash": 2334792905220274462,
+      "context_hash": 2439440642398394641,
+      "translation": "POSIX 정의",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:45:18.033249Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "`fdatasync()` transfers file data and **enough metadata to retrieve the data** to stable storage.",
+      "source_hash": 12606189554079206510,
+      "context_hash": 580838292915303969,
+      "translation": "`fdatasync()`는 파일 데이터와 **데이터를 읽어 오는 데 충분한 메타데이터**를 안정적인 저장소로 전송합니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "It explicitly does not need to flush metadata that does not affect the ability to read back data.",
+      "source_hash": 15967443499650705624,
+      "context_hash": 744775995041079116,
+      "translation": "데이터를 다시 읽어 오는 능력에 영향을 주지 않는 메타데이터는 플러시할 필요가 없다고 명시되어 있습니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:2",
+      "source": "From POSIX:",
+      "source_hash": 11457851179917753047,
+      "context_hash": 13995916726822627554,
+      "translation": "POSIX의 내용은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "*If the file is not in a special file, it is not required to update metadata such as st_atime or st_mtime.*",
+      "source_hash": 8715377890525176045,
+      "context_hash": 1544236931739185080,
+      "translation": "*파일이 특수 파일에 있지 않은 경우, st_atime이나 st_mtime 같은 메타데이터를 갱신할 필요는 없습니다.*",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "The metadata `fdatasync()` can skip:",
+      "source_hash": 6912738054638722565,
+      "context_hash": 12082124707786730873,
+      "translation": "`fdatasync()`가 생략할 수 있는 메타데이터:",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`atime` (last access time) — never affects data retrieval",
+      "source_hash": 18223636905397046979,
+      "context_hash": 10360243978175362971,
+      "translation": "`atime`(마지막 접근 시간) — 데이터를 읽어 오는 데 전혀 영향을 주지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "`mtime` (last modification time) — does not affect data location",
+      "source_hash": 2262667649761977201,
+      "context_hash": 13846588234750098840,
+      "translation": "`mtime`(마지막 수정 시간) — 데이터 위치에 영향을 주지 않음",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "`ctime` (last status change time) — inode change timestamp",
+      "source_hash": 2830266225992750936,
+      "context_hash": 1583760279394726992,
+      "translation": "`ctime`(마지막 상태 변경 시간) — inode 변경 타임스탬프",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "timestamp": "타임스탬프"
+      },
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "The metadata `fdatasync()` **must** flush:",
+      "source_hash": 6807081321293727395,
+      "context_hash": 1956833622067357973,
+      "translation": "`fdatasync()`가 **반드시** 플러시해야 하는 메타데이터:",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "File size (`i_size`) — if the file grew, the new size is needed to locate the new data",
+      "source_hash": 9510849092629288114,
+      "context_hash": 8777761855585405792,
+      "translation": "파일 크기(`i_size`) — 파일이 커진 경우 새 데이터의 위치를 찾으려면 새 크기가 필요함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033250Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "Block pointers — any newly allocated data blocks must be findable",
+      "source_hash": 12780918028646325516,
+      "context_hash": 13720925282621396567,
+      "translation": "블록 포인터 — 새로 할당된 데이터 블록을 모두 찾을 수 있어야 함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "Indirect/extent tree changes — required to locate data",
+      "source_hash": 1671722310244789054,
+      "context_hash": 11110443481953637653,
+      "translation": "간접 블록/extent 트리 변경 — 데이터 위치를 찾는 데 필요함",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "The datasync flag path",
+      "source_hash": 12162408183341943731,
+      "context_hash": 3664514387758397378,
+      "translation": "datasync 플래그 경로",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:0",
+      "source": "`SYSCALL_DEFINE1(fdatasync)` calls `do_fsync(fd, 1)`.",
+      "source_hash": 5801933024903571768,
+      "context_hash": 1572122230643665356,
+      "translation": "`SYSCALL_DEFINE1(fdatasync)`는 `do_fsync(fd, 1)`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:13/seg:1",
+      "source": "The `1` travels through `vfs_fsync_range()` and into the filesystem's `fsync` method as the `datasync` argument.",
+      "source_hash": 11565513482453171611,
+      "context_hash": 3467875752448323985,
+      "translation": "이 `1`은 `vfs_fsync_range()`를 거쳐 파일시스템의 `fsync` 메서드에 `datasync` 인자로 전달됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:15/seg:0",
+      "source": "In ext4, `datasync=1` selects `ei->i_datasync_tid` instead of `ei->i_sync_tid`:",
+      "source_hash": 15789117052762980803,
+      "context_hash": 10788933163337369215,
+      "translation": "ext4에서 `datasync=1`이면 `ei->i_sync_tid` 대신 `ei->i_datasync_tid`를 선택합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:0",
+      "source": "`i_datasync_tid` is the transaction ID of the last transaction that affected data-accessible metadata.",
+      "source_hash": 12413185421931025093,
+      "context_hash": 10381751938034281194,
+      "translation": "`i_datasync_tid`는 데이터 접근에 관련된 메타데이터에 영향을 준 마지막 트랜잭션의 트랜잭션 ID입니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터",
+        "transaction": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:1",
+      "source": "For a file that has not changed size since the last journal commit, `i_datasync_tid` may already be committed, making the `jbd2_complete_transaction()` call return immediately.",
+      "source_hash": 69147468092661339,
+      "context_hash": 9126897288411805876,
+      "translation": "마지막 저널 커밋 이후 크기가 바뀌지 않은 파일이라면 `i_datasync_tid`가 이미 커밋되어 있을 수 있으며, 이 경우 `jbd2_complete_transaction()` 호출은 즉시 반환됩니다.",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋"
+      },
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:17/seg:2",
+      "source": "This is the common case for databases writing to pre-allocated files — there is no size change, so there is no metadata journal commit to wait for.",
+      "source_hash": 9602357751325487881,
+      "context_hash": 7903300196440969555,
+      "translation": "이는 미리 할당된 파일에 쓰는 데이터베이스에서 흔히 볼 수 있는 경우입니다. 크기 변경이 없으므로 기다려야 할 메타데이터 저널 커밋도 없습니다.",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:18/seg:0",
+      "source": "When fdatasync is equivalent to fsync",
+      "source_hash": 13336014258259845322,
+      "context_hash": 7980589106679061847,
+      "translation": "fdatasync가 fsync와 동등해지는 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:19/seg:0",
+      "source": "`fdatasync()` must perform a full metadata flush (equivalent to `fsync()`) when:",
+      "source_hash": 8581441440349988346,
+      "context_hash": 7737247417799654562,
+      "translation": "다음과 같은 경우 `fdatasync()`는 전체 메타데이터 플러시(`fsync()`와 동등)를 수행해야 합니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:18.033251Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:0",
+      "source": "**File size changed**: a `write()` past end-of-file, or `truncate()`.",
+      "source_hash": 12225632486046802996,
+      "context_hash": 7728416935684340509,
+      "translation": "**파일 크기 변경**: 파일 끝(end-of-file)을 넘어서는 `write()`, 또는 `truncate()`의 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905790Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:20/seg:1",
+      "source": "The new `i_size` must be on disk before the data it describes can be retrieved safely.",
+      "source_hash": 16020766887998020205,
+      "context_hash": 18103745536303312538,
+      "translation": "새 `i_size`가 디스크에 기록되어 있어야만 그 크기가 기술하는 데이터를 안전하게 읽어 올 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905792Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:21/seg:0",
+      "source": "**New blocks allocated**: on block-based filesystems, if a write caused new extent or indirect-block entries to be created.",
+      "source_hash": 16885735309803492709,
+      "context_hash": 7299298137724950746,
+      "translation": "**새 블록 할당**: 블록 기반 파일시스템에서 쓰기로 인해 새 extent 또는 간접 블록(indirect block) 항목이 생성된 경우입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905792Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:0",
+      "source": "**New file**: a newly created file has never had its inode committed.",
+      "source_hash": 8637601037019204452,
+      "context_hash": 5748998107980336367,
+      "translation": "**새 파일**: 새로 생성된 파일은 inode가 한 번도 커밋된 적이 없습니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:45:26.905792Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:22/seg:1",
+      "source": "Both data and all inode metadata must be flushed.",
+      "source_hash": 15042140475781176851,
+      "context_hash": 5520166203928201210,
+      "translation": "데이터와 모든 inode 메타데이터를 모두 플러시해야 합니다.",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:26.905793Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:23/seg:0",
+      "source": "**File renamed or linked**: the directory entry is part of the metadata that describes the file's location.",
+      "source_hash": 2603666772175533842,
+      "context_hash": 14608577408387541405,
+      "translation": "**파일 이름 변경 또는 링크**: 디렉터리 엔트리는 파일의 위치를 기술하는 메타데이터의 일부입니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:26.905793Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:0",
+      "source": "For a database WAL file that is pre-allocated and written sequentially without size changes, `fdatasync()` skips the metadata journal commit entirely on every write after the first.",
+      "source_hash": 8650659959058834104,
+      "context_hash": 2630220903436530763,
+      "translation": "미리 할당되어 크기 변경 없이 순차적으로 기록되는 데이터베이스 WAL 파일의 경우, `fdatasync()`는 첫 번째 쓰기 이후의 모든 쓰기에서 메타데이터 저널 커밋을 완전히 건너뜁니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "journal commit": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:26.905794Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:24/seg:1",
+      "source": "This is why PostgreSQL uses `fdatasync()` for WAL writes — the WAL file is pre-allocated and its size rarely changes during normal operation.",
+      "source_hash": 13966874125667051691,
+      "context_hash": 14808025090008616760,
+      "translation": "PostgreSQL이 WAL 쓰기에 `fdatasync()`를 사용하는 이유가 바로 이것입니다. WAL 파일은 미리 할당되며 정상 운영 중에는 크기가 거의 변하지 않습니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:26.905794Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:25/seg:0",
+      "source": "Why fdatasync is faster",
+      "source_hash": 11148236525625164358,
+      "context_hash": 13661723819890136536,
+      "translation": "fdatasync가 더 빠른 이유",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905795Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:0",
+      "source": "The performance advantage is not about writing less data — both `fsync()` and `fdatasync()` must flush dirty data pages.",
+      "source_hash": 9043905227861578983,
+      "context_hash": 17502929875718867169,
+      "translation": "성능상의 이점은 더 적은 데이터를 쓰는 데서 오는 것이 아닙니다. `fsync()`와 `fdatasync()` 모두 dirty 데이터 페이지를 플러시해야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905795Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:1",
+      "source": "The advantage is in journal commits: a metadata journal commit requires writing a commit block to the journal device and waiting for the FLUSH or FUA acknowledgment.",
+      "source_hash": 11480877254719610057,
+      "context_hash": 13008309950096652077,
+      "translation": "이점은 저널 커밋에 있습니다. 메타데이터 저널 커밋은 저널 디바이스에 커밋 블록을 기록하고 FLUSH 또는 FUA 확인 응답을 기다려야 합니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "journal": "저널",
+        "journal commit": "저널 커밋",
+        "journal commits": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T23:30:38.283548Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:26/seg:2",
+      "source": "On a heavily written filesystem, this commit may include unrelated metadata from other files, serializing all fsync() callers. `fdatasync()` avoids this serialization point when no metadata change is needed.",
+      "source_hash": 687477609607104579,
+      "context_hash": 6076316675590889253,
+      "translation": "쓰기가 많은 파일시스템에서는 이 커밋에 다른 파일의 무관한 메타데이터가 포함될 수 있어 모든 fsync() 호출자가 직렬화됩니다. `fdatasync()`는 메타데이터 변경이 필요하지 않을 때 이 직렬화 지점을 피합니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:26.905795Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:27/seg:0",
+      "source": "Benchmarks on a SATA SSD with ext4 `data=ordered` typically show `fdatasync()` at 2–3× the throughput of `fsync()` for small random writes to pre-allocated files, primarily because `fdatasync()` avoids the journal commit serialization.",
+      "source_hash": 6537913065259429210,
+      "context_hash": 10729459668406740481,
+      "translation": "ext4 `data=ordered`를 사용하는 SATA SSD에서의 벤치마크는 미리 할당된 파일에 대한 작은 랜덤 쓰기에서 `fdatasync()`가 일반적으로 `fsync()`의 2–3배 처리량을 보이며, 이는 주로 `fdatasync()`가 저널 커밋 직렬화를 피하기 때문입니다.",
+      "glossary_snapshot": {
+        "SSD": "SSD",
+        "journal commit": "저널 커밋",
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:45:26.905796Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "sync() and syncfs()",
+      "source_hash": 8435675778356995891,
+      "context_hash": 14258349540305922276,
+      "translation": "sync()와 syncfs()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905796Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "sync() — system-wide flush",
+      "source_hash": 10132195931361554819,
+      "context_hash": 5608074098479689637,
+      "translation": "sync() — 시스템 전체 플러시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905797Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "`sync()` instructs the kernel to flush all dirty pages and all journal transactions across all mounted filesystems.",
+      "source_hash": 14949511644747721865,
+      "context_hash": 12304429707351700580,
+      "translation": "`sync()`는 커널에 마운트된 모든 파일시스템에 걸쳐 모든 dirty 페이지와 모든 저널 트랜잭션을 플러시하도록 지시합니다.",
+      "glossary_snapshot": {
+        "dirty pages": "dirty 페이지",
+        "journal": "저널",
+        "kernel": "커널",
+        "transactions": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:26.905797Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:1",
+      "source": "Historically `sync()` initiated writeback and returned immediately — this was intentional; the Unix documentation simply said it \"schedules\" writes, not that it waits for them.",
+      "source_hash": 12029562070125083537,
+      "context_hash": 5085638609332577543,
+      "translation": "역사적으로 `sync()`는 writeback을 시작한 뒤 즉시 반환했습니다. 이는 의도된 동작이었으며, Unix 문서에서도 쓰기를 기다린다고 하지 않고 단지 쓰기를 \"예약한다(schedules)\"고만 했습니다.",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:45:26.905797Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "**Linux behavior**: unlike the bare POSIX requirement, Linux `sync()` has waited for writeback and journal commits to complete for a very long time (the behaviour predates the 2.6 series — see the NOTES in `sync(2)`).",
+      "source_hash": 13011989571924543333,
+      "context_hash": 1056192017416742590,
+      "translation": "**Linux의 동작**: 최소한의 POSIX 요구 사항과 달리, Linux `sync()`는 아주 오래전부터 writeback과 저널 커밋이 완료될 때까지 기다려 왔습니다(이 동작은 2.6 시리즈 이전부터 있었습니다. `sync(2)`의 NOTES를 참조하십시오).",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "POSIX": "POSIX",
+        "journal commits": "저널 커밋",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:45:26.905797Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "The current kernel implementation delegates to `ksys_sync()`:",
+      "source_hash": 16837635340673803977,
+      "context_hash": 5311744868846766109,
+      "translation": "현재 커널 구현은 `ksys_sync()`에 처리를 위임합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:26.905797Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "Despite waiting, `sync()` does **not** issue a FLUSH command to every storage device.",
+      "source_hash": 18371890647034730831,
+      "context_hash": 10341371034095057200,
+      "translation": "대기함에도 불구하고 `sync()`는 모든 스토리지 디바이스에 FLUSH 명령을 발행하지 **않습니다**.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:38.283549Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "It relies on the filesystem's journal commits (which do use barriers) to ensure ordering.",
+      "source_hash": 3770665455190919393,
+      "context_hash": 17764527932052446393,
+      "translation": "순서 보장은 파일시스템의 저널 커밋(이는 배리어를 사용합니다)에 의존합니다.",
+      "glossary_snapshot": {
+        "journal commits": "저널 커밋"
+      },
+      "translated_at": "2026-11-14T22:45:26.905798Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:2",
+      "source": "If a filesystem has dirty data but no pending journal commit (e.g., `nobarrier` mount option), `sync()` may not fully flush the drive write cache.",
+      "source_hash": 10136871318554242539,
+      "context_hash": 571262547024435178,
+      "translation": "파일시스템에 dirty 데이터는 있지만 대기 중인 저널 커밋이 없는 경우(예: `nobarrier` 마운트 옵션), `sync()`가 드라이브 쓰기 캐시를 완전히 플러시하지 못할 수 있습니다.",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:26.905798Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "**When to use `sync()`**: system shutdown, testing, and scripting scenarios where you need everything on disk.",
+      "source_hash": 6728837090729501295,
+      "context_hash": 6511676828503349305,
+      "translation": "**`sync()`를 사용할 때**: 시스템 종료, 테스트, 그리고 모든 것을 디스크에 기록해야 하는 스크립트 작성 시나리오입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905799Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:1",
+      "source": "Not appropriate for application-level durability — the scope is too broad and the cost too high.",
+      "source_hash": 10384496601309980848,
+      "context_hash": 3059072473021321103,
+      "translation": "애플리케이션 수준의 내구성(durability)에는 적합하지 않습니다. 범위가 너무 넓고 비용이 너무 높습니다.",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:26.905799Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:7/seg:0",
+      "source": "syncfs() — per-filesystem flush",
+      "source_hash": 17299228091787025758,
+      "context_hash": 1409284097947668355,
+      "translation": "syncfs() — 파일시스템 단위 플러시",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:26.905799Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:0",
+      "source": "`syncfs()` was added in Linux 2.6.39 to give per-filesystem semantics without the system-wide cost of `sync()`.",
+      "source_hash": 15314789893089965136,
+      "context_hash": 5213479216365327545,
+      "translation": "`syncfs()`는 `sync()`의 시스템 전체 비용 없이 파일시스템 단위의 의미론을 제공하기 위해 Linux 2.6.39에서 추가되었습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:45:26.905799Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:8/seg:1",
+      "source": "It takes a file descriptor and flushes the filesystem that contains it:",
+      "source_hash": 2480645857520966438,
+      "context_hash": 14687315891181290800,
+      "translation": "파일 디스크립터를 받아 그것이 속한 파일시스템을 플러시합니다:",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:45:26.905799Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:0",
+      "source": "`sync_filesystem()` calls `sb->s_op->sync_fs()` (if defined) and then `sync_blockdev()` on the superblock's block device.",
+      "source_hash": 3947628227245978303,
+      "context_hash": 15134262070670910248,
+      "translation": "`sync_filesystem()`은 `sb->s_op->sync_fs()`를 (정의되어 있다면) 호출한 다음, 슈퍼블록의 블록 디바이스에 대해 `sync_blockdev()`를 호출합니다.",
+      "glossary_snapshot": {
+        "block device": "블록 디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:38.283550Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:1",
+      "source": "It waits for writeback and journal commits.",
+      "source_hash": 10985317386243943944,
+      "context_hash": 17348498087393136489,
+      "translation": "writeback과 저널 커밋이 완료될 때까지 기다립니다.",
+      "glossary_snapshot": {
+        "journal commits": "저널 커밋",
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:45:26.905800Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:10/seg:2",
+      "source": "Like `sync()`, it does not explicitly send a FLUSH to the storage device unless the filesystem's journal commit does so.",
+      "source_hash": 16366244012981560811,
+      "context_hash": 13568125751737700955,
+      "translation": "`sync()`와 마찬가지로, 파일시스템의 저널 커밋이 그렇게 하지 않는 한 스토리지 디바이스에 FLUSH를 명시적으로 보내지 않습니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "journal commit": "저널 커밋"
+      },
+      "translated_at": "2026-11-14T23:30:38.283551Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:0",
+      "source": "**`syncfs()` vs multiple `fsync()` calls**: `syncfs()` is useful when you need to flush everything on a filesystem — for example before a snapshot — without calling `fsync()` on every file.",
+      "source_hash": 13244574214709530615,
+      "context_hash": 10775500438339046481,
+      "translation": "**`syncfs()`와 여러 번의 `fsync()` 호출 비교**: `syncfs()`는 모든 파일에 `fsync()`를 호출하지 않고 파일시스템의 모든 것을 플러시해야 할 때(예를 들어 스냅샷을 만들기 전) 유용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129566Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:1",
+      "source": "It is cheaper than `sync()` and scoped to one filesystem.",
+      "source_hash": 7730284607389855950,
+      "context_hash": 16052245618365970254,
+      "translation": "`sync()`보다 비용이 적고 하나의 파일시스템으로 범위가 한정됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129567Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:11/seg:2",
+      "source": "For per-file durability guarantees, `fsync()` or `fdatasync()` is still required.",
+      "source_hash": 11743656494393541357,
+      "context_hash": 3292261342474613786,
+      "translation": "파일 단위의 내구성 보장이 필요하다면 여전히 `fsync()` 또는 `fdatasync()`가 필요합니다.",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:29.129568Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "O_SYNC and O_DSYNC",
+      "source_hash": 17205893942263048362,
+      "context_hash": 7848777653070414751,
+      "translation": "O_SYNC와 O_DSYNC",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129568Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Per-fd synchronous I/O",
+      "source_hash": 2408620655946076166,
+      "context_hash": 7613331404315156764,
+      "translation": "fd 단위 동기 I/O",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129568Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "`O_SYNC` and `O_DSYNC` are flags passed to `open()` that make every subsequent `write()` on the file descriptor synchronous — the write call blocks until data is on stable storage.",
+      "source_hash": 12728990020560360602,
+      "context_hash": 393397431738307811,
+      "translation": "`O_SYNC`와 `O_DSYNC`는 `open()`에 전달하는 플래그로, 해당 파일 디스크립터에 대한 이후의 모든 `write()`를 동기식으로 만듭니다. 즉, write 호출은 데이터가 안정적인 저장 장치에 기록될 때까지 블록됩니다.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터"
+      },
+      "translated_at": "2026-11-14T22:45:29.129569Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:1",
+      "source": "They avoid the need for a separate `fsync()` call after each write.",
+      "source_hash": 1120455489773463889,
+      "context_hash": 5973421281560481864,
+      "translation": "이 플래그를 사용하면 매 write 후에 별도로 `fsync()`를 호출할 필요가 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129570Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "IOCB flags and generic_write_sync",
+      "source_hash": 10820036507597691905,
+      "context_hash": 4332597300781827976,
+      "translation": "IOCB 플래그와 generic_write_sync",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129570Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "When `O_SYNC` or `O_DSYNC` is set on the file, the VFS sets corresponding flags in the `kiocb` struct before calling `write_iter`:",
+      "source_hash": 6455976121964977957,
+      "context_hash": 16677921248769097059,
+      "translation": "파일에 `O_SYNC` 또는 `O_DSYNC`가 설정되어 있으면 VFS는 `write_iter`를 호출하기 전에 `kiocb` 구조체에 대응하는 플래그를 설정합니다:",
+      "glossary_snapshot": {
+        "VFS": "VFS",
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:45:29.129571Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:7/seg:0",
+      "source": "(`O_SYNC` is defined as `__O_SYNC | O_DSYNC`, so a full `O_SYNC` file gets *both* `IOCB_DSYNC` and `IOCB_SYNC`, while `O_DSYNC` gets only `IOCB_DSYNC` — which is why the sync check must test `__O_SYNC`, not `O_SYNC`.)",
+      "source_hash": 12229467452011971788,
+      "context_hash": 9959761017317314898,
+      "translation": "(`O_SYNC`는 `__O_SYNC | O_DSYNC`로 정의되어 있으므로 완전한 `O_SYNC` 파일은 `IOCB_DSYNC`와 `IOCB_SYNC`를 *모두* 받고, `O_DSYNC`는 `IOCB_DSYNC`만 받습니다. 이 때문에 sync 검사는 `O_SYNC`가 아니라 `__O_SYNC`를 확인해야 합니다.)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129571Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:8/seg:0",
+      "source": "After `write_iter` completes, `generic_file_write_iter()` checks these flags and calls `generic_write_sync()`:",
+      "source_hash": 10877569199885558414,
+      "context_hash": 4146053066404852868,
+      "translation": "`write_iter`가 완료되면 `generic_file_write_iter()`가 이 플래그들을 확인하고 `generic_write_sync()`를 호출합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129571Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:0",
+      "source": "The `vfs_fsync_range()` call passes `datasync=1` for `O_DSYNC` (only `IOCB_DSYNC` set) and `datasync=0` for `O_SYNC` (both `IOCB_SYNC` and `IOCB_DSYNC` set).",
+      "source_hash": 11060884210721878429,
+      "context_hash": 17602737238817539267,
+      "translation": "`vfs_fsync_range()` 호출은 `O_DSYNC`(`IOCB_DSYNC`만 설정됨)에 대해서는 `datasync=1`을, `O_SYNC`(`IOCB_SYNC`와 `IOCB_DSYNC`가 모두 설정됨)에 대해서는 `datasync=0`을 전달합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129572Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:10/seg:1",
+      "source": "This is the precise semantic difference:",
+      "source_hash": 7372061130243900571,
+      "context_hash": 156584847587649475,
+      "translation": "이것이 정확한 의미상의 차이입니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129572Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:11/seg:0",
+      "source": "**`O_DSYNC`** (`IOCB_DSYNC` only): calls `vfs_fsync_range(..., datasync=1)` — data and size-related metadata, no timestamp flush.",
+      "source_hash": 16050855746242690637,
+      "context_hash": 2004968417850006622,
+      "translation": "**`O_DSYNC`**(`IOCB_DSYNC`만): `vfs_fsync_range(..., datasync=1)`를 호출합니다. 데이터와 크기 관련 메타데이터를 플러시하며, 타임스탬프는 플러시하지 않습니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터",
+        "timestamp": "타임스탬프"
+      },
+      "translated_at": "2026-11-14T22:45:29.129572Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:12/seg:0",
+      "source": "**`O_SYNC`** (`IOCB_SYNC | IOCB_DSYNC`): calls `vfs_fsync_range(..., datasync=0)` — full metadata including timestamps.",
+      "source_hash": 10073683100027418153,
+      "context_hash": 14782465625796715009,
+      "translation": "**`O_SYNC`**(`IOCB_SYNC | IOCB_DSYNC`): `vfs_fsync_range(..., datasync=0)`를 호출합니다. 타임스탬프를 포함한 전체 메타데이터를 플러시합니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터",
+        "timestamps": "타임스탬프"
+      },
+      "translated_at": "2026-11-14T22:45:29.129573Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:13/seg:0",
+      "source": "In practice, for most write workloads on pre-allocated files, `O_DSYNC` and `O_SYNC` have identical performance because `fdatasync` and `fsync` behave identically when no pure-metadata change is pending.",
+      "source_hash": 17912714222554957684,
+      "context_hash": 12111365145064060016,
+      "translation": "실제로 미리 할당된 파일에 대한 대부분의 쓰기 워크로드에서는 `O_DSYNC`와 `O_SYNC`의 성능이 동일합니다. 대기 중인 순수 메타데이터 변경이 없으면 `fdatasync`와 `fsync`가 동일하게 동작하기 때문입니다.",
+      "glossary_snapshot": {
+        "metadata": "메타데이터",
+        "workloads": "워크로드"
+      },
+      "translated_at": "2026-11-14T22:45:29.129573Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:14/seg:0",
+      "source": "Performance cost",
+      "source_hash": 1177944793168823637,
+      "context_hash": 7142629489218061854,
+      "translation": "성능 비용",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129573Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:0",
+      "source": "`O_SYNC` and `O_DSYNC` serialize each write with a storage flush.",
+      "source_hash": 3003223440875259865,
+      "context_hash": 7159067716118429573,
+      "translation": "`O_SYNC`와 `O_DSYNC`는 각 write를 저장 장치 플러시와 함께 직렬화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129573Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:15/seg:1",
+      "source": "On random small writes, this eliminates all write coalescing:",
+      "source_hash": 12900257681234166653,
+      "context_hash": 4425269852242041912,
+      "translation": "작은 랜덤 쓰기에서는 이로 인해 쓰기 병합(write coalescing)이 전혀 일어나지 않습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129573Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:16/seg:0",
+      "source": "Write pattern",
+      "source_hash": 16157073127831950838,
+      "context_hash": 14120509524011164965,
+      "translation": "쓰기 패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129573Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:17/seg:0",
+      "source": "Buffered throughput",
+      "source_hash": 4544361929642339606,
+      "context_hash": 5485992484432532337,
+      "translation": "버퍼드 처리량",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:45:29.129573Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:18/seg:0",
+      "source": "O_DSYNC throughput",
+      "source_hash": 5327088518318326246,
+      "context_hash": 13780936269629091192,
+      "translation": "O_DSYNC 처리량",
+      "glossary_snapshot": {
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:19/seg:0",
+      "source": "Ratio",
+      "source_hash": 14762431956982885208,
+      "context_hash": 3820578406513086659,
+      "translation": "비율",
+      "glossary_snapshot": {
+        "Ratio": "비율"
+      },
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:20/seg:0",
+      "source": "4KB sequential, NVMe",
+      "source_hash": 17788677304979404112,
+      "context_hash": 17234327938245045408,
+      "translation": "4KB 순차, NVMe",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:21/seg:0",
+      "source": "~3 GB/s",
+      "source_hash": 16288840059130744724,
+      "context_hash": 13577859452667184266,
+      "translation": "~3 GB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:22/seg:0",
+      "source": "~400 MB/s",
+      "source_hash": 6848230883417333441,
+      "context_hash": 10169939391944203482,
+      "translation": "~400 MB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:23/seg:0",
+      "source": "7× slower",
+      "source_hash": 8763751075177471423,
+      "context_hash": 2050693427476563483,
+      "translation": "7배 느림",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:24/seg:0",
+      "source": "4KB random, NVMe",
+      "source_hash": 12464959826518436517,
+      "context_hash": 5184635972898777609,
+      "translation": "4KB 랜덤, NVMe",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:25/seg:0",
+      "source": "~2 GB/s",
+      "source_hash": 3243313305766477086,
+      "context_hash": 17616905658266042717,
+      "translation": "~2 GB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:26/seg:0",
+      "source": "~30 MB/s",
+      "source_hash": 8625648533086269492,
+      "context_hash": 757004046077657246,
+      "translation": "~30 MB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:27/seg:0",
+      "source": "60× slower",
+      "source_hash": 12826357082042598895,
+      "context_hash": 1302824929531809803,
+      "translation": "60배 느림",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:28/seg:0",
+      "source": "64KB sequential, NVMe",
+      "source_hash": 3289052358462728561,
+      "context_hash": 13231989278660104558,
+      "translation": "64KB 순차, NVMe",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:45:29.129574Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:29/seg:0",
+      "source": "~3 GB/s",
+      "source_hash": 16288840059130744724,
+      "context_hash": 495721231751865882,
+      "translation": "~3 GB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938801Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:30/seg:0",
+      "source": "~1 GB/s",
+      "source_hash": 8105609816431452312,
+      "context_hash": 7187145986911670551,
+      "translation": "~1 GB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938802Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:31/seg:0",
+      "source": "3× slower",
+      "source_hash": 7698435569675960328,
+      "context_hash": 12391261797536484273,
+      "translation": "3배 느림",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938802Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:32/seg:0",
+      "source": "4KB sequential, SATA SSD",
+      "source_hash": 9203154967337934815,
+      "context_hash": 3502942606046251976,
+      "translation": "4KB 순차, SATA SSD",
+      "glossary_snapshot": {
+        "SSD": "SSD"
+      },
+      "translated_at": "2026-11-14T22:45:34.938802Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:33/seg:0",
+      "source": "~500 MB/s",
+      "source_hash": 4566126932775422197,
+      "context_hash": 4003844804760108402,
+      "translation": "~500 MB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938802Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:34/seg:0",
+      "source": "~50 MB/s",
+      "source_hash": 4491351514515405489,
+      "context_hash": 11581074167320159409,
+      "translation": "~50 MB/s",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938802Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:35/seg:0",
+      "source": "10× slower",
+      "source_hash": 1832049684477009486,
+      "context_hash": 13232738102028931058,
+      "translation": "10배 느림",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938802Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:36/seg:0",
+      "source": "The large ratio for random 4KB writes is because each write round-trips to the drive (commit latency ~100 µs on NVMe) and there is no pipelining.",
+      "source_hash": 16954967869061196015,
+      "context_hash": 10302276061470413984,
+      "translation": "랜덤 4KB 쓰기에서 비율이 크게 벌어지는 이유는 각 쓰기가 드라이브까지 왕복해야 하고(NVMe의 커밋 지연 시간은 ~100 µs) 파이프라이닝이 전혀 없기 때문입니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:34.938803Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:37/seg:0",
+      "source": "When to use O_SYNC / O_DSYNC",
+      "source_hash": 11286368556989424460,
+      "context_hash": 8331359457933828618,
+      "translation": "O_SYNC / O_DSYNC를 사용해야 하는 경우",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938803Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:38/seg:0",
+      "source": "**WAL files and redo logs**: databases that need every log record durable before acknowledging a commit.",
+      "source_hash": 13482571412889894651,
+      "context_hash": 15782831044792741438,
+      "translation": "**WAL 파일과 redo 로그**: 커밋을 확인 응답하기 전에 모든 로그 레코드가 영속화되어야 하는 데이터베이스입니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:34.938803Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:38/seg:1",
+      "source": "Using `O_DSYNC` on the WAL file avoids a separate `fdatasync()` call and reduces syscall count.",
+      "source_hash": 9492166601796768369,
+      "context_hash": 16312381851117272176,
+      "translation": "WAL 파일에 `O_DSYNC`를 사용하면 별도의 `fdatasync()` 호출을 피할 수 있어 시스템 콜 횟수가 줄어듭니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:45:34.938803Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:39/seg:0",
+      "source": "**Audit logs**: security-critical logs where every event must survive a crash.",
+      "source_hash": 1467128969879868012,
+      "context_hash": 3324075222100442254,
+      "translation": "**감사 로그**: 모든 이벤트가 크래시 후에도 살아남아야 하는 보안상 중요한 로그입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938803Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:40/seg:0",
+      "source": "**Transaction log files in message queues** (e.g., Kafka segment files): `O_DSYNC` on the segment file ensures each message is durable before acknowledging the producer.",
+      "source_hash": 13623406516856148444,
+      "context_hash": 14332022080050044238,
+      "translation": "**메시지 큐의 트랜잭션 로그 파일** (예: Kafka 세그먼트 파일): 세그먼트 파일에 `O_DSYNC`를 사용하면 생산자에게 확인 응답을 보내기 전에 각 메시지가 내구성을 갖추도록 보장합니다.",
+      "glossary_snapshot": {
+        "producer": "생산자",
+        "queues": "큐",
+        "transaction": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T23:30:38.283552Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:41/seg:0",
+      "source": "**Do not use** `O_SYNC`/`O_DSYNC` for general application data files — the performance cost is too high and most applications are better served by occasional `fsync()` checkpoints.",
+      "source_hash": 4197919856441699756,
+      "context_hash": 9865264951258798907,
+      "translation": "일반 애플리케이션 데이터 파일에는 `O_SYNC`/`O_DSYNC`를 **사용하지 마십시오**. 성능 비용이 너무 크며, 대부분의 애플리케이션은 가끔 `fsync()` 체크포인트를 수행하는 편이 더 적합합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938803Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Write barriers in filesystems",
+      "source_hash": 13457196585065661155,
+      "context_hash": 2747755845189703247,
+      "translation": "파일시스템의 쓰기 배리어",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "The ordering problem",
+      "source_hash": 11801859974233258192,
+      "context_hash": 16183028326647976457,
+      "translation": "순서 문제",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "Consider a database writing a data page and then a journal record describing that write.",
+      "source_hash": 11212335204882597928,
+      "context_hash": 15586404300370223512,
+      "translation": "데이터베이스가 데이터 페이지를 쓴 다음, 그 쓰기를 기술하는 저널 레코드를 쓰는 상황을 생각해 보십시오.",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "If the storage device reorders these two writes — journal record lands first, crash occurs, data page never arrives — recovery replays a journal entry that points to stale data.",
+      "source_hash": 10560259775234012058,
+      "context_hash": 17435589078204922526,
+      "translation": "스토리지 디바이스가 이 두 쓰기의 순서를 바꾸면 — 저널 레코드가 먼저 기록되고, 크래시가 발생하고, 데이터 페이지는 끝내 도달하지 않으면 — 복구 과정에서 오래된 데이터를 가리키는 저널 엔트리를 재실행하게 됩니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "journal": "저널",
+        "stale data": "오래된 데이터"
+      },
+      "translated_at": "2026-11-14T23:30:38.283552Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:2",
+      "source": "The file is now corrupt.",
+      "source_hash": 1967937424223134726,
+      "context_hash": 16316638503088796069,
+      "translation": "이제 파일은 손상된 상태입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Write barriers solve this: a barrier ensures all writes issued before it are persistent before any write issued after it begins.",
+      "source_hash": 2339517274568099219,
+      "context_hash": 16011184002056358474,
+      "translation": "쓰기 배리어가 이 문제를 해결합니다. 배리어는 그 이전에 발행된 모든 쓰기가 그 이후에 발행된 쓰기가 시작되기 전에 영속화되도록 보장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "On NVMe:",
+      "source_hash": 3009577924040667101,
+      "context_hash": 3084845064314605794,
+      "translation": "NVMe에서는 다음과 같습니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe"
+      },
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "**FUA (Force Unit Access)**: a flag on a specific write command that bypasses the volatile write cache for that command only.",
+      "source_hash": 3023306637230207181,
+      "context_hash": 3983258178897009719,
+      "translation": "**FUA(Force Unit Access)**: 특정 쓰기 명령에 설정하는 플래그로, 해당 명령에 한해서만 휘발성 쓰기 캐시를 우회합니다.",
+      "glossary_snapshot": {
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "**FLUSH command** (`REQ_OP_FLUSH`): drains the entire volatile write cache; all previous writes are persistent before this command returns.",
+      "source_hash": 5836907606931045298,
+      "context_hash": 11214191120412422745,
+      "translation": "**FLUSH 명령**(`REQ_OP_FLUSH`): 휘발성 쓰기 캐시 전체를 비우며, 이 명령이 반환되기 전에 이전의 모든 쓰기가 영속화됩니다.",
+      "glossary_snapshot": {
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "The kernel bio flags:",
+      "source_hash": 16276913240652787919,
+      "context_hash": 6646377444947901998,
+      "translation": "커널 bio 플래그는 다음과 같습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "`REQ_FUA` sets the FUA bit on the NVMe write command. `REQ_PREFLUSH` causes a FLUSH command to be issued before the write.",
+      "source_hash": 14846422890948415942,
+      "context_hash": 15388852877549898256,
+      "translation": "`REQ_FUA`는 NVMe 쓰기 명령에 FUA 비트를 설정합니다. `REQ_PREFLUSH`는 쓰기 전에 FLUSH 명령이 발행되도록 합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "bit": "비트"
+      },
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:1",
+      "source": "The block layer in `blk-flush.c` sequences these correctly for drives that require FLUSH+WRITE instead of FUA.",
+      "source_hash": 12842013863732420724,
+      "context_hash": 1822668169133697668,
+      "translation": "`blk-flush.c`의 블록 계층은 FUA 대신 FLUSH+WRITE가 필요한 드라이브에 대해 이들의 순서를 올바르게 맞춥니다.",
+      "glossary_snapshot": {
+        "block layer": "블록 계층"
+      },
+      "translated_at": "2026-11-14T22:45:34.938804Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "How journaling filesystems use barriers",
+      "source_hash": 2167770508394726805,
+      "context_hash": 15085528817174338612,
+      "translation": "저널링 파일시스템이 배리어를 사용하는 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938805Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "**ext4**: The journal commit block (`jbd2_commit_block`) is written with `REQ_FUA` (if the device supports FUA) or with a preceding `REQ_PREFLUSH` (if the device requires FLUSH before the commit).",
+      "source_hash": 10911792214973363316,
+      "context_hash": 6219662004963040393,
+      "translation": "**ext4**: 저널 커밋 블록(`jbd2_commit_block`)은 `REQ_FUA`와 함께(디바이스가 FUA를 지원하는 경우) 또는 선행하는 `REQ_PREFLUSH`와 함께(디바이스가 커밋 전에 FLUSH를 요구하는 경우) 기록됩니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "journal commit": "저널 커밋"
+      },
+      "translated_at": "2026-11-14T23:30:38.283580Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:1",
+      "source": "The `JBD2_BARRIER` journal flag controls whether barriers are used; it is enabled by default and can be disabled with the `nobarrier` mount option (dangerous — only for testing or battery-backed storage).",
+      "source_hash": 1678491004669914809,
+      "context_hash": 16825820047234404429,
+      "translation": "`JBD2_BARRIER` 저널 플래그가 배리어 사용 여부를 제어합니다. 이 플래그는 기본적으로 활성화되어 있으며 `nobarrier` 마운트 옵션으로 비활성화할 수 있습니다(위험하므로 테스트용이나 배터리 백업 스토리지에서만 사용하십시오).",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:45:34.938805Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "**XFS**: XFS uses `xlog_write()` to write log records, and the log record at the tail of a log flush is written with `REQ_FUA`.",
+      "source_hash": 15141231118791678990,
+      "context_hash": 1130006408368988783,
+      "translation": "**XFS**: XFS는 `xlog_write()`를 사용해 로그 레코드를 기록하며, 로그 플러시의 끝부분에 있는 로그 레코드는 `REQ_FUA`와 함께 기록됩니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:45:34.938805Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:1",
+      "source": "The log head is protected by `xfs_log_force()`, which issues the FUA write and waits for completion.",
+      "source_hash": 8285957140069823718,
+      "context_hash": 2332355718483534826,
+      "translation": "로그 헤드는 `xfs_log_force()`로 보호되며, 이 함수는 FUA 쓰기를 발행하고 완료될 때까지 기다립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:34.938805Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:2",
+      "source": "Like ext4, XFS respects a `nobarrier` mount option.",
+      "source_hash": 13483835915251411735,
+      "context_hash": 4657345340420920319,
+      "translation": "ext4와 마찬가지로 XFS도 `nobarrier` 마운트 옵션을 따릅니다.",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:45:34.938805Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "**btrfs**: btrfs uses ordered writes for data (data is on disk before the tree root that references it) and writes the superblock with `REQ_FUA | REQ_PREFLUSH` to ensure the new tree root is persistent before the superblock is updated.",
+      "source_hash": 12276262046264383710,
+      "context_hash": 3722553574833721324,
+      "translation": "**btrfs**: btrfs는 데이터에 ordered write를 사용하며(데이터는 이를 참조하는 트리 루트보다 먼저 디스크에 기록됩니다), 슈퍼블록이 갱신되기 전에 새 트리 루트가 영속화되도록 보장하기 위해 슈퍼블록을 `REQ_FUA | REQ_PREFLUSH`로 기록합니다.",
+      "glossary_snapshot": {
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:45:33.628109Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:14/seg:0",
+      "source": "Barrier detection and the nobarrier risk",
+      "source_hash": 7927225617100445931,
+      "context_hash": 11484695660624109228,
+      "translation": "배리어 감지와 nobarrier의 위험",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628111Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:0",
+      "source": "The `nobarrier` mount option disables write barriers.",
+      "source_hash": 2009533385466658394,
+      "context_hash": 5328193113870666218,
+      "translation": "`nobarrier` 마운트 옵션은 쓰기 배리어(write barrier)를 비활성화합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628111Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:1",
+      "source": "On a storage device with a volatile write cache, this creates a window where journal commits are acknowledged before the data they describe is persistent.",
+      "source_hash": 6703672149749568906,
+      "context_hash": 17260356703421522488,
+      "translation": "휘발성 쓰기 캐시를 가진 스토리지 디바이스에서는, 저널 커밋이 기술하는 데이터가 영구화되기 전에 저널 커밋이 확인 응답되는 시간 창이 생깁니다.",
+      "glossary_snapshot": {
+        "device": "디바이스",
+        "journal commits": "저널 커밋",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T23:30:38.283581Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:15/seg:2",
+      "source": "On crash-and-recover, the journal replays the commit but the referenced data blocks contain stale or zeroed content.",
+      "source_hash": 17026143775698297005,
+      "context_hash": 16583682911060004735,
+      "translation": "크래시 후 복구 시 저널은 커밋을 재생하지만, 참조된 데이터 블록에는 오래되었거나 0으로 채워진 내용이 들어 있습니다.",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:45:33.628112Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:16/seg:0",
+      "source": "`nobarrier` is safe only when:",
+      "source_hash": 3775682011982169679,
+      "context_hash": 9129951931261184288,
+      "translation": "`nobarrier`는 다음과 같은 경우에만 안전합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628113Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:17/seg:0",
+      "source": "The block device is known to have no volatile write cache (e.g., a RAMDISK, certain PMem configurations, or a storage array with battery-backed NVRAM that is automatically flushed to persistent media).",
+      "source_hash": 11629396645005012006,
+      "context_hash": 14376167552063423207,
+      "translation": "블록 디바이스에 휘발성 쓰기 캐시가 없는 것으로 알려져 있는 경우입니다(예: RAMDISK, 특정 PMem 구성, 또는 영구 매체로 자동 플러시되는 배터리 백업 NVRAM을 갖춘 스토리지 배열).",
+      "glossary_snapshot": {
+        "array": "배열",
+        "block device": "블록 디바이스",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T23:30:38.283581Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:18/seg:0",
+      "source": "The application explicitly handles durability at a higher level and does not rely on filesystem crash consistency.",
+      "source_hash": 1515369999602167176,
+      "context_hash": 18252982272507643066,
+      "translation": "애플리케이션이 더 높은 수준에서 내구성을 명시적으로 처리하며 파일 시스템의 크래시 일관성에 의존하지 않는 경우",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:33.628113Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:19/seg:0",
+      "source": "To test whether a device honors FLUSH commands, see the [Benchmarking fsync](#benchmarking-fsync) section.",
+      "source_hash": 11664387394869091919,
+      "context_hash": 5840517697553271525,
+      "translation": "디바이스가 FLUSH 명령을 지키는지 테스트하려면 [Benchmarking fsync](#benchmarking-fsync) 절을 참조하십시오.",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:38.283582Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "The new-file durability trap",
+      "source_hash": 12402581972794064772,
+      "context_hash": 16797402102914205216,
+      "translation": "새 파일 내구성의 함정",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:33.628114Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "A common application mistake is to create a new file, write data, `fsync()` the file, and assume the file is durable.",
+      "source_hash": 15648546213100056555,
+      "context_hash": 14751768523296009422,
+      "translation": "흔한 애플리케이션 실수는 새 파일을 생성하고, 데이터를 쓰고, 그 파일을 `fsync()`한 뒤 파일이 내구성을 갖추었다고 가정하는 것입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628114Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "This is insufficient.",
+      "source_hash": 18005874571828695247,
+      "context_hash": 10134872928432550458,
+      "translation": "이것으로는 충분하지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628115Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:2/seg:0",
+      "source": "When a file is created, two things happen:",
+      "source_hash": 7326532971660543025,
+      "context_hash": 11703986118449801721,
+      "translation": "파일이 생성될 때 두 가지 일이 일어납니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628115Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "The file's inode is allocated and its data is written.",
+      "source_hash": 17160888637192888324,
+      "context_hash": 1574644678394186784,
+      "translation": "파일의 inode가 할당되고 데이터가 기록됩니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:45:33.628115Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "A directory entry (dentry) is added to the parent directory, linking the filename to the inode.",
+      "source_hash": 10832332987266092092,
+      "context_hash": 8297386949748346292,
+      "translation": "파일 이름을 inode에 연결하는 디렉터리 엔트리(dentry)가 부모 디렉터리에 추가됩니다.",
+      "glossary_snapshot": {
+        "dentry": "dentry",
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:45:33.628115Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:0",
+      "source": "`fsync(fd)` flushes the inode and its data — but the directory entry is in the *parent directory's* inode, which has its own dirty state.",
+      "source_hash": 1408115317829369916,
+      "context_hash": 17961693978198394331,
+      "translation": "`fsync(fd)`는 inode와 그 데이터를 플러시하지만, 디렉터리 엔트리는 자체 dirty 상태를 가진 *부모 디렉터리의* inode에 있습니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:45:33.628115Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:1",
+      "source": "A crash after `fsync(fd)` but before the directory entry is flushed can leave the data blocks on disk with no directory entry pointing to them.",
+      "source_hash": 194789073311138795,
+      "context_hash": 6285086360986057227,
+      "translation": "`fsync(fd)` 이후, 디렉터리 엔트리가 플러시되기 전에 크래시가 발생하면 데이터 블록은 디스크에 남아 있지만 이를 가리키는 디렉터리 엔트리는 없는 상태가 될 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628116Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:5/seg:2",
+      "source": "The file data is irrecoverable.",
+      "source_hash": 1195357869681303809,
+      "context_hash": 4654021399316433273,
+      "translation": "이 파일 데이터는 복구할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628116Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "**Correct pattern for durable file creation:**",
+      "source_hash": 8960018585477246585,
+      "context_hash": 11349681782213882904,
+      "translation": "**내구성 있는 파일 생성을 위한 올바른 패턴:**",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628116Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "The two `fsync()` calls ensure:",
+      "source_hash": 7560664378621359522,
+      "context_hash": 13299907301151040020,
+      "translation": "두 번의 `fsync()` 호출은 다음을 보장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628116Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "The file's data and inode are on disk.",
+      "source_hash": 6006898760673693479,
+      "context_hash": 10626751622436769166,
+      "translation": "파일의 데이터와 inode가 디스크에 기록됩니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:45:33.628116Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "The directory entry linking the filename to the inode is on disk.",
+      "source_hash": 12074036952480318214,
+      "context_hash": 13601877697051086684,
+      "translation": "파일 이름을 inode에 연결하는 디렉터리 엔트리가 디스크에 기록됩니다.",
+      "glossary_snapshot": {
+        "inode": "inode"
+      },
+      "translated_at": "2026-11-14T22:45:33.628116Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "On ext4 `data=ordered`, the two `fsync()` calls may collapse into a single journal commit if both happen within the same transaction window — but the application cannot assume this and must issue both calls.",
+      "source_hash": 11248368716604405778,
+      "context_hash": 14919464245414772061,
+      "translation": "ext4 `data=ordered`에서는 두 `fsync()` 호출이 같은 트랜잭션 구간 안에서 일어나면 하나의 저널 커밋으로 합쳐질 수 있지만, 애플리케이션은 이를 가정할 수 없으며 두 호출을 모두 수행해야 합니다.",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋",
+        "transaction": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:33.628117Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "Who does this correctly",
+      "source_hash": 8591407085163791674,
+      "context_hash": 12272813953356938496,
+      "translation": "이를 올바르게 수행하는 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628117Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:0",
+      "source": "**SQLite**: in WAL mode, SQLite calls `fsync()` on the WAL file and on the directory after creating the WAL file.",
+      "source_hash": 1878269731293781700,
+      "context_hash": 13184523241613493607,
+      "translation": "**SQLite**: WAL 모드에서 SQLite는 WAL 파일을 생성한 뒤 WAL 파일과 디렉터리에 대해 `fsync()`를 호출합니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:33.628117Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:13/seg:1",
+      "source": "See `unixSync()` in `os_unix.c`:",
+      "source_hash": 796550311246071980,
+      "context_hash": 5150126574366628899,
+      "translation": "`os_unix.c`의 `unixSync()`를 참조하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628117Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:0",
+      "source": "**PostgreSQL**: `pg_fsync()` in `fd.c` calls `fsync()` on data files.",
+      "source_hash": 8248259775374620439,
+      "context_hash": 15946587527124430834,
+      "translation": "**PostgreSQL**: `fd.c`의 `pg_fsync()`는 데이터 파일에 대해 `fsync()`를 호출합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL"
+      },
+      "translated_at": "2026-11-14T22:45:33.628117Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:1",
+      "source": "After creating a new file in `PathNameOpenFile()`, PostgreSQL also opens and fsyncs the parent directory via `fsync_fname()`.",
+      "source_hash": 16522352469391577153,
+      "context_hash": 13781607083230907684,
+      "translation": "`PathNameOpenFile()`에서 새 파일을 생성한 뒤, PostgreSQL은 `fsync_fname()`을 통해 부모 디렉터리도 열어서 fsync합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL"
+      },
+      "translated_at": "2026-11-14T22:45:33.628117Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:15/seg:2",
+      "source": "See `storage/file/fd.c` and `storage/smgr/md.c`.",
+      "source_hash": 15000333166875889472,
+      "context_hash": 1102754617721830512,
+      "translation": "`storage/file/fd.c`와 `storage/smgr/md.c`를 참조하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628118Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:0",
+      "source": "**LevelDB / RocksDB**: both call `SyncDir()` after creating new SST files, which opens the directory with `O_RDONLY` and calls `fsync()` on it.",
+      "source_hash": 528141028415899257,
+      "context_hash": 6905138142658816128,
+      "translation": "**LevelDB / RocksDB**: 둘 다 새 SST 파일을 생성한 뒤 `SyncDir()`를 호출하며, 이 함수는 디렉터리를 `O_RDONLY`로 열고 그에 대해 `fsync()`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628118Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:16/seg:1",
+      "source": "In RocksDB, `env/io_posix.cc` contains `PosixDirectory::FsyncWithDirOptions()`.",
+      "source_hash": 9540185637227266679,
+      "context_hash": 8402136684639216128,
+      "translation": "RocksDB에서는 `env/io_posix.cc`에 `PosixDirectory::FsyncWithDirOptions()`가 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:33.628118Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Durability matrix",
+      "source_hash": 18389938551680061414,
+      "context_hash": 4590340489745841027,
+      "translation": "내구성 매트릭스",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:33.628118Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "The following table summarizes what each write mechanism guarantees across the three durability layers:",
+      "source_hash": 6922106433085092710,
+      "context_hash": 4172737873039298883,
+      "translation": "다음 표는 각 쓰기 메커니즘이 세 가지 내구성 계층에 걸쳐 무엇을 보장하는지 요약합니다.",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:24.152910Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "Mechanism",
+      "source_hash": 559233746687605355,
+      "context_hash": 15766115273597900746,
+      "translation": "메커니즘",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152911Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "Page cache flushed",
+      "source_hash": 8066936111927308823,
+      "context_hash": 9246008354457917137,
+      "translation": "페이지 캐시 플러시",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:24.152912Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "Drive write cache flushed",
+      "source_hash": 16824319600453230814,
+      "context_hash": 2324676856022306756,
+      "translation": "드라이브 쓰기 캐시 플러시",
+      "glossary_snapshot": {
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:24.152913Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "Survives power loss",
+      "source_hash": 10519328045740279330,
+      "context_hash": 11264671271663605687,
+      "translation": "정전 시 보존",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152913Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "Notes",
+      "source_hash": 6248434630477978300,
+      "context_hash": 4544357499227111860,
+      "translation": "비고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152913Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "`write()`",
+      "source_hash": 8896201893985580040,
+      "context_hash": 8780521182490275838,
+      "translation": "`write()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152913Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 14287304964437332075,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:24.152913Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 7536943046141488671,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:24.152914Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 17032458679978459761,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:24.152914Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "Data in DRAM only",
+      "source_hash": 684994789774767023,
+      "context_hash": 11080403761691039062,
+      "translation": "데이터가 DRAM에만 존재",
+      "glossary_snapshot": {
+        "DRAM": "DRAM"
+      },
+      "translated_at": "2026-11-14T22:45:24.152914Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:12/seg:0",
+      "source": "`write()` + background writeback",
+      "source_hash": 16835966031768801916,
+      "context_hash": 13142730327934146212,
+      "translation": "`write()` + 백그라운드 writeback",
+      "glossary_snapshot": {
+        "writeback": "writeback"
+      },
+      "translated_at": "2026-11-14T22:45:24.152915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:13/seg:0",
+      "source": "Yes (eventually)",
+      "source_hash": 12702700682704100364,
+      "context_hash": 15204699039819997093,
+      "translation": "예(결국에는)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:14/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 12988127815397890638,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:24.152915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:15/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 3906686591903678503,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:24.152915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:16/seg:0",
+      "source": "Timing non-deterministic",
+      "source_hash": 2521043410538137909,
+      "context_hash": 14702907249081711164,
+      "translation": "시점이 비결정적",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:17/seg:0",
+      "source": "`write()` + `fsync()`",
+      "source_hash": 2259418906455451783,
+      "context_hash": 6868173233726143558,
+      "translation": "`write()` + `fsync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152915Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:18/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 8493902227494646677,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:24.152916Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:19/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:24.152916Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:20/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 5356545613023498711,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:24.152916Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:21/seg:0",
+      "source": "Full durability for the file",
+      "source_hash": 7096707747015887618,
+      "context_hash": 367852424550777449,
+      "translation": "파일에 대한 완전한 내구성",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:24.152916Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:22/seg:0",
+      "source": "`write()` + `fdatasync()`",
+      "source_hash": 15797794796746381830,
+      "context_hash": 9718321843653510884,
+      "translation": "`write()` + `fdatasync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152917Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:23/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 2154607630131779256,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:24.152917Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:24/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:24.152917Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:25/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 15086859038201376055,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:24.152917Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:26/seg:0",
+      "source": "No non-essential metadata flush",
+      "source_hash": 17926183894154786879,
+      "context_hash": 1282730524023371032,
+      "translation": "필수적이지 않은 메타데이터는 플러시하지 않음",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:24.152918Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:27/seg:0",
+      "source": "`write()` + `sync()`",
+      "source_hash": 10295491080389659315,
+      "context_hash": 16688251763926769670,
+      "translation": "`write()` + `sync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152918Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:28/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 15096197812730817638,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:24.152918Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:29/seg:0",
+      "source": "Partially*",
+      "source_hash": 20163208290721134,
+      "context_hash": 5247270680284295358,
+      "translation": "부분적*",
+      "glossary_snapshot": {
+        "Partially": "부분적"
+      },
+      "translated_at": "2026-11-14T22:45:24.152918Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:30/seg:0",
+      "source": "Partially*",
+      "source_hash": 20163208290721134,
+      "context_hash": 17861852134690988180,
+      "translation": "부분적*",
+      "glossary_snapshot": {
+        "Partially": "부분적"
+      },
+      "translated_at": "2026-11-14T22:45:24.152919Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:31/seg:0",
+      "source": "System-wide; barriers via journal",
+      "source_hash": 6691950545470469899,
+      "context_hash": 7505263963432308615,
+      "translation": "시스템 전체 대상, 저널을 통한 배리어",
+      "glossary_snapshot": {
+        "journal": "저널"
+      },
+      "translated_at": "2026-11-14T22:45:24.152919Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:32/seg:0",
+      "source": "`O_SYNC` write",
+      "source_hash": 6635318910915642756,
+      "context_hash": 11190180349496913772,
+      "translation": "`O_SYNC` 쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:24.152919Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:33/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 18412806362320986475,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221007Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:34/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221009Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:35/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 16456504263295827974,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221009Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:36/seg:0",
+      "source": "Per-write; full metadata",
+      "source_hash": 11005991038334633750,
+      "context_hash": 13288475600240834878,
+      "translation": "쓰기마다; 전체 메타데이터",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:31.221010Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:37/seg:0",
+      "source": "`O_DSYNC` write",
+      "source_hash": 17370512782779343239,
+      "context_hash": 8002071768718814754,
+      "translation": "`O_DSYNC` 쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221010Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:38/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 2444231725773591040,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221010Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:39/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 7259753640440472095,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221011Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:40/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 9284032313464588546,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221011Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:41/seg:0",
+      "source": "Per-write; data + size metadata",
+      "source_hash": 10170807806313367274,
+      "context_hash": 15868410459893371366,
+      "translation": "쓰기마다; 데이터 + 크기 메타데이터",
+      "glossary_snapshot": {
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:31.221012Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:42/seg:0",
+      "source": "`O_DIRECT` write",
+      "source_hash": 417836064782744707,
+      "context_hash": 18384780923168220420,
+      "translation": "`O_DIRECT` 쓰기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221012Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:43/seg:0",
+      "source": "Yes (bypass)",
+      "source_hash": 4705801094085544743,
+      "context_hash": 4109743697651400465,
+      "translation": "예(우회)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221013Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:44/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 4094825809150356487,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:31.221013Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:45/seg:0",
+      "source": "No",
+      "source_hash": 3846534607940335394,
+      "context_hash": 5132686192664685362,
+      "translation": "아니요",
+      "glossary_snapshot": {
+        "No": "아니요"
+      },
+      "translated_at": "2026-11-14T22:45:31.221013Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:46/seg:0",
+      "source": "Bypasses page cache; drive buffer still volatile",
+      "source_hash": 688029779010672258,
+      "context_hash": 12452493199840036310,
+      "translation": "페이지 캐시 우회; 드라이브 버퍼는 여전히 휘발성",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:31.221014Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:47/seg:0",
+      "source": "`O_DIRECT` + `O_DSYNC`",
+      "source_hash": 10794993455446427267,
+      "context_hash": 14609591692067390008,
+      "translation": "`O_DIRECT` + `O_DSYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221014Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:48/seg:0",
+      "source": "Yes (bypass)",
+      "source_hash": 4705801094085544743,
+      "context_hash": 8106636131718371581,
+      "translation": "예(우회)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221014Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:49/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 17813703924067239053,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221014Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:50/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 10351457452950855962,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221015Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:51/seg:0",
+      "source": "Bypasses page cache AND flushes drive cache",
+      "source_hash": 8480971819895028343,
+      "context_hash": 11459870210351495406,
+      "translation": "페이지 캐시 우회 및 드라이브 캐시 플러시",
+      "glossary_snapshot": {
+        "cache": "캐시",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:31.221016Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:52/seg:0",
+      "source": "`O_DIRECT` + `fsync()`",
+      "source_hash": 104755780777544139,
+      "context_hash": 3721304740343314199,
+      "translation": "`O_DIRECT` + `fsync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221016Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:53/seg:0",
+      "source": "Yes (bypass)",
+      "source_hash": 4705801094085544743,
+      "context_hash": 4217288177812186659,
+      "translation": "예(우회)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221016Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:54/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 17813703924067239053,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221016Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:55/seg:0",
+      "source": "Yes",
+      "source_hash": 3389992145996609386,
+      "context_hash": 13614470600681641223,
+      "translation": "예",
+      "glossary_snapshot": {
+        "Yes": "예"
+      },
+      "translated_at": "2026-11-14T22:45:31.221016Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:56/seg:0",
+      "source": "Most common DB pattern",
+      "source_hash": 3795632483321951575,
+      "context_hash": 16071053612431743497,
+      "translation": "가장 일반적인 DB 패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221017Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:57/seg:0",
+      "source": "*`sync()` flushing the drive write cache depends on whether a journal commit with barriers runs during the sync.",
+      "source_hash": 11001759518144893211,
+      "context_hash": 12333707295620495014,
+      "translation": "*`sync()`가 드라이브 쓰기 캐시를 플러시하는지는 sync 도중 배리어를 사용하는 저널 커밋이 실행되는지에 따라 달라집니다.",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:31.221017Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Atomic write guarantees",
+      "source_hash": 18335982214212990659,
+      "context_hash": 16309575012485121403,
+      "translation": "원자적 쓰기 보장",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221018Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "POSIX atomicity and its limits",
+      "source_hash": 8060400128333260816,
+      "context_hash": 6234362431441358896,
+      "translation": "POSIX 원자성과 그 한계",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:45:31.221018Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:0",
+      "source": "POSIX does **not** guarantee that `write()` is atomic with respect to concurrent readers.",
+      "source_hash": 5421728602642916290,
+      "context_hash": 7553148969645464201,
+      "translation": "POSIX는 `write()`가 동시에 읽는 reader에 대해 원자적임을 보장하지 **않습니다**.",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:45:31.221018Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:2/seg:1",
+      "source": "A reader calling `read()` on the same file concurrently with a `write()` may see a partial write — some bytes old, some bytes new, depending on page cache state and filesystem implementation.",
+      "source_hash": 12281634561907295868,
+      "context_hash": 16887976370196340941,
+      "translation": "`write()`와 동시에 같은 파일에 `read()`를 호출하는 reader는 페이지 캐시 상태와 파일시스템 구현에 따라 일부 바이트는 이전 값이고 일부 바이트는 새 값인 부분 쓰기를 볼 수 있습니다.",
+      "glossary_snapshot": {
+        "bytes": "바이트",
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:31.221019Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "POSIX does guarantee:",
+      "source_hash": 2519624254053573629,
+      "context_hash": 8061501184418257989,
+      "translation": "POSIX가 보장하는 것은 다음과 같습니다.",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:45:31.221019Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:0",
+      "source": "`O_APPEND` writes are atomic **for the offset assignment only** — the file offset is assigned atomically so that two concurrent `write()` calls with `O_APPEND` do not assign the same offset.",
+      "source_hash": 9215116298598501701,
+      "context_hash": 7524801031609466514,
+      "translation": "`O_APPEND` 쓰기는 **오프셋 할당에 대해서만** 원자적입니다. 즉, 파일 오프셋이 원자적으로 할당되므로 `O_APPEND`를 사용한 두 개의 동시 `write()` 호출이 같은 오프셋을 할당받지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221019Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:4/seg:1",
+      "source": "The data of each write is serialized.",
+      "source_hash": 3288915312646547682,
+      "context_hash": 12681993677149925543,
+      "translation": "각 쓰기의 데이터는 직렬화됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:31.221020Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:5/seg:0",
+      "source": "`pwrite()` updates are visible atomically at the sector level on most Linux filesystems (ext4, xfs, btrfs) for writes within a single filesystem block, but this is an implementation detail, not a POSIX guarantee.",
+      "source_hash": 9872712223020506559,
+      "context_hash": 7969258331104568933,
+      "translation": "`pwrite()` 업데이트는 대부분의 Linux 파일시스템(ext4, xfs, btrfs)에서 단일 파일시스템 블록 내의 쓰기에 대해 섹터 수준에서 원자적으로 보이지만, 이는 구현 세부 사항일 뿐 POSIX가 보장하는 것은 아닙니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "POSIX": "POSIX",
+        "XFS": "XFS",
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:45:44.224839Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:6/seg:0",
+      "source": "O_APPEND atomicity",
+      "source_hash": 17904569052104781491,
+      "context_hash": 1461660875688401273,
+      "translation": "O_APPEND 원자성",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224840Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:0",
+      "source": "When a file is opened with `O_APPEND`, the kernel holds `inode_lock` across the seek-to-end and write, making the offset assignment and the write itself atomic with respect to other `O_APPEND` writers on the same inode.",
+      "source_hash": 419419942500304070,
+      "context_hash": 15890487269565853131,
+      "translation": "파일이 `O_APPEND`로 열리면 커널은 파일 끝으로의 탐색(seek)과 쓰기 전체에 걸쳐 `inode_lock`을 잡고 있으므로, 오프셋 할당과 쓰기 자체가 같은 inode에 대한 다른 `O_APPEND` 쓰기 주체에 대해 원자적으로 이루어집니다.",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:44.224840Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:7/seg:1",
+      "source": "This is why write(2) says:",
+      "source_hash": 14983654739187607029,
+      "context_hash": 18206059379318026526,
+      "translation": "이것이 write(2)에 다음과 같이 적혀 있는 이유입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224840Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:8/seg:0",
+      "source": "*If the O_APPEND file status flag is set on the open file description, then a write() shall atomically seek the file offset to the end of the file before each write.*",
+      "source_hash": 5762022788769113178,
+      "context_hash": 13552972225888271483,
+      "translation": "*열린 파일 기술(open file description)에 O_APPEND 파일 상태 플래그가 설정되어 있으면, write()는 각 쓰기 전에 파일 오프셋을 원자적으로 파일 끝으로 이동해야 합니다.*",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224840Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:0",
+      "source": "This atomicity holds for writes that complete in a single `write()` call.",
+      "source_hash": 2089192983651946466,
+      "context_hash": 5013492309274704715,
+      "translation": "이 원자성은 단일 `write()` 호출로 완료되는 쓰기에 대해 성립합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224840Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:9/seg:1",
+      "source": "If the write spans multiple pages and requires partial writes (e.g., due to signal interruption or `PIPE_BUF` limits), the kernel may release and reacquire the inode lock between page writes, breaking atomicity.",
+      "source_hash": 3000156636136668433,
+      "context_hash": 15909942947076903107,
+      "translation": "쓰기가 여러 페이지에 걸쳐 부분 쓰기가 필요한 경우(예: 시그널에 의한 중단이나 `PIPE_BUF` 제한 때문에), 커널은 페이지 쓰기 사이에 inode 락을 해제했다가 다시 획득할 수 있으며, 이 경우 원자성이 깨집니다.",
+      "glossary_snapshot": {
+        "inode": "inode",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:44.224840Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:10/seg:0",
+      "source": "io_uring RWF_ATOMIC (Linux 6.11+)",
+      "source_hash": 9214431264475242239,
+      "context_hash": 7260976650781693683,
+      "translation": "io_uring RWF_ATOMIC (Linux 6.11+)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:45:44.224841Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:11/seg:0",
+      "source": "Linux 6.11 introduced `RWF_ATOMIC` via io_uring, providing true atomic writes up to `stx_atomic_write_unit_max` bytes (reported via `statx(2)`):",
+      "source_hash": 5609568414827565161,
+      "context_hash": 16931657169281428561,
+      "translation": "Linux 6.11에서는 io_uring을 통해 `RWF_ATOMIC`이 도입되어, (`statx(2)`로 보고되는) `stx_atomic_write_unit_max` 바이트까지 진정한 원자적 쓰기를 제공합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "bytes": "바이트"
+      },
+      "translated_at": "2026-11-14T22:45:44.224841Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:0",
+      "source": "With `RWF_ATOMIC`, the kernel guarantees that a concurrent reader sees either all of the write or none of it — no torn writes within the specified size boundary.",
+      "source_hash": 17878209918857307122,
+      "context_hash": 13543346493668738757,
+      "translation": "`RWF_ATOMIC`을 사용하면 커널은 동시에 읽는 쪽이 쓰기 전체를 보거나 전혀 보지 못하도록 보장합니다. 즉, 지정된 크기 경계 안에서는 찢어진 쓰기(torn write)가 발생하지 않습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:45:44.224841Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:1",
+      "source": "NVMe devices expose atomic write unit size via `IDENTIFY` controller data.",
+      "source_hash": 9525747249203802147,
+      "context_hash": 2809506544422332071,
+      "translation": "NVMe 디바이스는 `IDENTIFY` 컨트롤러 데이터를 통해 원자적 쓰기 단위 크기를 노출합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "controller": "컨트롤러",
+        "devices": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:38.283582Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:13/seg:2",
+      "source": "The filesystem communicates this to userspace via `stx_atomic_write_unit_min` and `stx_atomic_write_unit_max` in `struct statx`.",
+      "source_hash": 14992231124231974046,
+      "context_hash": 8669915716673226588,
+      "translation": "파일시스템은 이 정보를 `struct statx`의 `stx_atomic_write_unit_min`과 `stx_atomic_write_unit_max`를 통해 사용자 공간에 전달합니다.",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:45:44.224841Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:0",
+      "source": "`RWF_ATOMIC` is separate from durability — an atomic write does not imply `fsync()` semantics.",
+      "source_hash": 14947132520597521022,
+      "context_hash": 2017236257398118843,
+      "translation": "`RWF_ATOMIC`은 내구성과는 별개입니다. 원자적 쓰기가 `fsync()` 의미론을 내포하지는 않습니다.",
+      "glossary_snapshot": {
+        "durability": "내구성"
+      },
+      "translated_at": "2026-11-14T22:45:44.224841Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:15/seg:1",
+      "source": "It guarantees torn-write protection, not persistence through a power loss.",
+      "source_hash": 7909541561386833160,
+      "context_hash": 17960849566563816260,
+      "translation": "이는 찢어진 쓰기에 대한 보호를 보장할 뿐, 전원 손실 시의 영속성을 보장하지는 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224841Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Common database patterns",
+      "source_hash": 17668187142801943171,
+      "context_hash": 16522849578378988426,
+      "translation": "일반적인 데이터베이스 패턴",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:1/seg:0",
+      "source": "PostgreSQL WAL",
+      "source_hash": 16975349667653320712,
+      "context_hash": 7115593914449102816,
+      "translation": "PostgreSQL WAL",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:0",
+      "source": "PostgreSQL writes its Write-Ahead Log to files in `pg_wal/`.",
+      "source_hash": 7890883559600765775,
+      "context_hash": 13608315691247900693,
+      "translation": "PostgreSQL은 Write-Ahead Log를 `pg_wal/`에 있는 파일에 기록합니다.",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:1",
+      "source": "Each transaction's WAL records are written with `write()`, and `fdatasync()` is called before the transaction is acknowledged to the client.",
+      "source_hash": 398889869070479904,
+      "context_hash": 2137275672731936650,
+      "translation": "각 트랜잭션의 WAL 레코드는 `write()`로 기록되며, 트랜잭션이 클라이언트에 확인 응답되기 전에 `fdatasync()`가 호출됩니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "transaction": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:2/seg:2",
+      "source": "The WAL files are pre-allocated (via `posix_fallocate()`), so file size rarely changes — this means `fdatasync()` avoids the metadata journal commit on every flush.",
+      "source_hash": 5872801477748170706,
+      "context_hash": 14935400193562500531,
+      "translation": "WAL 파일은 (`posix_fallocate()`를 통해) 미리 할당되므로 파일 크기가 거의 바뀌지 않습니다. 따라서 `fdatasync()`는 매 플러시마다 메타데이터 저널 커밋을 피할 수 있습니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "journal commit": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:3/seg:0",
+      "source": "The WAL flush path in `src/backend/access/transam/xlog.c`:",
+      "source_hash": 9143891767381897207,
+      "context_hash": 10672150052697383778,
+      "translation": "`src/backend/access/transam/xlog.c`의 WAL 플러시 경로:",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:5/seg:0",
+      "source": "`wal_sync_method` defaults to `fdatasync` on Linux, `fsync` on macOS (where `fdatasync` behavior differs).",
+      "source_hash": 14906608526481113473,
+      "context_hash": 16862091751548590801,
+      "translation": "`wal_sync_method`의 기본값은 Linux에서는 `fdatasync`, macOS에서는 `fsync`입니다(macOS에서는 `fdatasync`의 동작이 다릅니다).",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:6/seg:0",
+      "source": "SQLite WAL mode",
+      "source_hash": 17138182322260954816,
+      "context_hash": 415045936115516533,
+      "translation": "SQLite WAL 모드",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:0",
+      "source": "In WAL mode, SQLite writes transactions to a WAL file and periodically checkpoints (copies WAL records back to the main database file).",
+      "source_hash": 3201694219536875384,
+      "context_hash": 9955870256024877345,
+      "translation": "WAL 모드에서 SQLite는 트랜잭션을 WAL 파일에 기록하고 주기적으로 체크포인트를 수행합니다(WAL 레코드를 주 데이터베이스 파일로 다시 복사합니다).",
+      "glossary_snapshot": {
+        "WAL": "WAL",
+        "transactions": "트랜잭션"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:7/seg:1",
+      "source": "The checkpoint requires a specific fsync sequence:",
+      "source_hash": 9726721806486723727,
+      "context_hash": 13271601915208762106,
+      "translation": "체크포인트에는 특정한 fsync 순서가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:8/seg:0",
+      "source": "`fdatasync(wal_fd)` — ensure WAL records are durable before the checkpoint starts.",
+      "source_hash": 3679043030555729616,
+      "context_hash": 17818007984835960138,
+      "translation": "`fdatasync(wal_fd)` — 체크포인트가 시작되기 전에 WAL 레코드가 내구성을 갖도록 보장합니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:9/seg:0",
+      "source": "Copy WAL records to database file.",
+      "source_hash": 7194063294164598939,
+      "context_hash": 17271334072722935692,
+      "translation": "WAL 레코드를 데이터베이스 파일로 복사합니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:10/seg:0",
+      "source": "`fdatasync(db_fd)` — ensure the database file has the checkpointed data.",
+      "source_hash": 3838193731199956451,
+      "context_hash": 2142644132306941728,
+      "translation": "`fdatasync(db_fd)` — 데이터베이스 파일에 체크포인트된 데이터가 있도록 보장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:11/seg:0",
+      "source": "Update the WAL header to mark the checkpoint complete.",
+      "source_hash": 2145235637384995295,
+      "context_hash": 16486459698103921681,
+      "translation": "WAL 헤더를 갱신하여 체크포인트 완료를 표시합니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224842Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:12/seg:0",
+      "source": "`fdatasync(wal_fd)` again — ensure the checkpoint completion marker is durable.",
+      "source_hash": 16471548932733051252,
+      "context_hash": 13371306276259591112,
+      "translation": "다시 `fdatasync(wal_fd)` — 체크포인트 완료 표시가 내구성을 갖도록 보장합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224843Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:13/seg:0",
+      "source": "This two-phase barrier pattern ensures that a crash at any point leaves either the WAL or the database file in a consistent state.",
+      "source_hash": 18434357849419190868,
+      "context_hash": 6989133975541893477,
+      "translation": "이 2단계 배리어 패턴은 어느 시점에 크래시가 발생하더라도 WAL 또는 데이터베이스 파일 중 하나가 일관된 상태로 남도록 보장합니다.",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:45:44.224843Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:14/seg:0",
+      "source": "MySQL InnoDB: innodb_flush_method",
+      "source_hash": 3890003323618856135,
+      "context_hash": 3344238141604722973,
+      "translation": "MySQL InnoDB: innodb_flush_method",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224843Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:15/seg:0",
+      "source": "InnoDB exposes `innodb_flush_method` to control how it flushes data and log files:",
+      "source_hash": 9644603726936506267,
+      "context_hash": 3013949571545155837,
+      "translation": "InnoDB는 데이터 파일과 로그 파일을 플러시하는 방식을 제어하기 위해 `innodb_flush_method`를 제공합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:44.224843Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:16/seg:0",
+      "source": "Method",
+      "source_hash": 14041956255122395462,
+      "context_hash": 3725725749183931876,
+      "translation": "방식",
+      "glossary_snapshot": {
+        "Method": "방식"
+      },
+      "translated_at": "2026-11-14T22:45:37.443028Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:17/seg:0",
+      "source": "Data files",
+      "source_hash": 4869270894833574720,
+      "context_hash": 13006594737177390606,
+      "translation": "데이터 파일",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443028Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:18/seg:0",
+      "source": "Log files",
+      "source_hash": 16459492601727647847,
+      "context_hash": 9773484652109258897,
+      "translation": "로그 파일",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443029Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:19/seg:0",
+      "source": "Notes",
+      "source_hash": 6248434630477978300,
+      "context_hash": 12400966780355131471,
+      "translation": "비고",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443029Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:20/seg:0",
+      "source": "`fsync` (default)",
+      "source_hash": 15290122284772264950,
+      "context_hash": 5428439402109765307,
+      "translation": "`fsync` (기본값)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443029Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:21/seg:0",
+      "source": "`fsync()`",
+      "source_hash": 14707399043887746549,
+      "context_hash": 15753115101038852505,
+      "translation": "`fsync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443029Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:22/seg:0",
+      "source": "`fsync()`",
+      "source_hash": 14707399043887746549,
+      "context_hash": 11414830806054071241,
+      "translation": "`fsync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443030Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:23/seg:0",
+      "source": "Portable; double-buffers via OS page cache",
+      "source_hash": 14400061601887748581,
+      "context_hash": 11372170068877112610,
+      "translation": "이식성 있음, OS 페이지 캐시를 통해 이중 버퍼링",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:37.443030Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:24/seg:0",
+      "source": "`O_DIRECT`",
+      "source_hash": 10915146256532967978,
+      "context_hash": 9621412671299473334,
+      "translation": "`O_DIRECT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443031Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:25/seg:0",
+      "source": "`O_DIRECT`",
+      "source_hash": 10915146256532967978,
+      "context_hash": 14414794708206077402,
+      "translation": "`O_DIRECT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443031Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:26/seg:0",
+      "source": "`fsync()`",
+      "source_hash": 14707399043887746549,
+      "context_hash": 789550250768722758,
+      "translation": "`fsync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443031Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:27/seg:0",
+      "source": "Bypasses page cache for data; log still buffered",
+      "source_hash": 10703735983182106749,
+      "context_hash": 8350129764611056850,
+      "translation": "데이터는 페이지 캐시를 우회, 로그는 여전히 버퍼링",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:37.443031Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:28/seg:0",
+      "source": "`O_DIRECT_NO_FSYNC`",
+      "source_hash": 10251038035198291658,
+      "context_hash": 14899718616930771442,
+      "translation": "`O_DIRECT_NO_FSYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443032Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:29/seg:0",
+      "source": "`O_DIRECT`",
+      "source_hash": 10915146256532967978,
+      "context_hash": 3962481208858329209,
+      "translation": "`O_DIRECT`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443032Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:30/seg:0",
+      "source": "`O_DIRECT` (no fsync)",
+      "source_hash": 3503236734511081596,
+      "context_hash": 13754295423996132041,
+      "translation": "`O_DIRECT` (fsync 없음)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443032Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:31/seg:0",
+      "source": "Requires hardware BBWC; dangerous without it",
+      "source_hash": 11270562866997753109,
+      "context_hash": 2564703328102152926,
+      "translation": "하드웨어 BBWC 필요, 없으면 위험",
+      "glossary_snapshot": {
+        "hardware": "하드웨어"
+      },
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:32/seg:0",
+      "source": "`O_DSYNC`",
+      "source_hash": 365116795810066748,
+      "context_hash": 3238870674449552011,
+      "translation": "`O_DSYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:33/seg:0",
+      "source": "buffered",
+      "source_hash": 1499012320805242464,
+      "context_hash": 14855063451908649265,
+      "translation": "버퍼링",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:34/seg:0",
+      "source": "`O_DSYNC`",
+      "source_hash": 365116795810066748,
+      "context_hash": 4793142390638455477,
+      "translation": "`O_DSYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:35/seg:0",
+      "source": "Each log write synchronous; data file buffered",
+      "source_hash": 15558391199891752646,
+      "context_hash": 10404216471201652036,
+      "translation": "로그 쓰기마다 동기식, 데이터 파일은 버퍼링",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:36/seg:0",
+      "source": "`littlesync`",
+      "source_hash": 11562119263102288151,
+      "context_hash": 6852488347766239537,
+      "translation": "`littlesync`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:37/seg:0",
+      "source": "buffered",
+      "source_hash": 1499012320805242464,
+      "context_hash": 4872362310434733386,
+      "translation": "버퍼링",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:38/seg:0",
+      "source": "`O_DSYNC`",
+      "source_hash": 365116795810066748,
+      "context_hash": 16145960439668810806,
+      "translation": "`O_DSYNC`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443033Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:39/seg:0",
+      "source": "Reduced sync for replicas",
+      "source_hash": 10287876591389276860,
+      "context_hash": 5919271842459303891,
+      "translation": "레플리카용 동기화 축소",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443034Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:40/seg:0",
+      "source": "`O_DIRECT_NO_FSYNC` skips `fsync()` on data files entirely, relying on `O_DIRECT` bypassing the page cache (so there is nothing to flush in the OS).",
+      "source_hash": 10095592309601449106,
+      "context_hash": 15726253155848098987,
+      "translation": "`O_DIRECT_NO_FSYNC`는 `O_DIRECT`가 페이지 캐시를 우회한다는 점(따라서 OS에서 플러시할 것이 없음)에 의존하여 데이터 파일에 대한 `fsync()`를 완전히 생략합니다.",
+      "glossary_snapshot": {
+        "page cache": "페이지 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:37.443034Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:40/seg:1",
+      "source": "It still requires the drive write cache to be drained — this is only safe with BBWC or an NVMe device that is configured to disable the volatile write cache.",
+      "source_hash": 16604999289540505083,
+      "context_hash": 14722385453321397461,
+      "translation": "그래도 드라이브 쓰기 캐시는 비워져야 합니다 — 이는 BBWC를 사용하거나 휘발성 쓰기 캐시를 비활성화하도록 설정된 NVMe 디바이스에서만 안전합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "device": "디바이스",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T23:30:38.283584Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:41/seg:0",
+      "source": "RocksDB: use_fsync",
+      "source_hash": 7530481844850724386,
+      "context_hash": 6076995008522849370,
+      "translation": "RocksDB: use_fsync",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443035Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:42/seg:0",
+      "source": "RocksDB defaults to `fdatasync()` (`use_fsync = false`) for SST file flushes and compaction output files.",
+      "source_hash": 13020731351571205776,
+      "context_hash": 17218279414756676033,
+      "translation": "RocksDB는 SST 파일 플러시와 컴팩션 출력 파일에 기본적으로 `fdatasync()`(`use_fsync = false`)를 사용합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443035Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:42/seg:1",
+      "source": "The `use_fsync` option switches to `fsync()`:",
+      "source_hash": 5228289601112130513,
+      "context_hash": 8708746315449901753,
+      "translation": "`use_fsync` 옵션을 사용하면 `fsync()`로 전환됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443036Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:44/seg:0",
+      "source": "`fdatasync()` is preferred because SST files are written once and never appended to after creation — they are immutable.",
+      "source_hash": 3003453955421026631,
+      "context_hash": 18426979666349289222,
+      "translation": "SST 파일은 한 번 기록된 후 생성 이후에는 절대 덧붙여 쓰지 않는 불변(immutable) 파일이므로 `fdatasync()`가 선호됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:37.443036Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:44/seg:1",
+      "source": "The file size is set during the write and does not change, so `fdatasync()` skips the metadata journal commit with no durability impact.",
+      "source_hash": 11753901500033310877,
+      "context_hash": 5217580774505008517,
+      "translation": "파일 크기는 쓰기 중에 정해지고 이후 변하지 않으므로, `fdatasync()`는 내구성에 영향을 주지 않으면서 메타데이터 저널 커밋을 생략합니다.",
+      "glossary_snapshot": {
+        "durability": "내구성",
+        "impact": "영향",
+        "journal commit": "저널 커밋",
+        "metadata": "메타데이터"
+      },
+      "translated_at": "2026-11-14T22:45:37.443036Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:45/seg:0",
+      "source": "macOS requires `F_FULLFSYNC` (an `fcntl` call) instead of `fsync()` because macOS `fsync()` only flushes to the kernel's write buffer, not to the drive's write cache.",
+      "source_hash": 6329955726905376698,
+      "context_hash": 17363670122348672754,
+      "translation": "macOS에서는 `fsync()` 대신 `F_FULLFSYNC`(`fcntl` 호출)를 사용해야 합니다. macOS의 `fsync()`는 커널의 쓰기 버퍼까지만 플러시하고 드라이브의 쓰기 캐시까지는 플러시하지 않기 때문입니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:39.893691Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:45/seg:1",
+      "source": "RocksDB handles this via `#ifdef HAVE_FULLFSYNC`.",
+      "source_hash": 17663398175688831293,
+      "context_hash": 8987581930526813554,
+      "translation": "RocksDB는 `#ifdef HAVE_FULLFSYNC`를 통해 이를 처리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893693Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Benchmarking fsync",
+      "source_hash": 11677521950608555820,
+      "context_hash": 15807937877902375395,
+      "translation": "fsync 벤치마킹",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893693Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "fio: measuring throughput and latency",
+      "source_hash": 13346401159930488079,
+      "context_hash": 526116244152025930,
+      "translation": "fio: 처리량과 지연 시간 측정",
+      "glossary_snapshot": {
+        "latency": "지연 시간",
+        "throughput": "처리량"
+      },
+      "translated_at": "2026-11-14T22:45:39.893694Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "fio provides `--fsync=N` and `--fdatasync=N` options to issue a sync every N writes:",
+      "source_hash": 3902593505870099910,
+      "context_hash": 16177898849751693158,
+      "translation": "fio는 N번 쓸 때마다 sync를 실행하는 `--fsync=N` 및 `--fdatasync=N` 옵션을 제공합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893694Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "Key fio output fields for fsync benchmarking:",
+      "source_hash": 16982273966730935321,
+      "context_hash": 6416153152610260856,
+      "translation": "fsync 벤치마킹에서 주요한 fio 출력 필드:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893695Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "`lat (usec)`: per-operation latency including the fsync",
+      "source_hash": 12737245785669018965,
+      "context_hash": 16372965121298658410,
+      "translation": "`lat (usec)`: fsync를 포함한 연산별 지연 시간",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:39.893695Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "`iops`: operations per second",
+      "source_hash": 7727201650591538557,
+      "context_hash": 14169355174089059208,
+      "translation": "`iops`: 초당 연산 수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893695Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "`clat percentiles`: 99th/99.9th percentile latency reveals outliers",
+      "source_hash": 2449480583508244552,
+      "context_hash": 7642443800611821444,
+      "translation": "`clat percentiles`: 99/99.9 백분위 지연 시간으로 이상치 확인",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:39.893695Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "bpftrace: per-fsync latency",
+      "source_hash": 4672980997236057413,
+      "context_hash": 9083833014369243248,
+      "translation": "bpftrace: fsync별 지연 시간",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:39.893695Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "Measure actual fsync latency distribution from userspace to kernel return:",
+      "source_hash": 2038113665039569646,
+      "context_hash": 2706401185171840456,
+      "translation": "사용자 공간에서 커널 반환까지의 실제 fsync 지연 시간 분포를 측정하십시오:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "latency": "지연 시간",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:45:39.893695Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "Detecting whether a drive honors FLUSH",
+      "source_hash": 17715290788375647778,
+      "context_hash": 7671260152498813468,
+      "translation": "드라이브가 FLUSH를 준수하는지 확인하는 방법",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893696Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "A drive that ignores FLUSH commands will report very low fsync latency — too low.",
+      "source_hash": 3585655498510311956,
+      "context_hash": 8683394523867648201,
+      "translation": "FLUSH 명령을 무시하는 드라이브는 fsync 지연 시간이 매우 낮게, 즉 지나치게 낮게 나타납니다.",
+      "glossary_snapshot": {
+        "latency": "지연 시간"
+      },
+      "translated_at": "2026-11-14T22:45:39.893697Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:1",
+      "source": "On NVMe with no write cache, fsync on a 4KB write should take ~50–200 µs.",
+      "source_hash": 7664318259458962703,
+      "context_hash": 12658121823546309044,
+      "translation": "쓰기 캐시가 없는 NVMe에서 4KB 쓰기에 대한 fsync는 ~50–200 µs가 걸려야 합니다.",
+      "glossary_snapshot": {
+        "NVMe": "NVMe",
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:39.893697Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:2",
+      "source": "If you see consistent 10–20 µs, the drive may be ignoring FLUSH.",
+      "source_hash": 14983205306603252534,
+      "context_hash": 12648412671143817977,
+      "translation": "지속적으로 10–20 µs가 나온다면 드라이브가 FLUSH를 무시하고 있을 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893697Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "The definitive test is the write-cache discard test:",
+      "source_hash": 6115762713149727007,
+      "context_hash": 7806264493148869505,
+      "translation": "확정적인 테스트는 쓰기 캐시 폐기 테스트입니다:",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T22:45:39.893697Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "Check drive write cache status with `nvme-cli`:",
+      "source_hash": 17664948716738438138,
+      "context_hash": 13957439668250379400,
+      "translation": "`nvme-cli`로 드라이브의 쓰기 캐시 상태를 확인하십시오:",
+      "glossary_snapshot": {
+        "write cache": "쓰기 캐시"
+      },
+      "translated_at": "2026-11-14T22:45:39.893697Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:17/seg:0",
+      "source": "A device reporting `write through` does not buffer writes and does not require FLUSH commands — `fsync()` on such a device is a no-op at the barrier level (data still needs to be written, but no FLUSH is needed).",
+      "source_hash": 9907441186322281826,
+      "context_hash": 1925343541443746214,
+      "translation": "`write through`를 보고하는 디바이스는 쓰기를 버퍼링하지 않으며 FLUSH 명령을 필요로 하지 않습니다 — 이러한 디바이스에서 `fsync()`는 배리어 수준에서 no-op입니다(데이터는 여전히 기록되어야 하지만 FLUSH는 필요하지 않습니다).",
+      "glossary_snapshot": {
+        "device": "디바이스"
+      },
+      "translated_at": "2026-11-14T23:30:38.283585Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:0/seg:0",
+      "source": "Key source files",
+      "source_hash": 11048178491662595550,
+      "context_hash": 13927100103020476763,
+      "translation": "주요 소스 파일",
+      "glossary_snapshot": {
+        "Source Files": "소스 파일"
+      },
+      "translated_at": "2026-11-14T22:45:39.893698Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:1/seg:0",
+      "source": "File",
+      "source_hash": 4716625901724581680,
+      "context_hash": 936807745072421570,
+      "translation": "파일",
+      "glossary_snapshot": {
+        "File": "파일"
+      },
+      "translated_at": "2026-11-14T22:45:39.893698Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:2/seg:0",
+      "source": "Purpose",
+      "source_hash": 5472923780897967966,
+      "context_hash": 8085770010382245468,
+      "translation": "용도",
+      "glossary_snapshot": {
+        "Purpose": "용도"
+      },
+      "translated_at": "2026-11-14T22:45:39.893699Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:3/seg:0",
+      "source": "`fs/sync.c`",
+      "source_hash": 4087245374220159999,
+      "context_hash": 5284782356267329179,
+      "translation": "`fs/sync.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893699Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:4/seg:0",
+      "source": "`fsync()`, `fdatasync()`, `sync()`, `syncfs()` syscall implementations; `vfs_fsync_range()`",
+      "source_hash": 10631805487362807973,
+      "context_hash": 13921201829517520123,
+      "translation": "`fsync()`, `fdatasync()`, `sync()`, `syncfs()` 시스템 콜 구현, `vfs_fsync_range()`",
+      "glossary_snapshot": {
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:45:39.893699Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:5/seg:0",
+      "source": "`mm/filemap.c`",
+      "source_hash": 4822464454896861235,
+      "context_hash": 10735131705850881997,
+      "translation": "`mm/filemap.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893699Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:6/seg:0",
+      "source": "`filemap_write_and_wait_range()`, `generic_file_write_iter()`, `generic_write_sync()`",
+      "source_hash": 12913413945213715420,
+      "context_hash": 4033443656842109626,
+      "translation": "`filemap_write_and_wait_range()`, `generic_file_write_iter()`, `generic_write_sync()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893699Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:7/seg:0",
+      "source": "`fs/ext4/fsync.c`",
+      "source_hash": 4727135253057215899,
+      "context_hash": 18043697604358899512,
+      "translation": "`fs/ext4/fsync.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893700Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:8/seg:0",
+      "source": "`ext4_sync_file()` — ext4's fsync implementation",
+      "source_hash": 4203357833328611920,
+      "context_hash": 8984724219599691319,
+      "translation": "`ext4_sync_file()` — ext4의 fsync 구현",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893700Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:9/seg:0",
+      "source": "`fs/xfs/xfs_file.c`",
+      "source_hash": 13925522786541170943,
+      "context_hash": 5110750600294937864,
+      "translation": "`fs/xfs/xfs_file.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893700Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:10/seg:0",
+      "source": "`xfs_file_fsync()` — XFS's fsync implementation",
+      "source_hash": 3897212063558549175,
+      "context_hash": 17256472495170689649,
+      "translation": "`xfs_file_fsync()` — XFS의 fsync 구현",
+      "glossary_snapshot": {
+        "XFS": "XFS"
+      },
+      "translated_at": "2026-11-14T22:45:39.893700Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:11/seg:0",
+      "source": "`fs/btrfs/file.c`",
+      "source_hash": 17696157794859425782,
+      "context_hash": 4696329099651257731,
+      "translation": "`fs/btrfs/file.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893700Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:12/seg:0",
+      "source": "`btrfs_sync_file()` — btrfs's fsync implementation",
+      "source_hash": 15728237133092689890,
+      "context_hash": 13879502586651221331,
+      "translation": "`btrfs_sync_file()` — btrfs의 fsync 구현",
+      "glossary_snapshot": {
+        "btrfs": "btrfs"
+      },
+      "translated_at": "2026-11-14T22:45:39.893700Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:13/seg:0",
+      "source": "`fs/jbd2/commit.c`",
+      "source_hash": 13155874922725754900,
+      "context_hash": 15238105210332743322,
+      "translation": "`fs/jbd2/commit.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:45:39.893700Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:14/seg:0",
+      "source": "`jbd2_journal_commit_transaction()` — ext4 journal commit with barriers",
+      "source_hash": 6562469057479918763,
+      "context_hash": 8088737032555970325,
+      "translation": "`jbd2_journal_commit_transaction()` — 배리어를 사용하는 ext4 저널 커밋",
+      "glossary_snapshot": {
+        "journal commit": "저널 커밋"
+      },
+      "translated_at": "2026-11-14T22:04:01.995977Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:15/seg:0",
+      "source": "`block/blk-flush.c`",
+      "source_hash": 7938692890232072637,
+      "context_hash": 6624446699023852315,
+      "translation": "`block/blk-flush.c`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.995979Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:16/seg:0",
+      "source": "`blkdev_issue_flush()`, flush sequencing for PREFLUSH and FUA",
+      "source_hash": 14447373479289831870,
+      "context_hash": 4520399113824485486,
+      "translation": "`blkdev_issue_flush()`, PREFLUSH와 FUA를 위한 flush 순서 처리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.995979Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:17/seg:0",
+      "source": "`include/linux/fs.h`",
+      "source_hash": 11366291457846241831,
+      "context_hash": 12689866058194188616,
+      "translation": "`include/linux/fs.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.995979Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:18/seg:0",
+      "source": "`kiocb`, `file_operations`, `address_space` struct definitions; `IOCB_SYNC`, `IOCB_DSYNC` flags",
+      "source_hash": 8773717612876906353,
+      "context_hash": 1430500366696847333,
+      "translation": "`kiocb`, `file_operations`, `address_space` 구조체 정의, `IOCB_SYNC`, `IOCB_DSYNC` 플래그",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:04:01.995980Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:19/seg:0",
+      "source": "`include/linux/blk_types.h`",
+      "source_hash": 3918054497026422345,
+      "context_hash": 12860658772748841371,
+      "translation": "`include/linux/blk_types.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.995980Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:20/seg:0",
+      "source": "`REQ_FUA`, `REQ_PREFLUSH` bio flags",
+      "source_hash": 15779988875142476666,
+      "context_hash": 6917163875033739121,
+      "translation": "`REQ_FUA`, `REQ_PREFLUSH` bio 플래그",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.995981Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:21/seg:0",
+      "source": "`include/uapi/linux/fs.h`",
+      "source_hash": 17368848939257249312,
+      "context_hash": 16535267045829188277,
+      "translation": "`include/uapi/linux/fs.h`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.995981Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:22/seg:0",
+      "source": "`RWF_ATOMIC`, `RWF_SYNC`, `RWF_DSYNC` userspace flags",
+      "source_hash": 14932052087764679261,
+      "context_hash": 3902647356225770106,
+      "translation": "`RWF_ATOMIC`, `RWF_SYNC`, `RWF_DSYNC` 사용자 공간 플래그",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:04:01.995981Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:23/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 9014988929108991543,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:04:01.995982Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:24/seg:0",
+      "source": "POSIX `fsync` specification: The Open Group Base Specifications Issue 8, `<unistd.h>`",
+      "source_hash": 17647178831692252326,
+      "context_hash": 13915538182059502842,
+      "translation": "POSIX `fsync` 명세: The Open Group Base Specifications Issue 8, `<unistd.h>`",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:04:01.995982Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:25/seg:0",
+      "source": "[Filesystem Robustness - The Linux Documentation Project](https://www.kernel.org/doc/html/latest/filesystems/ext4/journal.html)",
+      "source_hash": 16325846893126944046,
+      "context_hash": 6221844896493749415,
+      "translation": "[Filesystem Robustness - The Linux Documentation Project](https://www.kernel.org/doc/html/latest/filesystems/ext4/journal.html)",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:04:01.995982Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:26/seg:0",
+      "source": "Pillai et al., *All File Systems Are Not Created Equal* (OSDI 2014) — systematic study of application-level crash consistency bugs, including the new-file trap",
+      "source_hash": 11701014749833207633,
+      "context_hash": 13092920812044427298,
+      "translation": "Pillai 외, *All File Systems Are Not Created Equal*(OSDI 2014) — 새 파일 함정을 포함하여 애플리케이션 수준의 크래시 일관성 버그를 체계적으로 연구한 논문",
+      "glossary_snapshot": {
+        "bugs": "버그"
+      },
+      "translated_at": "2026-11-14T22:04:01.995983Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:27/seg:0",
+      "source": "Zheng et al., *Fast Crash Recovery in RAMCloud* (SOSP 2013) — discussion of write barrier semantics at scale",
+      "source_hash": 15074073647242319528,
+      "context_hash": 5480331985200093647,
+      "translation": "Zheng 외, *Fast Crash Recovery in RAMCloud*(SOSP 2013) — 대규모 환경에서의 쓰기 배리어 의미론에 관한 논의",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:04:01.995983Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:28/seg:0",
+      "source": "[PostgreSQL WAL Internals](https://www.postgresql.org/docs/current/wal-internals.html)",
+      "source_hash": 9658700315270995470,
+      "context_hash": 10059921136661875459,
+      "translation": "[PostgreSQL WAL Internals](https://www.postgresql.org/docs/current/wal-internals.html)",
+      "glossary_snapshot": {
+        "PostgreSQL": "PostgreSQL",
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:04:01.995983Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:29/seg:0",
+      "source": "[SQLite WAL mode documentation](https://www.sqlite.org/wal.html) — explains the checkpoint fsync sequence",
+      "source_hash": 1712661117970055878,
+      "context_hash": 11513388583066216988,
+      "translation": "[SQLite WAL mode documentation](https://www.sqlite.org/wal.html) — 체크포인트 fsync 순서를 설명하는 문서",
+      "glossary_snapshot": {
+        "WAL": "WAL"
+      },
+      "translated_at": "2026-11-14T22:04:01.995983Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:30/seg:0",
+      "source": "`Documentation/block/writeback_cache_control.rst` in the kernel tree — covers FUA and FLUSH from the block layer perspective",
+      "source_hash": 2067697304690491394,
+      "context_hash": 7953564619357705784,
+      "translation": "커널 트리의 `Documentation/block/writeback_cache_control.rst` — 블록 계층 관점에서 FUA와 FLUSH를 다루는 문서",
+      "glossary_snapshot": {
+        "block layer": "블록 계층",
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T22:04:01.995983Z",
+      "issues": []
+    },
+    {
+      "id": "section:12/block:31/seg:0",
+      "source": "`Documentation/filesystems/journalling.rst` in the kernel tree — covers ext4/jbd2 journal modes",
+      "source_hash": 2081245451791127233,
+      "context_hash": 3775533829173813460,
+      "translation": "커널 트리의 `Documentation/filesystems/journalling.rst` — ext4/jbd2 저널 모드를 다루는 문서",
+      "glossary_snapshot": {
+        "journal": "저널",
+        "kernel tree": "커널 트리"
+      },
+      "translated_at": "2026-11-14T22:04:01.995984Z",
+      "issues": []
+    }
+  ]
+}

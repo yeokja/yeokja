@@ -1,0 +1,903 @@
+{
+  "version": 1,
+  "source_hash": 16988533966434450311,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "sched_ext: BPF-Programmable Scheduling",
+      "source_hash": 4675832127147602869,
+      "context_hash": 13386251404683579990,
+      "translation": "sched_ext: BPF로 프로그래밍 가능한 스케줄링",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:26:08.855822Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How a standing \"no\" to pluggable schedulers became a \"yes\" in Linux 6.12",
+      "source_hash": 8864692277624170792,
+      "context_hash": 18126294443579764738,
+      "translation": "플러그인 방식 스케줄러에 대한 오랜 \"반대\"가 Linux 6.12에서 \"찬성\"으로 바뀐 과정",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "schedulers": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855823Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "What it is",
+      "source_hash": 9876360401092277316,
+      "context_hash": 12658497703856268451,
+      "translation": "개요",
+      "glossary_snapshot": {
+        "What it is": "개요"
+      },
+      "translated_at": "2026-11-14T22:26:08.855823Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "`sched_ext` (SCX) is a sixth [scheduler class](scheduler-classes.md).",
+      "source_hash": 17296020172618531655,
+      "context_hash": 11531996381977839874,
+      "translation": "`sched_ext`(SCX)는 여섯 번째 [스케줄러 클래스](scheduler-classes.md)입니다.",
+      "glossary_snapshot": {
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855823Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "Unlike the others, its scheduling policy isn't compiled into the kernel — it's a BPF program, loaded and unloaded from userspace like any other BPF object.",
+      "source_hash": 18429245948875966141,
+      "context_hash": 17425957739827762913,
+      "translation": "다른 클래스와 달리 스케줄링 정책이 커널에 컴파일되어 들어가지 않습니다. 정책은 BPF 프로그램이며, 다른 BPF 객체와 마찬가지로 사용자 공간에서 로드하고 언로드합니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF program": "BPF 프로그램",
+        "kernel": "커널",
+        "policy": "정책",
+        "scheduling": "스케줄링",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:26:08.855824Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "Writing a new CPU scheduler for Linux no longer requires patching and rebuilding the kernel; it means writing a BPF program against a fixed set of callbacks and loading it.",
+      "source_hash": 6739011438328618131,
+      "context_hash": 13771642839501133244,
+      "translation": "이제 Linux용 새 CPU 스케줄러를 작성할 때 커널을 패치하고 다시 빌드할 필요가 없습니다. 정해진 콜백 집합에 맞춰 BPF 프로그램을 작성하고 로드하면 됩니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "CPU": "CPU",
+        "Linux": "Linux",
+        "callbacks": "콜백",
+        "kernel": "커널",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855824Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "It isn't a peer of `fair`, `rt`, and `deadline` in priority, though: the kernel's own scheduler-class linkage (`include/asm-generic/vmlinux.lds.h`'s `SCHED_DATA`) orders the classes `stop → dl → rt → fair → ext → idle`.",
+      "source_hash": 6632929867434085741,
+      "context_hash": 441416717047728005,
+      "translation": "다만 우선순위 면에서 `fair`, `rt`, `deadline`과 동등하지는 않습니다. 커널 자체의 스케줄러 클래스 링크 순서(`include/asm-generic/vmlinux.lds.h`의 `SCHED_DATA`)는 클래스를 `stop → dl → rt → fair → ext → idle` 순으로 배치합니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855824Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:1",
+      "source": "A CPU only ever looks at `ext` for a task to run after `deadline`, `rt`, and `fair` have nothing runnable — sched_ext sits just above `idle`, not alongside the established three.",
+      "source_hash": 4368005291229019450,
+      "context_hash": 4429776906639862970,
+      "translation": "CPU는 `deadline`, `rt`, `fair`에 실행 가능한 태스크가 없을 때에만 `ext`에서 실행할 태스크를 찾습니다. 즉 sched_ext는 기존 세 클래스와 나란히 있는 것이 아니라 `idle` 바로 위에 위치합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:26:08.855824Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:3/seg:0",
+      "source": "`kernel/sched/ext.c` is absent from the Linux v6.11 tag and present in v6.12, confirming the class merged in **Linux 6.12** (November 2024).",
+      "source_hash": 6433625377032956175,
+      "context_hash": 315637044271780719,
+      "translation": "`kernel/sched/ext.c`는 Linux v6.11 태그에는 없고 v6.12에는 있으므로, 이 클래스가 **Linux 6.12**(2024년 11월)에서 병합되었음을 확인할 수 있습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:26:08.855824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "A standing \"no\"",
+      "source_hash": 12510290423956747533,
+      "context_hash": 13814822921050542706,
+      "translation": "오랜 \"반대\"",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:08.855824Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Loadable, pluggable scheduling policy is not a new idea — it's one Linus Torvalds had rejected before.",
+      "source_hash": 13574209178397154686,
+      "context_hash": 13686928497603058666,
+      "translation": "로드 가능한 플러그인 방식의 스케줄링 정책은 새로운 아이디어가 아닙니다. Linus Torvalds가 이전에 거부한 적이 있는 아이디어입니다.",
+      "glossary_snapshot": {
+        "Linus": "Linus",
+        "Torvalds": "Torvalds",
+        "policy": "정책",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:26:08.855825Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "When Tejun Heo first posted the sched_ext patch set (co-written with David Vernet, Josh Don, and Barret Rhoden), scheduler maintainer Peter Zijlstra's response was blunt:",
+      "source_hash": 2928541427238578088,
+      "context_hash": 8573187131455468322,
+      "translation": "Tejun Heo가 sched_ext 패치 세트(David Vernet, Josh Don, Barret Rhoden과 공동 작성)를 처음 게시했을 때, 스케줄러 메인테이너 Peter Zijlstra의 반응은 직설적이었습니다.",
+      "glossary_snapshot": {
+        "David": "David",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855825Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:0",
+      "source": "\"I hate all of this.",
+      "source_hash": 4323698603064168715,
+      "context_hash": 1088868240494916701,
+      "translation": "\"이 모든 것이 싫습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:08.855825Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:2/seg:1",
+      "source": "Linus NAK'ed loadable schedulers a number of times in the past and this is just that again -- with the extra downside of the whole BPF thing on top.\"",
+      "source_hash": 17969082974211693099,
+      "context_hash": 18115760634944693430,
+      "translation": "Linus는 과거에 로드 가능한 스케줄러를 여러 차례 NAK했고, 이것도 결국 같은 것입니다 -- 거기에 BPF라는 단점까지 더해졌을 뿐입니다.\"",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Linus": "Linus",
+        "schedulers": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855825Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "— [Peter Zijlstra, replying to the first posted version](https://lwn.net/ml/linux-kernel/Y5b2btWFJeEfTyJg@hirez.programming.kicks-ass.net/)",
+      "source_hash": 7990766741565294718,
+      "context_hash": 2789717773644616293,
+      "translation": "— [처음 게시된 버전에 대한 Peter Zijlstra의 답장](https://lwn.net/ml/linux-kernel/Y5b2btWFJeEfTyJg@hirez.programming.kicks-ass.net/)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:08.855825Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "That single sentence carries the whole prior history: this wasn't the first attempt at pluggable scheduling, and every previous one had been turned down by Torvalds himself.",
+      "source_hash": 4577729701298676981,
+      "context_hash": 11711125963982755481,
+      "translation": "이 한 문장에 이전의 역사가 모두 담겨 있습니다. 플러그인 방식 스케줄링 시도는 이번이 처음이 아니었고, 이전 시도는 모두 Torvalds 본인이 거부했습니다.",
+      "glossary_snapshot": {
+        "Torvalds": "Torvalds",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:26:08.855826Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:1",
+      "source": "The objection wasn't really about BPF — it was about the scheduler, of all subsystems, being opened up to third-party policy at all.",
+      "source_hash": 15025286189415634973,
+      "context_hash": 4586864956153903869,
+      "translation": "반대의 핵심은 사실 BPF가 아니었습니다. 수많은 서브시스템 가운데 하필 스케줄러를 서드파티 정책에 개방한다는 것 자체가 문제였습니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "policy": "정책",
+        "scheduler": "스케줄러",
+        "subsystems": "서브시스템"
+      },
+      "translated_at": "2026-11-14T22:26:08.855826Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:2",
+      "source": "A misbehaving scheduler doesn't crash a program; it can wedge the entire machine.",
+      "source_hash": 15151530045704877258,
+      "context_hash": 11025981148136576507,
+      "translation": "오작동하는 스케줄러는 프로그램 하나를 죽이는 데 그치지 않고 머신 전체를 멈춰 세울 수 있습니다.",
+      "glossary_snapshot": {
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855826Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "The 2024 override",
+      "source_hash": 440070804889394195,
+      "context_hash": 10110833049221784935,
+      "translation": "2024년의 결정 번복",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:08.855826Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "Despite that, Torvalds decided to merge it anyway — over the scheduler maintainer's own objection.",
+      "source_hash": 14288442610081672108,
+      "context_hash": 10199453052042611770,
+      "translation": "그럼에도 Torvalds는 스케줄러 메인테이너 본인의 반대를 무릅쓰고 병합하기로 결정했습니다.",
+      "glossary_snapshot": {
+        "Torvalds": "Torvalds",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855826Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "LWN reported in June 2024 that he'd made his decision and would override the scheduler maintainer to merge it, quoting Torvalds' own reasoning directly:",
+      "source_hash": 6591454173575548583,
+      "context_hash": 4857842468936526276,
+      "translation": "LWN은 2024년 6월, Torvalds가 결정을 내렸으며 스케줄러 메인테이너의 반대를 무시하고 병합할 것이라고 보도하면서 Torvalds 본인의 논거를 그대로 인용했습니다.",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "Torvalds": "Torvalds",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:08.855827Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "\"I honestly see no reason to delay this any more.",
+      "source_hash": 9386324480201962789,
+      "context_hash": 1426660750941973318,
+      "translation": "\"솔직히 이것을 더 미룰 이유가 전혀 보이지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:08.855827Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:1",
+      "source": "This whole patchset was the major (private) discussion at last year's kernel maintainer summit, and I don't find any value in having the same discussion (whether off-list or as an actual event) at the upcoming maintainer summit one year later, so to make any kind of sane progress, my current plan is to merge this for 6.11.\"",
+      "source_hash": 14984811688933117899,
+      "context_hash": 7728386270934899946,
+      "translation": "이 패치 세트 전체가 작년 커널 메인테이너 서밋의 주요 (비공개) 논의였고, 1년 뒤 다가오는 메인테이너 서밋에서 같은 논의를 (메일링 리스트 밖에서든 실제 행사로든) 다시 하는 것은 아무런 가치가 없다고 생각합니다. 그래서 합리적인 진전을 이루기 위해 현재 계획은 이것을 6.11에 병합하는 것입니다.\"",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:08.855827Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Torvalds is explicit that this was a \"(private)\" discussion, not a formal agenda item — and LWN's own published coverage of the [2023 Kernel Maintainers Summit](https://lwn.net/Articles/951847/) is consistent with that: the day's listed sessions were filesystem maintenance, committing to Rust, maintainer burnout, and a Q&A on maintainer pain points. sched_ext isn't among them.",
+      "source_hash": 1887074203509728827,
+      "context_hash": 6196267055608690103,
+      "translation": "Torvalds는 이것이 공식 안건이 아니라 \"(비공개)\" 논의였다고 명시하며, LWN이 공개한 [2023 Kernel Maintainers Summit](https://lwn.net/Articles/951847/) 보도도 이와 일치합니다. 그날 나열된 세션은 파일시스템 유지보수, Rust 도입 확정, 메인테이너 번아웃, 메인테이너의 고충에 관한 Q&A였으며, sched_ext는 그 안에 없습니다.",
+      "glossary_snapshot": {
+        "LWN's": "LWN",
+        "Torvalds": "Torvalds"
+      },
+      "translated_at": "2026-11-14T22:26:08.855827Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:1",
+      "source": "Whatever conversation Torvalds is referring to happened outside the summit's reported agenda, which is weaker evidence than \"the whole kernel community spent a Maintainer Summit's worth of formal time on it\" — it's his own stated reason for not wanting to repeat an off-the-record discussion, not a documented consensus-seeking process.",
+      "source_hash": 5172553343040002199,
+      "context_hash": 4656709867637702821,
+      "translation": "Torvalds가 언급한 대화가 무엇이든 서밋의 공개된 안건 밖에서 이루어졌으므로, 이는 \"커널 커뮤니티 전체가 Maintainer Summit의 공식 시간을 할애해 논의했다\"는 것보다 약한 근거입니다. 이것은 문서화된 합의 도출 과정이 아니라, 비공식 논의를 되풀이하고 싶지 않다는 Torvalds 자신이 밝힌 이유일 뿐입니다.",
+      "glossary_snapshot": {
+        "Torvalds": "Torvalds",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:08.855827Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "The override didn't stick on the first try, either.",
+      "source_hash": 6054358448623990444,
+      "context_hash": 14536808723489618576,
+      "translation": "게다가 이 결정 번복은 첫 시도에 그대로 관철되지도 않았습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:08.855827Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "Torvalds' announcement above named 6.11 as the target, but [LWN's coverage of the actual 6.11 merge window](https://lwn.net/Articles/982605/) tells a different story: \"After that came a strongly worded discussion about whether that step was justified, or whether sched_ext needed more work first... sched_ext was not merged for 6.11.\" The override triggered real, substantive pushback, not a routine slip — `kernel/sched/ext.c` didn't land until the following cycle, 6.12, in November 2024.",
+      "source_hash": 12838165727889981846,
+      "context_hash": 15696109397799369188,
+      "translation": "앞서 본 Torvalds의 발표는 6.11을 목표로 지목했지만, [실제 6.11 병합 기간에 대한 LWN의 보도](https://lwn.net/Articles/982605/)는 다른 이야기를 전합니다. \"그 뒤로 그 조치가 정당했는지, 아니면 sched_ext에 작업이 더 필요한지를 두고 강한 어조의 논의가 이어졌습니다... sched_ext는 6.11에 병합되지 않았습니다.\" 이 결정 번복은 일상적인 일정 지연이 아니라 실질적인 반발을 불러일으켰고, `kernel/sched/ext.c`는 다음 주기인 2024년 11월의 6.12에서야 들어갔습니다.",
+      "glossary_snapshot": {
+        "LWN's": "LWN",
+        "Torvalds": "Torvalds"
+      },
+      "translated_at": "2026-11-14T22:26:08.855828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "How it actually works",
+      "source_hash": 10287582919548641383,
+      "context_hash": 3207998840645221382,
+      "translation": "실제 동작 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:08.855828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "A BPF scheduler is a `struct sched_ext_ops` instance — a set of callbacks the kernel invokes at each point in a task's scheduling lifecycle.",
+      "source_hash": 7866305557377050768,
+      "context_hash": 18438548196171056414,
+      "translation": "BPF 스케줄러는 `struct sched_ext_ops` 인스턴스, 즉 태스크의 스케줄링 생명주기 각 지점에서 커널이 호출하는 콜백 집합입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "callbacks": "콜백",
+        "kernel": "커널",
+        "scheduler": "스케줄러",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:26:08.855828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:1",
+      "source": "The real struct, defined in `kernel/sched/ext.c`, includes (among others):",
+      "source_hash": 7521575252838924821,
+      "context_hash": 16627353657922240818,
+      "translation": "`kernel/sched/ext.c`에 정의된 실제 구조체에는 (다른 것들과 함께) 다음이 포함됩니다.",
+      "glossary_snapshot": {
+        "struct": "구조체"
+      },
+      "translated_at": "2026-11-14T22:26:08.855828Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "The lifecycle for a single wakeup: `select_cpu()` picks a target CPU (this is where a scheduler might implement its own idle-CPU search), `enqueue()` places the task somewhere the scheduler chooses, and `dispatch()` is called whenever a CPU's local dispatch queue runs empty — including when the previously-running task's time slice ran out but it's still runnable, not only when the CPU is truly idle.",
+      "source_hash": 9455793917410011794,
+      "context_hash": 6632066266703119322,
+      "translation": "단일 wakeup의 수명 주기는 다음과 같습니다. `select_cpu()`는 대상 CPU를 고르고(스케줄러가 자체적인 유휴 CPU 탐색을 구현할 수 있는 지점이 바로 여기입니다), `enqueue()`는 스케줄러가 선택한 위치에 태스크를 넣으며, `dispatch()`는 CPU의 로컬 디스패치 큐가 비게 될 때마다 호출됩니다. 이는 CPU가 실제로 유휴 상태일 때뿐 아니라, 이전에 실행 중이던 태스크의 time slice가 소진되었지만 여전히 실행 가능한 경우도 포함합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "queue": "큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249546Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "A scheduler doesn't manage its own run queue data structure from scratch — it moves tasks between **dispatch queues (DSQs)**, `struct scx_dispatch_q` in the kernel.",
+      "source_hash": 4889728932544701548,
+      "context_hash": 2033435659968988732,
+      "translation": "스케줄러는 자체 런큐 자료 구조를 처음부터 직접 관리하지 않습니다. 대신 커널의 `struct scx_dispatch_q`인 **디스패치 큐(DSQ)** 사이에서 태스크를 옮깁니다.",
+      "glossary_snapshot": {
+        "data structure": "자료 구조",
+        "kernel": "커널",
+        "queue": "큐",
+        "queues": "큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249548Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:2",
+      "source": "A DSQ isn't strictly a FIFO or a priority queue; per the kernel's own documentation, a single DSQ \"can operate as both a FIFO and a priority queue\" at once, with vtime-ordered entries (`scx_bpf_dispatch_vtime()`) always consumed after plain FIFO ones.",
+      "source_hash": 3880071064834678117,
+      "context_hash": 17552989306588253562,
+      "translation": "DSQ는 엄밀히 말해 FIFO도 우선순위 큐도 아닙니다. 커널 자체 문서에 따르면 하나의 DSQ는 \"FIFO와 우선순위 큐 둘 다로 동작할 수 있으며\", 이때 vtime 순으로 정렬된 항목(`scx_bpf_dispatch_vtime()`)은 항상 일반 FIFO 항목보다 나중에 소비됩니다.",
+      "glossary_snapshot": {
+        "FIFO": "FIFO",
+        "kernel": "커널",
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T22:26:44.249548Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:3",
+      "source": "Every CPU has its own built-in **local DSQ** (`SCX_DSQ_LOCAL`) that it always runs tasks from, plus a single built-in **global DSQ** (`SCX_DSQ_GLOBAL`) shared by all CPUs as a default landing spot; a scheduler is free to create additional DSQs for per-cgroup or other custom queuing, which get \"consumed\" into a CPU's local DSQ to actually run.",
+      "source_hash": 9894681500776987080,
+      "context_hash": 10176133013235156652,
+      "translation": "모든 CPU에는 항상 태스크를 꺼내 실행하는 고유한 내장 **로컬 DSQ**(`SCX_DSQ_LOCAL`)가 있으며, 이와 더불어 모든 CPU가 기본 도착 지점으로 공유하는 단일 내장 **글로벌 DSQ**(`SCX_DSQ_GLOBAL`)가 있습니다. 스케줄러는 cgroup별 큐잉이나 기타 사용자 정의 큐잉을 위해 DSQ를 추가로 자유롭게 생성할 수 있으며, 이러한 DSQ의 태스크는 실제로 실행되기 위해 CPU의 로컬 DSQ로 \"소비\"됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "CPUs": "CPU",
+        "cgroup": "cgroup",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249549Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "The safety model",
+      "source_hash": 9409291378114813164,
+      "context_hash": 8941212982453303494,
+      "translation": "안전성 모델",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:44.249550Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Letting a BPF program make scheduling decisions is only tenable if a broken one can't hang the machine.",
+      "source_hash": 9307493178156875250,
+      "context_hash": 2243511653898623706,
+      "translation": "BPF 프로그램이 스케줄링 결정을 내리도록 허용하는 것은 잘못된 프로그램이 시스템을 멈추게 할 수 없을 때에만 성립합니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:26:44.249550Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "Two independent mechanisms enforce that:",
+      "source_hash": 3882768025434383357,
+      "context_hash": 18052247426155816323,
+      "translation": "이를 보장하는 두 가지 독립적인 메커니즘이 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:44.249550Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "**The BPF verifier** rejects at load time any program that could loop unboundedly, access memory it shouldn't, or otherwise violate BPF's usual safety guarantees — the same verifier that gates every other BPF program type.",
+      "source_hash": 2446218200256804345,
+      "context_hash": 10429599570999920623,
+      "translation": "**BPF 검증기**는 무한히 반복될 수 있거나, 접근해서는 안 되는 메모리에 접근하거나, 그 밖에 BPF의 일반적인 안전성 보장을 위반할 수 있는 프로그램을 로드 시점에 거부합니다. 이는 다른 모든 BPF 프로그램 유형을 통제하는 것과 동일한 검증기입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF Verifier": "BPF 검증기",
+        "BPF program": "BPF 프로그램"
+      },
+      "translated_at": "2026-11-14T23:33:47.901752Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "**The watchdog** catches misbehavior the verifier can't: a scheduler that's fully valid BPF but simply never dispatches a runnable task. `kernel/sched/ext.c`'s watchdog periodically walks each runqueue's runnable list and checks how long each task has waited, capped at `SCX_WATCHDOG_MAX_TIMEOUT` — 30 seconds:",
+      "source_hash": 15186547139529099305,
+      "context_hash": 15227919558890429374,
+      "translation": "**watchdog**은 verifier가 잡아낼 수 없는 오동작, 즉 BPF로서는 완전히 유효하지만 실행 가능한 태스크를 아예 디스패치하지 않는 스케줄러를 잡아냅니다. `kernel/sched/ext.c`의 watchdog은 주기적으로 각 런큐의 runnable 리스트를 순회하며 각 태스크가 얼마나 오래 기다렸는지 확인하며, 그 상한은 `SCX_WATCHDOG_MAX_TIMEOUT`, 즉 30초입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "runqueue": "런큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249551Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "A stall doesn't trigger an immediate, synchronous flip to CFS — `scx_ops_error_kind()` queues a disable request onto a kernel thread's work queue (`kthread_queue_work()`), which then runs `scx_ops_disable_workfn()`.",
+      "source_hash": 10147863535063864713,
+      "context_hash": 984638174017920377,
+      "translation": "stall이 발생한다고 해서 CFS로 즉시 동기적으로 전환되지는 않습니다. `scx_ops_error_kind()`가 비활성화 요청을 커널 스레드의 work 큐에 넣고(`kthread_queue_work()`), 이후 해당 커널 스레드가 `scx_ops_disable_workfn()`을 실행합니다.",
+      "glossary_snapshot": {
+        "CFS": "CFS",
+        "kernel thread": "커널 스레드",
+        "queue": "큐",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T23:33:47.901754Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "That function's first substantive step is **bypass mode**: `scx_ops_bypass(true)` marks every runqueue `SCX_RQ_BYPASSING`, and sched_ext's own dispatch logic starts ignoring the BPF scheduler's decisions in favor of a hardcoded global FIFO — guaranteeing forward progress as soon as that queued work runs, without waiting for anything else to unload.",
+      "source_hash": 3522302756193823513,
+      "context_hash": 12311177951024331657,
+      "translation": "이 함수의 첫 번째 실질적인 단계는 **bypass 모드**입니다. `scx_ops_bypass(true)`는 모든 런큐를 `SCX_RQ_BYPASSING`으로 표시하고, sched_ext 자체의 디스패치 로직은 BPF 스케줄러의 결정을 무시하고 하드코딩된 글로벌 FIFO를 사용하기 시작합니다. 이를 통해 다른 무엇이 언로드되기를 기다리지 않고도, 큐에 들어간 그 작업이 실행되는 즉시 진행(forward progress)이 보장됩니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "FIFO": "FIFO",
+        "function": "함수",
+        "runqueue": "런큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249552Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:2",
+      "source": "The same function then does the slower, full teardown: it walks every task still on the SCX class and recomputes its scheduler class via the core scheduler's `__setscheduler_class()`, which checks deadline and RT priority first and only falls through to `&fair_sched_class` — [EEVDF](eevdf.md) — once neither applies and SCX itself is being torn down.",
+      "source_hash": 17109601332301699415,
+      "context_hash": 9906161607629173730,
+      "translation": "이어서 같은 함수가 더 느린 전체 해체 작업을 수행합니다. 아직 SCX 클래스에 남아 있는 모든 태스크를 순회하면서 코어 스케줄러의 `__setscheduler_class()`를 통해 스케줄러 클래스를 다시 계산하는데, 이 함수는 deadline과 RT 우선순위를 먼저 확인하고, 둘 다 해당하지 않으며 SCX 자체가 해체되는 중일 때에만 `&fair_sched_class`, 즉 [EEVDF](eevdf.md)로 넘어갑니다.",
+      "glossary_snapshot": {
+        "EEVDF": "EEVDF",
+        "function": "함수",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249552Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:3",
+      "source": "The BPF scheduler is unloaded, and every task it owned lands back on EEVDF until a new one is loaded.",
+      "source_hash": 9932031757486717099,
+      "context_hash": 9217482908962207331,
+      "translation": "BPF 스케줄러는 언로드되며, 그 스케줄러가 소유하던 모든 태스크는 새 스케줄러가 로드될 때까지 EEVDF로 돌아갑니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "EEVDF": "EEVDF",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249553Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "There's also a manual escape hatch that doesn't depend on the watchdog or the verifier at all: pressing the `SysRq-S` key sequence aborts the running BPF scheduler and reverts every task to CFS immediately, the same as a detected stall or scheduler-triggered error.",
+      "source_hash": 13418297631198844759,
+      "context_hash": 1450794393101885062,
+      "translation": "watchdog이나 verifier에 전혀 의존하지 않는 수동 탈출 수단도 있습니다. `SysRq-S` 키 시퀀스를 누르면 실행 중인 BPF 스케줄러가 중단되고 모든 태스크가 즉시 CFS로 되돌아가며, 이는 stall이 감지되거나 스케줄러가 오류를 일으킨 경우와 동일합니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "CFS": "CFS",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249553Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "A companion `SysRq-D` dumps sched_ext's internal debug state without terminating the scheduler, for diagnosing a problem without losing it.",
+      "source_hash": 9689721984218509063,
+      "context_hash": 3236930317770686021,
+      "translation": "짝을 이루는 `SysRq-D`는 스케줄러를 종료하지 않고 sched_ext의 내부 디버그 상태를 덤프하므로, 문제 상황을 잃지 않은 채 진단할 수 있습니다.",
+      "glossary_snapshot": {
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249553Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Real-world adoption",
+      "source_hash": 18184597261127607884,
+      "context_hash": 6618787997057841243,
+      "translation": "실제 도입 사례",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:44.249554Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "At the 2024 Linux Plumbers Conference, Tejun Heo described real deployments, not hypotheticals: `scx_layered` was already running on **over one million machines**, delivering measurable performance gains; `scx_lavd` was headed for shipment on Valve's **Steam Deck**; and `scx_bpfland` was showing promising results for general desktop use.",
+      "source_hash": 13528218358420213495,
+      "context_hash": 8285666439402592706,
+      "translation": "2024 Linux Plumbers Conference에서 Tejun Heo는 가정이 아닌 실제 배포 사례를 소개했습니다. `scx_layered`는 이미 **100만 대가 넘는 머신**에서 실행되며 측정 가능한 성능 향상을 내고 있었고, `scx_lavd`는 Valve의 **Steam Deck**에 탑재될 예정이었으며, `scx_bpfland`는 일반 데스크톱 용도에서 유망한 결과를 보이고 있었습니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T22:26:44.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "By late 2024, sched_ext support was shipping in CachyOS, Arch Linux, Ubuntu, Fedora, Nix, and openSUSE — on those distributions, trying a different scheduler is a package install and a command, not a kernel rebuild.",
+      "source_hash": 7359747933331536430,
+      "context_hash": 3712198211372490131,
+      "translation": "2024년 말에는 CachyOS, Arch Linux, Ubuntu, Fedora, Nix, openSUSE에서 sched_ext 지원이 제공되고 있었습니다. 이러한 배포판에서는 다른 스케줄러를 시험해 보는 데 커널 재빌드가 아니라 패키지 설치와 명령 하나면 충분합니다.",
+      "glossary_snapshot": {
+        "Linux": "Linux",
+        "kernel": "커널",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Where it's heading",
+      "source_hash": 9656193074501413457,
+      "context_hash": 2026201787809056639,
+      "translation": "향후 방향",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:44.249555Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "Heo's own framing of the future work is **composability**: letting multiple BPF schedulers cooperate instead of one program owning every decision.",
+      "source_hash": 10821274132913011385,
+      "context_hash": 2241113645383324081,
+      "translation": "Heo 자신이 제시한 향후 작업의 방향은 **조합 가능성**(composability)으로, 하나의 프로그램이 모든 결정을 소유하는 대신 여러 BPF 스케줄러가 협력하도록 하는 것입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "schedulers": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:1",
+      "source": "The stated goal is for one scheduler to focus on time-slice policy while another handles load balancing or partitioning, and eventually for schedulers to stack down the cgroup hierarchy — a different scheduler responsible for each level.",
+      "source_hash": 15534494946185295916,
+      "context_hash": 9303883668286552761,
+      "translation": "명시된 목표는 한 스케줄러가 time slice 정책에 집중하는 동안 다른 스케줄러가 부하 분산이나 파티셔닝을 담당하도록 하고, 궁극적으로는 스케줄러들이 cgroup 계층을 따라 아래로 쌓여 각 계층마다 서로 다른 스케줄러가 책임지도록 하는 것입니다.",
+      "glossary_snapshot": {
+        "cgroup": "cgroup",
+        "load balancing": "부하 분산",
+        "policy": "정책",
+        "scheduler": "스케줄러",
+        "schedulers": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 27963099083371480,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:26:44.249556Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 9327191516462870487,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:26:44.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:2/seg:0",
+      "source": "Links pinned to the **v6.12** tag — several of these names have since been renamed (e.g. `scx_ops_bypass()` → `scx_bypass()`, `scx_ops_disable_workfn()` → `scx_disable_workfn()`, both first appearing at v6.16), so a HEAD-tracking link would show different names than described above.",
+      "source_hash": 13191376910979905004,
+      "context_hash": 17638071493470187950,
+      "translation": "링크는 **v6.12** 태그에 고정되어 있습니다. 이 중 몇몇 이름은 이후 변경되었으므로(예: `scx_ops_bypass()` → `scx_bypass()`, `scx_ops_disable_workfn()` → `scx_disable_workfn()`, 둘 다 v6.16에서 처음 등장), HEAD를 따라가는 링크에서는 위에서 설명한 것과 다른 이름이 보입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:44.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "[kernel/sched/ext.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/sched/ext.c?h=v6.12) — the sched_ext implementation: `struct sched_ext_ops`, dispatch queues, the watchdog, bypass mode, and the `SysRq-S`/`SysRq-D` handlers",
+      "source_hash": 13155321938615517633,
+      "context_hash": 18087633095246062980,
+      "translation": "[kernel/sched/ext.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/sched/ext.c?h=v6.12) — sched_ext 구현: `struct sched_ext_ops`, 디스패치 큐, watchdog, bypass 모드, `SysRq-S`/`SysRq-D` 핸들러",
+      "glossary_snapshot": {
+        "handlers": "핸들러",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:26:44.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:4/seg:0",
+      "source": "[include/linux/sched/ext.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/sched/ext.h?h=v6.12) — `struct scx_dispatch_q` and other public sched_ext types",
+      "source_hash": 14193315466075104413,
+      "context_hash": 6049551474731105422,
+      "translation": "[include/linux/sched/ext.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/sched/ext.h?h=v6.12) — `struct scx_dispatch_q` 및 기타 공개 sched_ext 타입",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:44.249557Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:5/seg:0",
+      "source": "[Documentation/scheduler/sched-ext.rst](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/scheduler/sched-ext.rst?h=v6.12) — the kernel's own design document: DSQ semantics, the FIFO-and-priority-queue behavior, and the three conditions that abort a BPF scheduler",
+      "source_hash": 457974325821767970,
+      "context_hash": 18224070442029929555,
+      "translation": "[Documentation/scheduler/sched-ext.rst](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/scheduler/sched-ext.rst?h=v6.12) — 커널 자체의 설계 문서: DSQ 의미론, FIFO 겸 우선순위 큐 동작, BPF 스케줄러를 중단시키는 세 가지 조건",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "FIFO": "FIFO",
+        "kernel": "커널",
+        "queue": "큐",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249558Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:6/seg:0",
+      "source": "[include/asm-generic/vmlinux.lds.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/asm-generic/vmlinux.lds.h?h=v6.12) — `SCHED_DATA`, the linker-enforced scheduler class ordering (`stop → dl → rt → fair → ext → idle`)",
+      "source_hash": 4809964236799258565,
+      "context_hash": 7343971173223454474,
+      "translation": "[include/asm-generic/vmlinux.lds.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/asm-generic/vmlinux.lds.h?h=v6.12) — `SCHED_DATA`, 링커가 강제하는 스케줄러 클래스 순서(`stop → dl → rt → fair → ext → idle`)",
+      "glossary_snapshot": {
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:26:44.249558Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:7/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 13332475053865718674,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:26:44.249558Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:8/seg:0",
+      "source": "[The extensible scheduler class](https://lwn.net/Articles/922405/) (February 2023) — Jonathan Corbet's review of the second posted version, including Zijlstra's \"I hate all of this\" response to the first",
+      "source_hash": 13992918645390919157,
+      "context_hash": 7117738966934944959,
+      "translation": "[The extensible scheduler class](https://lwn.net/Articles/922405/)(2023년 2월) — 두 번째로 게시된 버전에 대한 Jonathan Corbet의 리뷰로, 첫 번째 버전에 대한 Zijlstra의 \"I hate all of this\"라는 반응을 함께 다룹니다",
+      "glossary_snapshot": {
+        "Jonathan Corbet": "Jonathan Corbet"
+      },
+      "translated_at": "2026-11-14T22:26:44.249558Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:9/seg:0",
+      "source": "[Extensible scheduler class to be merged for 6.11](https://lwn.net/Articles/978007/) (June 2024) — Torvalds' override announcement, in his own words",
+      "source_hash": 3607268713533512842,
+      "context_hash": 14221470699533583152,
+      "translation": "[Extensible scheduler class to be merged for 6.11](https://lwn.net/Articles/978007/)(2024년 6월) — Torvalds가 직접 밝힌 반대 의견 무시 결정 발표",
+      "glossary_snapshot": {
+        "Torvalds": "Torvalds"
+      },
+      "translated_at": "2026-11-14T22:26:44.249559Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:10/seg:0",
+      "source": "[The rest of the 6.11 merge window](https://lwn.net/Articles/982605/) (August 2024) — the actual outcome: \"sched_ext was not merged for 6.11\" after a \"strongly worded discussion\"",
+      "source_hash": 13934700886967940454,
+      "context_hash": 7686626556976192643,
+      "translation": "[The rest of the 6.11 merge window](https://lwn.net/Articles/982605/)(2024년 8월) — 실제 결과: \"강경한 어조의 논의\" 끝에 \"sched_ext는 6.11에 병합되지 않았습니다\"",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:26:44.249559Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:11/seg:0",
+      "source": "[sched: Implement BPF extensible scheduler class](https://lwn.net/Articles/978911/) — Tejun Heo's v7 (final) patch-series cover letter, posted 18 June 2024, ahead of the attempted 6.11 merge",
+      "source_hash": 8171785022060473919,
+      "context_hash": 6029083996106745435,
+      "translation": "[sched: Implement BPF extensible scheduler class](https://lwn.net/Articles/978911/) — 6.11 병합 시도를 앞두고 2024년 6월 18일에 게시된 Tejun Heo의 v7(최종) 패치 시리즈 커버 레터",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T22:13:55.389580Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:12/seg:0",
+      "source": "[The 2023 Kernel Maintainers Summit](https://lwn.net/Articles/951847/) (November 2023) — LWN's published coverage of the summit's actual agenda, which does not list sched_ext",
+      "source_hash": 5991345700257891681,
+      "context_hash": 12923002868522871301,
+      "translation": "[The 2023 Kernel Maintainers Summit](https://lwn.net/Articles/951847/)(2023년 11월) — 서밋의 실제 의제를 다룬 LWN의 공개 보도로, 의제에 sched_ext는 포함되어 있지 않습니다",
+      "glossary_snapshot": {
+        "LWN's": "LWN"
+      },
+      "translated_at": "2026-11-14T22:13:55.389581Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:13/seg:0",
+      "source": "[Sched_ext at LPC 2024](https://lwn.net/Articles/991205/) — real deployment numbers (scx_layered, scx_lavd/Steam Deck) and the composability roadmap",
+      "source_hash": 14790819294832540384,
+      "context_hash": 3821583878921722982,
+      "translation": "[Sched_ext at LPC 2024](https://lwn.net/Articles/991205/) — 실제 배포 수치(scx_layered, scx_lavd/Steam Deck)와 조합 가능성(composability) 로드맵",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:55.389581Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:14/seg:0",
+      "source": "Mailing list",
+      "source_hash": 8726653541176919822,
+      "context_hash": 14922735663402867075,
+      "translation": "메일링 리스트",
+      "glossary_snapshot": {
+        "mailing list": "메일링 리스트"
+      },
+      "translated_at": "2026-11-14T22:13:55.389581Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:15/seg:0",
+      "source": "[Peter Zijlstra's \"I hate all of this\" reply](https://lwn.net/ml/linux-kernel/Y5b2btWFJeEfTyJg@hirez.programming.kicks-ass.net/) — via LWN's own mailing-list mirror, his response to the first posted version of the patch set",
+      "source_hash": 6434041305412835269,
+      "context_hash": 12895867183580050756,
+      "translation": "[Peter Zijlstra의 \"이 모든 것이 싫습니다\" 답장](https://lwn.net/ml/linux-kernel/Y5b2btWFJeEfTyJg@hirez.programming.kicks-ass.net/) — LWN 자체 메일링 리스트 미러를 통해 볼 수 있는, 처음 게시된 패치 세트 버전에 대한 그의 응답",
+      "glossary_snapshot": {
+        "LWN's": "LWN"
+      },
+      "translated_at": "2026-11-14T22:13:55.389582Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:16/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 10277163299606389885,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:13:55.389582Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:17/seg:0",
+      "source": "[Scheduler Classes](scheduler-classes.md) — how sched_ext fits alongside the other five classes",
+      "source_hash": 11289246988283871162,
+      "context_hash": 13166809744446002042,
+      "translation": "[스케줄러 클래스](scheduler-classes.md) — sched_ext가 다른 다섯 개의 클래스와 어떻게 공존하는지",
+      "glossary_snapshot": {
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:13:55.389582Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:18/seg:0",
+      "source": "[EEVDF](eevdf.md) — where a task's scheduler class resolves to once sched_ext is disabled",
+      "source_hash": 18108298658358241656,
+      "context_hash": 11090069621600329234,
+      "translation": "[EEVDF](eevdf.md) — sched_ext가 비활성화되었을 때 태스크의 스케줄러 클래스가 귀결되는 곳",
+      "glossary_snapshot": {
+        "EEVDF": "EEVDF",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:13:55.389583Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:19/seg:0",
+      "source": "[Scheduler Evolution](scheduler-evolution.md) — the O(1) → CFS → EEVDF history this class sits alongside",
+      "source_hash": 1159820652030707211,
+      "context_hash": 8899513840311022664,
+      "translation": "[스케줄러의 발전](scheduler-evolution.md) — 이 클래스와 나란히 놓이는 O(1) → CFS → EEVDF의 역사",
+      "glossary_snapshot": {
+        "CFS": "CFS",
+        "EEVDF": "EEVDF",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:13:55.389583Z",
+      "issues": []
+    }
+  ]
+}

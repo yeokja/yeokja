@@ -1,0 +1,709 @@
+{
+  "version": 1,
+  "source_hash": 11971593715310320832,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "What Happens When a Process Wakes Up",
+      "source_hash": 5634393126243977395,
+      "context_hash": 17427489486145291038,
+      "translation": "프로세스가 깨어날 때 일어나는 일",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T23:06:58.858506Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "From `wake_up_process()` to running on a CPU",
+      "source_hash": 6910798978183184919,
+      "context_hash": 9355304033294587904,
+      "translation": "`wake_up_process()`에서 CPU 위에서 실행되기까지",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:06:58.858507Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Overview",
+      "source_hash": 11777448466030057203,
+      "context_hash": 17557458802309059196,
+      "translation": "개요",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858507Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "A process wakes up when something it was waiting for becomes available — a lock is released, data arrives on a socket, a timer fires, or a signal is delivered.",
+      "source_hash": 1439542637191665244,
+      "context_hash": 1809918972045888463,
+      "translation": "프로세스는 기다리던 대상이 사용 가능해질 때 깨어납니다. 예를 들어 락이 해제되거나, 소켓에 데이터가 도착하거나, 타이머가 만료되거나, 시그널이 전달되는 경우입니다.",
+      "glossary_snapshot": {
+        "process": "프로세스",
+        "timer": "타이머"
+      },
+      "translated_at": "2026-11-14T23:06:58.858507Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "The wakeup path must transition the task from sleeping to runnable, place it on the right CPU, and potentially preempt whatever is currently running there.",
+      "source_hash": 10871623913940954236,
+      "context_hash": 7561577532194059761,
+      "translation": "웨이크업 경로는 태스크를 sleeping 상태에서 runnable 상태로 전환하고, 적절한 CPU에 배치하며, 경우에 따라 해당 CPU에서 현재 실행 중인 것을 선점해야 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:06:58.858508Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Task states",
+      "source_hash": 5504130904091401039,
+      "context_hash": 8253328213135324494,
+      "translation": "태스크 상태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858508Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Before diving in, the relevant sleeping states:",
+      "source_hash": 8320127471976216849,
+      "context_hash": 12784584739327568797,
+      "translation": "본격적으로 살펴보기 전에, 관련된 sleeping 상태는 다음과 같습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858508Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`TASK_INTERRUPTIBLE` is the most common sleep state — used when waiting for I/O, locks, or events that might never come (so signals should be able to abort the wait). `TASK_UNINTERRUPTIBLE` is for waits that must complete — disk I/O in progress, kernel critical sections.",
+      "source_hash": 7774811140597909967,
+      "context_hash": 14440069167446424158,
+      "translation": "`TASK_INTERRUPTIBLE`는 가장 흔한 sleep 상태로, I/O, 락, 또는 끝내 일어나지 않을 수도 있는 이벤트를 기다릴 때 사용됩니다(따라서 시그널로 대기를 중단할 수 있어야 합니다). `TASK_UNINTERRUPTIBLE`는 진행 중인 디스크 I/O나 커널 임계 구역처럼 반드시 완료되어야 하는 대기에 사용됩니다.",
+      "glossary_snapshot": {
+        "critical sections": "임계 구역",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:06:58.858508Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "This is the \"D\" state in `ps` output.",
+      "source_hash": 15270965123800741004,
+      "context_hash": 5705297871860612873,
+      "translation": "이것이 `ps` 출력의 \"D\" 상태입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858508Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "`wake_up_process()` uses `TASK_NORMAL = TASK_INTERRUPTIBLE | TASK_UNINTERRUPTIBLE` and will wake either.",
+      "source_hash": 10156255608536873862,
+      "context_hash": 13224112191992184088,
+      "translation": "`wake_up_process()`는 `TASK_NORMAL = TASK_INTERRUPTIBLE | TASK_UNINTERRUPTIBLE`를 사용하므로 두 상태 모두 깨웁니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Entry: wake_up_process()",
+      "source_hash": 10079610513878084207,
+      "context_hash": 12526627055323903039,
+      "translation": "진입점: wake_up_process()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "The kernel has several `wake_up_*` variants depending on which sleep states to wake:",
+      "source_hash": 13812684012657980356,
+      "context_hash": 13413142608560301644,
+      "translation": "커널에는 어떤 sleep 상태를 깨우는지에 따라 여러 `wake_up_*` 변형이 있습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "Function",
+      "source_hash": 12017511910326844596,
+      "context_hash": 1700248179233253808,
+      "translation": "함수",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "Wakes",
+      "source_hash": 17181779744815949508,
+      "context_hash": 9418716254243433088,
+      "translation": "깨우는 대상",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "`wake_up_process(p)`",
+      "source_hash": 5679003730071198340,
+      "context_hash": 1117443781457245930,
+      "translation": "`wake_up_process(p)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "`TASK_INTERRUPTIBLE \\| TASK_UNINTERRUPTIBLE`",
+      "source_hash": 2562096655183574450,
+      "context_hash": 2386532571150037618,
+      "translation": "`TASK_INTERRUPTIBLE \\| TASK_UNINTERRUPTIBLE`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "`wake_up_interruptible(x)`",
+      "source_hash": 16624196804339356056,
+      "context_hash": 15820896689898653373,
+      "translation": "`wake_up_interruptible(x)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "`TASK_INTERRUPTIBLE` only",
+      "source_hash": 13174988945377425397,
+      "context_hash": 16479352126346909697,
+      "translation": "`TASK_INTERRUPTIBLE`만",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "`wake_up(x)`",
+      "source_hash": 16561877697294632002,
+      "context_hash": 181365442593875362,
+      "translation": "`wake_up(x)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858509Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:10/seg:0",
+      "source": "`TASK_NORMAL` (via wait queue)",
+      "source_hash": 11668701707081616384,
+      "context_hash": 16637581981507177527,
+      "translation": "`TASK_NORMAL` (wait 큐를 통해)",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:36:36.092958Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "`wake_up_all(x)`",
+      "source_hash": 16848352657187828785,
+      "context_hash": 7613589233304365388,
+      "translation": "`wake_up_all(x)`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858510Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "All tasks on a wait queue",
+      "source_hash": 1009037417186608157,
+      "context_hash": 2585001377521429866,
+      "translation": "wait 큐에 있는 모든 태스크",
+      "glossary_snapshot": {
+        "queue": "큐"
+      },
+      "translated_at": "2026-11-14T23:36:36.092959Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "try_to_wake_up()",
+      "source_hash": 15300700908384360803,
+      "context_hash": 146813870163372578,
+      "translation": "try_to_wake_up()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858510Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "The core wakeup function:",
+      "source_hash": 9908861598311621966,
+      "context_hash": 15995968490387948124,
+      "translation": "핵심 웨이크업 함수는 다음과 같습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T23:06:58.858510Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "The on_cpu spin",
+      "source_hash": 17593764315196304260,
+      "context_hash": 1522920953223251689,
+      "translation": "on_cpu 스핀",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858510Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "If the task is still executing on another CPU (in the middle of `__schedule()` or running), `smp_cond_load_acquire` spins until `p->on_cpu` becomes 0. `finish_task_switch()` clears it with `smp_store_release()` after the task is fully off the CPU.",
+      "source_hash": 8517216664907222987,
+      "context_hash": 8491341127557559040,
+      "translation": "태스크가 아직 다른 CPU에서 실행 중이라면(`__schedule()` 도중이거나 실행 중인 경우), `smp_cond_load_acquire`는 `p->on_cpu`가 0이 될 때까지 스핀합니다. `finish_task_switch()`는 태스크가 CPU에서 완전히 내려온 뒤 `smp_store_release()`로 이 값을 지웁니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:06:58.858510Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:1",
+      "source": "This prevents placing the task on a new runqueue while it's still executing somewhere.",
+      "source_hash": 5880558733333491176,
+      "context_hash": 5043177489005798539,
+      "translation": "이를 통해 태스크가 아직 어딘가에서 실행 중인 상태에서 새 런큐에 배치되는 것을 방지합니다.",
+      "glossary_snapshot": {
+        "runqueue": "런큐"
+      },
+      "translated_at": "2026-11-14T23:06:58.858510Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "CPU selection: select_task_rq()",
+      "source_hash": 125787506525335708,
+      "context_hash": 8756669825422666497,
+      "translation": "CPU 선택: select_task_rq()",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T23:06:58.858511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "The scheduler must decide which CPU to place the woken task on.",
+      "source_hash": 4985700976243955394,
+      "context_hash": 16940114627852135374,
+      "translation": "스케줄러는 깨어난 태스크를 어느 CPU에 배치할지 결정해야 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T23:06:58.858511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "For `SCHED_NORMAL` tasks, `select_task_rq_fair()` makes this decision:",
+      "source_hash": 14393530797024157634,
+      "context_hash": 14843005125445366485,
+      "translation": "`SCHED_NORMAL` 태스크의 경우 `select_task_rq_fair()`가 이 결정을 내립니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "`select_task_rq_fair()` considers several factors:",
+      "source_hash": 7494853108262759549,
+      "context_hash": 4659005845834345116,
+      "translation": "`select_task_rq_fair()`는 여러 요소를 고려합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T23:06:58.858511Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "**Wake affinity**: If the waker and wakee communicate frequently, placing the wakee near the waker improves cache locality.",
+      "source_hash": 12260064571067176481,
+      "context_hash": 14459881162036139106,
+      "translation": "**Wake 어피니티**: 깨우는 쪽(waker)과 깨어나는 쪽(wakee)이 자주 통신한다면, wakee를 waker 가까이에 배치하여 캐시 지역성을 높일 수 있습니다.",
+      "glossary_snapshot": {
+        "affinity": "어피니티",
+        "locality": "지역성"
+      },
+      "translated_at": "2026-11-14T23:36:36.092964Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "This is especially effective when the waker calls `wake_up()` and then blocks — the wakee can reuse the waker's cache contents.",
+      "source_hash": 3592876131954611374,
+      "context_hash": 16573130507631327093,
+      "translation": "이는 waker가 `wake_up()`을 호출한 뒤 곧바로 블록되는 경우에 특히 효과적입니다. wakee가 waker의 캐시 내용을 재사용할 수 있기 때문입니다.",
+      "glossary_snapshot": {
+        "cache": "캐시"
+      },
+      "translated_at": "2026-11-14T22:17:09.000068Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "**Load balancing**: The selected CPU should be idle or lightly loaded.",
+      "source_hash": 987111395736936897,
+      "context_hash": 8514196151751628678,
+      "translation": "**부하 분산**: 선택된 CPU는 유휴 상태이거나 부하가 적어야 합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "load balancing": "부하 분산"
+      },
+      "translated_at": "2026-11-14T22:17:09.000069Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "The function walks scheduling domains (SMT → LLC → NUMA node → system) looking for a suitable CPU.",
+      "source_hash": 13572921889208177572,
+      "context_hash": 13425863096348368190,
+      "translation": "이 함수는 스케줄링 도메인(SMT → LLC → NUMA 노드 → 시스템)을 순회하며 적합한 CPU를 찾습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "NUMA node": "NUMA 노드",
+        "function": "함수",
+        "scheduling": "스케줄링"
+      },
+      "translated_at": "2026-11-14T22:17:09.000070Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "**The `WF_SYNC` flag**: Set when the waking task is about to block immediately after the wakeup (e.g., a producer sending to a consumer).",
+      "source_hash": 15305574979226590583,
+      "context_hash": 1683599833301384747,
+      "translation": "**`WF_SYNC` 플래그**: 깨우는 태스크가 wakeup 직후 곧바로 블록될 예정일 때 설정됩니다(예: 생산자가 소비자에게 데이터를 보내는 경우).",
+      "glossary_snapshot": {
+        "producer": "생산자"
+      },
+      "translated_at": "2026-11-14T22:17:09.000070Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "In this case, the wakee might be placed on the waker's CPU since the waker is vacating it.",
+      "source_hash": 391974505421245569,
+      "context_hash": 17495985529956021721,
+      "translation": "이 경우 waker가 CPU를 비우게 되므로 wakee가 waker의 CPU에 배치될 수 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:17:09.000070Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Enqueuing: ttwu_queue() and activate_task()",
+      "source_hash": 10493916018172208652,
+      "context_hash": 15842496258712807104,
+      "translation": "큐 삽입: ttwu_queue()와 activate_task()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:09.000071Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "`activate_task()` calls `p->sched_class->enqueue_task()`.",
+      "source_hash": 15220147404072967540,
+      "context_hash": 14239249513172516369,
+      "translation": "`activate_task()`는 `p->sched_class->enqueue_task()`를 호출합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:09.000071Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:1",
+      "source": "For fair tasks this puts the task into the CFS RB-tree with a vruntime adjusted for how long it slept (via `place_entity()`).",
+      "source_hash": 3238376488023211687,
+      "context_hash": 7310948164265831609,
+      "translation": "fair 태스크의 경우, 이 호출은 슬립한 시간에 맞춰 (`place_entity()`를 통해) 조정된 vruntime으로 태스크를 CFS RB-tree에 넣습니다.",
+      "glossary_snapshot": {
+        "CFS": "CFS",
+        "vruntime": "vruntime"
+      },
+      "translated_at": "2026-11-14T22:17:09.000071Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "Vruntime placement on wakeup",
+      "source_hash": 13810268371281970055,
+      "context_hash": 7364297173522435004,
+      "translation": "wakeup 시 vruntime 배치",
+      "glossary_snapshot": {
+        "vruntime": "vruntime"
+      },
+      "translated_at": "2026-11-14T22:17:09.000072Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "A task that slept for a long time has a stale (low) vruntime.",
+      "source_hash": 16683182048171367823,
+      "context_hash": 2777467158106444147,
+      "translation": "오랫동안 슬립한 태스크는 오래된(낮은) vruntime을 가지고 있습니다.",
+      "glossary_snapshot": {
+        "vruntime": "vruntime"
+      },
+      "translated_at": "2026-11-14T22:17:09.000072Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:1",
+      "source": "If it returned to the RB-tree at that old vruntime, it could monopolize the CPU catching up.",
+      "source_hash": 11266414501181374605,
+      "context_hash": 15106413589952312969,
+      "translation": "이 태스크가 그 오래된 vruntime으로 RB-tree에 돌아온다면, 밀린 몫을 따라잡느라 CPU를 독점할 수 있습니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "vruntime": "vruntime"
+      },
+      "translated_at": "2026-11-14T22:17:09.000073Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:2",
+      "source": "Instead, `place_entity()` places the waking task at approximately `avg_vruntime - half_slice`:",
+      "source_hash": 8225972833593111139,
+      "context_hash": 4601118150005312370,
+      "translation": "그 대신 `place_entity()`는 깨어나는 태스크를 대략 `avg_vruntime - half_slice` 위치에 배치합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:09.000073Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "A gets to run soon (it's near the front) but doesn't starve B and C (it's not so far back that it needs to run for 200ms straight to \"catch up\").",
+      "source_hash": 11461558372555528516,
+      "context_hash": 132209761544489683,
+      "translation": "A는 곧 실행될 수 있지만(앞쪽 가까이에 있으므로) B와 C를 기아 상태로 만들지는 않습니다(\"따라잡기\" 위해 200ms 동안 연속으로 실행해야 할 만큼 뒤쪽에 있지는 않기 때문입니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:09.000073Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Preemption check: wakeup_preempt()",
+      "source_hash": 11997561863817145724,
+      "context_hash": 11559176289629168175,
+      "translation": "선점 검사: wakeup_preempt()",
+      "glossary_snapshot": {
+        "preemption": "선점"
+      },
+      "translated_at": "2026-11-14T22:17:09.000074Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "After enqueueing, the scheduler checks whether the newly runnable task should preempt whatever is currently running on the target CPU:",
+      "source_hash": 999662873384241027,
+      "context_hash": 4688205642924356486,
+      "translation": "큐에 삽입한 뒤, 스케줄러는 새로 실행 가능해진 태스크가 대상 CPU에서 현재 실행 중인 태스크를 선점해야 하는지 검사합니다:",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:17:09.000074Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "For `fair_sched_class`, `wakeup_preempt_fair()` checks whether the woken task's virtual deadline is earlier than the current task's.",
+      "source_hash": 8424062208369986004,
+      "context_hash": 7463892190684715274,
+      "translation": "`fair_sched_class`의 경우, `wakeup_preempt_fair()`는 깨어난 태스크의 가상 데드라인이 현재 태스크의 가상 데드라인보다 이른지 검사합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:09.000074Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "If so, it calls `resched_curr(rq)` to set `TIF_NEED_RESCHED`.",
+      "source_hash": 5380114898469063268,
+      "context_hash": 15241906968505434977,
+      "translation": "그렇다면 `resched_curr(rq)`를 호출하여 `TIF_NEED_RESCHED`를 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:09.000074Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "The target CPU won't preempt immediately — it sets the flag and waits for the next preemption point (interrupt exit, syscall return, or explicit `schedule()` call).",
+      "source_hash": 15727660105019029474,
+      "context_hash": 13588984060210099350,
+      "translation": "대상 CPU는 즉시 선점하지 않습니다. 플래그를 설정하고 다음 선점 지점(인터럽트 종료, 시스템 콜 반환 또는 명시적인 `schedule()` 호출)을 기다립니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "interrupt": "인터럽트",
+        "preemption": "선점",
+        "syscall": "시스템 콜"
+      },
+      "translated_at": "2026-11-14T22:17:09.000075Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "Cross-CPU wakeup",
+      "source_hash": 17899445517859048398,
+      "context_hash": 5780133751716923040,
+      "translation": "CPU 간 wakeup",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:17:09.000075Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "When waking a task on a different CPU:",
+      "source_hash": 10462818868983268393,
+      "context_hash": 16437055316474771316,
+      "translation": "다른 CPU에 있는 태스크를 깨울 때:",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:17:09.000075Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "The waker enqueues the task and sets TIF_NEED_RESCHED on the target CPU using an inter-processor interrupt (IPI) if needed via `smp_send_reschedule()`.",
+      "source_hash": 993474223700717435,
+      "context_hash": 10757759541747660461,
+      "translation": "waker는 태스크를 큐에 넣고, 필요하면 `smp_send_reschedule()`을 통해 프로세서 간 인터럽트(IPI)를 사용하여 대상 CPU에 TIF_NEED_RESCHED를 설정합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "IPI": "IPI",
+        "interrupt": "인터럽트"
+      },
+      "translated_at": "2026-11-14T22:17:09.000075Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Wait queues",
+      "source_hash": 1725158260492570080,
+      "context_hash": 10274872042207796712,
+      "translation": "대기 큐(wait queue)",
+      "glossary_snapshot": {
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:17:09.000075Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:1/seg:0",
+      "source": "Most kernel code doesn't call `wake_up_process()` directly — it uses **wait queues**:",
+      "source_hash": 17754486055355859530,
+      "context_hash": 2322727592735799216,
+      "translation": "대부분의 커널 코드는 `wake_up_process()`를 직접 호출하지 않고 **대기 큐**(wait queue)를 사용합니다:",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:17:09.000076Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:3/seg:0",
+      "source": "Wait queues serialize access to the condition variable, ensuring that wakeups aren't lost between when the condition is checked and when the task sleeps.",
+      "source_hash": 7529568906536688816,
+      "context_hash": 14783720326975869969,
+      "translation": "대기 큐는 조건 변수에 대한 접근을 직렬화하여, 조건을 검사하는 시점과 태스크가 슬립하는 시점 사이에 wakeup이 유실되지 않도록 보장합니다.",
+      "glossary_snapshot": {
+        "queues": "큐"
+      },
+      "translated_at": "2026-11-14T22:17:09.000076Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Observing wakeups",
+      "source_hash": 3046366476940671624,
+      "context_hash": 11012925346037944857,
+      "translation": "wakeup 관찰",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:17:09.000076Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 546505953523852387,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:17:09.000076Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "[Life of a Context Switch](context-switch.md) — What happens after TIF_NEED_RESCHED is set",
+      "source_hash": 5491331105569595414,
+      "context_hash": 5813984903610296310,
+      "translation": "[컨텍스트 스위치의 일생](context-switch.md) — TIF_NEED_RESCHED가 설정된 후 일어나는 일",
+      "glossary_snapshot": {
+        "context switch": "컨텍스트 스위치"
+      },
+      "translated_at": "2026-11-14T22:17:09.000077Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "[CFS](cfs.md) — How vruntime is adjusted on wakeup via `place_entity()`",
+      "source_hash": 960954199358280075,
+      "context_hash": 6045028181249070805,
+      "translation": "[CFS](cfs.md) — wakeup 시 `place_entity()`를 통해 vruntime이 조정되는 방식",
+      "glossary_snapshot": {
+        "CFS": "CFS",
+        "vruntime": "vruntime"
+      },
+      "translated_at": "2026-11-14T22:17:09.000077Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "[EEVDF](eevdf.md) — How eligibility and deadlines affect wakeup preemption decisions",
+      "source_hash": 496051430507653945,
+      "context_hash": 2459618500916823035,
+      "translation": "[EEVDF](eevdf.md) — eligibility와 데드라인이 wakeup 선점 결정에 미치는 영향",
+      "glossary_snapshot": {
+        "EEVDF": "EEVDF",
+        "preemption": "선점"
+      },
+      "translated_at": "2026-11-14T22:17:09.000077Z",
+      "issues": []
+    }
+  ]
+}

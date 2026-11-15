@@ -1,0 +1,1145 @@
+{
+  "version": 1,
+  "source_hash": 1043091720480158106,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "KLP Consistency Model",
+      "source_hash": 4574652427897114872,
+      "context_hash": 1674516395995924206,
+      "translation": "KLP 일관성 모델",
+      "glossary_snapshot": {
+        "KLP": "KLP",
+        "consistency model": "일관성 모델"
+      },
+      "translated_at": "2026-11-14T22:38:19.956527Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "How the kernel ensures all tasks are in a safe state before activating a patch",
+      "source_hash": 3670661685014538406,
+      "context_hash": 3522363714497849748,
+      "translation": "패치를 활성화하기 전에 커널이 모든 태스크가 안전한 상태에 있음을 보장하는 방법",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:38:19.956528Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "The problem",
+      "source_hash": 2326415031189538800,
+      "context_hash": 16299123354015175265,
+      "translation": "문제",
+      "glossary_snapshot": {
+        "The problem": "문제"
+      },
+      "translated_at": "2026-11-14T22:38:19.956529Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "Applying a live patch is not instantaneous.",
+      "source_hash": 13758415435881724153,
+      "context_hash": 16252591590742623907,
+      "translation": "라이브 패치 적용은 즉시 이루어지지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956529Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:1",
+      "source": "At the moment the patch is loaded, some tasks may be executing inside the old function — mid-stack, with local variables referencing data structures that the new function may handle differently.",
+      "source_hash": 16494974018690264390,
+      "context_hash": 11933421907909491785,
+      "translation": "패치가 로드되는 순간, 일부 태스크는 이전 함수 내부를 실행하고 있을 수 있습니다. 즉, 스택 중간에 있으면서 새 함수가 다르게 처리할 수 있는 자료 구조를 지역 변수로 참조하고 있을 수 있습니다.",
+      "glossary_snapshot": {
+        "data structures": "자료 구조",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.956529Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:2",
+      "source": "Blindly redirecting calls at that instant would leave those tasks in an inconsistent state.",
+      "source_hash": 9969453477979678739,
+      "context_hash": 4682633215711975207,
+      "translation": "그 순간 호출을 무작정 리디렉션하면 해당 태스크들이 일관되지 않은 상태에 놓이게 됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956529Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:2/seg:0",
+      "source": "The KLP consistency model solves this by tracking every task in the system and only considering the patch fully active once every task has reached a safe point: returned from the old function, entered a freezable sleep, or reached the kernel's exit-to-userspace path.",
+      "source_hash": 9089410179372543925,
+      "context_hash": 2692501294134573285,
+      "translation": "KLP 일관성 모델은 시스템의 모든 태스크를 추적하고, 모든 태스크가 안전 지점, 즉 이전 함수에서 반환했거나, freezable sleep에 들어갔거나, 커널의 사용자 공간 복귀(exit-to-userspace) 경로에 도달한 뒤에만 패치가 완전히 활성화된 것으로 간주함으로써 이 문제를 해결합니다.",
+      "glossary_snapshot": {
+        "KLP": "KLP",
+        "consistency model": "일관성 모델",
+        "function": "함수",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:38:19.956530Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "Per-task patch state",
+      "source_hash": 9550543987377874302,
+      "context_hash": 1730889437129737346,
+      "translation": "태스크별 패치 상태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956530Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Each task carries a `patch_state` field in `struct task_struct` (`include/linux/sched.h`).",
+      "source_hash": 7573005963421827281,
+      "context_hash": 438951094827959447,
+      "translation": "각 태스크는 `struct task_struct`(`include/linux/sched.h`)에 `patch_state` 필드를 가지고 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956530Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:1",
+      "source": "During a live patch transition the field holds one of three values, defined in `include/linux/livepatch.h`:",
+      "source_hash": 11234323664335786858,
+      "context_hash": 3886949996697953694,
+      "translation": "라이브 패치 전환 중에 이 필드는 `include/linux/livepatch.h`에 정의된 세 가지 값 중 하나를 가집니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956530Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`KLP_TRANSITION_IDLE` is the resting value when no transition is in progress. `klp_init_transition()` assigns every task's real starting state — `KLP_TRANSITION_UNPATCHED` or `KLP_TRANSITION_PATCHED`, whichever isn't the target — before a transition becomes visible, so no live task is ever actually observed at `KLP_TRANSITION_IDLE` mid-transition; the ftrace handler in `kernel/livepatch/patch.c` even asserts this with `WARN_ON_ONCE(patch_state == KLP_TRANSITION_IDLE)`.",
+      "source_hash": 7489718655241572923,
+      "context_hash": 1187106504241672678,
+      "translation": "`KLP_TRANSITION_IDLE`은 진행 중인 전환이 없을 때의 기본값입니다. `klp_init_transition()`은 전환이 보이게 되기 전에 모든 태스크에 실제 시작 상태, 즉 `KLP_TRANSITION_UNPATCHED`와 `KLP_TRANSITION_PATCHED` 중 목표가 아닌 쪽을 할당하므로, 전환 도중에 실행 중인 태스크가 실제로 `KLP_TRANSITION_IDLE` 상태로 관찰되는 일은 없습니다. `kernel/livepatch/patch.c`의 ftrace 핸들러는 `WARN_ON_ONCE(patch_state == KLP_TRANSITION_IDLE)`로 이를 단언하기까지 합니다.",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:38:19.956530Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "The transition direction can be either forward (enabling a patch: `KLP_TRANSITION_UNPATCHED` → `KLP_TRANSITION_PATCHED`) or backward (disabling a patch: `KLP_TRANSITION_PATCHED` → `KLP_TRANSITION_UNPATCHED`).",
+      "source_hash": 98169423430511412,
+      "context_hash": 17293383753706883383,
+      "translation": "전환 방향은 순방향(패치 활성화: `KLP_TRANSITION_UNPATCHED` → `KLP_TRANSITION_PATCHED`) 또는 역방향(패치 비활성화: `KLP_TRANSITION_PATCHED` → `KLP_TRANSITION_UNPATCHED`) 중 하나일 수 있습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956531Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "How klp_update_patch_state() works",
+      "source_hash": 4628313232322580740,
+      "context_hash": 9784406197111394410,
+      "translation": "klp_update_patch_state()의 동작 방식",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956531Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:6/seg:0",
+      "source": "`klp_update_patch_state()` is the function that moves a single task from one state to the next:",
+      "source_hash": 11832847057436233595,
+      "context_hash": 6889806884950905950,
+      "translation": "`klp_update_patch_state()`는 단일 태스크를 한 상태에서 다음 상태로 옮기는 함수입니다:",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.956531Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:8/seg:0",
+      "source": "The global `klp_target_state` is set by the transition machinery to `KLP_TRANSITION_PATCHED` when enabling or `KLP_TRANSITION_UNPATCHED` when disabling. `klp_update_patch_state()` is called for `current` from the kernel-exit-to-userspace path (`__exit_to_user_mode_loop()` in `kernel/entry/common.c`) whenever `TIF_PATCH_PENDING` is set, and directly on every task by `klp_force_transition()` for a forced transition.",
+      "source_hash": 2770616095137482841,
+      "context_hash": 4602385490617418583,
+      "translation": "전역 변수 `klp_target_state`는 전환 메커니즘에 의해 활성화 시에는 `KLP_TRANSITION_PATCHED`로, 비활성화 시에는 `KLP_TRANSITION_UNPATCHED`로 설정됩니다. `klp_update_patch_state()`는 `TIF_PATCH_PENDING`이 설정되어 있을 때마다 커널의 사용자 공간 복귀 경로(`kernel/entry/common.c`의 `__exit_to_user_mode_loop()`)에서 `current`에 대해 호출되며, 강제 전환 시에는 `klp_force_transition()`에 의해 모든 태스크에 대해 직접 호출됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:38:19.956532Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "Stack checking: klp_check_stack()",
+      "source_hash": 16525509190890348240,
+      "context_hash": 18027756133455885568,
+      "translation": "스택 검사: klp_check_stack()",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956532Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "`klp_update_patch_state()` does **not** run a stack check — it's an unconditional flag-check-and-clear.",
+      "source_hash": 9646842335590615477,
+      "context_hash": 18194625544992173191,
+      "translation": "`klp_update_patch_state()`는 스택 검사를 수행하지 **않습니다**. 이 함수는 무조건적으로 플래그를 확인하고 지우는 동작만 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956532Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "That's safe on the kernel-exit-to-userspace path because a task that's about to return to userspace cannot be mid-execution inside a patched kernel function's body.",
+      "source_hash": 17642338155370243439,
+      "context_hash": 14989013418138205666,
+      "translation": "사용자 공간으로 막 복귀하려는 태스크는 패치된 커널 함수 본문 내부를 실행하는 도중일 수 없으므로, 커널의 사용자 공간 복귀 경로에서는 이것이 안전합니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:38:19.956532Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:2/seg:0",
+      "source": "Two other paths *do* run a stack check, both funneling through `klp_check_stack()`:",
+      "source_hash": 2399767691812414188,
+      "context_hash": 88004135329303594,
+      "translation": "다른 두 경로는 스택 검사를 *실제로 수행하며*, 둘 다 `klp_check_stack()`을 거칩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956533Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "**The workqueue path** (`klp_try_complete_transition()`, described below): runs roughly once a second and walks every task in the system, including ones that are sleeping or blocked.",
+      "source_hash": 13235009383884965863,
+      "context_hash": 16728405182759178837,
+      "translation": "**workqueue 경로**(`klp_try_complete_transition()`, 아래에서 설명): 대략 1초에 한 번 실행되며, 잠들어 있거나 블록된 태스크를 포함하여 시스템의 모든 태스크를 순회합니다.",
+      "glossary_snapshot": {
+        "workqueue": "workqueue"
+      },
+      "translated_at": "2026-11-14T22:38:19.956533Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "**The scheduler path**: while a transition is in progress, `__schedule()` calls `klp_sched_try_switch(prev)` (`kernel/sched/core.c`), which — gated by a static key that `klp_resched_enable()`/`klp_resched_disable()` toggle for the duration of the transition — calls `klp_try_switch_task(current)` on context switches where the outgoing task is entering a freezable sleep state (`TASK_FREEZABLE`), not on every context switch.",
+      "source_hash": 3972082238239386566,
+      "context_hash": 4205732607380683430,
+      "translation": "**스케줄러 경로**: 전환이 진행되는 동안 `__schedule()`은 `klp_sched_try_switch(prev)`(`kernel/sched/core.c`)를 호출하며, 이 함수는 전환 기간 동안 `klp_resched_enable()`/`klp_resched_disable()`이 켜고 끄는 static key의 통제를 받아, 모든 컨텍스트 스위치가 아니라 나가는 태스크가 freezable sleep 상태(`TASK_FREEZABLE`)에 들어가는 컨텍스트 스위치에서만 `klp_try_switch_task(current)`를 호출합니다.",
+      "glossary_snapshot": {
+        "context switch": "컨텍스트 스위치",
+        "context switches": "컨텍스트 스위치",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:38:19.956533Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "The point of this path is kernel threads: a kthread never returns to userspace, so the kernel-exit-to-userspace path can never catch it, no matter how often it runs.",
+      "source_hash": 10418928100372569223,
+      "context_hash": 471099134297354138,
+      "translation": "이 경로의 목적은 커널 스레드입니다. kthread는 사용자 공간으로 복귀하지 않으므로, 아무리 자주 실행되더라도 커널의 사용자 공간 복귀 경로에서는 결코 잡히지 않습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "kernel threads": "커널 스레드",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:38:19.956534Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:2",
+      "source": "Many kthreads do, however, park in a freezable sleep between work items — and `TASK_FREEZABLE` is precisely the \"sleeping in a known-safe state\" property the freezer already depends on — so the scheduler hook switches them there instead.",
+      "source_hash": 11015046715822071766,
+      "context_hash": 3913940059763147900,
+      "translation": "그러나 많은 kthread는 작업 항목 사이에 freezable sleep 상태로 대기하며, `TASK_FREEZABLE`은 바로 freezer가 이미 의존하고 있는 \"알려진 안전한 상태에서 잠들어 있음\"이라는 속성이므로, 스케줄러 훅은 대신 그 지점에서 이들을 전환합니다.",
+      "glossary_snapshot": {
+        "hook": "훅",
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:38:19.956534Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:3",
+      "source": "Note the inverse case is *not* covered: a genuinely CPU-bound kthread that never sleeps reaches neither path, and the periodic workqueue check returns `-EBUSY` for any task that is actually on-CPU, so such a task stalls the transition until it sleeps or the transition is forced.",
+      "source_hash": 7849283114039926374,
+      "context_hash": 8650325227057847260,
+      "translation": "반대의 경우는 처리되지 *않는다는* 점에 유의하십시오. 결코 잠들지 않는 진정한 CPU 바운드 kthread는 어느 경로에도 도달하지 못하며, 주기적인 workqueue 검사는 실제로 CPU에서 실행 중인 모든 태스크에 대해 `-EBUSY`를 반환하므로, 이러한 태스크는 잠들거나 전환이 강제될 때까지 전환을 지연시킵니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "workqueue": "workqueue"
+      },
+      "translated_at": "2026-11-14T22:38:19.956535Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "The comment above `klp_sched_try_switch_key` in `kernel/livepatch/transition.c` still describes the static key as something that \"helps CPU-bound kthreads get patched\".",
+      "source_hash": 7663929123540230243,
+      "context_hash": 10457529371836860339,
+      "translation": "`kernel/livepatch/transition.c`의 `klp_sched_try_switch_key` 위에 있는 주석은 여전히 이 static key를 \"CPU 바운드 kthread가 패치되도록 돕는\" 것으로 설명합니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU"
+      },
+      "translated_at": "2026-11-14T22:38:19.956535Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:1",
+      "source": "That wording predates commit [`676e8cf70cb0`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=676e8cf70cb0) (\"sched,livepatch: Untangle cond_resched() and live-patching\", 2025-05-09), which moved the hook off `cond_resched()` — where a busy loop that yielded really could be caught — and onto `TASK_FREEZABLE` sleeps in `__schedule()`.",
+      "source_hash": 4750428738998931208,
+      "context_hash": 8160699119741189224,
+      "translation": "이 표현은 커밋 [`676e8cf70cb0`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=676e8cf70cb0)(\"sched,livepatch: Untangle cond_resched() and live-patching\", 2025-05-09) 이전에 작성된 것으로, 이 커밋은 훅을 양보하는 busy loop를 실제로 잡을 수 있었던 `cond_resched()`에서 떼어내 `__schedule()`의 `TASK_FREEZABLE` sleep으로 옮겼습니다.",
+      "glossary_snapshot": {
+        "hook": "훅",
+        "livepatch": "livepatch"
+      },
+      "translated_at": "2026-11-14T22:38:19.956535Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:2",
+      "source": "Read the `TASK_FREEZABLE` test in `klp_sched_try_switch()` (`include/linux/livepatch_sched.h`), not the comment.",
+      "source_hash": 4799980241929768315,
+      "context_hash": 12371838365968135849,
+      "translation": "주석이 아니라 `klp_sched_try_switch()`(`include/linux/livepatch_sched.h`)의 `TASK_FREEZABLE` 검사를 읽으십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956535Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "Either way, before a task can be switched via a stack-checking path, the kernel must verify that the old (unpatched) function — or, if a patch is already stacked on top of another, the previously patched function — is not on that task's call stack.",
+      "source_hash": 11468826745574554261,
+      "context_hash": 7083948913289632653,
+      "translation": "어느 경우든, 스택 검사 경로를 통해 태스크를 전환하기 전에 커널은 이전(패치되지 않은) 함수, 또는 패치가 이미 다른 패치 위에 쌓여 있는 경우에는 이전에 패치된 함수가 해당 태스크의 호출 스택에 없음을 확인해야 합니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:38:19.956535Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "If it is, the task is mid-execution inside that function and cannot be safely transitioned yet.",
+      "source_hash": 361064695270118656,
+      "context_hash": 16572928684649696520,
+      "translation": "만약 있다면, 해당 태스크는 그 함수 내부를 실행하는 도중이므로 아직 안전하게 전환할 수 없습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.956535Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:0",
+      "source": "Note the patch-stacking-aware branch: when checking whether it's safe to *patch* (not unpatch), the function doesn't just look for `func->old_func` — if another patch already replaced this function (`func_stack` has more than one entry), it looks for the *previously patched* function (`list_next_entry(func, stack_node)`'s `new_func`), since that's what's actually running on the stack right now.",
+      "source_hash": 12982783966415079356,
+      "context_hash": 13879521192762610831,
+      "translation": "패치 스태킹을 고려하는 분기에 유의하십시오. (언패치가 아니라) *패치*해도 안전한지 확인할 때, 이 함수는 단순히 `func->old_func`만 찾지 않습니다. 다른 패치가 이미 이 함수를 대체한 경우(`func_stack`에 항목이 둘 이상인 경우), 지금 스택에서 실제로 실행되고 있는 것은 그 함수이므로 *이전에 패치된* 함수(`list_next_entry(func, stack_node)`의 `new_func`)를 찾습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.956535Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:8/seg:1",
+      "source": "See \"Patch stacking\", below.",
+      "source_hash": 17457037644999477082,
+      "context_hash": 2151619248033201006,
+      "translation": "아래의 \"패치 스태킹\"을 참고하십시오.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.956536Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:9/seg:0",
+      "source": "The function receives the full stack frame array captured by `stack_trace_save_tsk_reliable()`, not a single address.",
+      "source_hash": 11004366779279049668,
+      "context_hash": 1619534886808806468,
+      "translation": "이 함수는 단일 주소가 아니라 `stack_trace_save_tsk_reliable()`이 수집한 전체 스택 프레임 배열을 받습니다.",
+      "glossary_snapshot": {
+        "address": "주소",
+        "array": "배열",
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.956536Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:0",
+      "source": "`klp_check_stack()` only walks the single patch currently transitioning (`klp_transition_patch`, via `klp_for_each_object()`) — not every enabled patch — since only one patch can be mid-transition at a time.",
+      "source_hash": 11725028985822867201,
+      "context_hash": 10542935403167086562,
+      "translation": "`klp_check_stack()`는 활성화된 모든 패치가 아니라 현재 전환 중인 단일 패치(`klp_transition_patch`, `klp_for_each_object()`를 통해)만 순회합니다. 한 번에 하나의 패치만 전환 도중에 있을 수 있기 때문입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222676Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:11/seg:1",
+      "source": "The stack buffer itself is a per-CPU array (`klp_stack_entries`, sized by the private `MAX_STACK_ENTRIES` `#define`, not a `KLP_MAX_STACK_ENTRIES` constant), protected by having preemption disabled.",
+      "source_hash": 7651336003934306394,
+      "context_hash": 15538845493597366242,
+      "translation": "스택 버퍼 자체는 per-CPU 배열(`klp_stack_entries`, 크기는 `KLP_MAX_STACK_ENTRIES` 상수가 아니라 비공개 `MAX_STACK_ENTRIES` `#define`으로 정해짐)이며, 선점을 비활성화하는 방식으로 보호됩니다.",
+      "glossary_snapshot": {
+        "CPU": "CPU",
+        "array": "배열",
+        "preemption": "선점"
+      },
+      "translated_at": "2026-11-14T22:38:19.222677Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:0",
+      "source": "`klp_check_stack()` returns `-EINVAL` if the stack trace itself is unreliable (`stack_trace_save_tsk_reliable()` failed) and `-EADDRINUSE` if the stack unwound cleanly but a to-be-patched or to-be-unpatched function was found on it.",
+      "source_hash": 7228579096663551004,
+      "context_hash": 9294564736959514697,
+      "translation": "`klp_check_stack()`는 스택 트레이스 자체를 신뢰할 수 없으면(`stack_trace_save_tsk_reliable()` 실패) `-EINVAL`을 반환하고, 스택은 정상적으로 언와인드되었지만 패치될 함수나 패치 해제될 함수가 그 위에서 발견되면 `-EADDRINUSE`를 반환합니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.222678Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:12/seg:1",
+      "source": "Either way the task is skipped for this transition round; the transition machinery will retry on the next workqueue invocation.",
+      "source_hash": 10880248052533125743,
+      "context_hash": 7500953973774998971,
+      "translation": "어느 경우든 해당 태스크는 이번 전환 라운드에서 건너뛰며, 전환 메커니즘은 다음 workqueue 호출 시 다시 시도합니다.",
+      "glossary_snapshot": {
+        "workqueue": "workqueue"
+      },
+      "translated_at": "2026-11-14T22:38:19.222679Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "The transition workqueue",
+      "source_hash": 16567914008418746673,
+      "context_hash": 2149232478998382112,
+      "translation": "전환 workqueue",
+      "glossary_snapshot": {
+        "workqueue": "workqueue"
+      },
+      "translated_at": "2026-11-14T22:38:19.222679Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "A single work item, `klp_transition_work`, drives the transition loop:",
+      "source_hash": 17832515342652984842,
+      "context_hash": 13384902141875425123,
+      "translation": "단일 작업 항목인 `klp_transition_work`가 전환 루프를 구동합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222680Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "The actual call chain in `klp_try_complete_transition()` is: `klp_try_complete_transition()` → `klp_try_switch_task(task)` → `klp_check_and_switch_task()`.",
+      "source_hash": 15116178947304775586,
+      "context_hash": 12689803724924677769,
+      "translation": "`klp_try_complete_transition()`의 실제 호출 체인은 `klp_try_complete_transition()` → `klp_try_switch_task(task)` → `klp_check_and_switch_task()`입니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222680Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:1",
+      "source": "The `klp_check_and_switch_task()` function (used via `task_call_func()` for non-current tasks) runs `klp_check_stack()` and, if it returns 0, clears `TIF_PATCH_PENDING` and sets `task->patch_state = klp_target_state` directly. `klp_update_patch_state()` — the flag-check-and-clear function from the previous section — is never called from the main loop of `klp_try_complete_transition()`; that function is reserved for the kernel-exit-to-userspace path and `klp_force_transition()`.",
+      "source_hash": 9797304561006418635,
+      "context_hash": 16804153757817344411,
+      "translation": "`klp_check_and_switch_task()` 함수(현재 태스크가 아닌 태스크에 대해 `task_call_func()`를 통해 사용됨)는 `klp_check_stack()`를 실행하고, 그 반환값이 0이면 `TIF_PATCH_PENDING`을 지우고 `task->patch_state = klp_target_state`를 직접 설정합니다. 이전 절에서 설명한 플래그 확인 및 해제 함수인 `klp_update_patch_state()`는 `klp_try_complete_transition()`의 메인 루프에서 결코 호출되지 않으며, 이 함수는 커널에서 사용자 공간으로 복귀하는 경로와 `klp_force_transition()`을 위해 따로 남겨져 있습니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "kernel": "커널",
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:38:19.222681Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "The periodic re-check runs approximately every second (one HZ).",
+      "source_hash": 9533673127848523311,
+      "context_hash": 3890159953596710282,
+      "translation": "주기적인 재확인은 대략 1초(1 HZ)마다 실행됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222681Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "klp_send_signals(): nudging blocked tasks",
+      "source_hash": 13280327823177024160,
+      "context_hash": 17874074818706152541,
+      "translation": "klp_send_signals(): 블록된 태스크 재촉하기",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "`klp_send_signals()` does **not** send any POSIX signal.",
+      "source_hash": 11926736146580267819,
+      "context_hash": 1696213273987496190,
+      "translation": "`klp_send_signals()`는 어떤 POSIX 시그널도 보내지 **않습니다**.",
+      "glossary_snapshot": {
+        "POSIX": "POSIX"
+      },
+      "translated_at": "2026-11-14T22:38:19.222682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "The actual mechanism:",
+      "source_hash": 2652818109043946139,
+      "context_hash": 3443257064680863353,
+      "translation": "실제 메커니즘은 다음과 같습니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "For **kthreads** (`task->flags & PF_KTHREAD`): calls `wake_up_state(task, TASK_INTERRUPTIBLE)` — a direct scheduler wakeup for sleeping kthreads",
+      "source_hash": 2267542927134629939,
+      "context_hash": 13075504459579363476,
+      "translation": "**kthread**(`task->flags & PF_KTHREAD`)의 경우: `wake_up_state(task, TASK_INTERRUPTIBLE)`를 호출합니다. 이는 잠들어 있는 kthread를 스케줄러가 직접 깨우는 것입니다",
+      "glossary_snapshot": {
+        "scheduler": "스케줄러"
+      },
+      "translated_at": "2026-11-14T22:38:19.222682Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:3/seg:0",
+      "source": "For **user tasks**: calls `set_notify_signal(task)` — sets `TIF_NOTIFY_SIGNAL`, causing the task to return to userspace at its next signal-check point",
+      "source_hash": 11617608857207764392,
+      "context_hash": 2477359766685385009,
+      "translation": "**사용자 태스크**의 경우: `set_notify_signal(task)`를 호출합니다. 이는 `TIF_NOTIFY_SIGNAL`을 설정하여 태스크가 다음 시그널 확인 지점에서 사용자 공간으로 복귀하도록 합니다",
+      "glossary_snapshot": {
+        "userspace": "사용자 공간"
+      },
+      "translated_at": "2026-11-14T22:38:19.222683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Neither path can wake a task in `TASK_UNINTERRUPTIBLE` (D state).",
+      "source_hash": 9505102180963113660,
+      "context_hash": 16251236292154375394,
+      "translation": "두 경로 모두 `TASK_UNINTERRUPTIBLE`(D 상태)에 있는 태스크를 깨울 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "D-state tasks must leave that state naturally before the transition can include them.",
+      "source_hash": 5230691817776786310,
+      "context_hash": 13761109266159254825,
+      "translation": "D 상태의 태스크는 전환에 포함되기 전에 스스로 그 상태를 벗어나야 합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222683Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "This is why livepatch transitions can stall for an extended period — the `force` mechanism exists precisely for situations where a D-state task cannot be transitioned.",
+      "source_hash": 17309765041443882235,
+      "context_hash": 7961070750144251222,
+      "translation": "이 때문에 livepatch 전환이 오랫동안 멈춰 있을 수 있으며, `force` 메커니즘은 바로 D 상태의 태스크를 전환할 수 없는 상황을 위해 존재합니다.",
+      "glossary_snapshot": {
+        "livepatch": "livepatch"
+      },
+      "translated_at": "2026-11-14T22:38:19.222684Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "`klp_send_signals()` is called from `klp_try_complete_transition()` roughly every 15 seconds (every `SIGNALS_TIMEOUT`th incomplete retry round, at the ~1-second-per-round cadence described above) once the transition has stalled.",
+      "source_hash": 4431247672362750480,
+      "context_hash": 417387054708547353,
+      "translation": "전환이 멈추면 `klp_send_signals()`는 `klp_try_complete_transition()`에서 대략 15초마다(앞서 설명한 라운드당 ~1초 주기로, 완료되지 않은 재시도 라운드가 `SIGNALS_TIMEOUT`번째가 될 때마다) 호출됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222684Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Patch stacking: func_stack and struct klp_ops",
+      "source_hash": 17787249741198543641,
+      "context_hash": 12966719033304355971,
+      "translation": "패치 스태킹: func_stack과 struct klp_ops",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222684Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "When multiple live patches are active at the same time, each patching the same function, the kernel must know which replacement is currently active.",
+      "source_hash": 15036457508997865718,
+      "context_hash": 4071273255516314376,
+      "translation": "여러 라이브 패치가 동시에 활성화되어 각각 같은 함수를 패치하는 경우, 커널은 현재 어떤 대체 함수가 활성 상태인지 알아야 합니다.",
+      "glossary_snapshot": {
+        "function": "함수",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:38:19.222684Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:1",
+      "source": "This is managed through `struct klp_ops` and its `func_stack`:",
+      "source_hash": 1148881253128993602,
+      "context_hash": 1672667318641161122,
+      "translation": "이는 `struct klp_ops`와 그 `func_stack`을 통해 관리됩니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222684Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "There is exactly one `klp_ops` per (object, function-name) pair, shared across all patches.",
+      "source_hash": 4798426127532971248,
+      "context_hash": 8444627101573122707,
+      "translation": "(객체, 함수 이름) 쌍마다 정확히 하나의 `klp_ops`가 있으며, 모든 패치가 이를 공유합니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.222685Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:1",
+      "source": "When a second patch targets the same function, its `klp_func` is pushed onto the head of `func_stack`.",
+      "source_hash": 5757722752856219215,
+      "context_hash": 4892590901559628023,
+      "translation": "두 번째 패치가 같은 함수를 대상으로 하면, 그 패치의 `klp_func`가 `func_stack`의 맨 앞에 push됩니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.222685Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:2",
+      "source": "The ftrace handler always uses the head:",
+      "source_hash": 4615538093286202428,
+      "context_hash": 17699283419119394852,
+      "translation": "ftrace 핸들러는 항상 맨 앞의 항목을 사용합니다:",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "handler": "핸들러"
+      },
+      "translated_at": "2026-11-14T22:38:19.222685Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "So the most recently enabled patch wins.",
+      "source_hash": 11828511325111951759,
+      "context_hash": 1655230975713060016,
+      "translation": "따라서 가장 최근에 활성화된 패치가 우선합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222685Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:1",
+      "source": "Disabling a patch removes its `klp_func` from the stack, restoring the previous patch (or the original function if the stack is empty).",
+      "source_hash": 15277648971175123312,
+      "context_hash": 9024399782675229844,
+      "translation": "패치를 비활성화하면 그 패치의 `klp_func`가 스택에서 제거되어 이전 패치(스택이 비어 있으면 원래 함수)가 복원됩니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.222685Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "This arrangement, called *patch stacking*, means patches do not need to be aware of each other — the stack handles ordering automatically.",
+      "source_hash": 18333251699395440492,
+      "context_hash": 1263849756709088002,
+      "translation": "*패치 스태킹*(patch stacking)이라고 불리는 이 방식 덕분에 패치들은 서로를 인식할 필요가 없으며, 스택이 순서를 자동으로 처리합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222686Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:0/seg:0",
+      "source": "Forced transitions",
+      "source_hash": 9827711386634173714,
+      "context_hash": 10785284338722293943,
+      "translation": "강제 전환",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222686Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:1/seg:0",
+      "source": "If a transition is stuck and cannot complete (for example, a kthread that loops forever inside the old function), a forced transition can be triggered:",
+      "source_hash": 16911357407757412261,
+      "context_hash": 6767871943684306032,
+      "translation": "전환이 멈춰서 완료될 수 없는 경우(예를 들어 kthread가 이전 함수 안에서 무한히 루프를 도는 경우), 강제 전환을 일으킬 수 있습니다:",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.222686Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:0",
+      "source": "Forcing a transition is **unsafe**: any task that was executing inside the old function at the moment of the force will continue executing the old function's code, but the patch state is set to `KLP_TRANSITION_PATCHED`.",
+      "source_hash": 4450561390788037711,
+      "context_hash": 15875524313247847540,
+      "translation": "전환을 강제하는 것은 **안전하지 않습니다**. 강제하는 순간 이전 함수 안에서 실행 중이던 태스크는 계속 이전 함수의 코드를 실행하지만, 패치 상태는 `KLP_TRANSITION_PATCHED`로 설정됩니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.222687Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:3/seg:1",
+      "source": "If the new function changes data layouts or assumptions, those tasks can access inconsistent state.",
+      "source_hash": 6826803943695314096,
+      "context_hash": 10341279478263482215,
+      "translation": "새 함수가 데이터 레이아웃이나 가정을 바꾼다면, 그러한 태스크는 일관되지 않은 상태에 접근할 수 있습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:19.222687Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:4/seg:0",
+      "source": "Which patch gets flagged afterwards is narrower than it sounds. `klp_force_transition()` sets the `forced` field of `struct klp_patch` like this:",
+      "source_hash": 2749122751003250593,
+      "context_hash": 14180129464993886714,
+      "translation": "이후 어떤 패치에 플래그가 설정되는지는 생각보다 범위가 좁습니다. `klp_force_transition()`은 `struct klp_patch`의 `forced` 필드를 다음과 같이 설정합니다:",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:19.222687Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:6/seg:0",
+      "source": "So there are three cases, and only two of them set the flag at all:",
+      "source_hash": 11650428436588754104,
+      "context_hash": 6230761072765809144,
+      "translation": "따라서 경우는 세 가지이며, 그중 두 가지만 플래그를 설정합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092326Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:7/seg:0",
+      "source": "Forcing a **disable** (`klp_target_state == KLP_TRANSITION_UNPATCHED`) sets `forced` on the patch being disabled — it can never be unloaded.",
+      "source_hash": 14991963089058807067,
+      "context_hash": 756623200875180546,
+      "translation": "**비활성화**를 강제하면(`klp_target_state == KLP_TRANSITION_UNPATCHED`) 비활성화되는 패치에 `forced`가 설정되며, 그 패치는 결코 언로드할 수 없습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092327Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:0",
+      "source": "Forcing an **enable of a `.replace` (cumulative) patch** sets `forced` on every *other* patch — the ones this patch is replacing — and **not** on the patch being force-enabled.",
+      "source_hash": 13163407673555465563,
+      "context_hash": 1307931082991181,
+      "translation": "**`.replace`(누적) 패치의 활성화**를 강제하면 *다른* 모든 패치, 즉 이 패치가 대체하는 패치들에 `forced`가 설정되며, 강제로 활성화되는 패치에는 설정되지 **않습니다**.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092327Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:8/seg:1",
+      "source": "Those replaced modules become permanently unloadable; the new one does not.",
+      "source_hash": 6300486642853152669,
+      "context_hash": 9038651016875154556,
+      "translation": "대체된 모듈들은 영구히 언로드할 수 없게 되지만, 새 모듈은 그렇지 않습니다.",
+      "glossary_snapshot": {
+        "modules": "모듈"
+      },
+      "translated_at": "2026-11-14T22:38:24.092327Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:0",
+      "source": "Forcing a plain **enable** of a non-`replace` patch — exactly the scenario described above, a kthread looping forever inside the old function while a forward transition waits — sets `forced` on **nothing**.",
+      "source_hash": 9819069064503626669,
+      "context_hash": 6275329678336794126,
+      "translation": "`replace`가 아닌 패치의 일반 **활성화**를 강제하면(바로 위에서 설명한 시나리오, 즉 순방향 전환이 대기하는 동안 kthread가 이전 함수 안에서 무한히 루프를 도는 경우) `forced`는 **어디에도** 설정되지 않습니다.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:9/seg:1",
+      "source": "The transition completes unsafely, but no patch is marked, and the force leaves no `forced`-flag trace at all.",
+      "source_hash": 6639495628430018975,
+      "context_hash": 3690566490218418389,
+      "translation": "전환은 안전하지 않은 상태로 완료되지만 어떤 패치도 표시되지 않으며, 강제 전환은 `forced` 플래그 흔적을 전혀 남기지 않습니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:0",
+      "source": "Where the flag *is* set it is internal-only — there is no sysfs file to read it back.",
+      "source_hash": 869216177603133019,
+      "context_hash": 17918775017689615937,
+      "translation": "플래그가 설정되는 *경우에도* 이는 내부 전용이며, 그 값을 다시 읽을 수 있는 sysfs 파일은 없습니다.",
+      "glossary_snapshot": {
+        "sysfs": "sysfs"
+      },
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:1",
+      "source": "Its only externally visible effect is that the flagged patch's module can never be unloaded: `klp_free_patch_finish()` (`kernel/livepatch/core.c`) ends with `if (!patch->forced) module_put(patch->mod);`, so a forced patch never gives back the module reference it took, and its refcount never reaches zero.",
+      "source_hash": 14521290438707619618,
+      "context_hash": 7045249877392429548,
+      "translation": "외부에서 볼 수 있는 유일한 효과는 플래그가 설정된 패치의 모듈을 결코 언로드할 수 없다는 점입니다. `klp_free_patch_finish()`(`kernel/livepatch/core.c`)는 `if (!patch->forced) module_put(patch->mod);`로 끝나므로, 강제된 패치는 자신이 획득한 모듈 참조를 결코 반환하지 않으며 그 참조 카운트는 결코 0에 도달하지 않습니다.",
+      "glossary_snapshot": {
+        "module": "모듈",
+        "refcount": "참조 카운트"
+      },
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:10/seg:2",
+      "source": "Note that this consequence attaches to whichever module the rule above flagged — which is not necessarily the module whose `force` file was written.",
+      "source_hash": 16633159187838408946,
+      "context_hash": 8327588464950609053,
+      "translation": "이 결과는 위 규칙에 따라 플래그가 설정된 모듈에 적용되며, 이는 반드시 `force` 파일에 값을 쓴 모듈과 같지는 않다는 점에 유의하십시오.",
+      "glossary_snapshot": {
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:0",
+      "source": "`TAINT_LIVEPATCH` is applied at **module load time** for every livepatch module — not conditionally on forced transitions.",
+      "source_hash": 5027070370069338975,
+      "context_hash": 696951019424932892,
+      "translation": "`TAINT_LIVEPATCH`는 모든 livepatch 모듈에 대해 **모듈 로드 시점**에 적용되며, 강제 전환 여부에 따라 조건부로 적용되는 것이 아닙니다.",
+      "glossary_snapshot": {
+        "livepatch": "livepatch",
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:11/seg:1",
+      "source": "Every live patch application taints the kernel with `TAINT_LIVEPATCH` (bit 15). `klp_force_transition()` itself does not add any additional taint — `TAINT_FORCED_MODULE` is unrelated; it's set when a module is force-loaded with `insmod -f`, not when a livepatch transition is forced.",
+      "source_hash": 16824962844995251506,
+      "context_hash": 15533385566848263753,
+      "translation": "모든 라이브 패치 적용은 커널을 `TAINT_LIVEPATCH`(비트 15)로 taint합니다. `klp_force_transition()` 자체는 추가 taint를 더하지 않습니다. `TAINT_FORCED_MODULE`은 무관하며, 이는 livepatch 전환이 강제될 때가 아니라 `insmod -f`로 모듈을 강제 로드할 때 설정됩니다.",
+      "glossary_snapshot": {
+        "bit": "비트",
+        "kernel": "커널",
+        "livepatch": "livepatch",
+        "module": "모듈",
+        "taint": "taint",
+        "taints": "taint"
+      },
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:7/block:12/seg:0",
+      "source": "Only use forced transitions as a last resort after confirming — by reading `/proc/<pid>/stack` — that the affected task is not in a call path the new function relies upon.",
+      "source_hash": 7166634552336952074,
+      "context_hash": 6535266231310297864,
+      "translation": "강제 전환은 `/proc/<pid>/stack`을 읽어 해당 태스크가 새 함수가 의존하는 호출 경로에 있지 않음을 확인한 뒤, 최후의 수단으로만 사용하십시오.",
+      "glossary_snapshot": {
+        "function": "함수"
+      },
+      "translated_at": "2026-11-14T22:38:24.092328Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:0/seg:0",
+      "source": "klp_complete_transition(): finalizing the patch",
+      "source_hash": 13242422235506859249,
+      "context_hash": 967897624364385634,
+      "translation": "klp_complete_transition(): 패치 마무리",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:1/seg:0",
+      "source": "Once every task has been transitioned, `klp_complete_transition()` is called:",
+      "source_hash": 998346519777068867,
+      "context_hash": 9912007036247546529,
+      "translation": "모든 태스크의 전환이 끝나면 `klp_complete_transition()`이 호출됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:8/block:3/seg:0",
+      "source": "After `klp_complete_transition()` returns, the `transition` sysfs file reads `0` and the patch is fully active.",
+      "source_hash": 1742515066865243789,
+      "context_hash": 7196281245196766830,
+      "translation": "`klp_complete_transition()`이 반환되고 나면 `transition` sysfs 파일은 `0`을 읽으며 패치는 완전히 활성화됩니다.",
+      "glossary_snapshot": {
+        "sysfs": "sysfs"
+      },
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:9/block:0/seg:0",
+      "source": "Observing the transition",
+      "source_hash": 17126903970987844370,
+      "context_hash": 2954889866202727669,
+      "translation": "전환 관찰",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:10/block:0/seg:0",
+      "source": "Transition state machine",
+      "source_hash": 4329657390129078934,
+      "context_hash": 15148845834953606600,
+      "translation": "전환 상태 머신",
+      "glossary_snapshot": {
+        "state machine": "상태 머신"
+      },
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 14330175911237318683,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 4227069395779812321,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:2/seg:0",
+      "source": "[kernel/livepatch/transition.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/livepatch/transition.c) — `klp_check_stack()`, `klp_try_complete_transition()`, `klp_update_patch_state()`, `klp_force_transition()`, and the rest of the transition state machine",
+      "source_hash": 7210843629499768036,
+      "context_hash": 12470269561699336794,
+      "translation": "[kernel/livepatch/transition.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/livepatch/transition.c) — `klp_check_stack()`, `klp_try_complete_transition()`, `klp_update_patch_state()`, `klp_force_transition()` 및 나머지 전환 상태 머신",
+      "glossary_snapshot": {
+        "state machine": "상태 머신"
+      },
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:3/seg:0",
+      "source": "[kernel/livepatch/patch.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/livepatch/patch.c) — `klp_ftrace_handler()`, which walks `func_stack` to pick the active replacement, plus `klp_patch_func()`/`klp_unpatch_func()`",
+      "source_hash": 17674424349443036289,
+      "context_hash": 18266697442578188401,
+      "translation": "[kernel/livepatch/patch.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/livepatch/patch.c) — `func_stack`을 순회하여 활성 대체 함수를 고르는 `klp_ftrace_handler()`와 `klp_patch_func()`/`klp_unpatch_func()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092329Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:4/seg:0",
+      "source": "[kernel/livepatch/core.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/livepatch/core.c) — the `/sys/kernel/livepatch/<patch>/{transition,force}` sysfs attributes",
+      "source_hash": 17914636352518812707,
+      "context_hash": 4669366481599078654,
+      "translation": "[kernel/livepatch/core.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/livepatch/core.c) — `/sys/kernel/livepatch/<patch>/{transition,force}` sysfs 속성",
+      "glossary_snapshot": {
+        "sysfs": "sysfs"
+      },
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:5/seg:0",
+      "source": "[include/linux/livepatch.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/livepatch.h) — `struct klp_func`, `struct klp_object`, `struct klp_patch`, and the transition-state constants",
+      "source_hash": 9098104267922626021,
+      "context_hash": 6112345660179028436,
+      "translation": "[include/linux/livepatch.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/livepatch.h) — `struct klp_func`, `struct klp_object`, `struct klp_patch` 및 전환 상태 상수",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:6/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 284170229830262460,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:7/seg:0",
+      "source": "[Kernel Live Patching](klp.md) — struct klp_func/klp_patch, ftrace redirection, shadow variables",
+      "source_hash": 9978021500190924364,
+      "context_hash": 5374231287781535653,
+      "translation": "[커널 라이브 패칭](klp.md) — struct klp_func/klp_patch, ftrace 리다이렉션, shadow 변수",
+      "glossary_snapshot": {
+        "ftrace": "ftrace",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:8/seg:0",
+      "source": "[Cumulative Patches and Atomic Replace](klp-cumulative.md) — patch stacking and .replace=true",
+      "source_hash": 16705700869583637802,
+      "context_hash": 15739206067668391587,
+      "translation": "[누적 패치와 Atomic Replace](klp-cumulative.md) — 패치 스태킹과 .replace=true",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:9/seg:0",
+      "source": "[KLP State: Custom Consistency Checks](klp-state.md) — the `klp_state` API for changes stack scanning alone can't validate",
+      "source_hash": 12220916291817422666,
+      "context_hash": 11129144384436946893,
+      "translation": "[KLP State: 사용자 정의 일관성 검사](klp-state.md) — 스택 검사만으로는 검증할 수 없는 변경을 위한 `klp_state` API",
+      "glossary_snapshot": {
+        "API": "API",
+        "KLP": "KLP"
+      },
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:10/seg:0",
+      "source": "[ftrace](../tracing/ftrace.md) — the ftrace hook that KLP uses",
+      "source_hash": 6039591922161434650,
+      "context_hash": 15326651328470836281,
+      "translation": "[ftrace](../tracing/ftrace.md) — KLP가 사용하는 ftrace 훅",
+      "glossary_snapshot": {
+        "KLP": "KLP",
+        "ftrace": "ftrace",
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:11/seg:0",
+      "source": "LWN articles",
+      "source_hash": 5468369659967288665,
+      "context_hash": 2085875700455924047,
+      "translation": "LWN 기사",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:12/seg:0",
+      "source": "[LWN: livepatch: consistency model](https://lwn.net/Articles/632582/) — the original 2015 design writeup for the per-task, stack-checking transition model implemented in `kernel/livepatch/transition.c`",
+      "source_hash": 15798820514328041330,
+      "context_hash": 4090816872163915065,
+      "translation": "[LWN: livepatch: consistency model](https://lwn.net/Articles/632582/) — `kernel/livepatch/transition.c`에 구현된 태스크별 스택 검사 전환 모델에 관한 2015년 최초 설계 문서",
+      "glossary_snapshot": {
+        "LWN": "LWN",
+        "livepatch": "livepatch"
+      },
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:13/seg:0",
+      "source": "[LWN: An update on live kernel patching](https://lwn.net/Articles/734765/) — 2017 status report covering the hybrid lazy-migration/stack-checking model and why the ORC unwinder was needed for reliable stack checks",
+      "source_hash": 7813106670658036859,
+      "context_hash": 17303753156138854554,
+      "translation": "[LWN: An update on live kernel patching](https://lwn.net/Articles/734765/) — 지연 마이그레이션/스택 검사 하이브리드 모델과 신뢰할 수 있는 스택 검사를 위해 ORC unwinder가 필요했던 이유를 다룬 2017년 현황 보고",
+      "glossary_snapshot": {
+        "LWN": "LWN"
+      },
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:14/seg:0",
+      "source": "External",
+      "source_hash": 18173270850398166434,
+      "context_hash": 14266210047049360126,
+      "translation": "외부 자료",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:38:24.092330Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:15/seg:0",
+      "source": "[Kernel docs: Livepatch](https://docs.kernel.org/livepatch/livepatch.html) — upstream description of the consistency model, the `force` and `transition` sysfs files, and patch stacking via `func_stack`",
+      "source_hash": 6299985168700665268,
+      "context_hash": 3689825620805831860,
+      "translation": "[Kernel docs: Livepatch](https://docs.kernel.org/livepatch/livepatch.html) — 일관성 모델, `force` 및 `transition` sysfs 파일, `func_stack`을 통한 패치 스태킹에 대한 업스트림 설명",
+      "glossary_snapshot": {
+        "consistency model": "일관성 모델",
+        "livepatch": "livepatch",
+        "sysfs": "sysfs",
+        "upstream": "업스트림"
+      },
+      "translated_at": "2026-11-14T23:33:51.932819Z",
+      "issues": []
+    },
+    {
+      "id": "section:11/block:16/seg:0",
+      "source": "[Kernel docs: Reliable Stacktrace](https://docs.kernel.org/livepatch/reliable-stacktrace.html) — why livepatch requires a reliable (not best-effort) stack unwinder for the stack-checking path",
+      "source_hash": 2295812057275695818,
+      "context_hash": 1264347255111318872,
+      "translation": "[Kernel docs: Reliable Stacktrace](https://docs.kernel.org/livepatch/reliable-stacktrace.html) — livepatch가 스택 검사 경로에 최선 노력(best-effort) 방식이 아닌 신뢰할 수 있는(reliable) 스택 언와인더를 요구하는 이유",
+      "glossary_snapshot": {
+        "livepatch": "livepatch"
+      },
+      "translated_at": "2026-11-14T22:05:05.167525Z",
+      "issues": []
+    }
+  ]
+}

@@ -1,0 +1,712 @@
+{
+  "version": 1,
+  "source_hash": 8660214671268183067,
+  "segments": [
+    {
+      "id": "section:0/block:0/seg:0",
+      "source": "BPF Security Model",
+      "source_hash": 11580291026402081708,
+      "context_hash": 914444105480349215,
+      "translation": "BPF 보안 모델",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T22:03:13.449364Z",
+      "issues": []
+    },
+    {
+      "id": "section:0/block:1/seg:0",
+      "source": "Capabilities, the unprivileged-BPF knob, and BPF as a security module",
+      "source_hash": 6465351181558924383,
+      "context_hash": 16794084737883912923,
+      "translation": "Capability, 비특권 BPF 설정, 그리고 보안 모듈로서의 BPF",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T22:03:13.449365Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:0/seg:0",
+      "source": "Two different security questions",
+      "source_hash": 5953841537822332028,
+      "context_hash": 9338080057081732143,
+      "translation": "서로 다른 두 가지 보안 질문",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449365Z",
+      "issues": []
+    },
+    {
+      "id": "section:1/block:1/seg:0",
+      "source": "[The verifier](bpf-verifier.md) answers one question: *given that a program is allowed to load, will it behave safely?* This page answers a different one: *who is allowed to load a program in the first place, and what can a BPF program itself be trusted to enforce?* The two are related — the whole point of a sound verifier is that the answer to the second question can be \"more people than just root\" — but they're separate mechanisms, and the [BPF war stories](war-stories.md) page documents the kernel gradually losing confidence that the verifier alone was strong enough, which is why the capability and sysctl layer below exists at all.",
+      "source_hash": 5593401322203407340,
+      "context_hash": 15572001413678338402,
+      "translation": "[Verifier](bpf-verifier.md)는 한 가지 질문에 답합니다. *프로그램의 로드가 허용되었다면, 그 프로그램은 안전하게 동작하는가?* 이 페이지는 다른 질문에 답합니다. *애초에 누가 프로그램을 로드할 수 있는가, 그리고 BPF 프로그램 자체가 무엇을 강제한다고 신뢰할 수 있는가?* 두 질문은 서로 관련되어 있습니다. 건전한 verifier의 핵심 목적은 두 번째 질문의 답이 \"root만이 아닌 더 많은 사람\"이 될 수 있게 하는 데 있기 때문입니다. 그러나 두 질문은 별개의 메커니즘이며, [BPF 실전 사례](war-stories.md) 페이지는 커널이 verifier만으로 충분히 강력하다는 확신을 점차 잃어 간 과정을 기록하고 있습니다. 아래의 capability 및 sysctl 계층이 존재하는 이유도 바로 이것입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF program": "BPF 프로그램",
+        "kernel": "커널",
+        "sysctl": "sysctl",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T22:03:13.449366Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:0/seg:0",
+      "source": "The capability model",
+      "source_hash": 7025676334648957490,
+      "context_hash": 2556963474683145425,
+      "translation": "Capability 모델",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449367Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:1/seg:0",
+      "source": "Loading a BPF program or creating a BPF map goes through the same central check, `bpf_token_capable()`, defined in `kernel/bpf/token.c` (only declared in `include/linux/bpf.h`):",
+      "source_hash": 17187715056175113108,
+      "context_hash": 15864777314502141804,
+      "translation": "BPF 프로그램 로드나 BPF 맵 생성은 모두 동일한 중앙 검사인 `bpf_token_capable()`를 거칩니다. 이 함수는 `kernel/bpf/token.c`에 정의되어 있습니다(`include/linux/bpf.h`에는 선언만 있습니다).",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF program": "BPF 프로그램"
+      },
+      "translated_at": "2026-11-14T22:03:13.449367Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:0",
+      "source": "`CAP_SYS_ADMIN` is always an accepted fallback for any specific BPF capability check — a process with `CAP_SYS_ADMIN` doesn't additionally need `CAP_BPF`. `CAP_BPF` itself is the specific, narrower capability, added in Linux 5.8 (confirmed absent from `include/uapi/linux/capability.h` at the v5.7 tag, present at v5.8) specifically so BPF program loading and map creation no longer required the much broader `CAP_SYS_ADMIN`. `CAP_PERFMON` is checked separately for the riskier verifier relaxations — `bpf_allow_ptr_leaks()`, `bpf_allow_uninit_stack()`, and bypassing the Spectre v1/v4 mitigations (`bpf_bypass_spec_v1()`/`bpf_bypass_spec_v4()`), all declared right next to `bpf_token_capable()` in `include/linux/bpf.h`.",
+      "source_hash": 8375632024071767168,
+      "context_hash": 13057356234643273113,
+      "translation": "`CAP_SYS_ADMIN`은 모든 개별 BPF capability 검사에서 항상 허용되는 폴백입니다. 즉 `CAP_SYS_ADMIN`을 가진 프로세스는 `CAP_BPF`가 추가로 필요하지 않습니다. `CAP_BPF` 자체는 더 좁은 범위의 개별 capability로, BPF 프로그램 로드와 맵 생성에 훨씬 광범위한 `CAP_SYS_ADMIN`이 더 이상 필요하지 않도록 하기 위해 Linux 5.8에서 추가되었습니다(v5.7 태그의 `include/uapi/linux/capability.h`에는 없고 v5.8에는 있음을 확인했습니다). `CAP_PERFMON`은 더 위험한 verifier 완화 조치, 즉 `bpf_allow_ptr_leaks()`, `bpf_allow_uninit_stack()`, 그리고 Spectre v1/v4 완화 우회(`bpf_bypass_spec_v1()`/`bpf_bypass_spec_v4()`)에 대해 별도로 검사되며, 이들은 모두 `include/linux/bpf.h`에서 `bpf_token_capable()` 바로 옆에 선언되어 있습니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF program": "BPF 프로그램",
+        "Linux": "Linux",
+        "Spectre": "Spectre",
+        "fallback": "폴백"
+      },
+      "translated_at": "2026-11-14T23:27:01.273144Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:3/seg:1",
+      "source": "Without a token, the check falls back to `init_user_ns` and behaves like a plain `capable()` check; with one, it's evaluated against the token's own user namespace, plus an additional LSM veto via `security_bpf_token_capable()`.",
+      "source_hash": 11661565856242160541,
+      "context_hash": 1551202950949287593,
+      "translation": "토큰이 없으면 검사는 `init_user_ns`를 기준으로 수행되어 일반적인 `capable()` 검사처럼 동작합니다. 토큰이 있으면 토큰 자신의 사용자 네임스페이스를 기준으로 평가되며, `security_bpf_token_capable()`를 통한 LSM 거부 검사가 추가로 수행됩니다.",
+      "glossary_snapshot": {
+        "user namespace": "사용자 네임스페이스"
+      },
+      "translated_at": "2026-11-14T22:03:13.449367Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:4/seg:0",
+      "source": "BPF tokens: delegating capabilities into a namespace",
+      "source_hash": 13672846124436209302,
+      "context_hash": 11066857347438689432,
+      "translation": "BPF 토큰: 네임스페이스로 capability 위임하기",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "namespace": "네임스페이스"
+      },
+      "translated_at": "2026-11-14T22:03:13.449368Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:0",
+      "source": "The `token` argument above isn't decorative. `kernel/bpf/token.c` (confirmed absent at v6.8, present at v6.9) lets a process holding real capabilities on the host mount a `bpffs` instance with `delegate_cmds=`, `delegate_maps=`, `delegate_progs=`, and `delegate_attachs=` options (`kernel/bpf/inode.c`), then hand a file descriptor for that mount to an unprivileged process in a different user namespace — a container, for instance.",
+      "source_hash": 4657483749525112822,
+      "context_hash": 18038734823178896200,
+      "translation": "위의 `token` 인자는 장식이 아닙니다. `kernel/bpf/token.c`(v6.8에는 없고 v6.9에는 있음을 확인했습니다)를 사용하면 호스트에서 실제 capability를 가진 프로세스가 `delegate_cmds=`, `delegate_maps=`, `delegate_progs=`, `delegate_attachs=` 옵션(`kernel/bpf/inode.c`)으로 `bpffs` 인스턴스를 마운트한 뒤, 해당 마운트에 대한 파일 디스크립터를 다른 사용자 네임스페이스(예를 들어 컨테이너)에 있는 비특권 프로세스에 넘겨줄 수 있습니다.",
+      "glossary_snapshot": {
+        "file descriptor": "파일 디스크립터",
+        "host": "호스트",
+        "process": "프로세스",
+        "user namespace": "사용자 네임스페이스"
+      },
+      "translated_at": "2026-11-14T22:03:13.449368Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:1",
+      "source": "That process calls `bpf()` with `BPF_TOKEN_CREATE` to mint a token from the fd, and passes the token on subsequent `BPF_MAP_CREATE`/`BPF_PROG_LOAD` calls.",
+      "source_hash": 15816355736093681189,
+      "context_hash": 3895584618106479121,
+      "translation": "그 프로세스는 `BPF_TOKEN_CREATE`와 함께 `bpf()`를 호출하여 fd로부터 토큰을 발급받고, 이후의 `BPF_MAP_CREATE`/`BPF_PROG_LOAD` 호출에 그 토큰을 전달합니다.",
+      "glossary_snapshot": {
+        "process": "프로세스"
+      },
+      "translated_at": "2026-11-14T22:03:13.449369Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:2",
+      "source": "Before the ordinary capability check runs, `bpf_token_get_from_fd()`, `bpf_token_allow_cmd()`, `bpf_token_allow_prog_type()`, and `bpf_token_allow_map_type()` (all `kernel/bpf/token.c`) gate whether the token covers the specific command, program type, or map type being requested.",
+      "source_hash": 2565332454113186459,
+      "context_hash": 10152293881719460437,
+      "translation": "일반적인 capability 검사가 실행되기 전에, `bpf_token_get_from_fd()`, `bpf_token_allow_cmd()`, `bpf_token_allow_prog_type()`, `bpf_token_allow_map_type()`(모두 `kernel/bpf/token.c`)가 요청된 특정 명령, 프로그램 타입 또는 맵 타입을 토큰이 허용하는지 판별합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449369Z",
+      "issues": []
+    },
+    {
+      "id": "section:2/block:5/seg:3",
+      "source": "It's the mechanism that makes \"a container can load *this specific* XDP program without being root\" possible without loosening the mounter's own trust boundary.",
+      "source_hash": 1438803869910089662,
+      "context_hash": 10395971844695792813,
+      "translation": "이 메커니즘 덕분에 마운트한 쪽의 신뢰 경계를 느슨하게 하지 않고도 \"컨테이너가 root가 아니어도 *이 특정한* XDP 프로그램을 로드할 수 있는\" 상황이 가능해집니다.",
+      "glossary_snapshot": {
+        "XDP": "XDP"
+      },
+      "translated_at": "2026-11-14T22:03:13.449369Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:0/seg:0",
+      "source": "`unprivileged_bpf_disabled`: three states, not two",
+      "source_hash": 8716865949840892473,
+      "context_hash": 11532199216678066348,
+      "translation": "`unprivileged_bpf_disabled`: 두 가지가 아닌 세 가지 상태",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449369Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:0",
+      "source": "The `kernel.unprivileged_bpf_disabled` sysctl (`kernel/bpf/syscall.c`) gates whether a process without `CAP_BPF` can create BPF maps or load BPF programs at all — both `map_create_alloc()` (called from `map_create()`, the `BPF_MAP_CREATE` handler, checking `sysctl_unprivileged_bpf_disabled && !bpf_token_capable(token, CAP_BPF)`) and `bpf_prog_load()` (checking `sysctl_unprivileged_bpf_disabled && !bpf_cap`) refuse outright if it's true. `map_create_alloc()` is a recent split of the map-creation path — on older kernels the equivalent check sits directly in `map_create()`.",
+      "source_hash": 15447266635758117193,
+      "context_hash": 12316438465594365388,
+      "translation": "`kernel.unprivileged_bpf_disabled` sysctl(`kernel/bpf/syscall.c`)은 `CAP_BPF`가 없는 프로세스가 BPF 맵을 생성하거나 BPF 프로그램을 로드할 수 있는지 자체를 결정합니다. 이 값이 참이면 `map_create_alloc()`(`BPF_MAP_CREATE` 핸들러인 `map_create()`에서 호출되며, `sysctl_unprivileged_bpf_disabled && !bpf_token_capable(token, CAP_BPF)`를 검사합니다)과 `bpf_prog_load()`(`sysctl_unprivileged_bpf_disabled && !bpf_cap`를 검사합니다) 모두 요청을 즉시 거부합니다. `map_create_alloc()`은 맵 생성 경로에서 최근에 분리된 함수이며, 이전 커널에서는 동일한 검사가 `map_create()`에 직접 들어 있습니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF programs": "BPF 프로그램",
+        "handler": "핸들러",
+        "kernels": "커널",
+        "process": "프로세스",
+        "sysctl": "sysctl"
+      },
+      "translated_at": "2026-11-14T22:03:13.449369Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:1/seg:1",
+      "source": "But the value isn't a boolean; there are three states, and the difference between two of them matters:",
+      "source_hash": 6296960901523414565,
+      "context_hash": 6829676280408071106,
+      "translation": "그러나 이 값은 불리언이 아닙니다. 세 가지 상태가 있으며, 그중 두 상태의 차이가 중요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449370Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:3/seg:0",
+      "source": "**0** — unprivileged BPF is allowed.",
+      "source_hash": 2726977502683065127,
+      "context_hash": 10368349779239966609,
+      "translation": "**0** — 비특권 BPF가 허용됩니다.",
+      "glossary_snapshot": {
+        "unprivileged BPF": "비특권 BPF"
+      },
+      "translated_at": "2026-11-14T22:03:13.449370Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:0",
+      "source": "**1** — disabled, and *locked*: once set to 1, the kernel's own write handler refuses to change it back (`bpf_unpriv_handler()` treats `unpriv_enable == 1` as a one-way latch — any further write that isn't itself `1` returns `-EPERM`).",
+      "source_hash": 7650230978478376207,
+      "context_hash": 10523249885676154767,
+      "translation": "**1** — 비활성화되고 *잠깁니다*. 한 번 1로 설정되면 커널 자체의 쓰기 핸들러가 값을 되돌리는 것을 거부합니다(`bpf_unpriv_handler()`는 `unpriv_enable == 1`을 단방향 래치로 취급하므로, 이후 `1`이 아닌 값을 쓰려는 모든 시도는 `-EPERM`을 반환합니다).",
+      "glossary_snapshot": {
+        "handler": "핸들러",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T22:03:13.449370Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:4/seg:1",
+      "source": "There's no way to re-enable unprivileged BPF on a running kernel after this, short of a reboot.",
+      "source_hash": 14093739324117658502,
+      "context_hash": 5814451713567122774,
+      "translation": "이 이후에는 재부팅하지 않는 한 실행 중인 커널에서 비특권 BPF를 다시 활성화할 방법이 없습니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "unprivileged BPF": "비특권 BPF"
+      },
+      "translated_at": "2026-11-14T22:03:13.449370Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:5/seg:0",
+      "source": "**2** — disabled by default (via `CONFIG_BPF_UNPRIV_DEFAULT_OFF`), but *recoverable*: an administrator can still write `0` back to re-enable it.",
+      "source_hash": 6659514373267671185,
+      "context_hash": 13715498524118078202,
+      "translation": "**2** — 기본적으로 비활성화되지만(`CONFIG_BPF_UNPRIV_DEFAULT_OFF`를 통해) *복구 가능*합니다. 관리자가 여전히 `0`을 다시 써서 활성화할 수 있습니다.",
+      "glossary_snapshot": {
+        "administrator": "관리자"
+      },
+      "translated_at": "2026-11-14T22:03:13.449370Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:0",
+      "source": "This isn't a hypothetical distinction.",
+      "source_hash": 12613356304075655703,
+      "context_hash": 9085174345899911937,
+      "translation": "이는 가상의 구분이 아닙니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449370Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:1",
+      "source": "Two separate commits are involved: `08389d888287` (May 2021, landed in Linux 5.13) added the `CONFIG_BPF_UNPRIV_DEFAULT_OFF` Kconfig option and the three-valued sysctl itself, but didn't turn the knob on — that Kconfig symbol had no `default` at 5.13, 5.14, or 5.15, so upstream kernels still shipped with unprivileged BPF allowed. `8a03e56b253e` (October 2021, landed in Linux 5.16) is the commit that actually added `default y`, making disabled-by-default (value 2, specifically because it's reversible) the shipped upstream behavior — see the [unprivileged-BPF-off-by-default](war-stories/unprivileged-bpf-off.md) change for that story.",
+      "source_hash": 9195453824912433593,
+      "context_hash": 15198628897792009147,
+      "translation": "별개의 두 커밋이 관련되어 있습니다. `08389d888287`(2021년 5월, Linux 5.13에 반영)은 `CONFIG_BPF_UNPRIV_DEFAULT_OFF` Kconfig 옵션과 세 가지 값을 갖는 sysctl 자체를 추가했지만 설정을 켜지는 않았습니다. 해당 Kconfig 심볼에는 5.13, 5.14, 5.15에서 `default`가 없었으므로, 업스트림 커널은 여전히 비특권 BPF가 허용된 상태로 배포되었습니다. `8a03e56b253e`(2021년 10월, Linux 5.16에 반영)가 실제로 `default y`를 추가한 커밋이며, 이로써 기본 비활성화(되돌릴 수 있다는 점 때문에 특별히 값 2)가 업스트림의 배포 기본 동작이 되었습니다. 그 경위는 [unprivileged-BPF-off-by-default](war-stories/unprivileged-bpf-off.md) 변경 사항을 참고하십시오.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Kconfig": "Kconfig",
+        "Linux": "Linux",
+        "kernels": "커널",
+        "sysctl": "sysctl",
+        "unprivileged BPF": "비특권 BPF",
+        "upstream": "업스트림"
+      },
+      "translated_at": "2026-11-14T22:03:13.449370Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:6/seg:2",
+      "source": "Value 1 exists for administrators who've decided to close the door permanently on a given machine.",
+      "source_hash": 11843635157727691176,
+      "context_hash": 6009234521167644167,
+      "translation": "값 1은 특정 머신에서 이 문을 영구적으로 닫기로 결정한 관리자를 위해 존재합니다.",
+      "glossary_snapshot": {
+        "administrators": "관리자"
+      },
+      "translated_at": "2026-11-14T22:03:13.449371Z",
+      "issues": []
+    },
+    {
+      "id": "section:3/block:7/seg:0",
+      "source": "Writing to the sysctl at all requires `CAP_SYS_ADMIN`, regardless of the current or target value.",
+      "source_hash": 7073441446319032700,
+      "context_hash": 17370566083028209100,
+      "translation": "현재 값이나 설정하려는 값과 관계없이, 이 sysctl에 쓰는 것 자체에 `CAP_SYS_ADMIN`이 필요합니다.",
+      "glossary_snapshot": {
+        "sysctl": "sysctl"
+      },
+      "translated_at": "2026-11-14T22:03:13.449371Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:0/seg:0",
+      "source": "What unprivileged BPF can still do",
+      "source_hash": 16538143319153538102,
+      "context_hash": 4403031880976777298,
+      "translation": "비특권 BPF가 여전히 할 수 있는 것",
+      "glossary_snapshot": {
+        "unprivileged BPF": "비특권 BPF"
+      },
+      "translated_at": "2026-11-14T22:03:13.449371Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:1/seg:0",
+      "source": "On a kernel that still allows unprivileged BPF (`unprivileged_bpf_disabled` at 0 — not the shipped-upstream default since 5.16, but still common on kernels built without `CONFIG_BPF_UNPRIV_DEFAULT_OFF`, or with the sysctl explicitly re-enabled), a process without `CAP_BPF` is restricted well beyond what the verifier alone would allow:",
+      "source_hash": 17578985784013794766,
+      "context_hash": 14054498614849459164,
+      "translation": "비특권 BPF를 여전히 허용하는 커널(`unprivileged_bpf_disabled`가 0인 경우로, 5.16 이후 업스트림 배포 기본값은 아니지만 `CONFIG_BPF_UNPRIV_DEFAULT_OFF` 없이 빌드된 커널이나 sysctl을 명시적으로 다시 활성화한 커널에서는 여전히 흔합니다)에서, `CAP_BPF`가 없는 프로세스는 verifier만으로 허용되는 범위보다 훨씬 강하게 제한됩니다.",
+      "glossary_snapshot": {
+        "kernel": "커널",
+        "kernels": "커널",
+        "process": "프로세스",
+        "sysctl": "sysctl",
+        "unprivileged BPF": "비특권 BPF",
+        "upstream": "업스트림"
+      },
+      "translated_at": "2026-11-14T22:03:13.449371Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:2/seg:0",
+      "source": "**Program type**: only `BPF_PROG_TYPE_SOCKET_FILTER` and `BPF_PROG_TYPE_CGROUP_SKB` may be loaded without `CAP_BPF` (`kernel/bpf/syscall.c`, checked immediately after the `unprivileged_bpf_disabled` gate).",
+      "source_hash": 2307195859160946555,
+      "context_hash": 14778098363699169040,
+      "translation": "**프로그램 타입**: `CAP_BPF` 없이 로드할 수 있는 것은 `BPF_PROG_TYPE_SOCKET_FILTER`와 `BPF_PROG_TYPE_CGROUP_SKB`뿐입니다(`kernel/bpf/syscall.c`에서 `unprivileged_bpf_disabled` 게이트 직후에 검사됩니다).",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449372Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:3/seg:0",
+      "source": "**Program size**: an unprivileged program is capped at `BPF_MAXINSNS` — 4096 instructions (`include/uapi/linux/bpf_common.h`) — versus `BPF_COMPLEXITY_LIMIT_INSNS`, 1,000,000, defined in `include/linux/bpf.h` and used as the verifier's own path-exploration budget in `kernel/bpf/verifier.c`, for a `CAP_BPF`-holding one.",
+      "source_hash": 1461095759491589528,
+      "context_hash": 2623805506014279325,
+      "translation": "**프로그램 크기**: 비특권 프로그램은 `BPF_MAXINSNS`, 즉 4096개 명령어(`include/uapi/linux/bpf_common.h`)로 제한되는 반면, `CAP_BPF`를 가진 프로그램은 `include/linux/bpf.h`에 정의되고 `kernel/bpf/verifier.c`에서 verifier 자체의 경로 탐색 예산으로 사용되는 `BPF_COMPLEXITY_LIMIT_INSNS`, 즉 1,000,000으로 제한됩니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449372Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:4/seg:0",
+      "source": "**Pointer and speculation leaks**: `bpf_allow_ptr_leaks()` and the Spectre-bypass checks above all accept `CAP_PERFMON` as one way to relax them — but each also has its own, capability-independent escape hatch (`bpf_jit_bypass_spec_v1()`/`bpf_jit_bypass_spec_v4()` for architectures whose JIT is structurally immune, or booting with `mitigations=off`), so an unprivileged program on an affected, default-mitigated machine gets the verifier's strictest, most defensive rules with no way to relax them through capabilities alone.",
+      "source_hash": 15150745726104951709,
+      "context_hash": 5374525117361939183,
+      "translation": "**포인터 및 투기적 실행 누출**: `bpf_allow_ptr_leaks()`와 위의 Spectre 우회 검사는 모두 `CAP_PERFMON`을 완화 수단 중 하나로 허용합니다. 그러나 각 검사에는 capability와 무관한 고유한 예외 경로(JIT가 구조적으로 영향을 받지 않는 아키텍처를 위한 `bpf_jit_bypass_spec_v1()`/`bpf_jit_bypass_spec_v4()`, 또는 `mitigations=off`로 부팅)도 있으므로, 영향을 받으며 기본 완화책이 적용된 머신에서 비특권 프로그램은 verifier의 가장 엄격하고 방어적인 규칙을 적용받으며 capability만으로는 이를 완화할 방법이 없습니다.",
+      "glossary_snapshot": {
+        "Spectre": "Spectre"
+      },
+      "translated_at": "2026-11-14T22:03:13.449372Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:5/seg:0",
+      "source": "**Unaligned access**: on architectures without efficient unaligned access, `BPF_F_ANY_ALIGNMENT` also requires `CAP_BPF`.",
+      "source_hash": 11617929592629558154,
+      "context_hash": 5591200911445729044,
+      "translation": "**비정렬 접근**: 효율적인 비정렬 접근을 지원하지 않는 아키텍처에서는 `BPF_F_ANY_ALIGNMENT`에도 `CAP_BPF`가 필요합니다.",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T22:03:13.449372Z",
+      "issues": []
+    },
+    {
+      "id": "section:4/block:6/seg:0",
+      "source": "None of this is enforced by the verifier's safety proof — it's a separate, capability-gated policy layered on top of it, and it's the layer that actually changed in response to the verifier CVEs on the [war stories page](war-stories.md).",
+      "source_hash": 9833971769649655905,
+      "context_hash": 241979495501555330,
+      "translation": "이 중 어느 것도 verifier의 안전성 증명으로 강제되는 것이 아닙니다. 이는 그 위에 얹힌 별도의 capability 기반 정책이며, [실전 사례 페이지](war-stories.md)의 verifier CVE에 대응하여 실제로 변경된 것이 바로 이 계층입니다.",
+      "glossary_snapshot": {
+        "CVEs": "CVE",
+        "policy": "정책",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T22:03:13.449372Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:0/seg:0",
+      "source": "BPF as a security module: BPF LSM",
+      "source_hash": 5965781599006265031,
+      "context_hash": 4718819208962963048,
+      "translation": "보안 모듈로서의 BPF: BPF LSM",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "module": "모듈"
+      },
+      "translated_at": "2026-11-14T22:03:13.449373Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:0",
+      "source": "Everything above is about controlling who can load BPF.",
+      "source_hash": 3381940314155499449,
+      "context_hash": 9187258988367336125,
+      "translation": "위에서 다룬 내용은 모두 누가 BPF를 로드할 수 있는지를 통제하는 것에 관한 것입니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF"
+      },
+      "translated_at": "2026-11-14T21:53:11.514934Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:1/seg:1",
+      "source": "BPF LSM inverts the relationship: it lets a BPF program *become* part of the kernel's own access-control decision, attached directly to [LSM](../security/lsm.md) hooks.",
+      "source_hash": 16157257351111305004,
+      "context_hash": 4982115617289567582,
+      "translation": "BPF LSM은 이 관계를 뒤집습니다. BPF LSM은 BPF 프로그램이 [LSM](../security/lsm.md) 훅에 직접 연결되어 커널 자체의 접근 제어 결정의 일부가 *되도록* 합니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF program": "BPF 프로그램",
+        "hooks": "훅",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:53:11.514935Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:2/seg:0",
+      "source": "`kernel/bpf/bpf_lsm.c` (Google, added in Linux 5.7 — confirmed absent at v5.6, present at v5.7) works by declaring a weak, no-op function for every LSM hook that can take a BPF attachment:",
+      "source_hash": 4137814990506456938,
+      "context_hash": 17080032692984854230,
+      "translation": "`kernel/bpf/bpf_lsm.c`(Google, Linux 5.7에서 추가 — v5.6에는 없고 v5.7에는 있음을 확인함)는 BPF 연결을 받을 수 있는 모든 LSM 훅에 대해 weak 속성의 no-op 함수를 선언하는 방식으로 동작합니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Google": "Google",
+        "Linux": "Linux",
+        "function": "함수",
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T21:53:11.514936Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:0",
+      "source": "Each `bpf_lsm_<hookname>()` stub is registered as an attachable BTF function (`BTF_SET_START(bpf_lsm_hooks)` / `BTF_ID(func, bpf_lsm_##NAME)`, same file), and a BPF program of type `BPF_PROG_TYPE_LSM` (`include/uapi/linux/bpf.h`) attaches to one of them — `BPF_LSM_MAC` for the ordinary access-control hooks, `BPF_LSM_CGROUP` for a cgroup-scoped variant.",
+      "source_hash": 15372849419506004499,
+      "context_hash": 4227270836336401150,
+      "translation": "각 `bpf_lsm_<hookname>()` 스텁은 연결 가능한 BTF 함수로 등록되며(`BTF_SET_START(bpf_lsm_hooks)` / `BTF_ID(func, bpf_lsm_##NAME)`, 같은 파일), `BPF_PROG_TYPE_LSM`(`include/uapi/linux/bpf.h`) 타입의 BPF 프로그램이 그중 하나에 연결됩니다. 일반 접근 제어 훅에는 `BPF_LSM_MAC`를, cgroup 범위로 한정된 변형에는 `BPF_LSM_CGROUP`를 사용합니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "BTF": "BTF",
+        "cgroup": "cgroup",
+        "function": "함수",
+        "hooks": "훅"
+      },
+      "translated_at": "2026-11-14T21:53:11.514936Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:1",
+      "source": "Because the attach point is a real LSM hook, the program's return value can actually deny an operation, the same as SELinux or AppArmor would — the difference is the policy is a BPF program instead of a compiled-in or loaded security module, so it can be short-lived, generated at runtime, or scoped to exactly one workload.",
+      "source_hash": 3729680616427283860,
+      "context_hash": 17466262312237363591,
+      "translation": "연결 지점이 실제 LSM 훅이므로 프로그램의 반환값은 SELinux나 AppArmor와 마찬가지로 실제로 작업을 거부할 수 있습니다. 차이점은 정책이 컴파일되어 내장되거나 로드되는 보안 모듈이 아니라 BPF 프로그램이라는 점이며, 따라서 정책을 짧은 수명으로 운용하거나, 런타임에 생성하거나, 정확히 하나의 워크로드로 범위를 한정할 수 있습니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램",
+        "SELinux": "SELinux",
+        "hook": "훅",
+        "module": "모듈",
+        "policy": "정책",
+        "workload": "워크로드"
+      },
+      "translated_at": "2026-11-14T21:53:11.514937Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:4/seg:2",
+      "source": "The verifier enforces one extra rule specific to this program type: `bpf_lsm_verify_prog()` (`kernel/bpf/bpf_lsm.c`) rejects any LSM program that isn't GPL-compatible, refusing to let a proprietary policy attach to a security decision point.",
+      "source_hash": 10549506140731246435,
+      "context_hash": 7685966001557155143,
+      "translation": "verifier는 이 프로그램 타입에만 적용되는 규칙 하나를 추가로 강제합니다. `bpf_lsm_verify_prog()`(`kernel/bpf/bpf_lsm.c`)는 GPL 호환이 아닌 LSM 프로그램을 모두 거부하여, 독점 정책이 보안 결정 지점에 연결되지 못하게 합니다.",
+      "glossary_snapshot": {
+        "policy": "정책"
+      },
+      "translated_at": "2026-11-14T21:53:11.514938Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:0",
+      "source": "`CONFIG_BPF_LSM` (`kernel/bpf/Kconfig`) is the build-time switch, and its own help text is direct about the intended use: \"Enables instrumentation of the security hooks with BPF programs for implementing dynamic MAC and Audit Policies.\" It depends on `BPF_EVENTS`, `BPF_SYSCALL`, `SECURITY`, and `BPF_JIT` all being enabled — this is not something a minimal kernel build gets by accident.",
+      "source_hash": 8375478501519189318,
+      "context_hash": 18101933511851191511,
+      "translation": "`CONFIG_BPF_LSM`(`kernel/bpf/Kconfig`)은 빌드 시점 스위치이며, 그 도움말 텍스트는 의도된 용도를 다음과 같이 직접 밝힙니다. \"동적 MAC 및 감사(Audit) 정책을 구현하기 위해 BPF 프로그램으로 보안 훅을 계측할 수 있게 합니다.\" 이 옵션은 `BPF_EVENTS`, `BPF_SYSCALL`, `SECURITY`, `BPF_JIT`가 모두 활성화되어 있어야 하므로, 최소 구성의 커널 빌드에 우연히 포함되는 기능이 아닙니다.",
+      "glossary_snapshot": {
+        "BPF programs": "BPF 프로그램",
+        "hooks": "훅",
+        "kernel": "커널",
+        "policies": "정책"
+      },
+      "translated_at": "2026-11-14T21:53:11.514938Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:5/seg:1",
+      "source": "Building it in isn't the whole story, though: LSMs are only active if they're in the ordered list the `LSM` Kconfig string enables (`bpf` is included in every distribution's default list in `security/Kconfig`), and that list \"can be controlled at boot with the `lsm=` parameter\" — a custom `lsm=` boot argument that drops `bpf` silently disables BPF LSM even on a kernel built with `CONFIG_BPF_LSM=y`.",
+      "source_hash": 16118454690955627622,
+      "context_hash": 14530983970422103106,
+      "translation": "그러나 빌드에 포함하는 것만으로 끝나지는 않습니다. LSM은 `LSM` Kconfig 문자열이 활성화하는 순서 목록에 들어 있을 때만 활성화되며(`security/Kconfig`에 있는 모든 배포판 기본 목록에는 `bpf`가 포함되어 있습니다), 이 목록은 \"부팅 시 `lsm=` 매개변수로 제어할 수 있습니다\". 따라서 `bpf`를 빠뜨린 사용자 지정 `lsm=` 부팅 인자는 `CONFIG_BPF_LSM=y`로 빌드된 커널에서도 BPF LSM을 아무 경고 없이 비활성화합니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Kconfig": "Kconfig",
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:53:11.514938Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:0",
+      "source": "Loading an LSM-attached BPF program is still gated by the ordinary capability rules above, not a separate, more permissive path: `BPF_PROG_TYPE_LSM` isn't one of the two program types unprivileged loading allows, so it requires `CAP_BPF`, on top of `CONFIG_BPF_LSM` being built in at all — and because `BPF_PROG_TYPE_LSM` is also one of the program types `is_perfmon_prog_type()` (`kernel/bpf/syscall.c`) covers, loading one requires `CAP_PERFMON` as well.",
+      "source_hash": 16021769588526850816,
+      "context_hash": 2744770708788602689,
+      "translation": "LSM에 연결되는 BPF 프로그램의 로드 역시 별도의 더 허용적인 경로가 아니라 위에서 설명한 일반 capability 규칙의 통제를 받습니다. `BPF_PROG_TYPE_LSM`은 비특권 로드가 허용하는 두 가지 프로그램 타입에 속하지 않으므로, 애초에 `CONFIG_BPF_LSM`이 빌드에 포함되어 있어야 하는 것에 더해 `CAP_BPF`가 필요합니다. 또한 `BPF_PROG_TYPE_LSM`은 `is_perfmon_prog_type()`(`kernel/bpf/syscall.c`)이 다루는 프로그램 타입 중 하나이기도 하므로, 이를 로드하려면 `CAP_PERFMON`도 필요합니다.",
+      "glossary_snapshot": {
+        "BPF program": "BPF 프로그램"
+      },
+      "translated_at": "2026-11-14T21:53:11.514938Z",
+      "issues": []
+    },
+    {
+      "id": "section:5/block:6/seg:1",
+      "source": "BPF LSM changes what a *sufficiently privileged* BPF program is allowed to influence, not who's allowed to load one.",
+      "source_hash": 15533390181044019153,
+      "context_hash": 17215304945177938687,
+      "translation": "BPF LSM이 바꾸는 것은 *충분한 권한을 가진* BPF 프로그램이 영향을 미칠 수 있는 범위이지, 누가 BPF 프로그램을 로드할 수 있는지가 아닙니다.",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "BPF program": "BPF 프로그램"
+      },
+      "translated_at": "2026-11-14T21:53:11.514939Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:0/seg:0",
+      "source": "Further reading",
+      "source_hash": 12384514314644059922,
+      "context_hash": 10302285338938712564,
+      "translation": "더 읽을거리",
+      "glossary_snapshot": {
+        "Further reading": "더 읽을거리"
+      },
+      "translated_at": "2026-11-14T21:53:11.514939Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:1/seg:0",
+      "source": "Kernel source",
+      "source_hash": 2079252686789422528,
+      "context_hash": 4189917621618001396,
+      "translation": "커널 소스",
+      "glossary_snapshot": {
+        "kernel": "커널"
+      },
+      "translated_at": "2026-11-14T21:53:11.514940Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:2/seg:0",
+      "source": "[kernel/bpf/syscall.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/syscall.c) — `bpf_unpriv_handler()`, the `unprivileged_bpf_disabled` sysctl table entry, and the capability checks in program/map creation",
+      "source_hash": 2360813639325975692,
+      "context_hash": 13441513033422280171,
+      "translation": "[kernel/bpf/syscall.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/syscall.c) — `bpf_unpriv_handler()`, `unprivileged_bpf_disabled` sysctl 테이블 엔트리, 프로그램/맵 생성 시의 capability 검사",
+      "glossary_snapshot": {
+        "sysctl": "sysctl",
+        "table entry": "테이블 엔트리"
+      },
+      "translated_at": "2026-11-14T23:27:01.273145Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:3/seg:0",
+      "source": "[include/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/bpf.h) — the `bpf_token_capable()` declaration, `bpf_allow_ptr_leaks()`, `bpf_bypass_spec_v1()`/`bpf_bypass_spec_v4()`",
+      "source_hash": 6044442350566268775,
+      "context_hash": 6884548867773435892,
+      "translation": "[include/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/bpf.h) — `bpf_token_capable()` 선언, `bpf_allow_ptr_leaks()`, `bpf_bypass_spec_v1()`/`bpf_bypass_spec_v4()`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:11.514940Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:4/seg:0",
+      "source": "[kernel/bpf/token.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/token.c) — `bpf_token_capable()`'s actual definition, and the token-delegation checks (`bpf_token_get_from_fd()`, `bpf_token_allow_cmd()`, `bpf_token_allow_prog_type()`, `bpf_token_allow_map_type()`)",
+      "source_hash": 6288537993707380660,
+      "context_hash": 5604517877747678941,
+      "translation": "[kernel/bpf/token.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/token.c) — `bpf_token_capable()`의 실제 정의와 토큰 위임 검사(`bpf_token_get_from_fd()`, `bpf_token_allow_cmd()`, `bpf_token_allow_prog_type()`, `bpf_token_allow_map_type()`)",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:11.514940Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:5/seg:0",
+      "source": "[include/uapi/linux/bpf_common.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/bpf_common.h) — `BPF_MAXINSNS`",
+      "source_hash": 11070294172439505387,
+      "context_hash": 3451790753649868331,
+      "translation": "[include/uapi/linux/bpf_common.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/bpf_common.h) — `BPF_MAXINSNS`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:11.514940Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:6/seg:0",
+      "source": "[kernel/bpf/bpf_lsm.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/bpf_lsm.c) — the `bpf_lsm_<hook>()` weak-symbol mechanism and BTF registration",
+      "source_hash": 2032219828805125858,
+      "context_hash": 8810214313654658983,
+      "translation": "[kernel/bpf/bpf_lsm.c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/bpf_lsm.c) — `bpf_lsm_<hook>()` weak 심볼 메커니즘과 BTF 등록",
+      "glossary_snapshot": {
+        "BTF": "BTF"
+      },
+      "translated_at": "2026-11-14T21:53:11.514940Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:7/seg:0",
+      "source": "[kernel/bpf/Kconfig](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/Kconfig) — `CONFIG_BPF_LSM` and its dependencies",
+      "source_hash": 17639551434281067059,
+      "context_hash": 1345510620853520046,
+      "translation": "[kernel/bpf/Kconfig](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/kernel/bpf/Kconfig) — `CONFIG_BPF_LSM`과 그 의존성",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "Kconfig": "Kconfig"
+      },
+      "translated_at": "2026-11-14T21:53:11.514940Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:8/seg:0",
+      "source": "[include/uapi/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/bpf.h) — `BPF_PROG_TYPE_LSM`, `BPF_LSM_MAC`, `BPF_LSM_CGROUP`",
+      "source_hash": 17362774012125441160,
+      "context_hash": 8166596076805169330,
+      "translation": "[include/uapi/linux/bpf.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/bpf.h) — `BPF_PROG_TYPE_LSM`, `BPF_LSM_MAC`, `BPF_LSM_CGROUP`",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:11.514940Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:9/seg:0",
+      "source": "Related pages",
+      "source_hash": 4375960008926620586,
+      "context_hash": 4310220544063039937,
+      "translation": "관련 페이지",
+      "glossary_snapshot": {},
+      "translated_at": "2026-11-14T21:53:11.514941Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:10/seg:0",
+      "source": "[BPF Verifier](bpf-verifier.md) — the safety proof this page's capability layer sits on top of",
+      "source_hash": 766135168893252222,
+      "context_hash": 1646219699297157067,
+      "translation": "[BPF 검증기](bpf-verifier.md) — 이 페이지의 capability 계층이 기반으로 삼는 안전성 증명",
+      "glossary_snapshot": {
+        "BPF Verifier": "BPF 검증기"
+      },
+      "translated_at": "2026-11-14T23:27:01.273146Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:11/seg:0",
+      "source": "[War Stories](war-stories.md) — why the capability model exists: verifier CVEs and the 2021 unprivileged-BPF-off-by-default change",
+      "source_hash": 6187263852633888489,
+      "context_hash": 7634368481055150734,
+      "translation": "[실전 사례](war-stories.md) — capability 모델이 존재하는 이유: verifier CVE와 2021년 비특권 BPF 기본 비활성화 변경",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "CVEs": "CVE",
+        "war stories": "실전 사례"
+      },
+      "translated_at": "2026-11-14T21:53:11.514941Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:12/seg:0",
+      "source": "[LSM Framework](../security/lsm.md) — the hook framework BPF LSM attaches into",
+      "source_hash": 14759595924052036892,
+      "context_hash": 3995112775484047256,
+      "translation": "[LSM 프레임워크](../security/lsm.md) — BPF LSM이 연결되는 훅 프레임워크",
+      "glossary_snapshot": {
+        "BPF": "BPF",
+        "hook": "훅"
+      },
+      "translated_at": "2026-11-14T21:53:11.514942Z",
+      "issues": []
+    },
+    {
+      "id": "section:6/block:13/seg:0",
+      "source": "[Linux Capabilities](../security/capabilities.md) — `CAP_BPF`, `CAP_PERFMON`, and the wider capability split",
+      "source_hash": 587789590825343938,
+      "context_hash": 4978207566752320397,
+      "translation": "[Linux Capabilities](../security/capabilities.md) — `CAP_BPF`, `CAP_PERFMON`, 그리고 더 넓은 capability 분리",
+      "glossary_snapshot": {
+        "Linux": "Linux"
+      },
+      "translated_at": "2026-11-14T21:53:11.514942Z",
+      "issues": []
+    }
+  ]
+}
