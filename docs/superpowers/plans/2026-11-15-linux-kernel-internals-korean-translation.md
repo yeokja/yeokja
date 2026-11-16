@@ -4,7 +4,7 @@
 
 **Goal:** *Linux Kernel Internals*(MkDocs Material, 문서 CC BY-SA 4.0 · 코드 GPL-2.0)의 498쪽과 nav 레이블을 영어 → 한국어로 번역하고, 영어 빌드와 구조가 같은 정적 사이트를 Pages 배포 배선까지 갖춘다.
 
-**Architecture:** `upstream/` 서브모듈을 조립 트리의 바탕으로 두고 `ko/`(번역 미러)와 `overlay/`(앵커 hook, 한글 CSS)를 겹친다. `scripts/sources.py`가 원문에서 파생 소스(`nav/nav.md`: nav 레이블 목록)를 만들고, 생성 단계 `prepare_site.py`가 `mkdocs.yml`을 한국어 설정으로 바꾸며 번역된 nav 레이블을 되돌려 넣는다. `build.html`이 같은 툴체인으로 영어 원문을 먼저 빌드해 제목 ID를 기록하고, 한국어 빌드에 입힌 뒤 `check_site.py`로 두 빌드를 비교한다.
+**Architecture:** `upstream/` 서브모듈을 조립 트리의 바탕으로 두고 `ko/`(번역 미러)와 `overlay/`(앵커 hook, 한글 CSS)를 겹친다. `scripts/sources.py`가 원문에서 파생 소스(`nav/nav.md`: nav 레이블 목록)를 만들고, 생성 단계 `prepare_site.py`가 `mkdocs.yml`을 한국어 설정으로 바꾸며 번역된 nav 레이블을 되돌려 넣는다. `build.html`이 같은 툴체인으로 영어 원문을 먼저 빌드해 제목 ID를 기록하고, 한국어 빌드에 입힌 뒤 `check_site.py`로 두 빌드를 비교한다. `check_titles.py`가 state에서 쪽 제목(H1·nav 레이블·내부 링크 글자)이 한 가지로 쓰였는지 검사하고 `--fix`로 맞춘다.
 
 **Tech Stack:** yeokja CLI(`mkdocs` 파서, `math = false`, `definition_lists`, `inline_tags`, `claude_code` provider, `claude-opus-5-5`), MkDocs 1.6.1 + Material 9.7.6(nixpkgs), Python 3 표준 라이브러리, Nix devShell, GitHub Actions Pages.
 
@@ -54,8 +54,19 @@
 - [x] 참조 경로와 `git ls-files` 파일명의 대소문자 불일치가 없는지 확인한다.
 - [x] 브라우저(로컬 정적 서버, `/linux-kernel-internals/` 하위 경로)에서 홈, war-stories 한 편, 표가 많은 쪽, nav, 푸터, 한국어 검색, 글자 크기를 확인하고 `ko.css`를 정한다.
 
-### Task 5: README와 배포 배선
+### Task 5: 쪽 제목 통일
+
+**Files:** Create `scripts/{check_titles.py,test_check_titles.py}`; Modify `yeokja.toml`(프롬프트의 사이트 안 링크 규칙, `[build.html]`의 검사 단계), `state/**`
+
+- [x] `scripts/check_titles.py`: 고정된 원문과 state만 읽어 `h1`·`nav`·`link`·`alias`·`latin` 규칙(spec 5절)을 검사하고, `--fix`가 nav 레이블과 링크 글자를 기준 문자열로 치환하며 뒤따르는 조사를 맞춘다. 단위 테스트 `scripts/test_check_titles.py`.
+- [x] 프롬프트 변경이 기존 세그먼트를 stale로 만들지 않음을 두 소스의 `status --check`로 확인한다.
+- [x] H1을 표기 기준(spec 5절)에 맞춰 정리하고, H1과 다른 원문 레이블의 번역을 H1의 낱말에 맞춘다.
+- [x] `check_titles.py --fix` → 남은 `latin` 위반의 링크 글자를 옮김 → `check_titles.py` 0건, 두 소스 `status --check` 통과, `evaluate --mechanical-only` 0건.
+- [x] state 대조: 세그먼트 id·`source`·`source_hash`와 번역문 밖의 필드가 그대로인지 확인한다.
+- [x] `translate`로 `ko/`·`ko-nav/`를 재조립하고 `build html`과 브라우저로 내부 링크 목록, war-stories 색인, nav와 `<h1>`이 같은지 확인한다.
+
+### Task 6: README와 배포 배선
 
 - [x] `README.md`: 범위, 라이선스, 재현 명령, 구성, 출처 표기(AGENTS.md 규칙).
-- [x] CI 재구성 순서(`sources.py extract --check` → 두 소스 `status --check` → 두 소스 `translate`)를 직접 돌려 state가 변하지 않음을 확인한다.
+- [x] CI 재구성 순서(`sources.py extract --check` → 두 소스 `status --check` → `check_titles.py` → 두 소스 `translate`)를 직접 돌려 state가 변하지 않음을 확인한다.
 - [x] 통합자에게 넘길 공유 파일 변경: `pages-projects.json`, `stage-pages.sh`, `rebuild-translations.sh` 분기, 루트 `LICENSE.md` 표 한 줄, `site/index.html` 카드.

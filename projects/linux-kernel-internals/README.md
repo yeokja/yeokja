@@ -38,13 +38,14 @@ python3 scripts/sources.py extract --check
 ../../target/release/yeokja translate nav
 ../../target/release/yeokja status --check upstream/docs
 ../../target/release/yeokja status --check nav
+python3 scripts/check_titles.py
 nix develop path:../../nix#linux-kernel-internals -c ../../target/release/yeokja build html   # dist/site
 ```
 
 `state/`는 번역의 진실의 원천이므로 커밋합니다. `ko/`, `ko-nav/`, `build/`, `dist/`는 재생성되므로
-커밋하지 않습니다. CI(`.github/scripts/rebuild-translations.sh linux-kernel-internals`)는 파생 소스와
-미번역 세그먼트를 먼저 검사한 뒤 state에서 `ko/`와 `ko-nav/`를 재구성하므로 번역 provider를 부르지
-않습니다.
+커밋하지 않습니다. CI(`.github/scripts/rebuild-translations.sh linux-kernel-internals`)는 파생 소스,
+미번역 세그먼트, 쪽 제목 통일을 먼저 검사한 뒤 state에서 `ko/`와 `ko-nav/`를 재구성하므로 번역
+provider를 부르지 않습니다.
 
 ## 구성
 
@@ -58,6 +59,12 @@ nix develop path:../../nix#linux-kernel-internals -c ../../target/release/yeokja
 - 용어: `glossary.toml`(손으로 정한 용어)과 `terms.toml`(`yeokja terms build`가 고정한 반복 용어와
   제목·레이블). `glossary_plurals = true`라 영어 규칙 복수형은 단수형 항목이 함께 맞습니다.
   huge page, transparent huge page(THP)처럼 한국어 커널 문서가 영어로 쓰는 말은 옮기지 않습니다.
+- 쪽 제목: 한 쪽의 이름은 그 쪽의 번역된 H1을 기준으로 nav 레이블과 그 쪽을 가리키는 링크의 글자까지
+  한 가지로 씁니다. `scripts/check_titles.py`가 원문과 `state/`만 읽어 이를 검사하고(원문에서 제목과
+  같은 문자열인 nav 레이블·내부 링크 글자, 반복되는 별칭, 영어로 남은 내부 링크 글자), `--fix`가 state의
+  해당 레이블과 링크 글자를 기준 문자열로 바꾸고 뒤따르는 조사를 맞춥니다. 고친 뒤에는 `yeokja
+  translate`로 `ko/`를 다시 조립합니다. H1 자체와 영어로 남은 서술형 링크 글자는 번역문을 고쳐야 합니다.
+  사이트 밖 자료(커밋·패치·기사·메일링 리스트 스레드)의 제목은 옮기지 않습니다.
 - 빌드: 같은 툴체인으로 영어 원문을 먼저 빌드하면서 `overlay/hooks/anchors.py`가 쪽마다 제목 ID를
   기록하고, 한국어 빌드에서 같은 hook이 번역된 제목에 그 ID를 입힙니다. 제목 수가 다르면 빌드가
   실패합니다. `scripts/prepare_site.py`가 원문 `mkdocs.yml`의 사이트 이름·언어·검색·푸터·nav 레이블을

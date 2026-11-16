@@ -155,6 +155,8 @@ case "$project" in
     python3 scripts/sources.py extract --check
     "$yeokja" status --check upstream/docs
     "$yeokja" status --check nav
+    # 쪽 제목·nav 레이블·내부 링크 글자가 같은 제목을 같은 번역으로 쓰는지 state만으로 봅니다.
+    python3 scripts/check_titles.py
     "$yeokja" translate upstream/docs
     "$yeokja" translate nav
     ;;

@@ -23,6 +23,7 @@ Laveesh Bansal의 *Linux Kernel Internals*(<https://kernel-internals.org/>, 저�
 - `mkdocs build --strict`로 만든 사이트가 같은 툴체인으로 만든 영어 원문 사이트와 쪽 목록,
   쪽별 블록 구조(제목·제목 ID·정의 목록·admonition·mermaid·코드 블록·표·목록 수)가 같고,
   원문 빌드에 없던 깨진 로컬 링크·앵커가 없으며, nav가 번역되어 있다.
+- 쪽 제목이 사이트 전체에서 한 가지로 쓰인다: `scripts/check_titles.py`가 0건이다(5절).
 - Pages 배포 배선, 랜딩 페이지 항목, README 출처 표기, 루트 `LICENSE.md` 항목이 갖춰져
   있다.
 
@@ -145,8 +146,16 @@ max_retries = 3`. 커스텀 `prompt_template`을 쓴다. 기본 템플릿에 없
 - 커널 식별자, 사람·회사·제품 이름은 원문 그대로다.
 - 커밋·패치·패치 시리즈의 제목과 글·발표·메일링 리스트 스레드의 제목은 고유명사로 보고
   옮기지 않는다(`("mm: fix …")`, `[LWN: The …](url)`). 독자는 이 문자열로 커밋과 글을
-  찾는다. 메일링 리스트·커밋 메시지·기사에서 인용한 **문장**은 뜻을 옮기되 따옴표와
-  식별자를 유지한다.
+  찾는다. 이 규칙은 사이트 밖의 자료에만 적용한다. 메일링 리스트·커밋 메시지·기사에서
+  인용한 **문장**은 뜻을 옮기되 따옴표와 식별자를 유지한다.
+- 같은 사이트의 쪽을 가리키는 링크의 글자는 옮긴다. 글자가 그 쪽이나 절의 제목이면 그
+  제목을 옮기는 대로 명사구 하나로 쓰고, 같은 제목은 나올 때마다 같게 쓴다. 인라인 태그
+  요청에서 provider는 링크의 글자(`<aN>…</aN>`)만 받고 목적지를 보지 못하므로, 두 종류를
+  글자로 가려내는 기준을 프롬프트에 적는다: 사이트의 쪽은 주제로 불리고(Page Allocator,
+  Memory Management: page tables, War Stories) 관련 쪽·선수 지식·다음 단계 목록과 본문의
+  "see X for …"에 나오며, 밖의 자료는 출처나 형식을 달고 나온다(LWN: …, LKML: …, Kernel
+  docs: …, 서브시스템 접두어가 붙은 제목, 저자·연도가 붙은 논문·발표, `Documentation/`
+  경로). provider가 이 기준을 어긴 결과는 `check_titles.py`가 잡는다(5절).
 - `$`는 달러 기호다. `{{`, `{%`, `{#`를 넣지 않는다. 링크뿐인 목록 항목·표 칸은 링크
   하나로 남는다. 인라인 `<br>`과 HTML 문자 참조는 그대로 둔다.
 - 짧은 표 칸·정의 목록 용어는 짧게(Yes → 예, No → 아니요), 값·단위는 그대로.
@@ -276,11 +285,12 @@ treeprocessor가 쪽(`src_uri`)마다 제목 ID를 문서 순서대로 기록해
 `[build.html]`은 조립 트리에서 다음을 차례로 한다(`outputs = ["site"]`).
 
 1. `scripts/sources.py extract --check`.
-2. 영어 기준 빌드: `upstream/docs`·`mkdocs.yml`과 hook을 `build/original-source`로 복사하고
+2. `scripts/check_titles.py`(아래 "쪽 제목 통일").
+3. 영어 기준 빌드: `upstream/docs`·`mkdocs.yml`과 hook을 `build/original-source`로 복사하고
    `prepare_site.py --english` 뒤 `ANCHOR_IDS_OUT=build/en-heading-ids.json mkdocs build
    --strict -d build/original`.
-3. 한국어 빌드: `KO_ANCHOR_IDS=build/en-heading-ids.json mkdocs build --strict -d site`.
-4. `scripts/check_site.py build/original site`:
+4. 한국어 빌드: `KO_ANCHOR_IDS=build/en-heading-ids.json mkdocs build --strict -d site`.
+5. `scripts/check_site.py build/original site`:
    - 두 빌드의 쪽 목록이 같다.
    - 쪽마다 본문(`article`)의 제목 수와 제목 ID 순서, 정의 목록(`dl`·`dt`·`dd`),
      종류별 admonition, mermaid, 코드 블록, 표·행·칸, 목록·항목, 인용 수가 같다.
@@ -289,7 +299,55 @@ treeprocessor가 쪽(`src_uri`)마다 제목 ID를 문서 순서대로 기록해
      깨진 것으로 본다(Linux CI와 같은 판정).
    - nav 레이블 중 한글이 없는 것을 나열하고(식별자·약어뿐인 레이블은 정상), 서로 다른
      레이블의 25%를 넘으면 실패한다.
-5. 원문 `LICENSE`, `LICENSE-CC-BY-SA-4.0`, `LICENSE-GPL-2.0`을 `site/`에 복사한다.
+6. 원문 `LICENSE`, `LICENSE-CC-BY-SA-4.0`, `LICENSE-GPL-2.0`을 `site/`에 복사한다.
+
+**쪽 제목 통일(`scripts/check_titles.py [--fix] [--stats]`).** 한 쪽의 이름은 세 군데에
+따로 번역된다: 그 쪽의 H1, nav 레이블, 다른 쪽이 그 쪽을 가리키는 링크의 글자. 규칙은
+"원문이 같은 문자열로 쓴 제목은 번역에서도 같은 문자열이다"이고 기준은 쪽의 번역된 H1이다.
+검사는 고정된 원문(`upstream/docs`의 제목, `mkdocs.yml`의 nav)과 `state/`만 읽으며
+빌드 결과도 provider도 쓰지 않는다. 표준 라이브러리만 쓴다.
+
+- 문자열 비교는 앞뒤 공백을 떼고, 문자열 전체를 감싼 강조·코드 스팬(`**`, `__`, `*`, `_`,
+  `` ` ``)을 벗기고, 백슬래시 이스케이프를 풀고, 공백을 하나로 줄이고, 대소문자를 접은 뒤
+  한다. 원문 링크 글자를 감싼 강조는 번역된 제목 둘레에 그대로 둔다.
+- 내부 링크는 목적지가 상대 경로 `.md`(앵커가 붙을 수 있다)이거나 `#앵커`뿐인 링크다.
+  세그먼트의 원문 링크와 번역 링크는 목적지 문자열로 짝짓고, 같은 목적지가 여러 번이면
+  순서로 짝짓는다. 번역되지 않는 쪽(`contributing.md`)과 사이트 밖을 가리키는 링크는 보지
+  않는다. 제목 ID는 Python-Markdown `toc`의 기본 slug를 같은 규칙으로 계산한다.
+- `h1`: 원문 H1이 같은 쪽들은 번역된 H1이 같다.
+- `nav`: 원문 레이블이 그 쪽의 원문 H1과 같으면 번역된 레이블은 번역된 H1이다. 그렇지 않은
+  레이블은, 그 문자열이 H1인 쪽들의 번역이 하나로 모이면 그것을 따르고, 아니면 같은 원문
+  레이블끼리 한 가지 번역을 쓴다(가장 많은 것, 같으면 nav에서 먼저 나온 것).
+- `link`: 원문 링크 글자가 앵커가 가리키는 절 제목, 대상 쪽의 H1, 대상 쪽의 nav 레이블
+  가운데 하나와 같으면(이 순서로 찾는다) 번역의 링크 글자는 그 제목의 번역이다. 원문이
+  제목을 다른 대소문자로 쓴 곳(문장 속의 소문자 언급)은 번역도 대소문자만 다를 수 있다.
+- `alias`: 대상의 제목이 아니지만 대문자나 숫자로 시작하는 링크 글자(Locking Overview,
+  Memory Management: page tables)는, 같은 대상을 같은 원문 글자로 부르는 링크끼리 한 가지
+  번역을 쓴다(가장 많은 것). 문장 성분으로 쓰인 소문자 서술형 글자(see the allocator
+  page)는 통일하지 않는다.
+- `latin`: 내부 링크의 글자가 영어로 남지 않는다. 번역이 원문 글자 그대로인 것은 다음
+  경우에만 받아들인다: 대상의 파일·디렉터리 이름인 경우(`page-allocator.md`, `mmap`),
+  대상의 번역된 H1·nav 레이블 안에 그대로 들어 있는 경우(`Direct I/O`, `Device Mapper:
+  dm-verity`), 낱말이 모두 코드 스팬·식별자나 경로의 일부(`sched_ext`, `fork()`)·대문자
+  약어·용어집이 원어로 두는 용어·번역된 제목이 소문자 그대로 쓰는 이름(mmap, fsync)인
+  경우. 같은 대상·같은 원문 글자의 다른 링크에 번역이 있으면 `alias`로 그 번역을 따른다.
+- `--fix`는 치환으로 정해지는 위반(`nav`, `link`, `alias`)을 state에서 고친다. nav
+  레이블은 번역 전체를, 링크는 글자만 기준 문자열로 바꾸고, 링크 바로 뒤에 붙은 조사
+  (은/는, 이/가, 을/를, 와/과, 로/으로)를 새 글자의 받침에 맞춘다. 받침은 닫는 괄호 묶음과
+  강조 표시를 뗀 마지막 글자로 정하고(한글·숫자), 라틴 문자로 끝나 정할 수 없으면 조사를
+  그대로 둔다. state 파일의 다른 바이트(다른 필드, `translated_at`, 서식)는 바뀌지 않는다.
+  고친 뒤 `yeokja translate`가 provider 없이 `ko/`를 다시 조립한다.
+- `h1`과 `latin`은 번역이 필요하므로 `--fix`가 고치지 않는다. 해당 세그먼트를 다시
+  번역하거나 번역문을 고친다. H1을 고치면 `--fix`가 nav 레이블과 링크 글자를 따라 맞춘다.
+- H1 표기 기준: 용어집을 따른다(경쟁 상태, 파라미터, 관측 가능성, cgroup·sysctl은 소문자).
+  한글 뒤의 여는 괄호는 붙여 쓴다(`메모리 관리(mm/)`). 번역어 뒤에 원어를 괄호로 덧붙이지
+  않되 약어 풀이는 둔다(`FUSE: 사용자 공간 파일시스템(Filesystems in Userspace)`). 비교는
+  "대"로 쓴다(`io_uring 대 epoll`). 나열에 "그리고"를 넣지 않는다. 질문형 제목은
+  합쇼체(~습니까?)로 쓴다. 제목 속의 일반 낱말은 소문자 원어로 둔다(`KVM exit 처리`,
+  `clocksource와 clockevent 드라이버`).
+- 수치: 내부 링크 2,967개 가운데 제목 링크 1,900개, 그 밖 1,064개(그중 통일 대상 별칭
+  371개), 번역되지 않는 쪽을 가리키는 것 3개. nav 레이블 580개 가운데 그 쪽의 H1과 같은
+  것 227개.
 
 빌드 툴체인은 `nix/projects/linux-kernel-internals.nix`(`mkdocs`, `mkdocs-material`,
 `pymdown-extensions`, `markdown`)다. 원문의 `requirements.txt` 고정(Material 9.7.7)이
@@ -309,7 +367,10 @@ treeprocessor가 쪽(`src_uri`)마다 제목 ID를 문서 순서대로 기록해
 4. `nix develop path:../../nix#linux-kernel-internals -c ../../target/release/yeokja build
    html`, `check_site.py`, 브라우저 확인(홈, war-stories 한 편, 표가 많은 쪽, nav, 푸터,
    한국어 검색, 글자 크기).
-5. README, 배포 배선(공유 파일: `pages-projects.json`, `stage-pages.sh`,
+5. 쪽 제목 통일: H1을 표기 기준에 맞춰 정리 → `check_titles.py --fix` → 남은 `latin`
+   위반의 링크 글자를 옮김 → `check_titles.py` 0건 → `evaluate --mechanical-only` 0건 →
+   `translate`로 재조립.
+6. README, 배포 배선(공유 파일: `pages-projects.json`, `stage-pages.sh`,
    `rebuild-translations.sh`, 루트 `LICENSE.md`, `site/index.html`).
 
 ## 라이선스
@@ -334,19 +395,23 @@ treeprocessor가 쪽(`src_uri`)마다 제목 ID를 문서 순서대로 기록해
 "projects/linux-kernel-internals/dist"`를 더하고 `stage-pages.sh`에 `overlay_site
 "dist-linux-kernel-internals" "site" "linux-kernel-internals"`을 더한다.
 `rebuild-translations.sh`의 분기는 `scripts/sources.py extract --check` → 두 소스의
-`status --check` → 두 소스의 `translate`다. 재구성 전에 확인하므로 CI가 provider를 부르지
-않고, 원문이 새로 더한 쪽이 state 없이 빠지는 경우도 배포를 막는다.
+`status --check` → `scripts/check_titles.py` → 두 소스의 `translate`다. 재구성 전에
+확인하므로 CI가 provider를 부르지 않고, 원문이 새로 더한 쪽이 state 없이 빠지는 경우와
+새로 번역된 제목·링크 글자가 통일 규칙을 어긴 경우도 배포를 막는다.
 
 ## 되짚을 수 있는 결정
 
 - **huge page를 옮기지 않음.** 번역어를 쓰려면 `glossary.toml`의 `huge page`·`huge-page`와
   `terms.toml`의 `transparent huge page`를 고치고 프롬프트의 해당 규칙을 뺀 뒤
   `glossary adopt` → `translate`를 돌린다.
-- **쪽 사이 링크의 글자.** 다른 쪽을 가리키는 링크의 글자가 그 쪽의 영어 제목 그대로 남은
-  곳이 있다(프롬프트의 "글 제목은 옮기지 않는다" 규칙이 사이트 안의 쪽 제목에도 적용된
-  경우). 용어 검사는 이를 원문 그대로 둔 구간으로 읽어 지나간다. 번역된 쪽 제목으로
-  맞추려면 프롬프트에 "같은 사이트의 `.md` 쪽을 가리키는 링크의 글자는 번역한다"를 더하고
-  해당 세그먼트를 다시 번역한다.
+- **쪽 제목의 기준은 번역된 H1.** nav 레이블과 링크 글자가 H1을 따른다
+  (`check_titles.py`, 5절). 쪽 이름을 바꾸려면 그 쪽의 H1 번역을 고치고
+  `check_titles.py --fix` → `translate`를 돌린다. nav 레이블을 기준으로 삼으려면 검사의
+  기준 선택(`check`의 `nav`·`link` 규칙)을 바꾼다.
+- **제목이 아닌 서술형 링크 글자.** 대문자로 시작하는 별칭만 통일하고 문장 속 소문자
+  글자는 곳마다 문맥에 맞게 둔다. 이것까지 통일하려면 `alias` 규칙의 조건을 넓힌다.
+- **절 제목.** 쪽마다 반복되는 절 제목(Further reading 등)은 `terms.toml`의 `[whole]`이
+  맡고, `check_titles.py`는 `#앵커` 링크가 가리키는 절 제목만 본다.
 - **커밋·글 제목을 옮기지 않음.** 제목까지 한국어로 읽히길 원하면 프롬프트 규칙을 빼고
   해당 세그먼트를 다시 번역한다.
 - **"War Stories" = "실전 사례".** 바꾸려면 `glossary.toml`의 `terms`·`whole` 두 항목을
@@ -357,8 +422,5 @@ treeprocessor가 쪽(`src_uri`)마다 제목 ID를 문서 순서대로 기록해
   `prepare_site.py`의 안내 줄을 없앤다.
 - **Material 9.7.6.** 원문 고정(9.7.7)과 패치 버전이 다르다. 영어 기준 빌드도 같은
   툴체인으로 만들므로 비교에는 영향이 없다.
-- **nav 레이블과 쪽 제목.** 따로 번역되므로 같은 쪽의 nav 레이블과 `<h1>`이 다른 말로
-  옮겨질 수 있다(원문도 둘이 다른 쪽이 많다). 원문에서 둘이 같은 쪽만 번역된 `<h1>`을
-  nav에 쓰게 하려면 `prepare_site.py`의 nav 주입에서 맞춘다.
 - **사이트 크기.** 쪽마다 전체 nav를 담아 산출물이 약 165MB다(영어 빌드 159MB). 줄여야
   하면 `prepare_site.py`에서 Material의 `navigation.prune`을 켠다.
