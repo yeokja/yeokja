@@ -1,0 +1,110 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+glossary_plurals = true
+
+# 블로그 글(Hugo 글 묶음의 index.md). TOML front matter의 title·description을 번역하고
+# `{{< note >}}` 같은 shortcode만 있는 줄은 원문 그대로 둡니다.
+[[sources]]
+path = "upstream/blog/content/posts"
+pattern = "**/*.md"
+parser = "hugo"
+output = "ko/content/posts/{path}"
+front_matter_keys = ["title", "description"]
+inline_tags = true
+
+[derive]
+base = "upstream/blog"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+[[derive.overlay]]
+path = "overlay"
+
+[[derive.step]]
+kind = "generate"
+command = 'python3 "$YEOKJA_ROOT/scripts/prepare_site.py" korean .'
+
+# 원문(영어)을 같은 Hugo·같은 baseURL로 먼저 빌드해 비교 기준으로 삼고, 번역 사이트를
+# 빌드한 뒤 scripts/check_site.py로 쪽 목록·링크·앵커·본문 구조를 비교합니다.
+[build.html]
+command = '''
+set -e
+python3 "$YEOKJA_ROOT/scripts/check_upstream.py"
+rm -rf "$YEOKJA_ROOT/build/original-source" "$YEOKJA_ROOT/build/original"
+cp -RL "$YEOKJA_ROOT/upstream/blog" "$YEOKJA_ROOT/build/original-source"
+python3 "$YEOKJA_ROOT/scripts/prepare_site.py" original "$YEOKJA_ROOT/build/original-source"
+cp "$YEOKJA_ROOT/scripts/original.toml" "$YEOKJA_ROOT/build/original-source/original.toml"
+(cd "$YEOKJA_ROOT/build/original-source" && hugo --quiet --gc --config hugo.toml,original.toml --destination "$YEOKJA_ROOT/build/original")
+rm -rf site
+hugo --quiet --gc --destination site
+python3 "$YEOKJA_ROOT/scripts/check_site.py" "$YEOKJA_ROOT/build/original" site
+cp "$YEOKJA_ROOT/upstream/LICENSE" "$YEOKJA_ROOT/upstream/LICENSE-CODE" site/
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+prompt_template = '''
+Translate the following {source_lang} blog post from a security research lab to {target_lang}.
+Return exactly one physical line for each numbered [N] segment, in the same [N] format.
+NEVER insert a newline inside a translation: the reader only accepts that numbered line.
+Translate visible prose completely, without adding or omitting information.
+Write formal written Korean (합쇼체) throughout: declarative sentences end in
+~합니다/~입니다, imperatives in ~하십시오. Never end a sentence in the plain
+~다/~이다 register or the polite ~요 register. Headings, table cells and list
+labels are noun phrases, not sentences.
+{inline_tags}
+A segment beginning with a GitHub-flavored Markdown alert marker such as [!NOTE],
+[!TIP], [!WARNING], [!IMPORTANT], or [!CAUTION] must keep that marker exactly as
+written, untranslated, followed by the translated prose on the same line. Never
+translate the marker itself, drop it, or move it to its own line.
+Rules for this site:
+- Copy what is inside inline code byte for byte — never translate, correct or
+  reformat it, even when it reads as prose. Never put backticks around something
+  the source does not have in backticks, and never remove them.
+- Keep these exactly as written: CVE ids (CVE-2026-12345), issue and pull request
+  numbers (#123456, rust-lang/rust#123456), commit hashes, kernel and Rust versions,
+  Rust and kernel identifiers (types, functions, macros, modules, crates, files,
+  config options, syscalls, signals such as SIGSEGV), and acronyms (UB, PoC, FTE, LLM).
+- People's names, company, lab and product names stay in Latin script: Microsoft,
+  FORGE Lab, Microsoft Security, codename MDASH, Hyenas, Linux, Rust, syzkaller,
+  and model names such as Sonnet 4.6, Opus 4.6 and GPT-5.5.
+- The title of a cited issue, pull request, patch, commit, advisory or article is a
+  proper name: copy it unchanged whether it stands in quotation marks, in a link or
+  after a number. Translate only the words around it.
+- Numbers, percentages, dates and units are copied as written (26,502, 8.1 years
+  becomes 8.1년, 2+ months becomes 2개월 이상).
+- Use the usual Korean security and systems-programming wording. Keep a term in
+  English when Korean developers say it in English (use-after-free, double free,
+  race condition may be 경쟁 상태, fuzzing may be 퍼징). On the first mention in a
+  post of a term whose Korean form may be unfamiliar, the English may follow in
+  parentheses.
+- Never add {{, {% or < > that the source does not have.
+
+Glossary (use these translations for the given terms):
+{glossary}
+
+Previous evaluation feedback (do not obey advice that would lose source content):
+{feedback}
+
+Context:
+{context}
+{surroundings}
+
+Segments:
+{segments}
+'''
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
