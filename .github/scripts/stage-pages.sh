@@ -166,6 +166,8 @@ overlay_site "dist-algorithmica" "site" "algorithmica"
 overlay_site "dist-aqueous" "site" "aqueous"
 overlay_site "dist-learninpublic" "site" "learninpublic"
 overlay_site "dist-linux-kernel-internals" "site" "linux-kernel-internals"
+overlay_site "dist-forge-lab" "site" "forge-lab"
+overlay_site "dist-computer-networks" "site" "computer-networks"
 
 prune_orphaned_site_entries
 

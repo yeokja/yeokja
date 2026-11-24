@@ -66,6 +66,18 @@ case "$project" in
     "$yeokja" translate upstream/src
     "$yeokja" status --check upstream/src
     ;;
+  computer-networks)
+    # 원문 RST 전체(upstream)를 재구성 전에 확인해 CI가 provider를 부르지 않게 하고,
+    # 원문이 새로 더한 파일이 state 없이 빠지는 경우도 배포를 막습니다.
+    "$yeokja" status --check upstream
+    "$yeokja" translate upstream
+    ;;
+  forge-lab)
+    # Hugo 블로그 글 전체(소스 규칙 하나)를 재구성 전에 확인해 CI가 provider를 부르지 않게 하고,
+    # 원문이 새로 더한 글이 state 없이 빠지는 것도 막습니다.
+    "$yeokja" status --check upstream/blog/content/posts
+    "$yeokja" translate upstream/blog/content/posts
+    ;;
   furiosa-opt)
     # docs/ mdBook 책 전체를 한 번에 확인해 upstream이 새로 추가한 문서가
     # state 없이 빠지는 경우도 배포를 막습니다.

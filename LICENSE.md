@@ -31,8 +31,10 @@ yeokja로 만든 번역 결과물에는 이 라이선스가 적용되지 않습�
 | `aqueous` | 공개 도메인 헌정(불가능한 곳에서는 MIT-0) |
 | `chip8-book` | CC0 1.0 |
 | `chisel-book` | CC BY-SA 4.0 |
+| `computer-networks` | CC BY 4.0 (Peterson & Davie 2026; 이전 판 내용 © Elsevier 2012, CC BY 4.0); 번역물 CC BY 4.0 |
 | `cp-algorithms` | CC BY-SA 4.0 |
 | `cpython-devguide` | CC0 1.0 |
+| `forge-lab` | 글 CC BY 4.0, 코드·템플릿 MIT(LICENSE-CODE); 장식 그림은 이용 허락이 불분명해 싣지 않음; 번역물 CC BY 4.0 |
 | `fp-lean` | CC BY 4.0 |
 | `furiosa-opt` | Apache-2.0 |
 | `hott` | CC BY-SA 3.0 |
