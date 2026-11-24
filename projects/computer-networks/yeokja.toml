@@ -1,0 +1,56 @@
+[project]
+source_lang = "en"
+target_lang = "ko"
+glossary = "glossary.toml"
+state_dir = "state"
+# 용어의 영어 규칙 복수형(packets, switches, datacenters)도 그 용어로 읽습니다.
+glossary_plurals = true
+
+# 장 문서(최상위 *.rst)는 하위 디렉터리의 절 파일을 `.. include::`로 엮습니다.
+# conf.py가 빌드에서 빼는 CONTRIBUTING.rst와 `*/README.rst`(resources/README.rst)는
+# 독자에게 보이지 않으므로 번역하지 않습니다. 최상위 README.rst는 목차의
+# "About This Book"이므로 번역합니다.
+[[sources]]
+path = "upstream"
+pattern = "**/*.rst"
+exclude = ["CONTRIBUTING.rst", "resources/README.rst"]
+parser = "rst"
+output = "ko/{path}"
+
+[derive]
+base = "upstream"
+
+[[derive.overlay]]
+path = "ko"
+require_base = true
+
+# conf.py에 한국어 설정 블록을 덧붙이고(언어, 그림·표 번호 형식, 제목, 번역 고지,
+# 맞춤법·여러 버전 확장 제거, Google Analytics 제거, 영어 앵커 유지),
+# 목차에 직접 적힌 "Table of Contents"·"Acronym Glossary" 레이블을 옮깁니다.
+[[derive.step]]
+kind = "generate"
+command = '''python3 "$YEOKJA_ROOT/scripts/prepare.py" .'''
+
+# `nix develop path:../../nix#computer-networks`의 devShell이 upstream
+# requirements.txt를 build/venv에 설치하고 PATH 앞에 둡니다. 원문 영어 빌드가
+# 경고 0건이므로 경고를 오류로 다룹니다.
+[build.html]
+command = '''
+set -e
+sphinx-build -M html . _build --fail-on-warning --keep-going
+mv _build/html site
+'''
+outputs = ["site"]
+
+[provider]
+type = "claude_code"
+model = "claude-opus-5-5"
+
+[evaluation]
+auto_evaluate = true
+style_evaluate = false
+max_retries = 3
+
+[translation]
+concurrency = 6
+batch_segments = 32
