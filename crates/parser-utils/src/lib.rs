@@ -3,7 +3,7 @@ mod sentence;
 mod width;
 
 pub use reflinks::{definition_labels, resolve_reference_links};
-pub use sentence::split_sentences;
+pub use sentence::{split_markdown_sentences, split_sentences};
 pub use width::{display_width, is_wide, split_at_safe_space};
 
 use yeokja_core::hash::content_hash;
@@ -17,7 +17,22 @@ pub fn make_segments(
     section_idx: usize,
     block_idx: usize,
 ) -> Vec<Segment> {
-    split_sentences(text)
+    segments_of(split_sentences(text), block_type, section_idx, block_idx)
+}
+
+/// [`make_segments`] for Markdown, split with [`split_markdown_sentences`]
+/// so that no segment boundary falls inside a link or image.
+pub fn make_markdown_segments(
+    text: &str,
+    block_type: BlockType,
+    section_idx: usize,
+    block_idx: usize,
+) -> Vec<Segment> {
+    segments_of(split_markdown_sentences(text), block_type, section_idx, block_idx)
+}
+
+fn segments_of(sentences: Vec<String>, block_type: BlockType, section_idx: usize, block_idx: usize) -> Vec<Segment> {
+    sentences
         .into_iter()
         .enumerate()
         .map(|(seg_i, sent)| {

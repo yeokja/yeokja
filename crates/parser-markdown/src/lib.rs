@@ -1,3 +1,6 @@
+mod hugo;
+
+pub use hugo::HugoParser;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
 use yeokja_parser_markdown_dialect::parse_with;
@@ -45,6 +48,25 @@ mod tests {
         assert_eq!(segments.len(), 2);
         assert_eq!(segments[0].source, "Hello world.");
         assert_eq!(segments[1].source, "Goodbye world.");
+    }
+
+    /// forge-lab: an image description of several sentences was cut into
+    /// segments that each held half of the `![…](…)`.
+    #[test]
+    fn image_description_of_several_sentences_is_one_segment() {
+        let source = "Before.\n\n![Diagram: one column of memory. The handler runs\nwhile it is still registered.](stack-overflow.svg)\n\nAfter [one. Two](x) here. Next.\n";
+        let doc = MarkdownParser.parse(source);
+        let sources: Vec<_> = doc.translatable_segments().iter().map(|s| s.source.clone()).collect();
+        assert_eq!(
+            sources,
+            [
+                "Before.",
+                "![Diagram: one column of memory. The handler runs while it is still registered.](stack-overflow.svg)",
+                "After [one. Two](x) here.",
+                "Next."
+            ]
+        );
+        assert_eq!(MarkdownParser.reconstruct(&doc, &Default::default()), source);
     }
 
     #[test]

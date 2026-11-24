@@ -23,6 +23,9 @@ pub fn select_parser(file_path: &Path, config: &ProjectConfig) -> Box<dyn Docume
                 .unwrap_or_default(),
             );
         }
+        if source.parser == "hugo" {
+            return Box::new(yeokja_parser_markdown::HugoParser::configured(&source.front_matter_keys));
+        }
         if source.parser == "mkdocs" {
             return Box::new(yeokja_parser_mkdocs::MkdocsParser::configured(
                 source.mkdocs_math(),
@@ -72,6 +75,7 @@ fn parser_by_name(
         )),
         "myst" => Box::new(yeokja_parser_myst::MystParser),
         "mkdocs" => Box::new(yeokja_parser_mkdocs::MkdocsParser::default()),
+        "hugo" => Box::new(yeokja_parser_markdown::HugoParser::default()),
         "rmarkdown" => Box::new(yeokja_parser_rmarkdown::RmarkdownParser::default()),
         "bikeshed" => Box::new(yeokja_parser_bikeshed::BikeshedParser),
         "csv" => Box::new(yeokja_parser_csv::CsvParser),
@@ -244,6 +248,31 @@ model = "gpt-4o"
                 .source,
             "Hello."
         );
+    }
+
+    #[test]
+    fn source_config_selects_hugo_parser_with_its_front_matter_keys() {
+        let toml = r#"
+[project]
+source_lang = "en"
+target_lang = "ko"
+
+[[sources]]
+path = "upstream/blog/content"
+pattern = "posts/**/*.md"
+parser = "hugo"
+output = "ko/{path}"
+front_matter_keys = ["title", "description"]
+
+[provider]
+type = "openai_compatible"
+model = "gpt-4o"
+"#;
+        let config = ProjectConfig::from_toml(toml).unwrap();
+        let parser = select_parser(Path::new("upstream/blog/content/posts/a/index.md"), &config);
+        let source = "+++\ntitle = \"T\"\nslug = \"s\"\n+++\n\n{{< note >}}\nBody.\n{{< /note >}}\n";
+        let segments: Vec<_> = parser.parse(source).translatable_segments().iter().map(|s| s.source.clone()).collect();
+        assert_eq!(segments, ["T", "Body."]);
     }
 
     #[test]
@@ -457,7 +486,7 @@ mod registry_tests {
         let probe = Path::new("doc.unknown-ext");
         for name in PARSER_NAMES {
             let markup = parser_by_name(name, probe, Some("")).markup();
-            let markdown_family = matches!(*name, "markdown" | "myst" | "mdx" | "markdeep");
+            let markdown_family = matches!(*name, "markdown" | "hugo" | "myst" | "mdx" | "markdeep");
             assert_eq!(
                 markup == Markup::Markdown,
                 markdown_family,

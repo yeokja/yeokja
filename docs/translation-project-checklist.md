@@ -36,6 +36,12 @@
   `docs/superpowers/specs/2026-11-15-mkdocs-def-list-and-math-option-design.md`).
   admonition·details 머리는 Python-Markdown이 받는 대로 공백 없이 쓴 꼴(`!!!note`,
   `???+tip "제목"`)도 읽으므로 원문을 정규화한 사본을 둘 필요가 없습니다.
+- Hugo 사이트(`parser = "hugo"`)는 TOML(`+++`)·YAML(`---`) 프런트매터와 단축 코드만 있는
+  줄(`{{< note >}}`, `{{< /note >}}`)을 원문 그대로 두고 본문을 `markdown`과 같게 읽습니다.
+  프런트매터에서 번역할 키는 `front_matter_keys = ["title", "description"]`처럼 적은
+  것만 번역하며(기본값 없음; `slug`·`aliases` 같은 값은 넣지 않습니다), 번역은 유효한
+  TOML/YAML 문자열로 돌아갑니다(설계는
+  `docs/superpowers/specs/2026-11-24-hugo-markdown-front-matter-and-link-split-design.md`).
 - `[provider]`에 실제로 쓸 provider/model을 명시합니다. 나중에 provider를
   다른 프로젝트와 통일하려고 바꾸더라도, **이미 번역된 세그먼트는 재번역되지
   않는 한 원래 모델의 결과물로 남는다**는 점을 감안해 README 출처 표기 시점에
@@ -43,7 +49,7 @@
 - 인라인 태그 전송(`inline_tags = true`, 설계는
   `docs/superpowers/specs/2026-09-22-inline-tag-transport-design.md`와 같은 날짜의 1b
   문서)을 켭니다. 켤 수 있는 소스: mdBook처럼 `$` 수식이 없는 CommonMark 렌더러로
-  빌드하는 `markdown` 소스, `dollarmath`·`amsmath`를 켜지 않은 `myst` 소스, remark-math
+  빌드하는 `markdown`·`hugo` 소스, `dollarmath`·`amsmath`를 켜지 않은 `myst` 소스, remark-math
   없이 빌드하는 `mdx` 소스, `rmarkdown` 소스(수식·참조·인용은 원자로 간다), `bikeshed` 소스(자동 링크는 링크 태그, `[[…]]`·`|var|`는 글자), `math = false`인 `mkdocs` 소스(수식을 켠 `mkdocs` 소스에는 켤 수 없습니다). 강조·링크·MyST 역할의 레이블은 태그로 주고받고 문법은
   직렬화기가 쓰므로 조사 앞 강조·코드 스팬 변경·링크 손실 같은 결함이 구조적으로 생기지
   않습니다. XML 어휘 파서(`xhtml`, `cnxml`, `pretext`;

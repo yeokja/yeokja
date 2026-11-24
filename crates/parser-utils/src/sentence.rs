@@ -41,6 +41,22 @@ const SENTENCE_OPENERS: &[&str] = &[
 ];
 
 pub fn split_sentences(text: &str) -> Vec<String> {
+    split(text, false)
+}
+
+/// [`split_sentences`] for Markdown: punctuation inside an inline link or
+/// image (`[text](url)`, `![alt](src)`) or a full or collapsed reference link
+/// (`[text][ref]`, `[text][]`) never ends a sentence, so an image description
+/// or link text of several sentences stays in one segment with its brackets
+/// balanced. A span opens at a `[` outside code spans that is not escaped and
+/// counts only when it closes: the text's `]` (brackets nested, code spans
+/// and escapes skipped) followed right away by a destination `(…)`
+/// (parentheses nested, `<…>` and `"…"` skipped) or a label `[…]`.
+pub fn split_markdown_sentences(text: &str) -> Vec<String> {
+    split(text, true)
+}
+
+fn split(text: &str, links: bool) -> Vec<String> {
     if text.trim().is_empty() {
         return Vec::new();
     }
@@ -73,6 +89,19 @@ pub fn split_sentences(text: &str) -> Vec<String> {
             current.extend(&chars[i..i + run]);
             i += run;
             continue;
+        }
+
+        if links && open_markup.is_none() && !is_escaped(&chars, i) {
+            let open = match chars[i] {
+                '[' => Some(i),
+                '!' if chars.get(i + 1) == Some(&'[') => Some(i + 1),
+                _ => None,
+            };
+            if let Some(end) = open.and_then(|open| link_end(&chars, open)) {
+                current.extend(&chars[i..end]);
+                i = end;
+                continue;
+            }
         }
 
         current.push(chars[i]);
@@ -137,6 +166,100 @@ pub fn split_sentences(text: &str) -> Vec<String> {
     }
 
     sentences
+}
+
+/// Whether the character at `at` follows an odd run of backslashes.
+fn is_escaped(chars: &[char], at: usize) -> bool {
+    chars[..at].iter().rev().take_while(|&&c| c == '\\').count() % 2 == 1
+}
+
+/// The end (exclusive) of the link whose text opens with the `[` at `open`,
+/// when it is an inline link or a full or collapsed reference link.
+fn link_end(chars: &[char], open: usize) -> Option<usize> {
+    let len = chars.len();
+    let mut j = open + 1;
+    let mut depth = 1;
+    while j < len {
+        match chars[j] {
+            '\\' => j += 1,
+            '`' => {
+                let run = backtick_run_len(chars, j);
+                j = code_span_end(chars, j + run, run).unwrap_or(j + run);
+                continue;
+            }
+            '[' => depth += 1,
+            ']' => {
+                depth -= 1;
+                if depth == 0 {
+                    break;
+                }
+            }
+            _ => {}
+        }
+        j += 1;
+    }
+    if j >= len {
+        return None;
+    }
+    let after = j + 1;
+    match chars.get(after) {
+        Some('(') => {
+            let mut k = after + 1;
+            let mut depth = 1;
+            while k < len {
+                match chars[k] {
+                    '\\' => k += 1,
+                    c @ ('<' | '"') => {
+                        let close = if c == '<' { '>' } else { '"' };
+                        if let Some(n) = chars[k + 1..].iter().position(|&x| x == close) {
+                            k += n + 1;
+                        }
+                    }
+                    '(' => depth += 1,
+                    ')' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return Some(k + 1);
+                        }
+                    }
+                    _ => {}
+                }
+                k += 1;
+            }
+            None
+        }
+        Some('[') => {
+            let mut k = after + 1;
+            while k < len {
+                match chars[k] {
+                    '\\' => k += 1,
+                    '[' => return None,
+                    ']' => return Some(k + 1),
+                    _ => {}
+                }
+                k += 1;
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+/// The end of a code span whose opening run of `run` backticks ends at
+/// `from`: past the next run of exactly `run` backticks.
+fn code_span_end(chars: &[char], mut from: usize, run: usize) -> Option<usize> {
+    while from < chars.len() {
+        if chars[from] == '`' {
+            let n = backtick_run_len(chars, from);
+            if n == run {
+                return Some(from + n);
+            }
+            from += n;
+        } else {
+            from += 1;
+        }
+    }
+    None
 }
 
 /// Number of consecutive backticks starting at `start`.
@@ -434,5 +557,66 @@ mod tests {
                 "Then start."
             ]
         );
+    }
+
+    #[test]
+    fn image_description_with_several_sentences_stays_whole() {
+        let text = "![Diagram: one column of memory. The handler runs. It is still registered.](stack-overflow.svg)";
+        assert_eq!(split_markdown_sentences(text), vec![text]);
+        let text = "See below. Then ![A. B. C.](x.svg) more text here. Next one.";
+        assert_eq!(
+            split_markdown_sentences(text),
+            vec!["See below.", "Then ![A. B. C.](x.svg) more text here.", "Next one."]
+        );
+    }
+
+    #[test]
+    fn link_text_and_reference_links_are_not_split() {
+        assert_eq!(
+            split_markdown_sentences("Read [the first step. Then more](https://x.org/a_(b)) now. Next."),
+            vec!["Read [the first step. Then more](https://x.org/a_(b)) now.", "Next."]
+        );
+        assert_eq!(
+            split_markdown_sentences("See [step one. Step two][ref] here. And [a. B][] too. Done."),
+            vec!["See [step one. Step two][ref] here.", "And [a. B][] too.", "Done."]
+        );
+        // Nested brackets and a code span holding a bracket inside the text.
+        assert_eq!(
+            split_markdown_sentences("Use [a [b. C] `]` d. E](u \"t. (x)\") ok. Next."),
+            vec!["Use [a [b. C] `]` d. E](u \"t. (x)\") ok.", "Next."]
+        );
+        // An angle-bracket destination may hold a lone parenthesis.
+        assert_eq!(
+            split_markdown_sentences("A [b. C](<x)y>) d. Next."),
+            vec!["A [b. C](<x)y>) d.", "Next."]
+        );
+    }
+
+    #[test]
+    fn brackets_that_are_no_link_still_split() {
+        // Unclosed, a space before the destination, a shortcut reference.
+        for text in [
+            "An open [bracket. Then a sentence. Done.",
+            "Array [1. Two] (see. Next) here.",
+            "Short [cut. Ref] here.",
+            "Unclosed [a. B](x here. Next.",
+        ] {
+            assert_eq!(split_markdown_sentences(text), split_sentences(text), "{text}");
+        }
+        // A bracket inside a code span opens nothing.
+        assert_eq!(
+            split_markdown_sentences("Index `a[0` here. Then `](x)` there."),
+            vec!["Index `a[0` here.", "Then `](x)` there."]
+        );
+        // An escaped bracket opens nothing either.
+        assert_eq!(
+            split_markdown_sentences("Lit \\[a. B](x) c."),
+            vec!["Lit \\[a.", "B](x) c."]
+        );
+    }
+
+    #[test]
+    fn plain_splitter_still_splits_inside_brackets() {
+        assert_eq!(split_sentences("[A. B](x)"), vec!["[A.", "B](x)"]);
     }
 }

@@ -193,13 +193,15 @@ pub struct SourceConfig {
     /// a span inside a translated sentence travels with the sentence.
     #[serde(default)]
     pub inline_code_captures: Vec<String>,
-    /// `rmarkdown` only: dotted key paths into the YAML front matter
-    /// (`summary.sentence`) whose values are offered as paragraphs, next to
-    /// the built-in `title`, `subtitle` and `description`. A path is matched
+    /// `rmarkdown` and `hugo` only: dotted key paths into the front matter
+    /// (`summary.sentence`) whose values are offered as paragraphs. `rmarkdown`
+    /// offers them next to its built-in `title`, `subtitle` and
+    /// `description`; `hugo` offers only these. In YAML a path is matched
     /// against the indentation structure: a top-level key, then a
     /// more-indented child key. An `&anchor` before the value stays outside
     /// the offered text; a block scalar (`|`, `>`) or an alias (`*name`) is
-    /// not offered.
+    /// not offered. In TOML (`hugo`) a path is the `[table]` header's keys
+    /// and the line's dotted key; only one-line strings are offered.
     #[serde(default)]
     pub front_matter_keys: Vec<String>,
     /// `mkdocs` only: whether the site enables pymdownx.arithmatex, so that
@@ -222,7 +224,10 @@ pub struct SourceConfig {
 /// use them. A `mkdocs` source may too, when it reads no math (see
 /// [`SourceConfig::supports_inline_tags`]).
 pub const INLINE_TAG_PARSERS: &[&str] =
-    &["markdown", "myst", "mdx", "rmarkdown", "bikeshed", "xhtml", "cnxml", "pretext"];
+    &["markdown", "hugo", "myst", "mdx", "rmarkdown", "bikeshed", "xhtml", "cnxml", "pretext"];
+
+/// The parsers that read [`SourceConfig::front_matter_keys`].
+pub const FRONT_MATTER_KEY_PARSERS: &[&str] = &["rmarkdown", "hugo"];
 
 /// The parsers that read an XML vocabulary (XHTML, OpenStax CNXML, PreTeXt).
 /// Their sources always exchange inline markup as tags.
@@ -236,6 +241,7 @@ pub const PARSER_NAMES: &[&str] = &[
     "asciidoc",
     "markdeep",
     "markdown",
+    "hugo",
     "mdx",
     "rst",
     "pep",
@@ -502,9 +508,9 @@ impl ProjectConfig {
                     )));
                 }
             }
-            if !source.front_matter_keys.is_empty() && source.parser != "rmarkdown" {
+            if !source.front_matter_keys.is_empty() && !FRONT_MATTER_KEY_PARSERS.contains(&source.parser.as_str()) {
                 return Err(ConfigError::Invalid(format!(
-                    "source {} sets front_matter_keys, which only the rmarkdown parser reads",
+                    "source {} sets front_matter_keys, which only the rmarkdown and hugo parsers read",
                     source.path
                 )));
             }
@@ -1041,19 +1047,29 @@ model = "sonnet"
     }
 
     #[test]
-    fn front_matter_keys_are_for_rmarkdown_and_name_dotted_paths() {
+    fn front_matter_keys_are_for_rmarkdown_and_hugo_and_name_dotted_paths() {
         let keys = r#"front_matter_keys = ["summary.sentence", "summary.paragraph"]"#;
-        let config = ProjectConfig::from_toml(&source_config("rmarkdown", keys)).unwrap();
-        assert_eq!(config.sources[0].front_matter_keys, ["summary.sentence", "summary.paragraph"]);
+        for parser in ["rmarkdown", "hugo"] {
+            let config = ProjectConfig::from_toml(&source_config(parser, keys)).unwrap();
+            assert_eq!(config.sources[0].front_matter_keys, ["summary.sentence", "summary.paragraph"]);
+        }
         let config = ProjectConfig::from_toml(&source_config("markdown", "")).unwrap();
         assert!(config.sources[0].front_matter_keys.is_empty());
         let error = ProjectConfig::from_toml(&source_config("markdown", keys)).unwrap_err();
-        assert!(error.to_string().contains("only the rmarkdown parser"), "{error}");
+        assert!(error.to_string().contains("only the rmarkdown and hugo parsers"), "{error}");
         for bad in ["\"\"", "\"summary.\"", "\".sentence\"", "\"a..b\""] {
-            let error =
-                ProjectConfig::from_toml(&source_config("rmarkdown", &format!("front_matter_keys = [{bad}]"))).unwrap_err();
-            assert!(error.to_string().contains("invalid front_matter_keys"), "{bad}: {error}");
+            for parser in ["rmarkdown", "hugo"] {
+                let error =
+                    ProjectConfig::from_toml(&source_config(parser, &format!("front_matter_keys = [{bad}]"))).unwrap_err();
+                assert!(error.to_string().contains("invalid front_matter_keys"), "{bad}: {error}");
+            }
         }
+    }
+
+    #[test]
+    fn hugo_sources_may_use_inline_tags() {
+        let toml = source_config("hugo", "inline_tags = true");
+        assert!(ProjectConfig::from_toml(&toml).unwrap().sources[0].uses_inline_tags());
     }
 
     #[test]

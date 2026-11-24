@@ -44,8 +44,15 @@ use std::sync::LazyLock;
 use yeokja_core::hash::content_hash;
 use yeokja_core::model::*;
 use yeokja_core::parser::{DocumentParser, Markup, TranslationMap};
+use yeokja_parser_markdown_dialect::front_matter::{
+    escape_quote, key_paths, quote_yaml, yaml_front_matter, yaml_values,
+};
 use yeokja_parser_markdown_dialect::{Extra, html_block_ranges, parse_with};
-use yeokja_parser_utils::{apply_splices, join_segments_with_translations, resolve_reference_links, split_sentences};
+
+/// Front matter keys whose values are visible text.
+const YAML_TEXT_KEYS: &[(&str, BlockType)] =
+    &[("title", BlockType::Heading), ("subtitle", BlockType::Heading), ("description", BlockType::Paragraph)];
+use yeokja_parser_utils::{apply_splices, join_segments_with_translations, resolve_reference_links, split_markdown_sentences};
 
 /// The R Markdown parser. `captures` are the source's
 /// `inline_code_captures`: regular expressions over the content of an inline
@@ -74,12 +81,7 @@ impl RmarkdownParser {
     /// skipped; the config check rejects those before they get here.
     pub fn configured<S: AsRef<str>, K: AsRef<str>>(patterns: &[S], keys: &[K]) -> Result<Self, regex::Error> {
         let captures = patterns.iter().map(|p| Regex::new(p.as_ref())).collect::<Result<Vec<_>, _>>()?;
-        let front_matter_keys = keys
-            .iter()
-            .map(|k| k.as_ref().split('.').map(str::to_string).collect::<Vec<_>>())
-            .filter(|path| !path.is_empty() && path.iter().all(|k| !k.is_empty()))
-            .collect();
-        Ok(Self { captures, front_matter_keys })
+        Ok(Self { captures, front_matter_keys: key_paths(keys) })
     }
 }
 
@@ -97,7 +99,7 @@ impl DocumentParser for RmarkdownParser {
 
     fn reconstruct(&self, document: &Document, translations: &TranslationMap) -> String {
         let translations = resolve_reference_links(document, translations);
-        let front = front_matter(&document.source);
+        let front = yaml_front_matter(&document.source);
         let body = front.as_ref().map_or(0, |f| (f.end + 1).min(document.source.len()));
         let math = scan_regions(&document.source, body).math;
         let mut splices = Vec::new();
@@ -556,160 +558,6 @@ fn lines(source: &str) -> Vec<Range<usize>> {
     out
 }
 
-/// The YAML front matter, closing line included, when the file starts with it.
-fn front_matter(source: &str) -> Option<Range<usize>> {
-    let lines = lines(source);
-    if lines.first().map(|l| source[l.clone()].trim_end()) != Some("---") {
-        return None;
-    }
-    lines.iter().skip(1).find(|l| matches!(source[(*l).clone()].trim_end(), "---" | "...")).map(|l| 0..l.end)
-}
-
-/// Front matter keys whose values are visible text.
-const YAML_TEXT_KEYS: &[(&str, BlockType)] =
-    &[("title", BlockType::Heading), ("subtitle", BlockType::Heading), ("description", BlockType::Paragraph)];
-
-/// A `key:` mapping entry of the front matter: the line's indentation, its
-/// key (which may be quoted: `"og:title":`) and the offset of the colon.
-fn yaml_key(line: &str) -> Option<(usize, &str, usize)> {
-    let indent = line.len() - line.trim_start_matches(' ').len();
-    let rest = &line[indent..];
-    if rest.starts_with(['#', '-', ' ', '\t']) || rest.is_empty() {
-        return None;
-    }
-    let (key, colon) = match rest.as_bytes()[0] {
-        q @ (b'"' | b'\'') => {
-            let close = rest[1..].find(q as char)? + 1;
-            (&rest[1..close], close + 1)
-        }
-        _ => {
-            let end = rest.find(':')?;
-            (rest[..end].trim_end(), end)
-        }
-    };
-    let after = rest[colon..].strip_prefix(':')?;
-    (after.is_empty() || after.starts_with([' ', '\t'])).then_some((indent, key, indent + colon))
-}
-
-/// The value of the mapping entry on line `k` of `all`, as a range without
-/// its quotes, or nothing when the entry has no value to translate: a block
-/// scalar (`|`, `>`), an alias (`*name`), or an empty value. An `&anchor`
-/// before the value stays outside the range. A quoted value may run over
-/// several lines; a plain one takes the following more-indented lines along.
-fn yaml_scalar(source: &str, front: &Range<usize>, all: &[Range<usize>], k: usize) -> Option<Range<usize>> {
-    let b = source.as_bytes();
-    let line = &all[k];
-    let text = &source[line.clone()];
-    let (indent, _, colon) = yaml_key(text)?;
-    let after_colon = &text[colon + 1..];
-    let mut start = line.start + colon + 1 + (after_colon.len() - after_colon.trim_start().len());
-    if b.get(start) == Some(&b'&') {
-        let name_end = source[start..line.end].find([' ', '\t']).map_or(line.end, |n| start + n);
-        let rest = &source[name_end..line.end];
-        start = name_end + (rest.len() - rest.trim_start().len());
-    }
-    if start >= line.end {
-        return None;
-    }
-    let value = match b[start] {
-        q @ (b'"' | b'\'') => {
-            let mut j = start + 1;
-            let mut close = None;
-            while j < front.end {
-                if q == b'"' && b[j] == b'\\' {
-                    j += 2;
-                    continue;
-                }
-                if b[j] == q {
-                    if q == b'\'' && b.get(j + 1) == Some(&b'\'') {
-                        j += 2;
-                        continue;
-                    }
-                    close = Some(j);
-                    break;
-                }
-                j += 1;
-            }
-            start + 1..close?
-        }
-        b'|' | b'>' | b'*' => return None,
-        _ => {
-            let mut end = line.start + text.trim_end().len();
-            for next in &all[k + 1..] {
-                let t = &source[next.clone()];
-                if t.trim().is_empty() || t.len() - t.trim_start().len() <= indent {
-                    break;
-                }
-                end = next.start + t.trim_end().len();
-            }
-            start..end
-        }
-    };
-    (!source[value.clone()].trim().is_empty()).then_some(value)
-}
-
-/// The line of `all` that a dotted key path names: each segment is a `key:`
-/// line nested one level deeper than the previous one, found before the
-/// previous mapping ends (a line indented no deeper than its key).
-fn yaml_path_line(source: &str, all: &[Range<usize>], path: &[String]) -> Option<usize> {
-    let mut from = 0;
-    let mut parent: Option<usize> = None;
-    let mut found = None;
-    for segment in path {
-        let mut level = None;
-        found = None;
-        for (k, line) in all.iter().enumerate().skip(from) {
-            let text = &source[line.clone()];
-            if text.trim().is_empty() || text.trim_start().starts_with('#') {
-                continue;
-            }
-            let indent = text.len() - text.trim_start_matches(' ').len();
-            if parent.is_some_and(|p| indent <= p) {
-                break;
-            }
-            if level.is_none() {
-                level = Some(indent);
-            }
-            if Some(indent) != level {
-                continue;
-            }
-            if yaml_key(text).is_some_and(|(_, key, _)| key == segment) {
-                found = Some((k, indent));
-                break;
-            }
-        }
-        let (k, indent) = found?;
-        from = k + 1;
-        parent = Some(indent);
-    }
-    found.map(|(k, _)| k)
-}
-
-/// The value ranges of the visible-text keys of the front matter, without
-/// their quotes: the built-in top-level keys, then the configured key paths
-/// as paragraphs. A value is offered once, by the first rule that finds it.
-fn yaml_values(source: &str, front: Range<usize>, keys: &[Vec<String>]) -> Vec<(Range<usize>, BlockType)> {
-    let all = lines(&source[..front.end]);
-    let mut out: Vec<(Range<usize>, BlockType)> = Vec::new();
-    for (k, line) in all.iter().enumerate() {
-        let Some((0, key, _)) = yaml_key(&source[line.clone()]) else { continue };
-        let Some(&(_, block_type)) = YAML_TEXT_KEYS.iter().find(|(name, _)| *name == key) else { continue };
-        if let Some(value) = yaml_scalar(source, &front, &all, k) {
-            out.push((value, block_type));
-        }
-    }
-    for path in keys {
-        let Some(k) = yaml_path_line(source, &all, path) else { continue };
-        if let Some(value) = yaml_scalar(source, &front, &all, k)
-            && !out.iter().any(|(r, _)| *r == value)
-        {
-            out.push((value, BlockType::Paragraph));
-        }
-    }
-    out.sort_by_key(|(r, _)| r.start);
-    out
-}
-
 static HEADING_ATTRS: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"^\{\s*(?:(?:#[^\s{}]+|\.[^\s{}]+|-|[\w.-]+=(?:"[^"]*"|'[^']*'|[^\s"'{}]+))\s*)+\}$"#)
         .expect("attribute pattern")
@@ -804,8 +652,8 @@ fn scan(source: &str, front_matter_keys: &[Vec<String>]) -> Layout {
     let mut shadow = source.as_bytes().to_vec();
     let mut extras = Vec::new();
     let mut body = 0;
-    if let Some(front) = front_matter(source) {
-        for (value, block_type) in yaml_values(source, front.clone(), front_matter_keys) {
+    if let Some(front) = yaml_front_matter(source) {
+        for (value, block_type) in yaml_values(source, front.clone(), YAML_TEXT_KEYS, front_matter_keys) {
             extras.push(Extra { range: value, block_type, literal: true });
         }
         fill(&mut shadow, front.clone(), b' ');
@@ -942,7 +790,7 @@ fn pieces(source: &str, range: Range<usize>, math: &[Range<usize>]) -> Vec<Piece
     norm_at.push(norm.len());
     let mut out = Vec::new();
     let mut cursor = 0;
-    for sentence in split_sentences(&masked) {
+    for sentence in split_markdown_sentences(&masked) {
         let Some(found) = masked[cursor..].find(&sentence) else { continue };
         let (mb, me) = (cursor + found, cursor + found + sentence.len());
         cursor = me;
@@ -1245,45 +1093,17 @@ fn find_respaced(hay: &str, needle: &str, from: usize) -> Option<(usize, usize)>
     None
 }
 
-/// Put `\` before each `quote` the translation leaves unescaped.
-fn escape_quote(text: &str, quote: char) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut backslashes = 0;
-    for c in text.chars() {
-        if c == quote && backslashes % 2 == 0 {
-            out.push('\\');
-        }
-        backslashes = if c == '\\' { backslashes + 1 } else { 0 };
-        out.push(c);
-    }
-    out
-}
-
-/// A plain YAML scalar the translation would end or change: quote it.
-fn yaml_plain(text: String) -> String {
-    let risky = text.contains(": ")
-        || text.contains(" #")
-        || text.ends_with(':')
-        || text.starts_with(['-', '?', ':', ',', '[', ']', '{', '}', '#', '&', '*', '!', '|', '>', '\'', '"', '%', '@', '`']);
-    if risky { format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\"")) } else { text }
-}
-
 /// A literal string's translation, written the way its quotes need: an R or
 /// YAML double-quoted string escapes its quote with `\`, a YAML single-quoted
 /// one doubles it, and a plain YAML value is quoted when it has to be.
 fn quote_literal(source: &str, span: Range<usize>, text: String, front: Option<Range<usize>>) -> String {
+    if front.is_some_and(|f| f.contains(&span.start)) {
+        return quote_yaml(source, span, text);
+    }
     let b = source.as_bytes();
-    let in_yaml = front.is_some_and(|f| f.contains(&span.start));
     let before = span.start.checked_sub(1).map(|i| b[i]);
     match (before, b.get(span.end).copied()) {
-        (Some(q @ (b'"' | b'\'')), Some(after)) if after == q => {
-            if in_yaml && q == b'\'' {
-                text.replace("''", "'").replace('\'', "''")
-            } else {
-                escape_quote(&text, q as char)
-            }
-        }
-        _ if in_yaml => yaml_plain(text),
+        (Some(q @ (b'"' | b'\'')), Some(after)) if after == q => escape_quote(&text, q as char),
         _ => text,
     }
 }

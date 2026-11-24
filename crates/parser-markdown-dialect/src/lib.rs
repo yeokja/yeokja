@@ -1,5 +1,6 @@
 //! Shared span extraction for Markdown-family translation parsers.
 //! Dialects supply an offset-preserving shadow and additional prose spans.
+pub mod front_matter;
 mod html;
 
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
@@ -8,7 +9,7 @@ use std::ops::Range;
 use yeokja_core::model::*;
 
 use yeokja_parser_utils::{
-    make_segments, normalize_inline_text,
+    make_markdown_segments, normalize_inline_text,
 };
 
 /// A block a flavour found on its own, outside what pulldown-cmark sees.
@@ -91,7 +92,7 @@ impl ParseState<'_> {
         }
         let raw = &self.source[extra.range.clone()];
         let normalized = normalize_inline_text(raw);
-        let segments = make_segments(&normalized, extra.block_type, self.section_idx, self.block_idx);
+        let segments = make_markdown_segments(&normalized, extra.block_type, self.section_idx, self.block_idx);
         self.push_block(Block {
             block_type: extra.block_type,
             segments,
@@ -193,7 +194,7 @@ impl ParseState<'_> {
             return;
         }
         let normalized = normalize_inline_text(raw);
-        let segments = make_segments(&normalized, block_type, self.section_idx, self.block_idx);
+        let segments = make_markdown_segments(&normalized, block_type, self.section_idx, self.block_idx);
         self.push_block(Block {
             block_type,
             segments,
