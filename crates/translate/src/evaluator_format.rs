@@ -369,6 +369,22 @@ impl FormatEvaluator {
                     ),
                 });
             }
+
+            let broken = rst_broken_substitutions(&context.source, &context.translation);
+            if !broken.is_empty() {
+                issues.push(EvaluationIssue {
+                    severity: IssueSeverity::Error,
+                    kind: IssueKind::FormatLost,
+                    message: format!(
+                        "{} is not recognized as a substitution reference: \
+                         reStructuredText requires whitespace or punctuation on the \
+                         outside of each bar. Separate a Korean word with a \
+                         backslash-escaped space, which renders as nothing: \
+                         |Intro|\\ 장에서.",
+                        broken.join(", "),
+                    ),
+                });
+            }
         }
 
         // Verso roles carry semantic identifiers in their headers, and code
@@ -2106,6 +2122,99 @@ fn rst_broken_bracket_references(text: &str) -> Vec<String> {
     found
 }
 
+/// A `|name|` substitution reference written in a text, with its `_` or `__`
+/// reference suffix. Char indices.
+struct RstSubstitution {
+    /// The opening bar.
+    open: usize,
+    /// Just past the closing bar and its suffix.
+    end: usize,
+    /// `|name|`, without the suffix.
+    written: String,
+    /// docutils reads it as a substitution: no word character (or escaping
+    /// backslash) before the opening bar, and none (nor an opening bracket)
+    /// after the suffix.
+    recognized: bool,
+}
+
+/// Every `|name|` outside inline literals. A name neither starts nor ends
+/// with whitespace and stays on one line, so a line block's `| ` and the
+/// spaced bars of a table row are never one.
+fn rst_substitutions(chars: &[char]) -> Vec<RstSubstitution> {
+    let literal = rst_backtick_mask(chars);
+    let mut found = Vec::new();
+    let mut at = 0usize;
+    while at < chars.len() {
+        if chars[at] != '|' || literal[at] {
+            at += 1;
+            continue;
+        }
+        let Some(close) = chars[at + 1..]
+            .iter()
+            .position(|ch| *ch == '|' || *ch == '\n')
+            .map(|offset| at + 1 + offset)
+        else {
+            break;
+        };
+        let name = &chars[at + 1..close];
+        if chars[close] == '\n'
+            || literal[close]
+            || name.is_empty()
+            || name[0].is_whitespace()
+            || name[name.len() - 1].is_whitespace()
+        {
+            at = close;
+            continue;
+        }
+        let mut end = close + 1;
+        while end < chars.len() && end < close + 3 && chars[end] == '_' {
+            end += 1;
+        }
+        let before_ok = at == 0 || !(is_word(chars[at - 1]) || chars[at - 1] == '\\');
+        let after_ok = !chars
+            .get(end)
+            .is_some_and(|ch| is_word(*ch) || matches!(ch, '(' | '[' | '{' | '<'));
+        found.push(RstSubstitution {
+            open: at,
+            end,
+            written: chars[at..=close].iter().collect(),
+            recognized: before_ok && after_ok,
+        });
+        at = end;
+    }
+    found
+}
+
+/// The substitution references docutils reads in `source`, by their written
+/// `|name|`. Only these are the translation's to keep: `a|b|c` in the source
+/// is text, and so it is in the translation.
+fn rst_source_substitutions(source: &str) -> std::collections::HashSet<String> {
+    rst_substitutions(&chars(source))
+        .into_iter()
+        .filter(|substitution| substitution.recognized)
+        .map(|substitution| substitution.written)
+        .collect()
+}
+
+/// A source substitution reference the translation writes against a word,
+/// `|Intro|장에서`, which docutils no longer reads as one.
+fn rst_broken_substitutions(source: &str, translation: &str) -> Vec<String> {
+    let names = rst_source_substitutions(source);
+    if names.is_empty() {
+        return Vec::new();
+    }
+    let chars = chars(translation);
+    rst_substitutions(&chars)
+        .into_iter()
+        .filter(|substitution| !substitution.recognized && names.contains(&substitution.written))
+        .map(|substitution| {
+            let from = substitution.open.saturating_sub(1);
+            let to = (substitution.end + 1).min(chars.len());
+            chars[from..to].iter().collect()
+        })
+        .collect()
+}
+
 fn rst_malformed_role_closures(text: &str) -> Vec<String> {
     let chars = chars(text);
     let mut found = Vec::new();
@@ -2322,6 +2431,26 @@ pub(crate) fn repair_rst_boundaries(source: &str, translation: &str) -> String {
         }
     }
 
+    // A substitution reference the source has, `|Intro|`, is separated from a
+    // word on either side; bars the source never used as one are left alone.
+    let substitution_names = rst_source_substitutions(source);
+    if !substitution_names.is_empty() {
+        for substitution in rst_substitutions(&chars) {
+            if substitution.recognized || !substitution_names.contains(&substitution.written) {
+                continue;
+            }
+            if substitution.open > 0 && is_word(chars[substitution.open - 1]) {
+                insertions.insert(substitution.open);
+            }
+            if chars
+                .get(substitution.end)
+                .is_some_and(|ch| is_word(*ch) || matches!(ch, '(' | '[' | '{' | '<'))
+            {
+                insertions.insert(substitution.end);
+            }
+        }
+    }
+
     if rst_broken_bracket_references(source).is_empty() {
         let mut at = 0usize;
         while at < chars.len() {
@@ -2491,6 +2620,11 @@ fn line_start_construct(text: &str, markup: Markup) -> Option<&'static str> {
         '=' if spaced => Some("a section title (`=`)"),
         '#' if spaced => Some("a heading (`#`)"),
         '>' if spaced => Some("a block quote (`>`)"),
+        // In reStructuredText a bar opens a line block only before a space
+        // or the line end; `|Intro|장에서` starts with a substitution.
+        '|' if markup == Markup::Rst => {
+            (rest.is_empty() || spaced).then_some("a line block (`|`)")
+        }
         '|' => Some("a table cell (`|`)"),
         '/' if rest.starts_with('/') => Some("a comment (`//`)"),
         '[' if text.ends_with(']') => Some("an attribute line (`[...]`)"),
@@ -3135,6 +3269,83 @@ mod tests {
             "Follow the procedure [2]_ carefully.",
             "절차 [2]_\\ 에서 설명한 대로 주의해서 진행합니다.",
         );
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(result.passed, "{:?}", result.issues);
+    }
+
+    #[test]
+    fn rst_boundary_repair_separates_substitutions_from_korean_words() {
+        assert_eq!(
+            repair_rst_boundaries(
+                "Chapter |Intro| covers the basics.",
+                "|Intro|장에서는 기초를 다룹니다.",
+            ),
+            "|Intro|\\ 장에서는 기초를 다룹니다."
+        );
+        assert_eq!(
+            repair_rst_boundaries(
+                "As shown in Chapter |Intro|, see |Fed|_ too.",
+                "|Intro|장과 참고로|Fed|_도 보세요.",
+            ),
+            "|Intro|\\ 장과 참고로\\ |Fed|_\\ 도 보세요."
+        );
+        // Punctuation already bounds it.
+        assert_eq!(
+            repair_rst_boundaries("|Fed|.3 Scale", "|Fed|.3 규모"),
+            "|Fed|.3 규모"
+        );
+    }
+
+    #[test]
+    fn rst_boundary_repair_leaves_bars_that_are_not_source_substitutions() {
+        // A line block opens with `| `; table-like bars hold spaces.
+        assert_eq!(
+            repair_rst_boundaries("| The first line", "| 첫 줄"),
+            "| 첫 줄"
+        );
+        // `a|b|c` is no substitution in the source, so it is not one to repair.
+        assert_eq!(
+            repair_rst_boundaries("Run a|b|c now.", "a|b|c를 실행합니다."),
+            "a|b|c를 실행합니다."
+        );
+        // A name the source does not reference is left alone.
+        assert_eq!(
+            repair_rst_boundaries("Chapter |Intro| covers it.", "|Other|장에서 다룹니다."),
+            "|Other|장에서 다룹니다."
+        );
+        // Inside a literal the bars are code.
+        assert_eq!(
+            repair_rst_boundaries("Use ``|Intro|`` and |Intro|.", "``|Intro|``와 |Intro|를 씁니다."),
+            "``|Intro|``\\ 와 |Intro|\\ 를 씁니다."
+        );
+    }
+
+    #[tokio::test]
+    async fn rst_substitution_against_a_word_is_rejected_and_its_repair_accepted() {
+        let source = "Chapter |Intro| covers the basics.";
+        let broken = context_in(Markup::Rst, source, "기초는 |Intro|장에서 다룹니다.");
+        let result = FormatEvaluator.evaluate(&broken).await.unwrap();
+        assert!(!result.passed, "{:?}", result.issues);
+        assert!(
+            result.issues.iter().any(|issue| issue.message.contains("|Intro|장")),
+            "{:?}",
+            result.issues
+        );
+
+        for translation in ["기초는 |Intro|장에서 다룹니다.", "|Intro|장에서는 기초를 다룹니다."] {
+            let repaired = repair_rst_boundaries(source, translation);
+            let ctx = context_in(Markup::Rst, source, &repaired);
+            let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+            assert!(result.passed, "{repaired}: {:?}", result.issues);
+        }
+    }
+
+    #[tokio::test]
+    async fn rst_line_block_at_line_start_is_still_a_construct() {
+        let ctx = context_in(Markup::Rst, "The first line.", "| 첫 줄입니다.");
+        let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
+        assert!(!result.passed, "{:?}", result.issues);
+        let ctx = context_in(Markup::Rst, "| The first line.", "| 첫 줄입니다.");
         let result = FormatEvaluator.evaluate(&ctx).await.unwrap();
         assert!(result.passed, "{:?}", result.issues);
     }

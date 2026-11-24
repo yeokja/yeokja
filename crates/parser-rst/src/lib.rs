@@ -229,7 +229,7 @@ fn mask_mil_source(source: &str) -> Result<String, String> {
 /// keeps its body in the document's language — admonitions, `function::` and
 /// friends describe things in prose — so an unknown directive stays
 /// translatable and only its marker line is held back.
-const OPAQUE_DIRECTIVES: [&str; 20] = [
+const OPAQUE_DIRECTIVES: [&str; 19] = [
     "code",
     "code-block",
     "sourcecode",
@@ -243,7 +243,6 @@ const OPAQUE_DIRECTIVES: [&str; 20] = [
     "include",
     "highlight",
     "image",
-    "figure",
     "csv-table",
     "productionlist",
     "tabularcolumns",
@@ -253,7 +252,8 @@ const OPAQUE_DIRECTIVES: [&str; 20] = [
 ];
 
 const INLINE_PROSE_DIRECTIVES: [&str; 4] = ["note", "seealso", "tip", "impl-detail"];
-const TITLED_PROSE_DIRECTIVES: [&str; 5] = ["admonition", "sidebar", "rubric", "topic", "tab"];
+const TITLED_PROSE_DIRECTIVES: [&str; 6] =
+    ["admonition", "sidebar", "rubric", "topic", "tab", "table"];
 
 /// The punctuation characters docutils accepts as a title adornment.
 const ADORNMENT_CHARS: &str = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
@@ -1122,10 +1122,27 @@ fn directive_argument_metadata(
     Some((start..start + value.len(), block_type))
 }
 
+/// The last line of a directive's header: its marker line, the arguments'
+/// continuation and the option block. docutils ends the header at the first
+/// blank line; the content (a figure's caption, a code block's code) follows
+/// it.
+fn directive_header_end(lines: &[Line], directive_at: usize) -> usize {
+    let indent = lines[directive_at].indent();
+    let mut end = directive_at;
+    while end + 1 < lines.len() && !lines[end + 1].is_blank() && lines[end + 1].indent() > indent {
+        end += 1;
+    }
+    end
+}
+
+/// Reader-facing option values (`:alt:`, a prose `:caption:`) in the
+/// directive's option block. The block's indentation is its first field's,
+/// whatever it is: Sphinx sources indent options three spaces or four, and
+/// a nested directive further still. A deeper line continues the value
+/// above it.
 fn directive_option_metadata(
     lines: &[Line],
     directive_at: usize,
-    directive_end: usize,
     directive: &str,
 ) -> Vec<Range<usize>> {
     let lower = directive.to_ascii_lowercase();
@@ -1134,12 +1151,18 @@ fn directive_option_metadata(
         "code" | "code-block" => "caption",
         _ => return Vec::new(),
     };
-    let directive_indent = lines[directive_at].indent();
-    let option_indent = directive_indent + 3;
+    let header_end = directive_header_end(lines, directive_at);
+    let Some(option_indent) = lines[directive_at + 1..=header_end]
+        .iter()
+        .find(|line| is_field_marker(line.trimmed()))
+        .map(Line::indent)
+    else {
+        return Vec::new();
+    };
     let marker = format!(":{option}:");
     let mut spans = Vec::new();
     let mut at = directive_at + 1;
-    while at <= directive_end {
+    while at <= header_end {
         let line = &lines[at];
         if line.indent() != option_indent {
             at += 1;
@@ -1158,10 +1181,7 @@ fn directive_option_metadata(
         let start = line.start + option_indent + marker.len() + leading;
         let mut end = start + value.len();
         let mut continuation = at + 1;
-        while continuation <= directive_end
-            && !lines[continuation].is_blank()
-            && lines[continuation].indent() > option_indent
-        {
+        while continuation <= header_end && lines[continuation].indent() > option_indent {
             end = lines[continuation].end();
             continuation += 1;
         }
@@ -1399,13 +1419,31 @@ impl DocumentParser for RstParser {
                             term_indent: None,
                         });
                         i += 1;
+                    } else if name.eq_ignore_ascii_case("figure") {
+                        // The marker and options stay verbatim; the content
+                        // after them (the caption paragraph, then the
+                        // legend's body elements) parses as ordinary content
+                        // at its own indentation.
+                        let end = directive_header_end(&lines, i);
+                        state.push_opaque_block(
+                            BlockType::CodeBlock,
+                            line.start..lines[end].end(),
+                        );
+                        for span in directive_option_metadata(&lines, i, name) {
+                            state.push_span_block(
+                                BlockType::Paragraph,
+                                span,
+                                BlockRole::None,
+                            );
+                        }
+                        i = end + 1;
                     } else if OPAQUE_DIRECTIVES.contains(&name.to_ascii_lowercase().as_str()) {
                         let end = consume_while_indented(&lines, i, line.indent());
                         state.push_opaque_block(
                             BlockType::CodeBlock,
                             line.start..lines[end].end(),
                         );
-                        for span in directive_option_metadata(&lines, i, end, name) {
+                        for span in directive_option_metadata(&lines, i, name) {
                             state.push_span_block(
                                 BlockType::Paragraph,
                                 span,
@@ -3028,7 +3066,7 @@ mod tests {
    :alt: A chart showing translator workload
          falling with team size.
 
-   Keep this opaque figure body.
+   Workload falls as the team grows.
 
 .. image:: badge.svg
    :target: https://example.com/
@@ -3044,6 +3082,7 @@ mod tests {
             sources,
             [
                 "A chart showing translator workload falling with team size.",
+                "Workload falls as the team grows.",
                 "Documentation status",
             ]
         );
@@ -3066,13 +3105,199 @@ mod tests {
    :class: only-light
    :alt: 번역가가 늘수록 작업량이 줄어드는 차트.
 
-   Keep this opaque figure body.
+   Workload falls as the team grows.
 
 .. image:: badge.svg
    :target: https://example.com/
    :alt: 문서 상태
 "
         );
+    }
+
+    #[test]
+    fn figure_caption_and_legend_are_translatable_at_their_indent() {
+        let source = "\
+.. _fig-cloud:
+.. figure:: figures/cloud.png
+    :width: 500px
+    :align: center
+
+    Cloud datacenters are distributed throughout the globe, with a site
+    often in close proximity to users.
+
+    The legend explains the
+    symbols.
+
+After the figure.
+";
+        let doc = RstParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|segment| segment.source.as_str())
+            .collect();
+        assert_eq!(
+            sources,
+            [
+                "Cloud datacenters are distributed throughout the globe, with a site often in close proximity to users.",
+                "The legend explains the symbols.",
+                "After the figure.",
+            ]
+        );
+        assert_eq!(RstParser.reconstruct(&doc, &TranslationMap::new()), source);
+
+        let output = translate_all(
+            &RstParser,
+            source,
+            &[
+                (
+                    "Cloud datacenters are distributed throughout the globe, with a site often in close proximity to users.",
+                    "클라우드 데이터센터는 전 세계에 분산되어 있습니다.",
+                ),
+                ("The legend explains the symbols.", "범례는 기호를 설명합니다."),
+            ],
+        );
+        assert_eq!(
+            output,
+            "\
+.. _fig-cloud:
+.. figure:: figures/cloud.png
+    :width: 500px
+    :align: center
+
+    클라우드 데이터센터는 전 세계에 분산되어 있습니다.
+
+    범례는 기호를 설명합니다.
+
+After the figure.
+"
+        );
+    }
+
+    #[test]
+    fn figure_alt_is_read_at_the_option_block_indent() {
+        let source = "\
+- Item text.
+
+    .. figure:: chart.svg
+        :class: invert-in-dark-mode
+        :alt: A bar graph comparing
+              performance.
+        :target: _images/chart.svg
+
+        Benchmark results for each target.
+";
+        let doc = RstParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|segment| segment.source.as_str())
+            .collect();
+        assert_eq!(
+            sources,
+            [
+                "Item text.",
+                "A bar graph comparing performance.",
+                "Benchmark results for each target.",
+            ]
+        );
+        let output = translate_all(
+            &RstParser,
+            source,
+            &[
+                ("A bar graph comparing performance.", "성능을 비교하는 막대그래프."),
+                ("Benchmark results for each target.", "대상별 벤치마크 결과."),
+            ],
+        );
+        assert_eq!(
+            output,
+            "\
+- Item text.
+
+    .. figure:: chart.svg
+        :class: invert-in-dark-mode
+        :alt: 성능을 비교하는 막대그래프.
+        :target: _images/chart.svg
+
+        대상별 벤치마크 결과.
+"
+        );
+    }
+
+    #[test]
+    fn figure_without_caption_keeps_options_and_following_text_apart() {
+        let source = "\
+.. figure:: chart.svg
+   :target: https://example.com/a-very-long-path/
+            continued-on-a-second-line.svg
+   :align: center
+
+..
+
+   A legend under an empty caption comment stays a comment.
+
+Body text.
+";
+        let doc = RstParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|segment| segment.source.as_str())
+            .collect();
+        assert_eq!(sources, ["Body text."]);
+        assert_eq!(RstParser.reconstruct(&doc, &TranslationMap::new()), source);
+    }
+
+    #[test]
+    fn code_caption_is_read_at_a_four_space_option_indent() {
+        let source = "\
+.. code-block:: python
+    :caption: Rendering a greeting.
+
+    print(\"hello\")
+";
+        let doc = RstParser.parse(source);
+        let segments = doc.translatable_segments();
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].source, "Rendering a greeting.");
+    }
+
+    #[test]
+    fn options_after_the_header_blank_line_are_body_not_metadata() {
+        let source = "\
+.. code-block:: rst
+
+   :caption: This is code, not an option.
+";
+        let doc = RstParser.parse(source);
+        assert!(doc.translatable_segments().is_empty());
+    }
+
+    #[test]
+    fn table_directive_title_is_translatable() {
+        let source = "\
+.. table:: Common protocol fields.
+    :widths: auto
+
+    =====  ===========
+    Field  Meaning
+    =====  ===========
+    TTL    time to live
+    =====  ===========
+";
+        let doc = RstParser.parse(source);
+        let sources: Vec<_> = doc
+            .translatable_segments()
+            .iter()
+            .map(|segment| segment.source.as_str())
+            .collect();
+        assert_eq!(sources[0], "Common protocol fields.");
+        let output = translate_all(
+            &RstParser,
+            source,
+            &[("Common protocol fields.", "흔한 프로토콜 필드.")],
+        );
+        assert!(output.starts_with(".. table:: 흔한 프로토콜 필드.\n    :widths: auto\n"));
     }
 
     #[test]
