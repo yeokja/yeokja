@@ -132,6 +132,8 @@ pub enum TagKind {
     Bold,
     Strike,
     Link,
+    /// An image's alt text; the destination stays in the closing mark.
+    Image,
     Html,
     Opaque,
     Math,
@@ -147,6 +149,7 @@ impl TagKind {
             TagKind::Bold => 'b',
             TagKind::Strike => 's',
             TagKind::Link => 'a',
+            TagKind::Image => 'g',
             TagKind::Html => 'h',
             TagKind::Opaque => 'x',
             TagKind::Math => 'm',
@@ -162,6 +165,12 @@ impl TagKind {
 
     fn is_void(self) -> bool {
         matches!(self, TagKind::Opaque | TagKind::Math | TagKind::Code)
+    }
+
+    /// A link or an image: bracketed text with a tail (`](url)`, `][ref]`)
+    /// written back as the source has it.
+    fn is_bracketed(self) -> bool {
+        matches!(self, TagKind::Link | TagKind::Image)
     }
 }
 
@@ -295,9 +304,9 @@ pub(super) fn construct_name(key: &str) -> &str {
         "(b" => "bold",
         "(s" => "strikethrough",
         "(a" => "link",
+        "(g" => "image",
         "h" => "inline HTML",
         "f" => "footnote reference",
-        "g" => "image",
         "u" => "autolink",
         "e" => "expression",
         "n" => "line break",
@@ -757,17 +766,29 @@ fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut
                 void(&mut text, &mut tags, n, TagKind::Opaque, v, "u", visible);
                 skip = 1;
             }
-            Event::Start(MdTag::Link { link_type, .. }) => {
+            // An image without alt text has nothing to translate.
+            Event::Start(MdTag::Image { .. }) if matches!(events.get(i + 1), Some((Event::End(TagEnd::Image), _))) => {
                 let n = next(counter);
-                text.push_str(&format!("<a{n}>"));
+                void(&mut text, &mut tags, n, TagKind::Opaque, raw(), "(g)", String::new());
+                skip = 1;
+            }
+            // A link's text and an image's alt are pairs; what follows the
+            // `]` is the tail, set when the pair closes.
+            Event::Start(MdTag::Link { link_type, .. } | MdTag::Image { link_type, .. }) => {
+                let n = next(counter);
+                let (kind, open) = match event {
+                    Event::Start(MdTag::Image { .. }) => (TagKind::Image, "!["),
+                    _ => (TagKind::Link, "["),
+                };
+                text.push_str(&format!("<{}{n}>", kind.letter()));
                 let shortcut = matches!(
                     link_type,
                     LinkType::Shortcut | LinkType::ShortcutUnknown | LinkType::Collapsed | LinkType::CollapsedUnknown
                 );
                 tags.push(Tag {
                     n,
-                    kind: TagKind::Link,
-                    open: "[".into(),
+                    kind,
+                    open: open.into(),
                     close: String::new(),
                     label: shortcut.then(String::new),
                     code: None,
@@ -775,17 +796,13 @@ fn tagify_with(source: &str, ctx: &DocContext, position: Position, counter: &mut
                     shape: String::new(),
                     visible: String::new(),
                 });
-                stack.push(Open { tag: tags.len() - 1, content_start: range.start + 1, max_end: range.start + 1, end: range.end });
+                let content_start = range.start + open.len();
+                stack.push(Open { tag: tags.len() - 1, content_start, max_end: content_start, end: range.end });
             }
-            Event::Start(MdTag::Image { .. }) => {
-                let n = next(counter);
-                void(&mut text, &mut tags, n, TagKind::Opaque, raw(), "g", String::new());
-                skip = 1;
-            }
-            Event::End(TagEnd::Emphasis | TagEnd::Strong | TagEnd::Strikethrough | TagEnd::Link) => {
+            Event::End(TagEnd::Emphasis | TagEnd::Strong | TagEnd::Strikethrough | TagEnd::Link | TagEnd::Image) => {
                 let Some(open) = stack.pop() else { continue };
                 let tag = &mut tags[open.tag];
-                if tag.kind == TagKind::Link {
+                if tag.kind.is_bracketed() {
                     tag.close = unmask(&guarded[open.max_end..open.end], &spans);
                     if tag.label.is_some() {
                         tag.label = Some(unmask(&guarded[open.content_start..open.max_end], &spans));
@@ -1302,12 +1319,28 @@ pub fn read(reply: &str, tagged: &Tagged) -> Result<Tree, Vec<String>> {
         let ok = match tag.kind {
             // Korean word order may split a bold phrase in two.
             k if k.is_emphasis() => o >= 1 && o == c,
-            TagKind::Link | TagKind::Html | TagKind::Role => o == 1 && c == 1,
+            TagKind::Link | TagKind::Image | TagKind::Html | TagKind::Role => o == 1 && c == 1,
             _ => v == 1,
         };
         if !ok {
             let what = if o + c + v == 0 { "is missing" } else { "appears more than once" };
             problems.push(format!("{} {what} — keep every tag exactly once", name(tag.n)));
+        }
+    }
+    // An image the source describes keeps a description: an empty alt reads
+    // worse than the source's.
+    for tag in tagged.tags.iter().filter(|t| t.kind == TagKind::Image) {
+        let Some(o) = nodes.iter().position(|node| *node == Node::Open(tag.n)) else { continue };
+        let Some(c) = nodes.iter().position(|node| *node == Node::Close(tag.n)) else { continue };
+        let described = nodes.get(o + 1..c).is_some_and(|inner| {
+            inner.iter().any(|node| match node {
+                Node::Text(t) => !t.trim().is_empty(),
+                Node::Code { .. } | Node::Void(_) => true,
+                Node::Open(_) | Node::Close(_) => false,
+            })
+        });
+        if !described {
+            problems.push(format!("{} is empty — write its translated description inside it", name(tag.n)));
         }
     }
     // A role's label is text inside the role's backticks: nothing nests there.
@@ -1669,12 +1702,11 @@ impl Renderer<'_> {
             Tok::Code(markdown, _, _) => markdown.chars().next(),
             Tok::Void(n) => self.tags[n].open.chars().next(),
             Tok::Open(n) => match self.tags[n].kind {
-                TagKind::Link => Some('['),
-                TagKind::Html | TagKind::Role => self.tags[n].open.chars().next(),
+                TagKind::Link | TagKind::Image | TagKind::Html | TagKind::Role => self.tags[n].open.chars().next(),
                 _ => Some('*'),
             },
             Tok::Close(n) => match self.tags[n].kind {
-                TagKind::Link => Some(']'),
+                TagKind::Link | TagKind::Image => Some(']'),
                 TagKind::Html => self.tags[n].close.chars().next(),
                 TagKind::Role => None,
                 _ => Some('*'),
@@ -1764,11 +1796,11 @@ impl Renderer<'_> {
                     let tag = self.tags[n];
                     let opening = matches!(tok, Tok::Open(_));
                     match tag.kind {
-                        TagKind::Link if opening => {
+                        TagKind::Link | TagKind::Image if opening => {
                             links_open += 1;
-                            out.push('[');
+                            out.push_str(&tag.open);
                         }
-                        TagKind::Link => {
+                        TagKind::Link | TagKind::Image => {
                             links_open = links_open.saturating_sub(1);
                             match &tag.label {
                                 Some(label) => {
@@ -1833,11 +1865,11 @@ impl Renderer<'_> {
                     skip = 1;
                 }
                 Event::Start(MdTag::Link { .. }) => shape.push_str("(a"),
-                Event::Start(MdTag::Image { .. }) => {
-                    shape.push('g');
-                    skip = 1;
-                }
-                Event::End(TagEnd::Emphasis | TagEnd::Strong | TagEnd::Strikethrough | TagEnd::Link) => shape.push(')'),
+                // The alt is text, read like a link's.
+                Event::Start(MdTag::Image { .. }) => shape.push_str("(g"),
+                Event::End(
+                    TagEnd::Emphasis | TagEnd::Strong | TagEnd::Strikethrough | TagEnd::Link | TagEnd::Image,
+                ) => shape.push(')'),
                 Event::Code(c) => shape.push_str(&format!("c:{c}|")),
                 Event::Html(h) | Event::InlineHtml(h) => match h.as_ref() {
                     "<em>" => shape.push_str("(i"),
@@ -2242,9 +2274,35 @@ mod tests {
     #[test]
     fn opaque_constructs_become_empty_tags() {
         assert_eq!(
-            tag("Use <https://x.org>, see ![fig](a.png), note[^1], and \\\\(T\\\\) here.").text,
+            tag("Use <https://x.org>, see ![](a.png), note[^1], and \\\\(T\\\\) here.").text,
             "Use <x1/>, see <x2/>, note<x3/>, and <m4/> here."
         );
+    }
+
+    /// An image's alt text is words to translate: a pair around it, with the
+    /// destination, the title and a reference kept in the closing mark.
+    #[test]
+    fn an_image_alt_is_a_pair_and_an_image_without_one_is_opaque() {
+        assert_eq!(tag("See ![fig one](a.png \"Title\") here.").text, "See <g1>fig one</g1> here.");
+        assert_eq!(tag("See ![](a.png) here.").text, "See <x1/> here.");
+        assert_eq!(tag("![**x** y](i.png)").text, "<g1><b2>x</b2> y</g1>");
+        assert_eq!(tag("[![logo](i.png)](https://x.org)").text, "<a1><g2>logo</g2></a1>");
+        assert_eq!(tag("![the arena][arena] and ![arena]").text, "<g1>the arena</g1> and <g2>arena</g2>");
+        let tagged = tag("![fig](a.png \"T\")");
+        let first = &tagged.tags[0];
+        assert_eq!((first.kind, first.open.as_str(), first.close.as_str()), (TagKind::Image, "![", "](a.png \"T\")"));
+    }
+
+    /// An image-only paragraph has words for the model: it is neither left
+    /// as tags alone nor settled without a request.
+    #[test]
+    fn an_image_only_segment_goes_to_the_model() {
+        use crate::evaluator::Markup;
+        use crate::untranslatable::nothing_to_translate;
+        let source = "![Diagram: one column of memory. The guard page is still registered.](stack-overflow.svg)";
+        assert_eq!(tag(source).text, "<g1>Diagram: one column of memory. The guard page is still registered.</g1>");
+        assert!(!nothing_to_translate(Markup::Markdown, source));
+        assert!(nothing_to_translate(Markup::Markdown, "![](stack-overflow.svg)"));
     }
 
     #[test]
@@ -2388,11 +2446,53 @@ mod tests {
             "The **outer product** of _u_ and `v` is ~~wrong~~.",
             "See [the book](https://x.org/a) and [arena], or [ASan][clang-asan].",
             "Press <kbd>Ctrl</kbd>, see ![fig](a.png), note[^1], and \\\\(T\\\\).",
+            "See ![](a.png), ![**bold** fig](a.png \"Title\"), ![the arena][arena] and ![arena].",
+            "[![logo](i.png)](https://x.org) and [![](i.png)](https://x.org)",
         ] {
             let tagged = tag(src);
             let tree = read(&tagged.text, &tagged).unwrap();
-            assert_eq!(render(&tree, &tagged, &ctx(&["arena", "clang-asan"])).markdown, src);
+            let rendered = render(&tree, &tagged, &ctx(&["arena", "clang-asan"]));
+            assert!(rendered.verified, "{src}: {:?}", rendered.mismatch);
+            assert_eq!(rendered.markdown, src);
         }
+    }
+
+    #[test]
+    fn a_translated_alt_keeps_the_destination_title_and_reference() {
+        assert_eq!(
+            translate(
+                "![Diagram: one column of memory. It is still registered.](stack-overflow.svg \"Stack\")",
+                "<g1>다이어그램: 메모리 한 열. 여전히 등록되어 있습니다.</g1>"
+            ),
+            "![다이어그램: 메모리 한 열. 여전히 등록되어 있습니다.](stack-overflow.svg \"Stack\")"
+        );
+        assert_eq!(translate("See ![the arena][arena].", "<g1>아레나</g1>를 보십시오."), "![아레나][arena]를 보십시오.");
+        // A shortcut or collapsed reference names its label with its alt.
+        assert_eq!(translate("See ![arena].", "<g1>아레나</g1>를 보십시오."), "![아레나][arena]를 보십시오.");
+        // A collapsed reference comes back a shortcut, as a link's does.
+        assert_eq!(translate("See ![arena][].", "<g1>arena</g1>를 보십시오."), "![arena]를 보십시오.");
+        assert_eq!(translate("See ![arena][].", "<g1>아레나</g1>를 보십시오."), "![아레나][arena]를 보십시오.");
+        assert_eq!(translate("See ![arena].", "<g1>arena</g1>를 보십시오."), "![arena]를 보십시오.");
+        assert_eq!(
+            translate("![**Bold** figure](f.png)", "<g1><b2>굵은</b2> 그림</g1>"),
+            "![**굵은** 그림](f.png)"
+        );
+        assert_eq!(
+            translate("Click [![the logo](i.png)](https://x.org) now.", "지금 <a1><g2>로고</g2></a1>를 누르십시오."),
+            "지금 [![로고](i.png)](https://x.org)를 누르십시오."
+        );
+    }
+
+    #[test]
+    fn an_image_must_keep_its_alt() {
+        let tagged = tag("![fig one](a.png)");
+        let problems = read("<g1></g1>", &tagged).unwrap_err();
+        assert!(problems.iter().any(|p| p.contains("<g1> is empty")), "{problems:?}");
+        assert!(read("그림 하나", &tagged).is_err());
+        assert!(read("<g1>그림</g1> <g1>하나</g1>", &tagged).is_err());
+        // Without alt text there is nothing to keep.
+        let bare = tag("![](a.png)");
+        assert_eq!(render(&read("<x1/>", &bare).unwrap(), &bare, &ctx(&[])).markdown, "![](a.png)");
     }
 
     #[test]
@@ -2611,6 +2711,16 @@ mod tests {
         }
         for markdown in renders_with_links("See [the docs](d.md) on a[i].", "<a1>a[i] 문서</a1>를 보십시오.", &[], 1) {
             assert_eq!(markdown.replace("&#91;", "\\["), "[a\\[i\\] 문서](d.md)를 보십시오.");
+        }
+    }
+
+    #[test]
+    fn brackets_in_an_alt_and_next_to_an_image_stay_text() {
+        for markdown in renders_with_links("See ![fig](f.png) here.", "<g1>a[i] 그림</g1>을 여기서 보십시오.", &[], 1) {
+            assert_eq!(markdown.replace("&#91;", "\\["), "![a\\[i\\] 그림](f.png)을 여기서 보십시오.");
+        }
+        for markdown in renders_with_links("See [x] and ![fig](f.png).", "[x]<g1>그림</g1>", &[], 1) {
+            assert_eq!(markdown, "[x]![그림](f.png)");
         }
     }
 

@@ -68,7 +68,7 @@ fn defects(markdown: &str, tagged: &Tagged, ctx: &DocContext) -> Vec<String> {
 /// The constructs a translation must not have more of than its source:
 /// each is markup the translator has no business adding. Emphasis is left
 /// out — Korean word order may split a bold phrase in two.
-const NOT_TO_GAIN: [&str; 6] = ["h", "(a", "g", "f", "e", "k"];
+const NOT_TO_GAIN: [&str; 6] = ["h", "(a", "(g", "f", "e", "k"];
 
 /// What a stored `translation` reads back with that its source does not
 /// have: inline HTML (a tag left over from tag text, `<b>` or `</a2>`, reads
@@ -108,7 +108,7 @@ fn link_key(tag: &Tag) -> Option<String> {
 /// Whether translation tag `t` stands for source tag `s`.
 fn same_construct(t: &Tag, s: &Tag) -> bool {
     match (t.kind, s.kind) {
-        (TagKind::Link, TagKind::Link) => match (link_key(t), link_key(s)) {
+        (TagKind::Link, TagKind::Link) | (TagKind::Image, TagKind::Image) => match (link_key(t), link_key(s)) {
             (Some(a), Some(b)) => a == b,
             (None, None) => t.close == s.close,
             _ => false,
@@ -214,6 +214,7 @@ fn describe(tag: &Tag) -> String {
         TagKind::Bold => "a bold".into(),
         TagKind::Strike => "a strikethrough".into(),
         TagKind::Link | TagKind::Role => format!("a link ({})", tag.close.trim_start_matches(']')),
+        TagKind::Image => format!("an image ({})", tag.close.trim_start_matches(']')),
         _ => format!("`{}`", tag.open),
     }
 }
@@ -630,5 +631,37 @@ mod tests {
             check("See [team repo].", "**중요**: [팀 저장소]를 보십시오.", REFS),
             Audit::Unrepairable { .. }
         ));
+    }
+
+    /// A translation stored before image alts were tags kept the alt as the
+    /// source has it, or translated it the legacy way: both are sound.
+    #[test]
+    fn a_stored_image_with_or_without_its_alt_translated_is_sound() {
+        let ctx = DocContext::new("[logo]: l.png\n", Dialect::CommonMark);
+        for (source, translation) in [
+            ("![Diagram: one column.](s.svg)", "![Diagram: one column.](s.svg)"),
+            ("![Diagram: one column.](s.svg)", "![다이어그램: 한 열.](s.svg)"),
+            ("See ![logo] and ![](x.png).", "![logo]와 ![](x.png)를 보십시오."),
+        ] {
+            let tagged = tagify(source, &ctx, Position::Inline, &mut 0).unwrap();
+            assert_eq!(audit(translation, &tagged, &ctx), Audit::Sound, "{translation}");
+            assert!(gained(translation, &tagged, &ctx).is_empty(), "{translation}");
+        }
+    }
+
+    #[test]
+    fn an_image_made_of_literal_brackets_is_a_gain_and_a_lost_one_a_defect() {
+        let ctx = DocContext::new("", Dialect::CommonMark);
+        let tagged = tagify("See ![fig](f.png) and !fig.", &ctx, Position::Inline, &mut 0).unwrap();
+        assert_eq!(gained("![그림](f.png)과 ![fig](g.png)를 보십시오.", &tagged, &ctx), ["image 2 where the source has 1"]);
+        assert!(matches!(audit("그림과 !fig를 보십시오.", &tagged, &ctx), Audit::Unrepairable { .. }));
+    }
+
+    /// A lost alt pairs back with its image by the destination.
+    #[test]
+    fn a_translated_image_pairs_with_its_source_image() {
+        let ctx = DocContext::new("", Dialect::CommonMark);
+        let tagged = tagify("See *this* and ![fig](f.png).", &ctx, Position::Inline, &mut 0).unwrap();
+        assert_eq!(repaired(audit("**이것**과 ![그림](f.png)을 보십시오.", &tagged, &ctx)), "*이것*과 ![그림](f.png)을 보십시오.");
     }
 }

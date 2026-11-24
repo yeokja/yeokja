@@ -110,7 +110,8 @@ fn surroundings_section(request: &TranslateRequest) -> String {
 /// as tags, and the markup is written back for it.
 pub const INLINE_TAG_RULES: &str = "The text marks inline formatting with tags. Paired tags wrap formatted \
     text: <bN>…</bN> bold, <iN>…</iN> italic, <sN>…</sN> strikethrough, <aN>…</aN> the visible text \
-    of a link, <hN>…</hN> text inside an HTML element. Inline code is written in backticks as in \
+    of a link, <gN>…</gN> the description (alt text) of an image, <hN>…</hN> text inside an HTML \
+    element. Inline code is written in backticks as in \
     Markdown (`x`): copy every code span exactly, never translate or change what is inside it. Empty \
     tags stand for things copied unchanged: <xN/> other markup, <mN/> math. An empty tag is not a word and \
     may be invisible (an HTML comment): never add a word, number or unit (일, 년) to go with it, and put it \
