@@ -127,77 +127,81 @@ fn acronym_singular(written: &str) -> Option<&str> {
 
 /// Reads the word, number or URL starting at `start`; returns where it ends.
 fn word(chars: &[char], start: usize, side: Side, found: &mut BTreeSet<String>) -> usize {
-    let mut i = start;
-    let mut parts: Vec<String> = vec![String::new()];
-    while i < chars.len() {
-        let ch = chars[i];
-        if ch.is_ascii_alphanumeric() {
-            parts.last_mut().expect("parts is never empty").push(ch);
-        } else if ch == '.' && chars.get(i + 1).is_some_and(|n| n.is_ascii_digit()) {
-            parts.last_mut().expect("parts is never empty").push('.');
-        } else if ch == '-'
-            && chars[i - 1].is_ascii_alphabetic()
-            && chars.get(i + 1).is_some_and(|n| n.is_ascii_alphabetic())
-        {
-            parts.push(String::new());
-        } else {
-            break;
-        }
-        i += 1;
-    }
-    if chars[i..].starts_with(&[':', '/', '/']) {
-        let end = chars[start..]
+    let end = word_end(chars, start);
+    if chars[end..].starts_with(&[':', '/', '/']) {
+        let url_end = chars[start..]
             .iter()
             .position(|ch| {
                 ch.is_whitespace() || !ch.is_ascii() || matches!(ch, ')' | '>' | '<' | ']' | '{' | '}' | '`' | '"' | '\'')
             })
             .map_or(chars.len(), |n| start + n);
-        let url: String = chars[start..end].iter().collect();
+        let url: String = chars[start..url_end].iter().collect();
         found.insert(url.trim_end_matches(['.', ',', ';', ':', '!', '?']).to_lowercase());
-        return end;
+        return url_end;
     }
-
-    let written = parts.concat();
-    let compound: String = written.to_lowercase();
+    let written: String = chars[start..end].iter().collect();
+    let parts: Vec<&str> = written.split('-').collect();
+    let compound = parts.concat().to_lowercase();
     insert_word(&compound, found);
     if side == Side::Source {
-        if let Some(acronym) = acronym_singular(&written) {
-            insert_word(&acronym.to_lowercase(), found);
+        source_readings(&parts, &compound, &chars[end..], found);
+    }
+    end
+}
+
+/// Where a word starting at `start` ends: letters and digits, a decimal point
+/// before a digit, and a hyphen between letters ("int-to-float").
+fn word_end(chars: &[char], start: usize) -> usize {
+    let mut i = start;
+    while let Some(&ch) = chars.get(i) {
+        let next = chars.get(i + 1);
+        let continues = ch.is_ascii_alphanumeric()
+            || (ch == '.' && next.is_some_and(|n| n.is_ascii_digit()))
+            || (ch == '-' && chars[i - 1].is_ascii_alphabetic() && next.is_some_and(|n| n.is_ascii_alphabetic()));
+        if !continues {
+            break;
         }
-        // The translation may set a word from the source as code.
-        found.insert(format!("`{}`", code_name(&compound)));
-        if parts.len() > 1 {
-            for part in &parts {
-                insert_word(&part.to_lowercase(), found);
-            }
-        }
-        for part in &parts {
-            let part = part.to_lowercase();
-            if let Some(n) = number_word(&part) {
-                found.insert(n.to_string());
-            }
-            // A glossary term keeps its base form: "stashing" is "stash",
-            // "fulfillment" is "fulfill", "evaluation" is "evaluate".
-            for (suffix, ending) in [("ing", ""), ("ed", ""), ("ment", ""), ("ation", "ate")] {
-                if let Some(stem) = part.strip_suffix(suffix).filter(|stem| stem.len() >= 3) {
-                    insert_word(&format!("{stem}{ending}"), found);
-                }
-            }
-            // "31st", "3d", "1.5TB": the number on its own.
-            let digits: String = part.chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
-            if !digits.is_empty() && digits.len() < part.len() {
-                insert_word(&digits, found);
-            }
-        }
-        // "250 MHz" may be written "250MHz".
-        if compound.chars().all(|c| c.is_ascii_digit() || c == '.') && chars.get(i) == Some(&' ') {
-            let unit: String = chars[i + 1..].iter().take_while(|c| c.is_ascii_alphabetic()).collect();
-            if (1..=3).contains(&unit.len()) {
-                insert_word(&format!("{compound}{}", unit.to_lowercase()), found);
-            }
-        }
+        i += 1;
     }
     i
+}
+
+/// The other forms a faithful translation may write a source word in.
+/// `parts` are its hyphen-separated pieces as written, `compound` the whole
+/// word lowercased, and `after` the text that follows it.
+fn source_readings(parts: &[&str], compound: &str, after: &[char], found: &mut BTreeSet<String>) {
+    if let Some(acronym) = acronym_singular(&parts.concat()) {
+        insert_word(&acronym.to_lowercase(), found);
+    }
+    // The translation may set a word from the source as code.
+    found.insert(format!("`{}`", code_name(compound)));
+    for part in parts.iter().map(|part| part.to_lowercase()) {
+        if parts.len() > 1 {
+            insert_word(&part, found);
+        }
+        if let Some(n) = number_word(&part) {
+            found.insert(n.to_string());
+        }
+        // A glossary term keeps its base form: "stashing" is "stash",
+        // "fulfillment" is "fulfill", "evaluation" is "evaluate".
+        for (suffix, ending) in [("ing", ""), ("ed", ""), ("ment", ""), ("ation", "ate")] {
+            if let Some(stem) = part.strip_suffix(suffix).filter(|stem| stem.len() >= 3) {
+                insert_word(&format!("{stem}{ending}"), found);
+            }
+        }
+        // "31st", "3d", "1.5TB": the number on its own.
+        let digits: String = part.chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+        if !digits.is_empty() && digits.len() < part.len() {
+            insert_word(&digits, found);
+        }
+    }
+    // "250 MHz" may be written "250MHz".
+    if compound.chars().all(|c| c.is_ascii_digit() || c == '.') && after.first() == Some(&' ') {
+        let unit: String = after[1..].iter().take_while(|c| c.is_ascii_alphabetic()).collect();
+        if (1..=3).contains(&unit.len()) {
+            insert_word(&format!("{compound}{}", unit.to_lowercase()), found);
+        }
+    }
 }
 
 fn insert_word(token: &str, found: &mut BTreeSet<String>) {
