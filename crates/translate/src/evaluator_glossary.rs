@@ -72,7 +72,7 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
         Markup::Markdown | Markup::MkDocs | Markup::MkDocsNoMath | Markup::RMarkdown | Markup::Bikeshed
     ) && source.contains("<!--")
     {
-        uncommented = without_html_comments(source);
+        uncommented = without_closed_html_comments(source);
         uncommented.as_str()
     } else {
         source
@@ -94,9 +94,7 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
     }
 }
 
-/// `source` with every closed `<!-- … -->` removed; an opener with no closer
-/// after it is left as text.
-fn without_html_comments(source: &str) -> String {
+fn without_closed_html_comments(source: &str) -> String {
     let mut out = String::with_capacity(source.len());
     let mut rest = source;
     while let Some(open) = rest.find("<!--") {
@@ -195,7 +193,6 @@ mod tests {
             glossary_source(Markup::MkDocs, "Ask the team <!-- not\nthis team --> today."),
             "Ask the team  today."
         );
-        // An unclosed opener is text, and other markups keep their comments.
         assert_eq!(glossary_source(Markup::Markdown, "a `<!--` team"), "a `<!--` team");
         assert_eq!(glossary_source(Markup::Asciidoc, "<!-- team -->"), "<!-- team -->");
     }
