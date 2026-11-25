@@ -43,6 +43,18 @@ pub enum Markup {
     Plain,
 }
 
+impl Markup {
+    /// Whether backticks are code and `](…)` a destination. In
+    /// reStructuredText a backtick pair holds a link's text, in AsciiDoc a
+    /// passthrough may.
+    pub fn reads_as_markdown(self) -> bool {
+        match self {
+            Markup::Markdown | Markup::MkDocs | Markup::MkDocsNoMath | Markup::RMarkdown | Markup::Bikeshed => true,
+            Markup::Asciidoc | Markup::Rst | Markup::Latex | Markup::Verso | Markup::Xhtml | Markup::Plain => false,
+        }
+    }
+}
+
 pub trait DocumentParser: Send + Sync {
     fn parse(&self, source: &str) -> Document;
 

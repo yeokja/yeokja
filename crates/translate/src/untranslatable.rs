@@ -19,22 +19,12 @@ const UNITS: [&str; 22] = [
     "µs", "μs", "ns", "ps",
 ];
 
-/// Whether backticks are code and `](…)` a destination in `markup`. In
-/// reStructuredText a backtick pair holds a link's text, in AsciiDoc a
-/// passthrough may: there only the letters decide.
-fn reads_as_markdown(markup: Markup) -> bool {
-    matches!(
-        markup,
-        Markup::Markdown | Markup::MkDocs | Markup::MkDocsNoMath | Markup::RMarkdown | Markup::Bikeshed
-    )
-}
-
 /// Whether `source` holds nothing a translator could change: no letter is
 /// left once — in a Markdown markup — its code spans, URLs, link
 /// destinations and the units after its numbers are taken out. Digits,
 /// punctuation and symbols were never letters.
 pub fn nothing_to_translate(markup: Markup, source: &str) -> bool {
-    if !reads_as_markdown(markup) {
+    if !markup.reads_as_markdown() {
         return !source.chars().any(char::is_alphabetic);
     }
     let chars: Vec<char> = source.chars().collect();

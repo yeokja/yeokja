@@ -1,5 +1,6 @@
 use crate::evaluator::*;
 use async_trait::async_trait;
+use std::borrow::Cow;
 
 pub struct GlossaryEvaluator;
 
@@ -66,17 +67,8 @@ impl TranslationEvaluator for GlossaryEvaluator {
 /// words in it (`<!-- preserve links to the old team name -->`) are a note
 /// to copy as written, not prose the glossary applies to.
 pub fn glossary_source(markup: Markup, source: &str) -> String {
-    let uncommented;
-    let source = if matches!(
-        markup,
-        Markup::Markdown | Markup::MkDocs | Markup::MkDocsNoMath | Markup::RMarkdown | Markup::Bikeshed
-    ) && source.contains("<!--")
-    {
-        uncommented = without_closed_html_comments(source);
-        uncommented.as_str()
-    } else {
-        source
-    };
+    let source = if markup.reads_as_markdown() { without_closed_html_comments(source) } else { Cow::Borrowed(source) };
+    let source = source.as_ref();
     match markup {
         Markup::Verso => without_verso_role_headers(source),
         Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
@@ -94,7 +86,10 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
     }
 }
 
-fn without_closed_html_comments(source: &str) -> String {
+fn without_closed_html_comments(source: &str) -> Cow<'_, str> {
+    if !source.contains("<!--") {
+        return Cow::Borrowed(source);
+    }
     let mut out = String::with_capacity(source.len());
     let mut rest = source;
     while let Some(open) = rest.find("<!--") {
@@ -103,7 +98,7 @@ fn without_closed_html_comments(source: &str) -> String {
         rest = &rest[open + 4 + close + 3..];
     }
     out.push_str(rest);
-    out
+    Cow::Owned(out)
 }
 
 /// Whether `source` is exactly one display formula, `$$…$$`: a KaTeX/MathJax
