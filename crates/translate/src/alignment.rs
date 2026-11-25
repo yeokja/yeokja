@@ -151,9 +151,17 @@ fn word(chars: &[char], start: usize, side: Side, found: &mut BTreeSet<String>) 
         return end;
     }
 
-    let compound: String = parts.concat().to_lowercase();
+    let written = parts.concat();
+    let compound: String = written.to_lowercase();
     insert_word(&compound, found);
     if side == Side::Source {
+        // "PRs", "VMs", "IDs": an acronym's plural, too short for
+        // `fold_plural`, is written as the acronym.
+        if let Some(acronym) = written.strip_suffix('s').filter(|stem| {
+            stem.len() >= 2 && stem.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+        }) {
+            insert_word(&acronym.to_lowercase(), found);
+        }
         // The translation may set a word from the source as code.
         found.insert(format!("`{}`", code_name(&compound)));
         if parts.len() > 1 {
@@ -453,6 +461,23 @@ mod tests {
             .iter()
             .map(|m| (m.idx, m.from))
             .collect()
+    }
+
+    #[test]
+    fn a_short_acronym_plural_is_its_singular() {
+        // rust-forge llm-usage.md: "PRs" is written "PR", and naming what the
+        // disclosure is about ("LLM 사용 사실") is not the previous segment.
+        let sources = [
+            "It is allowed, but discouraged, to open a LLM-created PR with `r? @ghost` before finding a reviewer.",
+            "Such PRs still require disclosure.",
+        ];
+        let translations = [
+            "리뷰어를 찾기 전에 `r? @ghost`로 LLM이 작성한 PR을 여는 것은 허용되지만 권장하지 않습니다.",
+            "이러한 PR도 여전히 LLM 사용 사실을 밝혀야 합니다.",
+        ];
+        assert_eq!(check(Markup::Markdown, &sources, &translations), vec![]);
+        // A lowercase three-letter word ending in "s" is not folded.
+        assert!(anchors("Use gas.", Markup::Markdown).contains("gas"));
     }
 
     #[test]

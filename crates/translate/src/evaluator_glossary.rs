@@ -61,7 +61,22 @@ impl TranslationEvaluator for GlossaryEvaluator {
 /// that site's page — `[UVa OJ - Continued Fractions](https://…)` in a
 /// problem list — and its words are a title to copy, not prose to render
 /// with the glossary.
+///
+/// An HTML comment in a Markdown-family source is never rendered, so the
+/// words in it (`<!-- preserve links to the old team name -->`) are a note
+/// to copy as written, not prose the glossary applies to.
 pub fn glossary_source(markup: Markup, source: &str) -> String {
+    let uncommented;
+    let source = if matches!(
+        markup,
+        Markup::Markdown | Markup::MkDocs | Markup::MkDocsNoMath | Markup::RMarkdown | Markup::Bikeshed
+    ) && source.contains("<!--")
+    {
+        uncommented = without_html_comments(source);
+        uncommented.as_str()
+    } else {
+        source
+    };
     match markup {
         Markup::Verso => without_verso_role_headers(source),
         Markup::Latex => crate::evaluator_format::without_latex_reference_arguments(source),
@@ -77,6 +92,20 @@ pub fn glossary_source(markup: Markup, source: &str) -> String {
         Markup::Bikeshed => crate::evaluator_bikeshed::without_variables(source),
         _ => source.to_string(),
     }
+}
+
+/// `source` with every closed `<!-- … -->` removed; an opener with no closer
+/// after it is left as text.
+fn without_html_comments(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    let mut rest = source;
+    while let Some(open) = rest.find("<!--") {
+        let Some(close) = rest[open + 4..].find("-->") else { break };
+        out.push_str(&rest[..open]);
+        rest = &rest[open + 4 + close + 3..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Whether `source` is exactly one display formula, `$$…$$`: a KaTeX/MathJax
@@ -156,6 +185,19 @@ mod tests {
             target_lang: "ko".to_string(),
             markup: Markup::Asciidoc,
         }
+    }
+
+    #[test]
+    fn html_comments_are_not_glossary_source_in_markdown() {
+        let source = "<a name=\"old\"></a><!-- preserve links to the old team name -->";
+        assert_eq!(glossary_source(Markup::Markdown, source), "<a name=\"old\"></a>");
+        assert_eq!(
+            glossary_source(Markup::MkDocs, "Ask the team <!-- not\nthis team --> today."),
+            "Ask the team  today."
+        );
+        // An unclosed opener is text, and other markups keep their comments.
+        assert_eq!(glossary_source(Markup::Markdown, "a `<!--` team"), "a `<!--` team");
+        assert_eq!(glossary_source(Markup::Asciidoc, "<!-- team -->"), "<!-- team -->");
     }
 
     #[tokio::test]
